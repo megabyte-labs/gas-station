@@ -1,0 +1,25 @@
+# Copyright 2020, Megabyte LLC <help@megabyte.space>
+
+# This playbook installs the initial software collection on Windows PCs.
+
+---
+- name: Set up the base Mac OS X environment
+  hosts: all
+  vars_files:
+    - config.yml
+  roles:
+  
+  tasks:
+    - include_tasks: tasks/setup.yml
+    - include_tasks: sudoers.yml
+      when: configure_sudoers
+    - include_tasks: tasks/terminal.yml
+    - include_tasks: tasks/osx.yml
+      when: configure_osx
+      tags: ['osx']
+    - include_tasks: tasks/extra-packages.yml
+    - name: Run configured post-provision Ansible task files
+      include:tasks: "{{ outer_item }}"
+      loop_control:
+        loop_var: outer_item
+      with_fileglob: "{{ post_provision_tasks|default(omit) }}"

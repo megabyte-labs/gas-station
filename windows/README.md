@@ -4,9 +4,9 @@
 
 Run the following commands as an Administrator in Powershell on the target Windows 10 machines:
 
-1. Enable WinRM by running `WinRM qc`
-2. Allow Powershell execution by running `Set-ExecutionPolicy` and then setting it to Bypass
-3. Run `ConfigureRemotingForAnsible.ps1 -CertValidityDays 3650 -EnableCredSSP`
+```
+ConfigureRemotingForAnsible.ps1 -EnableCredSSP
+```
 
 ## Gotchas
 

@@ -11,3 +11,16 @@ ConfigureRemotingForAnsible.ps1 -EnableCredSSP
 ## Gotchas
 
 On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running an ansible-playbook when connecting to Parallels Windows.
+
+## Useful Commands
+
+The following commands are Powershell commands used for generating configurations.
+
+* Export the start menu configuration: `Export-StartLayout -path file_name.xml`
+* List all of the installed apps AppIDs: `get-StartApps`
+* List all of the installed APPX files: `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
+* List all of the available optional features: `Get-WindowsOptionalFeature -Online`
+
+## DISM
+
+* dism /online /Enable-Feature /FeatureName:"Containers-DisposableClientVM" -All

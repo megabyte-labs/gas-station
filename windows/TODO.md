@@ -5,3 +5,5 @@
 * Add network shared drive
 * Unattended installation
 * Rundeck
+* Look into IIS-WinidowsAuthentication optional feature
+* Apply base-layout via group policy

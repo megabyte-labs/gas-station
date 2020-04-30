@@ -28,6 +28,14 @@
     params: "{{ item.params | default('') }}"
     state: "{{ item.state | default('present') }}"
   with_items: "{{ choco_apps | default([]) }}"
+  register: chocolatey_installs
+- debug:
+    var: chocolatey_installs
+- set_fact:
+    needs_reboot: "{{ chocolatey_installs | json_query('results[*].reboot_required') }}"
+- name: Reboot if the installation of software packages requires it
+  win_reboot:
+  when: True in needs_reboot
 - name: Install Visual Studio Code plugins to via Chocolatey
   win_chocolatey:
     name: "{{ item | default(item) }}"

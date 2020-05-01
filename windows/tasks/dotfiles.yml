@@ -1,0 +1,20 @@
+---
+- name: Determine if .git exists in user profile folder
+  win_stat:
+    path: "%USERPROFILE%\\.git"
+  register: git_profile
+- name: Set up dotfiles if the .git folder does not already exist
+  win_shell: |
+    Push-Location -Path "$Env:USERPROFILE"
+    git init
+    git remote origin add {{ dotfiles_repo }}
+    git fetch origin master
+    Pop-Location
+  when:
+    - git_profile.stat.exists == False
+- name: If the .git folder already exists, then git fetch
+  win_shell: |
+    Push-Location -Path "$Env:USERPROFILE"
+    git pull origin master
+  when:
+    - git_profile.stat.exists == True

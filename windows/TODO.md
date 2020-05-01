@@ -10,3 +10,5 @@
 * Add passwords in encrypted form
 * Define JAVA_HOME/add to path
 * OSSEC setup
+* vscode plugins
+    - tldr https://github.com/bmuskalla/vscode-tldr

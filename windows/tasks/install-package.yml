@@ -1,9 +1,10 @@
 ---
-- name: "Install {{ item.name }} via Chocolatey"
+- name: "Ensure \"{{ item.name }}\" is installed"
   win_chocolatey:
     name: "{{ item.name | default(item) }}"
     params: "{{ item.params | default('') }}"
     state: "{{ item.state | default('present') }}"
+    version: "{{ item.version | default(item.name) | default(item) }}"
   register: installation
 - debug:
     var: installation
@@ -12,7 +13,6 @@
     path: "{{ windows_startmenu }}\\{{ software_meta[item.name].folder }}\\{{ software_meta[item.name].link }}.lnk"
   register: startmenu_shortcut
   when:
-    - software_meta[item.name] is defined
     - software_meta[item.name].folder is defined
     - software_meta[item.name].link is defined
 - name: "Move the {{ software_meta[item.name].folder }} shortcut to parent directory if it is in the default location"

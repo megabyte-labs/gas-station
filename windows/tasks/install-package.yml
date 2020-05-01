@@ -4,8 +4,15 @@
     name: "{{ item.name | default(item) }}"
     params: "{{ item.params | default('') }}"
     state: "{{ item.state | default('present') }}"
-    version: "{{ item.version | version('latest') }}"
   register: installation
+  when: item.version is not defined
+- name: "Ensure \"{{ item.name }}\" is installed at version \"{{ item.version }}\""
+  win_chocolatey:
+    name: "{{ item.name }}"
+    params: "{{ item.params | default('') }}"
+    version: "{{ item.version }}"
+  register: installation
+  whhen: item.version is defined
 - debug:
     var: installation
 - name: "Check if the {{ software_meta[item.name].folder }} start menu shortcut is in the default location"

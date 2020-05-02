@@ -3,7 +3,7 @@
 On a fresh install of Windows 10 Enterprise, run the following command in an Administrator Powershell:
 
 ```
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/playbooks/-/raw/master/windows/setup.ps1))
+powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/windows/setup.ps1))
 ```
 
 ## Gotchas

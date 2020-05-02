@@ -1,11 +1,9 @@
 # Windows 10 Playbooks
 
-## Initial Setup Required
-
-Run the following commands as an Administrator in Powershell on the target Windows 10 machines:
+On a fresh install of Windows 10 Enterprise, run the following command in an Administrator Powershell:
 
 ```
-ConfigureRemotingForAnsible.ps1 -EnableCredSSP
+powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/playbooks/-/raw/master/windows/setup.ps1))
 ```
 
 ## Gotchas

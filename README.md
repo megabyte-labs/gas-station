@@ -1,22 +1,28 @@
 # Playbooks
-
 On a fresh install of Windows 10 Enterprise, run the following command in an Administrator Powershell:
 
 **Windows 10 controller:**
-
-The controller is responsible for running Ansible to provision other parts of the system. There only needs to be one controller. To provision a controller, run the following on a preferrably fresh install of Windows 10 Enterprise:
-
+The controller is responsible for running Ansible to provision other parts of the system. There only needs to be one controller. To provision a controller, run the following on a preferrably fresh install of a fully updated Windows 10 Enterprise:
 ```
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1'))"
+powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleController'))"
 ```
+Then, with Ubuntu installed, log into the Ubuntu WSL instance and finish the installation of Ansible:
+```
+ubuntu
+bash <(curl -s https://gitlab.com/ProfessorManhattann/Playbooks/-/raw/master/files/windows.controller.sh)
+```
+
+The bit.ly links to [https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1]().
 
 **Windows 10 client:**
 
 A client is a computer you wish to control with the controller. Windows needs to have Remote Execution (RE) enabled. Run the following command in an Administrator Powershell:
 
 ```
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1'))"
+powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleClient_'))"
 ```
+
+The bit.ly links to [https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1']().
 
 ## Run the playbook
 

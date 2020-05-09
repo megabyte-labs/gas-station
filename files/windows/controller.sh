@@ -8,4 +8,4 @@ pip3 install pywinrm[credssp]
 git clone https://gitlab.com/ProfessorManhattan/Playbooks.git
 chmod 700 Playbooks
 cd Playbooks
-ansible-playbook main.yml
+ansible-playbook --ask-vault-pass main.yml

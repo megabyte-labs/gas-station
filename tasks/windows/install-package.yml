@@ -5,7 +5,6 @@
     name: "{{ item.name }}"
     params: "{{ item.params | default('') }}"
     state: "{{ item.state | default('present') }}"
-  register: installation
   when: item.version is not defined
 - name: "Ensure \"{{ item.name }}\" is installed at specific version if specified"
   win_chocolatey:
@@ -13,31 +12,21 @@
     name: "{{ item.name }}"
     params: "{{ item.params | default('') }}"
     version: "{{ item.version }}"
-  register: installation_version
   when: item.version is defined
-- debug:
-    var: installation
-- debug:
-    var: installation_version
 - name: "Check if \"{{ item.name }}\" has a start menu shortcut in a folder"
   win_stat:
-    path: "{{ windows_startmenu }}\\{{ software_meta[item.name].folder }}\\{{ software_meta[item.name].link }}.lnk"
+    path: "{{ windows_startmenu }}\\{{ windows_software_meta[item.name].folder }}\\{{ windows_software_meta[item.name].link }}.lnk"
   register: startmenu_shortcut
   when:
-    - software_meta[item.name].folder is defined
-    - software_meta[item.name].link is defined
+    - windows_software_meta[item.name].folder is defined
+    - windows_software_meta[item.name].link is defined
 - name: "Move the \"{{ item.name }}\" shortcut to parent directory if it resides in a folder"
-  win_shell: "mv '{{ windows_startmenu }}\\{{ software_meta[item.name].folder }}\\{{ software_meta[item.name].link }}.lnk' '{{ windows_startmenu }}\\{{ software_meta[item.name].rename | default(software_meta[item.name].link) }}.lnk'"
+  win_shell: "mv '{{ windows_startmenu }}\\{{ windows_software_meta[item.name].folder }}\\{{ windows_software_meta[item.name].link }}.lnk' '{{ windows_startmenu }}\\{{ windows_software_meta[item.name].rename | default(windows_software_meta[item.name].link) }}.lnk'"
   when:
    - startmenu_shortcut.stat.exists is defined
    - startmenu_shortcut.stat.exists
 - name: "Remove the \"{{ item.name }}\" folder from the start menu if it exists"
   win_file:
-    path: "{{ windows_startmenu }}\\{{ software_meta[item.name].folder }}"
+    path: "{{ windows_startmenu }}\\{{ windows_software_meta[item.name].folder }}"
     state: absent
-  when: software_meta[item.name].folder is defined
-- name: "Reboot if the installation of \"{{ item.name }}\" requires it"
-  win_reboot:
-  when:
-    - installation.reboot_required is defined
-    - installation.reboot_required
+  when: windows_software_meta[item.name].folder is defined

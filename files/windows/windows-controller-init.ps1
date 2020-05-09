@@ -10,14 +10,11 @@ Write-Host "Downloading/setting up a script that will continue the installation 
 $nextRunUrl = "https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/windows-ubuntu-setup.ps1"
 $nextRunFile = "C:\professor-manhattan-windows-ubuntu-setup.ps1"
 (New-Object -TypeName System.Net.WebClient).DownloadFile($nextRunUrl, $nextRunFile)
-$trigger = New-JobTrigger -AtStartup -RandomDelay 00:00:24
-Register-ScheduledJob -Trigger $trigger -FilePath $nextRunFile -Name ProfessorManhattanPlaybookUbuntuSetup
+$TaskTrigger = (New-ScheduledTaskTrigger -atstartup)
+$TaskAction = New-ScheduledTaskAction -Execute Powershell.exe -argument "-ExecutionPolicy Bypass -File $nextRunFile"
+$TaskUserID = New-ScheduledTaskPrincipal -UserId System -RunLevel Highest -LogonType ServiceAccount
+Register-ScheduledTask -Force -TaskName HeadlessRestartTask -Action $TaskAction -Principal $TaskUserID -Trigger $TaskTrigger
 Write-Host "WSL and Windows RE are now enabled. Now, you have to download Ubuntu from the app store by following the instructions below." -ForegroundColor DarkGreen -BackgroundColor White
-Write-Host "1. Open the Microsoft Windows Store app from the Start Menu" -ForegroundColor DarkGreen -BackgroundColor White
-Write-Host "2. Search for Ubuntu" -ForegroundColor DarkGreen -BackgroundColor White
-Write-Host "1. Open the Microsoft Windows Store app from the Start Menu" -ForegroundColor DarkGreen -BackgroundColor White
-Write-Host "1. Open the Microsoft Windows Store app from the Start Menu" -ForegroundColor DarkGreen -BackgroundColor White
-echo "WSL and Windows RE are now enabled. Now, you have to download Ubuntu from the app store."
-echo "1. Navigate to the Ubuntu app in the Windows App Store (https://www.microsoft.com/en-us/p/ubuntu/9nblggh4msv6)"
-echo "2. Install it"
-echo "3. Reboot and this script will automatically continue"
+Write-Host "1. Navigate to the Ubuntu app in the Windows App Store (https://www.microsoft.com/en-us/p/ubuntu/9nblggh4msv6)" -ForegroundColor DarkGreen -BackgroundColor White
+Write-Host "2. Install the app" -ForegroundColor DarkGreen -BackgroundColor White
+Write-Host "3. Reboot and this script will automatically continue" -ForegroundColor DarkGreen -BackgroundColor White

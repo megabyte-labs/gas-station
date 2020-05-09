@@ -18,6 +18,12 @@ A client is a computer you wish to control with the controller. Windows needs to
 powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1'))"
 ```
 
+## Run the playbook
+
+```
+ansible-playbook --ask-vault-pass main.yml
+```
+
 ## Gotchas
 
 On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running an ansible-playbook when connecting to Parallels Windows.

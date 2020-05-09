@@ -1,4 +1,5 @@
 #!/bin/bash
+cd ~
 sudo apt-get update
 sudo apt-get -y upgrade
 sudo apt-get -y install git ansible python3-pip libffi-dev libssl-dev

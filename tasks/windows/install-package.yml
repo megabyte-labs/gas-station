@@ -37,12 +37,14 @@
   when:
     - windows_software_meta[item.name].folder is defined
     - windows_software_meta[item.name].link is defined
-- name: "Move the \"{{ item.name }}\" shortcut to the parent directory if it resides in a folder"
-  win_shell: "mv '%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\{{ windows_software_meta[item.name].folder }}\\{{ windows_software_meta[item.name].link }}.lnk' '%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Mennu\\Programs\\{{ windows_software_meta[item.name].link }}.lnk'"
+- name: "Copy the \"{{ item.name }}\" shortcut to the parent directory if it resides in a folder"
+  win_copy:
+    src: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\{{ windows_software_meta[item.name].folder }}\\{{ windows_software_meta[item.name].link }}.lnk"
+    dest: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Mennu\\Programs\\{{ windows_software_meta[item.name].rename | default(windows_software_meta[item.name].link) }}.lnk"
   when:
     - alt_startmenu_shortcut.stat.exists is defined
     - alt_startmenu_shortcut.stat.exists
-- name: Remove the \"{{ item.name }}\" folder from the start menu if it exists
+- name: "Remove the \"{{ item.name }}\" folder from the start menu if it exists"
   win_file:
     path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\{{ windows_software_meta[item.name].folder }}"
     state: absent

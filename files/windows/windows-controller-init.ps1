@@ -4,7 +4,7 @@ $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
 (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
 powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth
 $nextRunUrl = "https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/windows-ubuntu-setup.ps1"
-$nextRunFile = "C:\temp\windows-ubuntu-setup.ps1"
+$nextRunFile = "C:\professor-manhattan-windows-ubuntu-setup.ps1"
 (New-Object -TypeName System.Net.WebClient).DownloadFile($nextRunUrl, $nextRunFile)
 $trigger = New-JobTrigger -AtStartup -RandomDelay 00:00:24
 Register-ScheduledJob -Trigger $trigger -FilePath $nextRunFile -Name ProfessorManhattanPlaybookUbuntuSetup

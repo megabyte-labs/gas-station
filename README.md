@@ -7,7 +7,7 @@ On a fresh install of Windows 10 Enterprise, run the following command in an Adm
 The controller is responsible for running Ansible to provision other parts of the system. There only needs to be one controller. To provision a controller, run the following on a preferrably fresh install of Windows 10 Enterprise:
 
 ```
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/windows-controller-init.ps1'))
+powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1'))"
 ```
 
 **Windows 10 client:**
@@ -15,7 +15,7 @@ powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/Pr
 A client is a computer you wish to control with the controller. Windows needs to have Remote Execution (RE) enabled. Run the following command in an Administrator Powershell:
 
 ```
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/windows-client-init.ps1'))
+powershell "(IEX(New-Object Net.WebClient).downloadString('https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1'))"
 ```
 
 ## Gotchas

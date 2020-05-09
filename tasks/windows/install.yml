@@ -22,17 +22,15 @@
     Get-AppxPackage -AllUsers -Name "{{ item | default(item) }}" | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue;
     Get-AppxProvisionedPackage -Online | where {$_.PackageName -like "{{ item | default(item) }}"} | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction SilentlyContinue;
   with_items: "{{ appx_removals | default([]) }}"
-- name: Install Python
-  include_tasks: install-python.yml
 - name: Install software via Chocolatey
   include_tasks: tasks/windows/install-package.yml
   with_items: "{{ choco_apps | default([]) }}"
   register: chocolatey_installs
-- name: Install Visual Studio Code plugins via Chocolatey
-  win_chocolatey:
-    name: "{{ item | default(item) }}"
-    state: latest
-  with_items: "{{ choco_vscode_plugins | default([]) }}"
+- name: Install Vagrant
+  include_tasks: install-vagrant.yml
+- name: Install Visual Studio Code plugins
+  win_shell: "code --install-extension {{ item }}"
+  with_items: "{{ vscode_plugins | default([]) }}"
 - name: Install global NPM packages
   win_shell: "npm install -g {{ item }}@latest"
   with_items: "{{ npm_globals | default([]) }}"

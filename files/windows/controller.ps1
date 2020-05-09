@@ -19,6 +19,6 @@ powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -Disa
 # $TaskUserID = New-ScheduledTaskPrincipal -UserId System -RunLevel Highest -LogonType ServiceAccount
 # Register-ScheduledTask -Force -TaskName HeadlessRestartTask -Action $TaskAction -Principal $TaskUserID -Trigger $TaskTrigger
 Write-Host "WSL and Windows RE are now enabled. Now, you have to download Ubuntu from the app store by following the instructions below." -ForegroundColor Black -BackgroundColor Cyan
-Write-Host "1. Navigate to the Ubuntu app in the Windows App Store (https://www.microsoft.com/en-us/p/ubuntu/9nblggh4msv6)" -ForegroundColor Black -BackgroundColor Cyan
+Write-Host "1. Navigate to the Ubuntu app in the Windows App Store (https://www.microsoft.com/en-us/p/ubuntu/9nblggh4msv6) and also the Python app (https://www.microsoft.com/en-us/p/python-38/9mssztt1n39l)" -ForegroundColor Black -BackgroundColor Cyan
 Write-Host "2. Install the app" -ForegroundColor Black -BackgroundColor Cyan
 Write-Host "3. Reboot and this script will automatically continue" -ForegroundColor Black -BackgroundColor Cyan

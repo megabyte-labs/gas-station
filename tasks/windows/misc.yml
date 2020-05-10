@@ -1,10 +1,19 @@
 ---
-- name: Install Scoop
-  win_shell: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-  ignore_errors: yes
-- name: Update Scoop
-  win_shell: scoop update
-  ignore_errors: yes
-- name: Install Starship
-  win_shell: scoop install starship
-  ignore_errors: yes
+- name: Install Starship via Scoop
+  block:
+    - name: Install Scoop
+      win_shell: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+    - name: Update Scoop
+      win_shell: scoop update
+    - name: Install Scoops
+      win_shell: "scoop install {{ item }}"
+      with_items: "{{ scoop_packages | default([]) }}"
+  rescue:
+    - name: Remove scoop folder from user directory
+      win_file:
+        path: "%USERPROFILE%\\scoop"
+        state: absent
+- name: Remove "source" directory from user folder
+  win_file:
+    path: "%USERPROFILE%\\source"
+    state: absent

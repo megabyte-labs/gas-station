@@ -1,0 +1,14 @@
+---
+- name: Check if .git folder exists in user folder
+  stat:
+    path: ~/.git
+  register: git_folder
+- name: Set up dotfiles if the .git folder does not already exist
+  shell: |
+    cd ~
+    git init
+    git remote add origin {{ dotfiles_repo }}
+  when:
+    - git_folder.stat.exists == False
+- name: Acquire the latest dotfiles
+  shell: git pull origin master

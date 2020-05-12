@@ -2,9 +2,16 @@
 - name: Remove all of the desktop icons
   win_shell: Remove-Item C:\Users\*\Desktop\*lnk -Force
   ignore_errors: yes
+- name: Check if PowerShell start menu link needs to be moved to top level
+  win_stat:
+    path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows PowerShell\\Windows PowerShell.lnk"
+  register: powershell_shortcut
 - name: Move Powershell start menu link to top level
   win_shell: "Move-Item -Path \"$env:UserProfile\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows PowerShell\\Windows PowerShell.lnk\" -Destination \"$env:UserProfile\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows PowerShell.lnk\""
   ignore_errors: yes
+  when:
+    - powershell_shortcut.stat.exists is defined
+    - powershell_shortcut.stat.exists
 - name: Remove PowerShell folder from start menu
   win_file:
     path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows PowerShell"

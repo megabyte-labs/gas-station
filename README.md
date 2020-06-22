@@ -9,7 +9,7 @@ powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/Ansibl
 Then, with Ubuntu installed, log into the Ubuntu WSL instance and finish the installation of Ansible:
 ```
 ubuntu
-curl https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.sh | bash
+wget https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.sh && bash controller.sh && rm controller.sh
 ```
 
 The bit.ly links to [https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1]().

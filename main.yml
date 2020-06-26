@@ -20,9 +20,17 @@
       include_tasks: tasks/windows/misc.yml
     - name: Attempt authentication
       include_tasks: tasks/windows/authenticate.yml
-- hosts: ubuntu-base:ubuntu-full
+- hosts: ubuntu-base:ubuntu-full:raspberry
   become: yes
   tasks:
+    - name: Update the operating system
+      include_tasks: tasks/ubuntu/update.yml
+    - name: Ensure proper hostname
+      include_tasks: tasks/ubuntu/hostname.yml
+    - name: Set up authentication
+      include_tasks: tasks/ubuntu/authenticate.yml
+    - name: Add dotfiles
+      include_tasks: tasks/ubuntu/dotfiles.yml
     - name: Ensure Ubuntu software is installed
       include_tasks: tasks/ubuntu/install.yml
 - hosts: ubuntu-full
@@ -30,3 +38,12 @@
   tasks:
     - name: Install private key
       include_tasks: tasks/ubuntu/private.yml
+- hosts: pihole
+  become: yes
+  tasks:
+    - include_role:
+        name: bendews.cloudflared
+    - name: Disable wireless
+      include_tasks: tasks/ubuntu/disable-wireless.yml
+    - name: Set up PiHole
+      include_tasks: tasks/ubuntu/pihole.yml

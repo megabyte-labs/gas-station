@@ -18,11 +18,11 @@
     dest: "%USERPROFILE%\\.localrc"
 - name: Ensure .bashrc exists
   win_file:
-    path: "%USERPROFILE\\.bashrc"
+    path: "%USERPROFILE%\\.bashrc"
     state: touch
 - name: Source .localrc from .bashrc (if the source call does not already exist)
   win_lineinfile:
-    path: "%USERPROFILE\\.bashrc"
+    path: "%USERPROFILE%\\.bashrc"
     regex: "^source ~\/.localrc$"
     line: source ~/.localrc
 - name: Copy .netrc
@@ -32,8 +32,18 @@
 - name: Copy .npmrc
   win_copy:
     src: files/dotfiles/.npmrc
-    dest: "%USERPROFILE\\.npmrc"
+    dest: "%USERPROFILE%\\.npmrc"
 - name: Copy .zshrc
   win_copy:
     src: files/dotfiles/.zshrc
-    dest: "%USERPROFILE\\.zshrc"
+    dest: "%USERPROFILE%\\.zshrc"
+- name: Check if Hyper.js is installed
+  win_stat:
+    path: "%USERPROFILE%\\AppData\\Roaming\\Hyper"
+  register: hyper_install_dir
+- name: Copy .hyper.js
+  win_copy:
+    src: files/dotfiles/.hyper.js
+    dest: "%USERPROFILE%\\AppData\\Roaming\\Hyper\\.hyper.js"
+  when:
+    - hyper_install_dir.stat.exists

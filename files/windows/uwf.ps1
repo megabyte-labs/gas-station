@@ -44,3 +44,5 @@ uwfmgr file add-exclusion "$env:WinDir\Prefetch"
 uwfmgr file add-exclusion "$env:WinDir\bootstat.dat"
 
 uwfmgr overlay set-size 8192
+uwfmgr overlay set-warningthreshold 6000
+uwfmgr overlay set-criticalthreshold 7800

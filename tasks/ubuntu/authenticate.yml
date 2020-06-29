@@ -1,5 +1,45 @@
+--
+- name: Ensure .ssh directory exists.
+  file: 
+    dest: ~/.ssh
+    mode: 0700 
+    owner: "{{ vault_linux_username }}"
+    state: directory
 - name: Set authorized key
   authorized_key:
-    user: crovax
+    user: "{{ vault_linux_username }}"
     state: present
-    key: "{{ authorized_keys_url }}"
+    key: "{{ lookup('file', 'files/keys/{{ authorized_key_file }}') }}"
+  when: authorized_key_file is defined
+- name: Copy SSH private keys
+  copy:
+    src: "files/keys/{{ item }}"
+    dest: "~/.ssh/{{ item }}"
+    owner: "{{ vault_linux_username }}"
+    group: "{{ vault_linux_username }}"
+    mode: 0600
+  with_items: "{{ ssh_private_keys | default([]) }}"
+- name: Copy SSH public keys
+  copy:
+    src: "files/keys/{{ item }}.pub"
+    dest: ~/.ssh/{{ item }}"
+    owner: "{{ vault_linux_username }}"
+    group: "{{ vault_linux_username }}"
+    mode: 0644
+  with_items: "{{ ssh_private_keys | default([]) }}"
+- name: Copy SSH known_hosts
+  copy:
+    src: files/keys/known_hosts
+    dest: ~/.ssh/known_hosts
+    owner: "{{ vault_linux_username }}"
+    group: "{{ vault_linux_username }}"
+    mode: 0644
+  when: ssh_private_keys is defined
+- name: Copy SSH config
+  copy:
+    src: files/keys/config
+    dset: ~/.ssh/config
+    owner: "{{ vault_linux_username }}"
+    group: "{{ vault_linux_username }}"
+    mode: 0644
+  when: ssh_private_keys is defined

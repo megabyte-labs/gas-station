@@ -1,18 +1,39 @@
 ---
-- name: Determine if .git exists in user profile folder
-  win_stat:
-    path: "%USERPROFILE%\\.git"
+- name: Ensure PowerShell start script directory exists
+  win_file:
+    path: "%USERPROFILE%\\.config\\powershell"
+    state: directory
+- name: Copy PowerShell start script
+  win_copy:
+    src: files/dotfiles/config/powershell/Microsoft.PowerShell_profile.ps1
+    dest: "%USERPROFILE%\\.config\\powershell\\Microsoft.PowerShell_profile.ps1"
   register: git_profile
-- name: Set up dotfiles if the .git folder does not already exist
-  win_shell: |
-    Push-Location -Path "$Env:USERPROFILE"
-    git init
-    git remote add origin {{ dotfiles_repo }}
-    Pop-Location
-  when:
-    - git_profile.stat.exists == False
-- name: Acquire the latest dotfiles
-  win_shell: |
-    Push-Location -Path "$Env:USERPROFILE"
-    git pull origin master
-    Pop-Location
+- name: Copy .gitconfig
+  win_copy:
+    src: files/dotfiles/.gitconfig
+    dest: "%USERPROFILE%\\.gitconfig"
+- name: Copy .localrc
+  win_copy:
+    src: files/dotfiles/.localrc
+    dest: "%USERPROFILE%\\.localrc"
+- name: Ensure .bashrc exists
+  win_file:
+    path: "%USERPROFILE\\.bashrc"
+    state: touch
+- name: Source .localrc from .bashrc (if the source call does not already exist)
+  win_lineinfile:
+    path: "%USERPROFILE\\.bashrc"
+    regex: "^source ~\/.localrc$"
+    line: source ~/.localrc
+- name: Copy .netrc
+  win_copy:
+    src: files/dotfiles/.netrc
+    dest: "%USERPROFILE%\\.netrc"
+- name: Copy .npmrc
+  win_copy:
+    src: files/dotfiles/.npmrc
+    dest: "%USERPROFILE\\.npmrc"
+- name: Copy .zshrc
+  win_copy:
+    src: files/dotfiles/.zshrc
+    dest: "%USERPROFILE\\.zshrc"

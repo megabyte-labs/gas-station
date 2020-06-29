@@ -1,14 +1,46 @@
 ---
-- name: Check if .git folder exists in user folder
-  stat:
-    path: ~/.git
-  register: git_folder
-- name: Set up dotfiles if the .git folder does not already exist
-  shell: |
-    cd ~
-    git init
-    git remote add origin {{ dotfiles_repo }}
-  when:
-    - git_folder.stat.exists == False
-- name: Acquire the latest dotfiles
-  shell: cd ~ && git pull origin master
+  - name: Copy .gitconfig
+    copy:
+      src: files/dotfiles/.gitconfig
+      dest: ~/.gitconfig
+      owner: "{{ vault_linux_username }}"
+      group: "{{ vault_linux_username }}"
+      mode: 0600
+  - name: Copy .localrc
+    copy:
+      src: files/dotfiles/.localrc
+      dest: ~/.localrc
+      owner: "{{ vault_linux_username }}"
+      group: "{{ vault_linux_username }}"
+      mode: 0600
+  - name: Ensure .bashrc exists
+    file:
+      path: ~/.bashrc
+      state: touch
+  - name: Source .localrc from .bashrc (if the source call does not already exist)
+    lineinfile:
+      path: ~/.bashrc
+      regex: "^source ~\/.localrc$"
+      line: source ~/.localrc
+  - name: Copy .netrc
+    copy:
+      src: files/dotfiles/.netrc
+      dest: ~/.netrc
+      owner: "{{ vault_linux_username }}"
+      group: "{{ vault_linux_username }}"
+      mode: 0600
+  - name: Copy .npmrc
+    copy:
+      src: files/dotfiles/.npmrc
+      dest: ~/.npmrc
+      owner: "{{ vault_linux_username }}"
+      group: "{{ vault_linux_username }}"
+      mode: 0600
+  - name: Copy .zshrc
+    copy:
+      src: files/dotfiles/.zshrc
+      dest: ~/.zshrc
+      owner: "{{ vault_linux_username }}"
+      group: "{{ vault_linux_username }}"
+      mode: 0600
+  

@@ -3,7 +3,8 @@
   stat:
     path: /home/linuxbrew/.linuxbrew
   register: homebrew_install_dir
-- set_fact:
+- name: Set variable equal to true if Homebrew exists
+  set_fact:
     homebrew_installed: "{{ homebrew_install_dir.stat.exists | default(false) }}"
 - name: Ensure Homebrew is installed
   shell: |
@@ -12,10 +13,11 @@
 - name: Make sure .bashrc imports Homebrew
   lineinfile:
     path: ~/.bashrc
-    regex: "^eval \'\$\(\/home\/linuxbrew\/.linuxbrew\/bin\/brew shellenv\)\'$"
+    regex: "\/home\/linuxbrew\/.linuxbrew\/bin\/brew shellenv"
     line: eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'
 - name: Ensure Homebrew packages are installed
   homebrew:
-    name: "{{ item }}"
+    name: "{{ homebrew_packages | default([]) }}"
     state: present
-  with_items: "{{ homebrew_packages | default([]) }}"
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_facts.env.PATH }}"

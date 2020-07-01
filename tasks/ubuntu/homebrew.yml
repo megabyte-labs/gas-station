@@ -1,0 +1,21 @@
+---
+- name: Check if Homebrew exists
+  stat:
+    path: /home/linuxbrew/.linuxbrew
+  register: homebrew_install_dir
+- set_fact:
+    homebrew_installed: "{{ homebrew_install_dir.stat.exists | default(false) }}"
+- name: Ensure Homebrew is installed
+  shell: |
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+  when: not homebrew_installed
+- name: Make sure .bashrc imports Homebrew
+  lineinfile:
+    path: ~/.bashrc
+    regex: "^eval \'\$\(\/home\/linuxbrew\/.linuxbrew\/bin\/brew shellenv\)\'$"
+    line: eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'
+- name: Ensure Homebrew packages are installed
+  homebrew:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ homebrew_packages | default([]) }}"

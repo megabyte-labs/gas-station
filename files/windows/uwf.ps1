@@ -29,19 +29,19 @@ uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\Cur
 
 # Recommended exclusions
 # Source: https://gist.github.com/ivanhub/c6c8e7c170bb3b515b3e2d0a119c2336
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Wireless\GPTWirelessPolicy"
-uwfmgr file add-exclusion "$env:WinDir\wlansvc\Policies"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\wlansvc"
-uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\wlansvc\Profiles\Interfaces"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\Wlansvc"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\WwanSvc"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WiredL2\GP_Policy"
-uwfmgr file add-exclusion "$env:WinDir\dot2svc\Policies"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\dot3svc"
-uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\dot3svc\Profiles\Interfaces"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\dot3svc"
-uwfmgr file add-exclusion "$env:WinDir\Prefetch"
-uwfmgr file add-exclusion "$env:WinDir\bootstat.dat"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Wireless\GPTWirelessPolicy"
+#uwfmgr file add-exclusion "$env:WinDir\wlansvc\Policies"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\wlansvc"
+#uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\wlansvc\Profiles\Interfaces"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\Wlansvc"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\WwanSvc"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WiredL2\GP_Policy"
+#uwfmgr file add-exclusion "$env:WinDir\dot2svc\Policies"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\dot3svc"
+#uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\dot3svc\Profiles\Interfaces"
+#uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\dot3svc"
+#uwfmgr file add-exclusion "$env:WinDir\Prefetch"
+#uwfmgr file add-exclusion "$env:WinDir\bootstat.dat"
 
 uwfmgr overlay set-size 8192
 uwfmgr overlay set-warningthreshold 6000

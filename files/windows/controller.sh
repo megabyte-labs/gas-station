@@ -8,4 +8,6 @@ pip3 install pywinrm[credssp]
 git clone https://gitlab.com/ProfessorManhattan/Playbooks.git
 chmod 700 Playbooks
 sudo sed -i 's/#Port 22/Port 2214/g' /etc/ssh/sshd_config
+sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+sudo service ssh restart
 # ansible-playbook --ask-vault-pass main.yml

@@ -21,11 +21,15 @@
   win_stat:
     path: "{{ windows_startmenu }}\\Logitech\\Logitech Options.lnk"
   register: startmenu_shortcut
+- name: Check if Logitech start menu entry was already moved
+  win_stat:
+    path: "{{ windows_startmenu}}\\Logitech Options.lnk"
+  register: logitech_startmenu_lnk
 - name: "Move the Logitech Options shortcut to the parent directory if it resides in a folder"
   win_shell: "mv '{{ windows_startmenu }}\\Logitech\\Logitech Options.lnk' '{{ windows_startmenu }}\\Logitech Options.lnk'"
   when:
-   - startmenu_shortcut.stat.exists is defined
    - startmenu_shortcut.stat.exists
+   - not logitech_startmenu_lnk.stat.exists
 - name: "Remove the Logitech folder from the start menu if it exists"
   win_file:
     path: "{{ windows_startmenu }}\\Logitech"

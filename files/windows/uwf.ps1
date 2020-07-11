@@ -5,12 +5,19 @@ uwfmgr filter enable
 uwfmgr volume protect c:
 
 # Preserve Windows Defender virus signatures
+uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\Microsoft Antimalware"
+uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\Windows Defender"
+uwfmgr file add-exclusion "$env:PROGRAMFILES\Microsoft Security Client"
 uwfmgr file add-exclusion "$env:PROGRAMFILES\Windows Defender"
 uwfmgr file add-exclusion "$env:WinDir\WindowsUpdate.log"
 uwfmgr file add-exclusion "$env:WinDir\Temp\MpCmdRun.log"
-uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\Windows Defender"
-uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender"
 uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Antimalware"
+uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender"
+uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WdBoot"
+uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WdFilter"
+uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WdNisSvc"
+uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WdNisDrv"
+uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend"
 
 # Preserves Daylight Saving Time settings
 uwfmgr registry add-exclusion "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones"

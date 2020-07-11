@@ -5,6 +5,7 @@ uwfmgr filter enable
 uwfmgr volume protect c:
 
 # Preserve Windows Defender virus signatures
+# https://docs.microsoft.com/en-us/windows-hardware/customize/enterprise/uwf-antimalware-support
 uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\Microsoft Antimalware"
 uwfmgr file add-exclusion "$env:ALLUSERSPROFILE\Microsoft\Windows Defender"
 uwfmgr file add-exclusion "$env:PROGRAMFILES\Microsoft Security Client"

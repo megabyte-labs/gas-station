@@ -11,3 +11,4 @@
 * OSSEC setup
 * vscode plugins
     - tldr https://github.com/bmuskalla/vscode-tldr
+* Add password automatically to Ubuntu GNOME connection profiles

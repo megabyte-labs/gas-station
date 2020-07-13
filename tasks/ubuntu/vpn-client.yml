@@ -10,18 +10,20 @@
     openvpn_configured: "{{ openvpn_setup.stat.exists | default(false) }}"
 - name: Import Mullvad OpenVPN files into the Network Manager
   when: not openvpn_configured
-  shell: "nmcli connection import type openvpn file ~/openvpn_tmp/{{ item.folder }}/'{{ item.name }}.conf' && nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_mullvad_id }} && nmcli con modify '{{ item.name }}' vpn.secrets 'password={{ vault_mullvad_password }}'"
+  shell: "nmcli connection import type openvpn file ~/openvpn_tmp/{{ item.folder }}/'{{ item.name }}.ovpn' && nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_mullvad_id }} && nmcli con modify '{{ item.name }}' vpn.secrets 'password={{ vault_mullvad_password }}'"
   with_items:
+    - folder: mullvad-denver
+      name: Mullvad Denver (UDP 53)
     - folder: mullvad-hong-kong
       name: Mullvad Hong Kong
     - folder: mullvad-italy
       name: Mullvad Italy
-    - folder: mullvad-la
-      name: Mullvad LA (UDP 53)
     - folder: mullvad-nyc
       name: Mullvad NYC
     - folder: mullvad-secaucus
-      name: Mullvad Secaucus
+      name: Mullvad Secaucus (Bridged)
+    - folder: mullvad-zurich
+      name: Mullvad Zurich (UDP 53)
 - name: Import NordVPN OpenVPN files into the Network Manager
   when: not openvpn_configured
   shell: "nmcli connection import type openvpn file ~/openvpn_tmp/{{ item.folder }}/'{{ item.name }}.ovpn' && nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_nordvpn_email }} && nmcli con modify '{{ item.name }}' vpn.secrets 'password={{ vault_nordvpn_password }}'"

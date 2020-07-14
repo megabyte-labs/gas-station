@@ -24,6 +24,10 @@ powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/Ansibl
 
 The bit.ly links to [https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1']().
 
+## Upgrade to WSL2
+
+wsl --set-version 'Ubuntu' 2
+
 ## Run the playbook
 
 ```

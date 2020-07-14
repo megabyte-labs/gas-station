@@ -36,6 +36,10 @@ ansible-playbook --ask-vault-pass main.yml
 
 ## Gotchas
 
+On Windows 10 Enterprise with Ubuntu WSL 2, UFW does not work without error.
+
+On Windows 10 Enterprise with Ubuntu WSL 2, the VPN on the Windows 10 host should be disabled when running the scripts.
+
 On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running an ansible-playbook when connecting to Parallels Windows.
 
 ## Useful Commands

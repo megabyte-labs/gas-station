@@ -5,6 +5,8 @@
       include_tasks: tasks/pfsense/base.yml
 - hosts: windows-base:windows-full
   tasks:
+    - name: Set hosts file
+      include_tasks: tasks/windows/hosts.yml
     - name: Register the product key
       include_tasks: tasks/windows/activation.yml
     - name: Update the operating system
@@ -28,6 +30,8 @@
 - hosts: ubuntu-base:ubuntu-desktop:raspberry:ubuntu-wsl
   become: yes
   tasks:
+    - name: Configure /etc/hosts
+      include_tasks: tasks/ubuntu/hosts.yml
     - name: Update security settings
       include_role:
         name: geerlingguy.security
@@ -37,11 +41,14 @@
       include_tasks: tasks/ubuntu/hostname.yml
     - name: Ensure Ubuntu software is installed
       include_tasks: tasks/ubuntu/install.yml
+    - name: Run miscellaneous root tasks
+      include_tasks: tasks/ubuntu/misc.yml
+- hosts: ubuntu-base:ubuntu-desktop:ubuntu-wsl
+  become: yes
+  tasks:
     - name: Install NodeJS/NPM
       include_role:
         name: geerlingguy.nodejs
-    - name: Run miscellaneous root tasks
-      include_tasks: tasks/ubuntu/misc.yml
 - hosts: ubuntu-desktop:ubuntu-wsl
   tasks:
     - name: Ensure Homebrew and accompanying packages are installed

@@ -1,0 +1,37 @@
+---
+- name: Create the MAAS PostgreSQL database
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: "{{ vault_maas_database_name }}"
+- name: Create the MAAS database user
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    db: "{{ vault_maas_database_name }}"
+    name: "{{ vault_maas_database_user }}"
+    password: "{{ vault_maas_database_password }}"
+  no_log: true
+- name: Initialize the MAAS region+rack
+  expect:
+    command: "maas init region+rack --database-uri \"postgres://{{ vault_maas_database_user }}:{{ vault_maas_database_password }}@{{ vault_maas_database_host }}/{{ vault_maas_database_name }}\""
+    responses:
+      (.*)MAAS URL(.*): ""
+      (.*)Are you sure you want to initialize again(.*): ""
+  no_log: true
+- name: Wait for MAAS web interface to start
+  wait_for:
+    port: 5240
+    delay: 5
+- name: Create MAAS admin user
+  shell: "maas createadmin --username={{ vault_maas_admin_username }} --password={{ vault_maas_admin_password }} --email={{ vault_maas_admin_email }}"
+- name: Fetch MAAS API key for admin user
+  shell: "mass apikey --username={{ vault_maas_admin_username }}"
+  changed_when: false
+  register: maas_api_key_command
+- name: Login to MAAS using the API key
+  shell: "maas login {{ vault_maas_admin_username }} http://NUC:5240/MAAS/ {{ maas_api_key_command.stdout }}"
+  changed_when: false
+  register: maas_login_command
+- name: Make sure login to MAAS was successful
+  assert: { that: "'You are now logged in to the MAAS server' in login_res.stdout"}

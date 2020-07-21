@@ -23,11 +23,11 @@
       include_tasks: tasks/windows/authenticate.yml
     - name: Perform miscellaneous tasks
       include_tasks: tasks/windows/misc.yml
-- hosts: ubuntu-base:ubuntu-desktop:raspberry:ubuntu-wsl
+- hosts: ubuntu-desktop:raspberry:ubuntu-wsl:maas
   tasks:
     - name: Set up authentication
       include_tasks: tasks/ubuntu/authenticate.yml
-- hosts: ubuntu-base:ubuntu-desktop:raspberry:ubuntu-wsl
+- hosts: ubuntu-desktop:raspberry:ubuntu-wsl:maas
   become: yes
   tasks:
     - name: Configure /etc/hosts
@@ -43,7 +43,12 @@
       include_tasks: tasks/ubuntu/install.yml
     - name: Run miscellaneous root tasks
       include_tasks: tasks/ubuntu/misc.yml
-- hosts: ubuntu-base:ubuntu-desktop:ubuntu-wsl
+- hosts: ubuntu-desktop:raspberry:maas
+  become: yes
+  tasks:
+    - name: Apply firewall rules
+      include_tasks: tasks/ubuntu/ufw/base.yml
+- hosts: ubuntu-desktop:ubuntu-wsl
   become: yes
   tasks:
     - name: Install NodeJS/NPM
@@ -53,11 +58,6 @@
   tasks:
     - name: Ensure Homebrew and accompanying packages are installed
       include_tasks: tasks/ubuntu/homebrew.yml
-- hosts: ubuntu-base:ubuntu-desktop:raspberry
-  become: yes
-  tasks:
-    - name: Apply firewall rules
-      include_tasks: tasks/ubuntu/firewall.yml
 - hosts: ubuntu-desktop:ubuntu-wsl
   tasks:
     - name: Add dotfiles
@@ -78,6 +78,8 @@
         name: cloudflared_role
     - name: Disable wireless
       include_tasks: tasks/ubuntu/disable-wireless.yml
+    - name: Add PiHole specific firewall rules
+      include_tasks: tasks/ubuntu/ufw/pihole.yml
     - name: Set up PiHole
       include_tasks: tasks/ubuntu/pihole.yml
 - hosts: instapy
@@ -87,3 +89,10 @@
       include_tasks: tasks/ubuntu/disable-wireless.yml
     - name: Set up instapy
       include_tasks: tasks/ubuntu/instapy.yml
+- hosts: maas
+  become: yes
+  tasks:
+    - name: Add MAAS specific firewall rules
+      include_tasks: tasks/ubuntu/ufw/maas.yml
+    - name: Install MAAS
+      include_tasks: tasks/ubuntu/maas.yml

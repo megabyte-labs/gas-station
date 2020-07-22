@@ -6,21 +6,25 @@
     owner: root
     group: root
     mode: "644"
-- name: Set Chromium as the default browser
+- name: Check if Chromium is installed
+  stat:
+    path: /snap/bin/chromium
+  register: chromium_stat
+- name: Set Chromium as the default browser if it is installed
   shell: update-alternatives --install /usr/bin/x-www-browser x-www-browser /snap/bin/chromium 200
-  when: chromium_default_browser
-- name: Make Docker load on startup
+  when: chromium_stat.stat.exists
+- name: Make Docker load on startup if it is installed
   systemd:
     enabled: yes
     name: docker
     state: restarted
-  when: docker_installed
-- name: Give user permissions to Docker
+  when: snaps | selectattr("name", "equalto", "docker") | list.length == 1
+- name: Give user permissions to Docker if it is installed
   shell: "usermod -aG docker {{ ansible_user }}"
-  when: docker_installed
-- name: Make xrdp load on startup
+  when: snaps | selectattr("name", "equalto", "docker") | list.length == 1
+- name: Make xrdp load on startup if it is installed
   systemd:
     enabled: yes
     name: xrdp
     state: restarted
-  when: xrdp_enabled
+  when: software | selectattr("name", "equalto", "xrdp") | list.length == 1

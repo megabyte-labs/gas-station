@@ -23,32 +23,30 @@
       include_tasks: tasks/windows/authenticate.yml
     - name: Perform miscellaneous tasks
       include_tasks: tasks/windows/misc.yml
-- hosts: awx:maas:ubuntu-desktop:raspberry:ubuntu-wsl
+- hosts: awx:maas:ubuntu-desktop:ubuntu-server:raspberry:ubuntu-wsl
   tasks:
-    - name: Set up authentication
+    - name: Set up authentication (set up .ssh folder)
       include_tasks: tasks/ubuntu/authenticate.yml
 - hosts: awx:maas:ubuntu-desktop:raspberry:ubuntu-wsl
   become: yes
   tasks:
-    - name: Configure /etc/hosts
+    - name: Configure /etc/hosts and set hostname
       include_tasks: tasks/ubuntu/hosts.yml
     - name: Update security settings
       include_role:
         name: geerlingguy.security
     - name: Update the operating system
       include_tasks: tasks/ubuntu/update.yml
-    - name: Ensure proper hostname
-      include_tasks: tasks/ubuntu/hostname.yml
     - name: Ensure Ubuntu software is installed
       include_tasks: tasks/ubuntu/install.yml
     - name: Run miscellaneous root tasks
       include_tasks: tasks/ubuntu/misc.yml
-- hosts: ubuntu-desktop:raspberry:maas
+- hosts: awx:maas:raspberry:ubuntu-desktop:raspberry:!ubuntu-wsl
   become: yes
   tasks:
     - name: Apply firewall rules
       include_tasks: tasks/ubuntu/ufw/base.yml
-- hosts: ubuntu-desktop:ubuntu-wsl:awx
+- hosts: awx:ubuntu-desktop:ubuntu-wsl
   become: yes
   tasks:
     - name: Install NodeJS/NPM
@@ -72,10 +70,7 @@
     - name: Run miscellaneous desktop tasks
       include_tasks: tasks/ubuntu/desktop-misc.yml
 - hosts: awx
-  become: yes
   tasks:
-    - include_role:
-        name: geerlingguy.ansible
     - include_role:
         name: geerlingguy.awx
 - hosts: pihole
@@ -103,3 +98,12 @@
       include_tasks: tasks/ubuntu/ufw/maas.yml
     - name: Install MAAS
       include_tasks: tasks/ubuntu/maas.yml
+- hosts: npm
+  tasks:
+    - name: Add firewall rules for nginx Proxy Manager
+      include_tasks: tasks/ubuntu/ufw/npm.yml
+- hosts: all:!windows
+  tasks:
+    - name: Ensure the docker-compose task is running
+      include_tasks: tasks/ubuntu/docker-compose.yml
+      when: docker_compose_task is defined

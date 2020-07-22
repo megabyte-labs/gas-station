@@ -1,0 +1,14 @@
+---
+- name: Clone the docker-compose task repository
+  git:
+    repo: "{{ instapy_repo }}"
+    dest: ~/.docker-task
+- name: Start the docker-compose task
+  shell: cd ~/.docker-task && docker-compose up -d
+- name: Add Cron job to keep repository in sync
+  cron:
+    name: docker-compose task git sync
+    minute: "30"
+    user: "{{ ansible_user }}"
+    job: "cd ~/.docker-task && git add --all && git commit -m 'Ansible auto-sync' && git push origin master"
+    cron_file: ansible_docker_compose_hourly

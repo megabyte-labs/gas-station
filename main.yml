@@ -23,11 +23,11 @@
       include_tasks: tasks/windows/authenticate.yml
     - name: Perform miscellaneous tasks
       include_tasks: tasks/windows/misc.yml
-- hosts: awx:maas:ubuntu-desktop:ubuntu-server:raspberry:ubuntu-wsl
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   tasks:
     - name: Set up authentication (set up .ssh folder)
       include_tasks: tasks/ubuntu/authenticate.yml
-- hosts: awx:maas:ubuntu-desktop:raspberry:ubuntu-wsl
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   become: yes
   tasks:
     - name: Configure /etc/hosts and set hostname
@@ -41,12 +41,14 @@
       include_tasks: tasks/ubuntu/install.yml
     - name: Run miscellaneous root tasks
       include_tasks: tasks/ubuntu/misc.yml
-- hosts: awx:maas:raspberry:ubuntu-desktop:raspberry:!ubuntu-wsl
+    - name: Ensure netdata is installed
+      include_tasks: tasks/ubuntu/netdata.yml
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:!ubuntu-wsl
   become: yes
   tasks:
     - name: Apply firewall rules
       include_tasks: tasks/ubuntu/ufw/base.yml
-- hosts: awx:ubuntu-desktop:ubuntu-wsl
+- hosts: ubuntu-desktop:ubuntu-server:ubuntu-wsl
   become: yes
   tasks:
     - name: Install NodeJS/NPM
@@ -102,8 +104,13 @@
   tasks:
     - name: Add firewall rules for nginx Proxy Manager
       include_tasks: tasks/ubuntu/ufw/npm.yml
-- hosts: all:!windows
+- hosts: pfsense
+  connection: paramiko
+  tasks:
+    - name: Install netdata on pfSense
+      include_tasks: tasks/pfsense/netdata.yml
+- hosts: all:!windows:!pfsense
   tasks:
     - name: Ensure the docker-compose task is running
-      include_tasks: tasks/ubuntu/docker-compose.yml
+      include_tasks: tasks/ubuntu/dockercompose.yml
       when: docker_compose_task is defined

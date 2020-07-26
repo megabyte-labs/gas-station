@@ -2,13 +2,16 @@
 eval "$(starship init bash)"
 
 # Aliases
-alias provision-awx='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/awx.yml main.yml'
-alias provision-instapy='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/instapy.yml main.yml'
-alias provision-maas='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/maas.yml main.yml'
-alias provision-network='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/network.yml main.yml'
-alias provision-nuc='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/nuc.yml main.yml'
-alias provision-pihole='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/pihole.yml main.yml'
-alias provision-workstation='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/workstation.yml main.yml'
-alias provision-wsl='ansible-galaxy install -r requirements.yml && ansible-playbook --ask-vault-pass -i inventories/wsl.yml main.yml'
+provision () {
+    if [ -z "$1" ]; then
+        # Display usage if no parameters are given
+        echo "Usage: provision <ansible_inventory_name>"
+        echo "If an inventory name of 'test' is provided then the inventory should exist in inventories/test.yml"
+        return 1
+    else
+        ansible-galaxy install -r requirements.yml
+        ansible-playbook --ask-vault-pass -i inventories/"$1".yml main.yml
+    fi
+}
 alias ports='netstat -tulanp'
 alias vaultdirectory='find . -type f -printf "%h/\"%f\" " | xargs ansible-vault encrypt'

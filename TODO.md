@@ -9,8 +9,7 @@
 * Add passwords in encrypted form
 * Define JAVA_HOME/add to path
 * OSSEC setup
-* vscode plugins
-    - tldr https://github.com/bmuskalla/vscode-tldr
 * Add password automatically to Ubuntu GNOME connection profiles
 * Ubuntu Default Applications... how to set so that it reflects in the GNOME Settings
 * Look into startlayout for Windows
+* Add netdata as docker service to Windows

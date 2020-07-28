@@ -4,17 +4,19 @@
     path: /swapfile
   register: swap_file_check
 - name: Create /swapfile
-  shell: "fallocate -l {{ swap_space }} /swapfile"
+  command: "fallocate -l {{ swap_space }} /swapfile"
   when: not swap_file_check.stat.exists
 - name: Set permissions on /swapfile
   file:
     path: /swapfile
     mode: "600"
 - name: Format /swapfile
-  shell: mkswap /swapfile
+  command: mkswap /swapfile
   when: not swap_file_check.stat.exists
+- name: Turn off swap
+  command: swapoff /swapfile
 - name: Turn on swap
-  shell: swapon /swapfile
+  command: swapon /swapfile
 - name: Make swapfile permanent
   lineinfile:
     dest: /etc/fstab

@@ -1,15 +1,15 @@
 ---
 - name: Check if netdata is already installed
   stat:
-    path: /usr/sbin/netdata
+    path: /etc/netdata
   register: netdata_stat
 - name: Download the netdata kickstart.sh file
   get_url:
     url: https://my-netdata.io/kickstart.sh
-    dest: /root/kickstart.sh
+    dest: /tmp/kickstart.sh
   when: not netdata_stat.stat.exists
 - name: Install netdata if it is not already installed
-  shell: bash /root/kickstart.sh --dont-wait --stable-channel --disable-telemetry
+  shell: bash /tmp/kickstart.sh --dont-wait --stable-channel --disable-telemetry
   when: not netdata_stat.stat.exists
   register: netdata_install_stat
 - name: Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/run)
@@ -30,6 +30,6 @@
   when: not netdata_stat.stat.exists
 - name: Ensure kickstart.sh is removed
   file:
-    path: /root/kickstart.sh
+    path: /tmp/kickstart.sh
     state: absent
     

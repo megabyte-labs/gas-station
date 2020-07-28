@@ -13,31 +13,19 @@
 - name: Limit connections via SSH to prevent brute force attacks
   ufw:
     rule: limit
-    port: '2214'
+    port: "{{ security_ssh_port }}"
     proto: tcp
     src: "{{ item }}"
     comment: Allow and limit SSH connections
   loop:
     - 192.168.69.0/24
-- name: Allow all access to TCP port 80 from local networks
-  ufw:
-    rule: allow
-    port: '80'
-    proto: tcp
-    src: "{{ item }}"
-    comment: Allow HTTP from local networks
-  loop:
-    - 10.0.0.0/8
-    - 172.16.0.0/12
-    - 192.168.0.0/16
-  when: has_http_server
 - name: Allow all access to TCP port 443
   ufw:
     rule: allow
     port: '443'
     proto: tcp
     comment: Allow HTTPS
-  when: has_https_server
+  when: software | default([]) | selectattr("name", "equalto", "nginx") | list | first | default(false)
 - name: Allow RDP access if xrdp is installed
   ufw:
     rule: allow

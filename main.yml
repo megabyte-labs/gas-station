@@ -27,9 +27,6 @@
   tasks:
     - name: Set up authentication (set up .ssh folder)
       include_tasks: tasks/ubuntu/authenticate.yml
-- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
-  become: yes
-  tasks:
     - name: Configure /etc/hosts and set hostname
       include_tasks: tasks/ubuntu/hosts.yml
     - name: Update security settings
@@ -46,12 +43,10 @@
     - name: Ensure netdata is installed
       include_tasks: tasks/ubuntu/netdata.yml
 - hosts: raspberry:ubuntu-desktop:ubuntu-server:!ubuntu-wsl
-  become: yes
   tasks:
     - name: Apply firewall rules
-      include_tasks: tasks/ubuntu/ufw/base.yml
+      include_tasks: tasks/ubuntu/ufw.yml
 - hosts: ubuntu-desktop:ubuntu-server:ubuntu-wsl
-  become: yes
   tasks:
     - name: Install NodeJS/NPM
       include_role:
@@ -60,59 +55,35 @@
   tasks:
     - name: Ensure Homebrew and accompanying packages are installed
       include_tasks: tasks/ubuntu/homebrew.yml
-- hosts: ubuntu-desktop:ubuntu-wsl
-  tasks:
     - name: Add dotfiles
       include_tasks: tasks/ubuntu/dotfiles.yml
 - hosts: ubuntu-desktop
-  become: yes
   tasks:
     - name: Add OpenVPN profiles
       include_tasks: tasks/ubuntu/vpn-client.yml
-- hosts: ubuntu-desktop
-  tasks:
     - name: Run miscellaneous desktop tasks
       include_tasks: tasks/ubuntu/desktop-misc.yml
-- hosts: awx
-  tasks:
-    - include_role:
-        name: geerlingguy.awx
-- hosts: pihole
-  become: yes
-  tasks:
-    - include_role:
-        name: cloudflared_role
-    - name: Disable wireless
-      include_tasks: tasks/ubuntu/disable-wireless.yml
-    - name: Add PiHole specific firewall rules
-      include_tasks: tasks/ubuntu/ufw/pihole.yml
-    - name: Set up PiHole
-      include_tasks: tasks/ubuntu/pihole.yml
-- hosts: instapy
-  become: yes
-  tasks:
-    - name: Disable wireless
-      include_tasks: tasks/ubuntu/disable-wireless.yml
-    - name: Set up instapy
-      include_tasks: tasks/ubuntu/instapy.yml
-- hosts: maas
-  become: yes
-  tasks:
-    - name: Add MAAS specific firewall rules
-      include_tasks: tasks/ubuntu/ufw/maas.yml
-    - name: Install MAAS
-      include_tasks: tasks/ubuntu/maas.yml
-- hosts: npm
-  tasks:
-    - name: Add firewall rules for nginx Proxy Manager
-      include_tasks: tasks/ubuntu/ufw/npm.yml
-- hosts: pfsense
-  connection: paramiko
-  tasks:
-    - name: Install netdata on pfSense
-      include_tasks: tasks/pfsense/netdata.yml
 - hosts: all:!windows:!pfsense
   tasks:
+    - name: Install AWX
+      include_role:
+        name: geerlingguy.awx
+      when: install_awx
     - name: Ensure the docker-compose task is running
       include_tasks: tasks/ubuntu/dockercompose.yml
       when: docker_compose_task is defined
+#    - name: Install InstaPy
+#      include_role:
+#        name: professormanhattan.ansible_instapy
+#      when: install_instapy
+    - name: Install MAAS
+      include_role:
+        name: professormanhattan.ansible_maas
+      when: install_maas
+#    - name: Install nginx Proxy Manager
+#      include_role:
+#        name: professormanhattan.ansible_nginx_proxy_manager
+    - name: Install PiHole
+      include_role:
+        name: professormanhattan.ansible_pihole_cloudflared
+      when: install_pihole

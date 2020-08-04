@@ -13,3 +13,4 @@
 * Ubuntu Default Applications... how to set so that it reflects in the GNOME Settings
 * Look into startlayout for Windows
 * Add netdata as docker service to Windows
+* Figure out how to do an unattended install on Ubuntu for Homebrew

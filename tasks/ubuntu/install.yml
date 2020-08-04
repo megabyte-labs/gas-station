@@ -1,4 +1,17 @@
 ---
+- name: Create Docker system group
+  group:
+    name: docker
+    state: present
+    system: yes
+  when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
+- name: Add user to the Docker system group
+  user:
+    name: "{{ ansible_user }}"
+    groups:
+      - docker
+    append: yes
+  when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
 - name: Install software
   apt:
     name: "{{ item.name | default(item) }}"

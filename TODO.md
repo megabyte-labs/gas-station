@@ -14,3 +14,4 @@
 * Look into startlayout for Windows
 * Add netdata as docker service to Windows
 * Figure out how to do an unattended install on Ubuntu for Homebrew
+* Remove unneeded build packages after done using (etc. NGINX Optimized)

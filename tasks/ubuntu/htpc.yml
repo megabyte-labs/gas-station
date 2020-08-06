@@ -1,0 +1,43 @@
+---
+- name: Add Movies symlink
+  file:
+    src: "/media/{{ ansible_user }}/Movies"
+    dest: "~/Movies"
+    state: link
+- name: Add TV Shows symlink
+  file:
+    src: "/media/{{ ansible_user }}/TV Shows"
+    dest: "~/TV Shows"
+    state: link
+- name: Check if Music folder is symlinked
+  stat:
+    path: "/home//{{ ansible_user }}/Music"
+  register: user_music_folder
+- name: Remove Music folder if it is not a symlink
+  file:
+    path: "~/Music"
+    state: absent
+  when: not user_music_folder.stat.islnk
+- name: Add Music symlink
+  file:
+    src: "/media/{{ ansible_user }}/Auxilary/Music"
+    dest: "~/Music"
+    state: link
+- name: Check if Videos folder is symlinked
+  stat:
+    path: "~/Videos"
+  register: user_videos_folder
+- name: Remove Videos folder if it is not a symlink
+  file:
+    path: "~/Videos"
+    state: absent
+  when: not user_videos_folder.stat.islnk
+- name: Add Videos symlink
+  file:
+    src: "/media/{{ ansible_user }}/Auxilary/Videos"
+    dest: "~/Videos"
+    state: link
+- name: Clone HTPC data from GitLab
+  git:
+    repo: "{{ htpc_repository }}"
+    dest: ~/HTPC

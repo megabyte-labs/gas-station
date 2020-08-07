@@ -9,6 +9,7 @@
   file:
     path: /etc/NetworkManager/system-connections/
     state: absent
+  when: refresh_vpn_connections | bool
 - name: Restart NetworkManager
   service:
     name: NetworkManager
@@ -19,19 +20,13 @@
   copy:
     src: "files/openvpn/"
     dest: "~/.config/openvpn"
-- name: Import Mullvad OpenVPN files into the Network Manager
-  shell: "nmcli connection import type openvpn file /home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_mullvad_id }}"
+- name: Add Mullvad VPN connections
+  include_tasks: tasks/ubuntu/vpn-clients/mullvad.yml
   with_items: "{{ mullvad_connections | default([]) }}"
-- name: Modify Mullvad password files with proper permissions
-  file:
-    path: "/home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/mullvad_userpass.txt"
-    mode: "600"
-  with_items: "{{ mullvad_connections | default([]) }}"
-#- name: Set password for Mullvad OpenVPN connections
-#  become: yes
-#  become_user: "{{ ansible_user }}"
-#  shell: "sudo nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ vault_mullvad_password }}'"
-#  with_items: "{{ mullvad_connections | default([]) }}"
-- name: Import NordVPN OpenVPN files into the Network Manager
-  shell: "nmcli connection import type openvpn file /home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_nordvpn_email }}"
+- name: Add NordVPN connections
+  include_tasks: tasks/ubuntu/vpn-clients/nordvpn.yml
   with_items: "{{ nordvpn_connections | default([]) }}"
+- name: Restart NetworkManager
+  service:
+    name: NetworkManager
+    state: restarted

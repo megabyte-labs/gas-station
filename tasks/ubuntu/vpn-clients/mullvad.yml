@@ -1,0 +1,25 @@
+---
+- name: Acquire the current VPN connections
+  command: nmcli connection show
+  changed_when: false
+  register: nmcli_connections
+- name: Import Mullvad OpenVPN files into the Network Manager
+  shell: "nmcli connection import type openvpn file /home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_mullvad_id }}"
+  when: item.name not in (nmcli_connections.stdout | join(''))
+- name: Modify Mullvad password files with proper permissions
+  file:
+    path: "/home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/mullvad_userpass.txt"
+    mode: "600"
+  when: item.name not in (nmcli_connections.stdout | join(''))
+- name: Change password flag
+  lineinfile:
+    path: "/etc/NetworkManager/system-connections/{{ item.name }}.nmconnection"
+    regex: "password-flags=1"
+    line: password-flags=0
+- name: Restart NetworkManager
+  service:
+    name: NetworkManager
+    state: restarted
+- name: Set password for Mullvad OpenVPN connections
+  become: yes
+  shell: "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ vault_mullvad_password }}'"

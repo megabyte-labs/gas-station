@@ -1,0 +1,21 @@
+---
+- name: Ensure HTPC path is a directory
+  file:
+    path: "{{ item.path }}"
+    state: directory
+- name: Check if user home directory symlink exists
+  stat:
+    path: "{{ item.symlink }}"
+  register: home_link
+- debug:
+    var: home_link
+- name: Remove user home directory folder if it is not a symlink
+  file:
+    path: "{{ item.symlink }}"
+    state: absent
+  when: not home_link.stat.islnk
+- name: Ensure user home directory folder is symlinked the media's path
+  file:
+    src: "{{ item.path }}"
+    dest: "{{ item.symlink }}"
+    state: link

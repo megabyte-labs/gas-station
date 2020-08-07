@@ -1,43 +1,47 @@
 ---
-- name: Add Movies symlink
-  file:
-    src: "/media/{{ ansible_user }}/Movies"
-    dest: "~/Movies"
-    state: link
-- name: Add TV Shows symlink
-  file:
-    src: "/media/{{ ansible_user }}/TV Shows"
-    dest: "~/TV Shows"
-    state: link
-- name: Check if Music folder is symlinked
+- name: Integrate HTPC folders with user directory
+  include_tasks: tasks/ubuntu/htpc-folder.yml
+  with_items: "{{ htpc_folders | default([]) }}"
+- name: Check if ~/HTPC is already initialized with a .git folder
   stat:
-    path: "/home//{{ ansible_user }}/Music"
-  register: user_music_folder
-- name: Remove Music folder if it is not a symlink
-  file:
-    path: "~/Music"
-    state: absent
-  when: not user_music_folder.stat.islnk
-- name: Add Music symlink
-  file:
-    src: "/media/{{ ansible_user }}/Auxilary/Music"
-    dest: "~/Music"
-    state: link
-- name: Check if Videos folder is symlinked
-  stat:
-    path: "~/Videos"
-  register: user_videos_folder
-- name: Remove Videos folder if it is not a symlink
-  file:
-    path: "~/Videos"
-    state: absent
-  when: not user_videos_folder.stat.islnk
-- name: Add Videos symlink
-  file:
-    src: "/media/{{ ansible_user }}/Auxilary/Videos"
-    dest: "~/Videos"
-    state: link
+    path: ~/HTPC/.git
+  register: htpc_git_folder
+  when: htpc_repository is defined
 - name: Clone HTPC data from GitLab
   git:
     repo: "{{ htpc_repository }}"
     dest: ~/HTPC
+  when:
+    - htpc_repository is defined
+    - not htpc_git_folder.stat.exists
+- name: Start the HTPC suite of software
+  shell: cd ~/HTPC && docker-compose up -d
+  when: htpc_repository is defined
+- name: Allow access to HTPC applications over LAN (HTTP)
+  become: yes
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    src: "{{ item }}"
+    comment: Allow HTTP access to HTPC applications
+  with_items: "{{ rc1918_networks }}"
+  when: htpc_repository is defined
+- name: Allow access to HTPC applications over LAN (HTTPS)
+  become: yes
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+    src: "{{ item }}"
+    comment: Allow HTTPS access to HTPC applications
+  with_items: "{{ rc1918_networks }}"
+  when: htpc_repository is defined
+- name: Add Cron job to HTPC repository in sync
+  cron:
+    name: HTPC GitLab Sync
+    minute: "30"
+    user: "{{ ansible_user }}"
+    job: "cd ~/HTPC && git add --all && git commit -m 'Ansible auto-sync' && git push origin master"
+    cron_file: htpc_gitlab_sync
+  when: htpc_repository is defined

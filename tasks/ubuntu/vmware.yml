@@ -5,18 +5,18 @@
   include_role:
     name: vmware.vmware-workstation
   when: vmware_workstation_key is defined
-- name: Check if VMWare was already unlocked for Mac OS X
-  stat:
-    path: /etc/vmware/.patched_for_mac
-  register: vmware_patch_file
 - name: Clone Unlocker for running Mac OS X on VMWare
   git:
     repo: https://github.com/paolo-projects/unlocker.git
     dest: /tmp/unlocker
-  when: not vmware_patch_file.stat.exists
-- name: Run Unlocker to allow running Mac OS X on VMWare
-  shell: cd /tmp/unlockr && bash lnx-install.sh
-  when: not vmware_patch_file.stat.exists
+    force: yes
+- name: Update python to python3 in lnx-install.sh
+  lineinfile:
+    path: /tmp/unlocker/lnx-install.sh
+    regex: "python gettools.py"
+    line: python3 gettools.py
+- name: Patch VMWare for Mac OS X
+  shell: cd /tmp/unlocker && bash lnx-install.sh
 - name: Remove Unlockr folder from /tmp/unlocker
   file:
     path: /tmp/unlocker

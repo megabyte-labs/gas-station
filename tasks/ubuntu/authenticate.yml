@@ -11,6 +11,15 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: directory
+- name: Ensure .ssh directory exists for root user
+  become: yes
+  file:
+    dest: ~/.ssh
+    mode: "700"
+    owner: root
+    group: root
+    state: directory
+  when: ssh_private_keys_root is defined
 - name: Set authorized key
   authorized_key:
     user: "{{ ansible_user }}"
@@ -25,6 +34,15 @@
     group: "{{ ansible_user }}"
     mode: "600"
   with_items: "{{ ssh_private_keys | default([]) }}"
+- name: Copy SSH private keys for root user
+  become: yes
+  copy:
+    src: "files/keys/{{ item }}"
+    dest: "~/.ssh/{{ item }}"
+    owner: root
+    group: root
+    mode: "600"
+  with_items: "{{ ssh_private_keys_root | default([]) }}"
 - name: Copy SSH public keys
   copy:
     src: "files/keys/{{ item }}.pub"
@@ -33,6 +51,15 @@
     group: "{{ ansible_user }}"
     mode: "644"
   with_items: "{{ ssh_private_keys | default([]) }}"
+- name: Copy SSH public keys for root user
+  become: yes
+  copy:
+    src: "files/keys/{{ item }}.pub"
+    dest: "~/.ssh/{{ item }}.pub"
+    owner: root
+    group: root
+    mode: "644"
+  with_items: "{{ ssh_private_keys_root | default([]) }}"
 - name: Copy SSH known_hosts
   copy:
     src: files/keys/known_hosts
@@ -41,6 +68,15 @@
     group: "{{ ansible_user }}"
     mode: "644"
   when: ssh_private_keys is defined
+- name: Copy SSH known_hosts for root
+  become: yes
+  copy:
+    src: files/keys/known_hosts
+    dest: ~/.ssh/known_hosts
+    owner: root
+    group: root
+    mode: "644"
+  when: ssh_private_keys_root is defined
 - name: Copy SSH config
   copy:
     src: files/keys/config
@@ -49,4 +85,13 @@
     group: "{{ ansible_user }}"
     mode: "644"
   when: ssh_private_keys is defined
+- name: Copy SSH config for root
+  become: yes
+  copy:
+    src: files/keys/config
+    dest: ~/.ssh/config
+    owner: root
+    group: root
+    mode: "644"
+  when: ssh_private_keys_root is defined
   

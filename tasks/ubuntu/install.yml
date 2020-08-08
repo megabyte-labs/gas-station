@@ -22,10 +22,16 @@
       - docker
     append: yes
   when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
+- name: Restart the Docker service
+  systemd:
+    name: "snap.docker.dockerd"
+    state: restarted
+  when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
 - name: Install pips
   become: yes
   become_user: "{{ ansible_user }}"
   pip:
+    executable: pip3
     name: "{{ item.name }}"
   with_items: "{{ pips | default([]) }}"
 - name: Install Visual Studio Code plugins

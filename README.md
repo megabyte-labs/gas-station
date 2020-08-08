@@ -55,3 +55,7 @@ The following commands are Powershell commands used for generating configuration
 ## DISM
 
 * dism /online /Enable-Feature /FeatureName:"Containers-DisposableClientVM" -All
+
+## Acquiring a self-signed certificate from known host
+
+https://medium.com/@menakajain/export-download-ssl-certificate-from-server-site-url-bcfc41ea46a2

@@ -10,10 +10,10 @@
 * SecurityOnion
 * NAS
 * NGINX Optimized Dockerized
-* pfSense certificate propagated
 * AWX
 * Portainer
 * Kubernetes Juju
+* /var/lib/docker/volumes/ sync
 
 ### Ubuntu
 

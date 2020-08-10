@@ -1,0 +1,40 @@
+server {
+    listen                  [::]:80;
+    listen                  80;
+
+    server_name             {{ app_http_hosts }};
+
+    return                  301 https://{{ app_fqdn }}$request_uri;
+}
+
+server {
+    listen                  443 ssl http2;
+    listen                  [::]:443 ssl http2;
+
+    server_name             {{ app_fqdn }};
+
+    ssl_certificate         /etc/letsencrypt/live/{{ app_letsencrypt_domain }}/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/{{ app_letsencrypt_domain }}/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/{{ app_letsencrypt_domain }}/chain.pem;
+
+{% if app_authelia %}
+    include                 snippets/authelia.conf;
+{% endif %}
+    include                 snippets/ssl.conf;
+    include                 snippets/misc.conf;
+{% if app_firewall %}
+    include                 snippets/waf.conf;
+{% endif %}
+
+    location / {
+        proxy_pass          {{ app_proxy_pass }};
+        include             snippets/proxy.conf;
+    }
+{% if app_id == 'maas' %}
+
+    location /MAAS/ws {
+        proxy_pass          {{ app_proxy_pass }}/MAAS/ws;
+        include             snippets/proxy.conf;
+    }
+{% endif %}
+}

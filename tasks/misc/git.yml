@@ -1,0 +1,17 @@
+---
+- name: Ensure parent directory exists for git repositories
+  file:
+    path: "{{ item.folder }}"
+    state: directory
+  with_items: "{{ git_repositories | default([]) }}"
+- name: Clone git repositories
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.folder }}"
+  with_items: "{{ git_repositories | default([]) }}"
+- name: Run docker-compose up, if configured to do so
+  command: docker-compose up -d
+  args:
+    chdir: "{{ item.folder }}"
+  when: item.docker_compose | default(no)
+  with_items: "{{ git_repositories | default([]) }}"

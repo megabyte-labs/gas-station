@@ -23,3 +23,20 @@
     name: xrdp
     state: restarted
   when: software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)
+- name: Ensure rsyslog-gnutls is installed (it is a requirement for rsyslog over HTTPS)
+  apt:
+    name: rsyslog-gnutls
+    state: present
+- name: Set $MaxMessageSize to 64k in rsyslog.conf # Source: https://documentation.solarwinds.com/en/Success_Center/loggly/Content/admin/rsyslog-tls-configuration.htm
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regex: "MaxMessageSize"
+    line: $MaxMessageSize 64k
+- name: Copy Graylog rsyslog configuration
+  template:
+    src: graylog.conf.j2
+    dest: /etc/rsyslog.d/graylog.conf
+- name: Restart rsyslog
+  service:
+    name: rsyslog
+    state: restarted

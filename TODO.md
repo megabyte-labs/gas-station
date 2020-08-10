@@ -2,9 +2,11 @@
 
 * Test PiHole role
 * Finish Graylog
+* Make hosts use 127.0.0.1 when possible
 
 ### Features
 
+* Authelia
 * Rundeck
 * Wazuh
 * SecurityOnion
@@ -14,6 +16,7 @@
 * Portainer
 * Kubernetes Juju
 * /var/lib/docker/volumes/ sync
+* LDAP
 
 ### Ubuntu
 

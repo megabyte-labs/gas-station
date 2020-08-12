@@ -41,11 +41,12 @@
     rule: allow
     port: '2424'
     proto: tcp
-    src: portainer
+    src: "{{ item }}"
     comment: Allow access to Docker from Portainer
   when:
     - not ('portainer' in (apps_installed | default([])))
     - snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
+  with_items: "{{ portainer_ip_addresses }}"
 - name: Enable UFW
   ufw:
     state: enabled

@@ -2,6 +2,7 @@
 - name: Install Tor and the Tor launcher
   apt:
     name:
+      - apt-transport-tor
       - privoxy
       - tor
     state: latest
@@ -24,11 +25,16 @@
   service:
     name: tor
     state: reloaded
-- name: Make APT downloads use Tor proxy
-  file:
-    src: files/config/apt-tor.conf
-    dest: /etc/apt/apt.conf.d/00tor
-    owner: root
-    group: root
-    mode: "644"
+- name: Configure /etc/apt/sources.list/* to use Tor as the transport (https://)
+  replace:
+    path: "{{ item }}"
+    regexp: " https:\/\/"
+    replace: " tor+https://"
+  with_filetree: /etc/apt/sources.list/
+- name: Configure /etc/apt/sources.list/* to use Tor as the transport (http://)
+  replace:
+    path: "{{ item }}"
+    regexp: " http:\/\/"
+    replace: " tor+http://"
+  with_filetree: /etc/apt/sources.list/
 # Source: https://www.linuxuprising.com/2018/10/how-to-install-and-use-tor-as-proxy-in.html

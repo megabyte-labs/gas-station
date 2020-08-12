@@ -1,4 +1,8 @@
 ---
+- name: Check if WireGuard NetworkManager VPN plugin exists
+  stat:
+    path: /usr/lib/NetworkManager/nm-wireguard-service
+  register: nm_wireguard
 - name: Install Wireguard NetworkManager VPN plugin dependencies
   become: yes
   apt:
@@ -13,37 +17,44 @@
       - network-manager-dev
       - resolvconf
       - wireguard
+  when: not nm_wireguard.stat.exists
 - name: Clone the Wireguard NetworkManager VPN plugin git
   git:
     repo: https://github.com/max-moser/network-manager-wireguard.git
     dest: /tmp/wireguard-install
+  when: not nm_wireguard.stat.exists
 - name: Run ./autogen.sh
   command: ./autogen.sh --without-libnm-glib
   args:
     chdir: /tmp/wireguard-install
+  when: not nm_wireguard.stat.exists
 - name: Run ./configure
   command: ./configure --without-libnm-glib --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/x86_64-linux-gnu --libexecdir=/usr/lib/NetworkManager --localstatedir=/var
   args:
     chdir: /tmp/wireguard-install
+  when: not nm_wireguard.stat.exists
 - name: Run make
   command: make
   args:
     chdir: /tmp/wireguard-install
+  when: not nm_wireguard.stat.exists
 - name: Run make install
   become: yes
   command: make install
   args:
     chdir: /tmp/wireguard-install
+  when: not nm_wireguard.stat.exists
 - name: Copy over WireGuard configuration files
   become: yes
-  file:
+  copy:
     src: "files/wireguard/{{ item }}.nmconnection"
     dest: "/etc/NetworkManager/system-connections/{{ item }}.nmconnection"
     owner: root
     group: root
     mode: "600"
-  with_items: wireguard_nmconnections | default([])
+  with_items: "{{ wireguard_nmconnections | default([]) }}"
 - name: Restart NetworkManager
+  become: yes
   service:
     name: NetworkManager
     state: restarted

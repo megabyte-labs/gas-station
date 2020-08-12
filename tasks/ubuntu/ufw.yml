@@ -36,6 +36,16 @@
   loop:
     - 192.168.69.0/24
   when: software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)
+- name: Allow remote Docker access if Docker is installed and machine does not have Portainer installed
+  ufw:
+    rule: allow
+    port: '2424'
+    proto: tcp
+    src: portainer
+    comment: Allow access to Docker from Portainer
+  when:
+    - not ('portainer' in (apps_installed | default([])))
+    - snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
 - name: Enable UFW
   ufw:
     state: enabled

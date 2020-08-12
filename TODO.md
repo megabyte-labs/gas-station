@@ -1,12 +1,16 @@
 # TODO
 
 * Test PiHole role
-* Finish Graylog
-* Make hosts use 127.0.0.1 when possible
+* https://docs.docker.com/engine/security/https/
+* Figure out how to make code . work when SSH
+* https://github.com/stefangweichinger/ansible-rclone
+* Tune Authelia
+* Create Authelia restore.sh and backup.sh
+* set up rclone
 
-### Features
+### Features TODO
 
-* Authelia
+* Teleport https://github.com/gravitational/teleport
 * Rundeck
 * Wazuh
 * SecurityOnion
@@ -22,6 +26,7 @@
 
 * Unattended Homebrew install
 * Install custom self-signed certificates
+* Add Wireguard to NetworkManager via applet
 
 ### Windows
 
@@ -29,3 +34,12 @@
 * Apply base-layout via group policy
 * Unattended installation
 * Add netdata as docker service to Windows
+
+## Waiting On
+
+* Ubuntu NetworkManager VPN plugin for WireGuard (currently compiling it from source)
+* WireGuard for pfSense
+
+## Cool
+
+* dockerslim

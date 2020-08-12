@@ -1,0 +1,34 @@
+---
+- name: Install Tor and the Tor launcher
+  apt:
+    name:
+      - privoxy
+      - tor
+    state: latest
+- name: Forward proxy connections to Tor
+  lineinfile:
+    path: /etc/privoxy/config
+    regex: "forward-socks5 / localhost:9050 ."
+    line: forward-socks5 / localhost:9050 .
+- name: Restart Privoxy
+  service:
+    name: privoxy
+    state: restarted
+- name: Enforce using USA exit node with Tor connections
+  blockinfile:
+    path: /etc/tor/torrc
+    block: |
+      ExitNodes us
+      StrictNodes 1
+- name: Reload Tor
+  service:
+    name: tor
+    state: reloaded
+- name: Make APT downloads use Tor proxy
+  file:
+    src: files/config/apt-tor.conf
+    dest: /etc/apt/apt.conf.d/00tor
+    owner: root
+    group: root
+    mode: "644"
+# Source: https://www.linuxuprising.com/2018/10/how-to-install-and-use-tor-as-proxy-in.html

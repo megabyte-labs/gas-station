@@ -1,7 +1,20 @@
 # Load Starship
 eval "$(starship init bash)"
 
-# Aliases
+### Aliases
+# Change directories and view contents at the same time
+function cl() {
+    DIR="$*";
+        # if no DIR given, go home
+        if [ $# -lt 1 ]; then
+                DIR=$HOME;
+    fi;
+    builtin cd "${DIR}" && \
+    # use your preferred ls command
+        ls -F --color=auto
+}
+
+# Used to provision machines using Ansible
 provision () {
     if [ -z "$1" ]; then
         # Display usage if no parameters are given
@@ -17,7 +30,101 @@ provision () {
         fi
     fi
 }
+
+# Generate a random string of X length
+randomstring() {
+    if [ -z "$1" ]; then
+        head /dev/urandom | tr -dc A-Za-z0-9 | head -c $1 ; echo ''
+    else
+        echo "Pass the number of characters you would like the string to be. Example: randomstring 14"
+}
+
+# Source: https://itnext.io/bash-aliases-are-awesome-8a76aecc96ab
+# Type ".. 5" to cd .. 5 times
+..() {
+    N=$(($1))
+    if [ $N -lt 1 ]; then
+        N=1
+    fi
+    while ((N)); do
+        cd ..
+        let N-=1
+        done;
+}
+
+# Create an Authelia password hash
+alias autheliapass='docker run authelia/authelia:latest authelia hash-password'
+
+# Removes all Ansible roles saved in ~/.ansible
 alias clearroles='rm -rf ~/.ansible/roles/*'
+
 alias connections='nm-connection-editor'
+
+# Make copy command verbose
+alias cp='cp -v'
+
+# Copies with a progress bar
+alias cpv='rsync -ah --info=progress2'
+
+# Execute git command with sudo priviledges while retaining .gitconfig
+alias gsudo='sudo git -c "include.path='"${XDG_CONFIG_DIR:-$HOME/.config}/git/config\" -c \"include.path=$HOME/.gitconfig\""
+
+# Show full output when using ls
+alias ls='ls -AlhF --color=auto'
+
+# Create parent directories automatically
+alias mkdir='mkdir -pv'
+
+# Make mount command output readable
+alias mount='mount | column -t'
+
+# Make mv command verbose
+alias mv='mv -v'
+
+# Show IP address
+alias myip='curl http://ipecho.net/plain; echo'
+
+# Show open ports
 alias ports='netstat -tulanp'
+
+# Shuts down the computer, skipping the shutdown scripts
+alias poweroff='sudo /sbin/poweroff'
+
+# Open the Rclone web GUI
+alias rclonegui='rclone rcd --rc-web-gui'
+
+# Reboot the computer
+alias reboot='sudo /sbin/reboot'
+
+# Removes all Docker containers/volumes/networks
+alias resetdocker='docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) && docker volume rm $(docker volume ls -q) && docker system prune --force'
+
+# Make rm command verbose
+alias rm='rm -vi'
+
+# Launch the Python Simple HTTP Server
+alias serve='python -m SimpleHTTPServer'
+
+# Generate a SHA1 digest
+alias sha1='openssl sha1'
+
+# Shutdown the computer
+alias shutdown='sudo /sbin/shutdown'
+
+# Shortcut for config file
+alias sshconfig='${EDITOR:code} ~/.ssh/config'
+
+# Alias for sudo vim
+alias svim='sudo vim'
+
+# Enable Tor for current shell
+alias toron='source torsocks on'
+
+# Alias for updating software
+alias update='sudo apt-get update && sudo apt-get upgrade'
+
+# Sets v as an alias for vim
+alias v='vim'
+
+# Recursively encrypts files using Ansible Vault
 alias vaultdirectory='find . -type f -printf "%h/\"%f\" " | xargs ansible-vault encrypt'

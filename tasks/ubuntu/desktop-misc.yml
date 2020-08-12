@@ -2,7 +2,7 @@
 - name: Set desktop background
   shell: "gsettings set org.gnome.desktop.background picture-uri {{ background_image }}"
 - name: Set Favorites # gsettings get org.gnome.shell favorite-apps
-  shell: gsettings set org.gnome.shell favorite-apps "['org.gnome.Nautilus.desktop', 'firefox.desktop', 'chromium_chromium.desktop', 'mailspring_mailspring.desktop', 'code_code.desktop', 'hyper.desktop', 'flameshot.desktop', 'org.gnome.Lollypop.desktop', 'org.gnome.Boxes.desktop', 'virt-manager.desktop', 'vmware-workstation.desktop']"
+  shell: gsettings set org.gnome.shell favorite-apps "['org.gnome.Nautilus.desktop', 'firefox.desktop', 'chromium_chromium.desktop', 'mailspring_mailspring.desktop', 'code_code.desktop', 'hyper.desktop',, 'org.gnome.Lollypop.desktop', 'org.gnome.Boxes.desktop', 'virt-manager.desktop', 'vmware-workstation.desktop']"
 - name: Set icon size
   shell: gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 40
 - name: Set Blank Screen Delay to 10 minutes
@@ -24,5 +24,23 @@
     - org.gnome.PowerStats.desktop
     - software-properties-drivers.desktop
     - software-properties-livepatch.desktop
+    - torbrowser-settings.desktop
     - vim.desktop
     - yelp.desktop
+- name: Ensure Flameshot folder in ~/.config exists
+  file:
+    path: ~/.config/Dharkael
+    state: directory
+- name: Copy over the Flameshot configuration file
+  copy:
+    src: files/config/flameshot.ini
+    dest: ~/.config/Dharkael/flameshot.ini
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "664"
+- name: Configure GNOME extensions
+  include_tasks: tasks/ubuntu/extensions/main.yml
+- name: Modify proxy port configuration for Tor use
+  shell: gsettings set org.gnome.system.proxy.socks port 9050
+- name: Modify proxy host configuration for Tor use
+  shell: gsettings set org.gnome.system.proxy.socks host 'localhost'

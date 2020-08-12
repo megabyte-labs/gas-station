@@ -9,23 +9,8 @@
     name: "{{ item.name | default(item) }}"
     classic: "{{ item.classic | default('no') }}"
   with_items: "{{ snaps | default([]) }}"
-- name: Create Docker system group
-  group:
-    name: docker
-    state: present
-    system: yes
-  when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
-- name: Add user to the Docker system group
-  user:
-    name: "{{ ansible_user }}"
-    groups:
-      - docker
-    append: yes
-  when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
-- name: Restart the Docker service
-  systemd:
-    name: "snap.docker.dockerd"
-    state: restarted
+- name: Set up Docker if it was installed
+  include_tasks: tasks/ubuntu/docker.yml
   when: snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
 - name: Install pips
   become: yes
@@ -39,3 +24,6 @@
   become_user: "{{ ansible_user }}"
   shell: "/snap/bin/code --install-extension {{ item }}"
   with_items: "{{ vscode_plugins | default([]) }}"
+- name: Install and configure Rclone if rclone_providers is defined
+  include_tasks: tasks/ubuntu/applications/rclone.yml
+  when: rclone_providers is defined

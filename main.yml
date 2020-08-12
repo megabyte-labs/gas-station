@@ -32,13 +32,13 @@
   tasks:
     - name: Set up authentication (set up .ssh folder)
       include_tasks: tasks/ubuntu/authenticate.yml
+    - name: Revert Tor sources from tor+http:// to http:// due to conflicts
+      include_tasks: tasks/ubuntu/applications/tor-revert-sources.yml
 - hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   become: yes
   tasks:
     - name: Configure /etc/hosts and set hostname
       include_tasks: tasks/ubuntu/hosts.yml
-    - name: Install Tor
-      include_tasks: tasks/ubuntu/applications/tor.yml
     - name: Update security settings
       include_role:
         name: geerlingguy.security
@@ -127,3 +127,7 @@
       include_role:
         name: professormanhattan.ansible_nginx_optimized
       when: (nginx_sites_available | default([])) | length
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
+  tasks:
+    - name: Set up Tor
+      include_tasks: tasks/ubuntu/applications/tor.yml

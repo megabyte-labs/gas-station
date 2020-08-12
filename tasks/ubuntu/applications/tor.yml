@@ -25,16 +25,21 @@
   service:
     name: tor
     state: reloaded
-- name: Configure /etc/apt/sources.list/* to use Tor as the transport (https://)
+- name: Acquire a list of sources from /etc/apt/sources.list.d/*
+  find:
+    paths:
+      - /etc/apt/sources.list.d
+  register: sources_files
+- name: Configure /etc/apt/sources.list.d/* to use Tor as the transport (https://)
   replace:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     regexp: " https:\/\/"
     replace: " tor+https://"
-  with_filetree: /etc/apt/sources.list/
-- name: Configure /etc/apt/sources.list/* to use Tor as the transport (http://)
+  with_items: "{{ sources_files.files }}"
+- name: Configure /etc/apt/sources.list.d/* to use Tor as the transport (http://)
   replace:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     regexp: " http:\/\/"
     replace: " tor+http://"
-  with_filetree: /etc/apt/sources.list/
+  with_items: "{{ sources_files.files }}"
 # Source: https://www.linuxuprising.com/2018/10/how-to-install-and-use-tor-as-proxy-in.html

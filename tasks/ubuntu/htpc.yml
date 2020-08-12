@@ -2,22 +2,29 @@
 - name: Integrate HTPC folders with user directory
   include_tasks: tasks/ubuntu/htpc-folder.yml
   with_items: "{{ htpc_folders | default([]) }}"
-- name: Check if ~/HTPC is already initialized with a .git folder
+- name: "Ensure {{ projects_dir }} exists"
+  file:
+    path: "{{ projects_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "700"
+- name: "Check if {{ projects_dir }}/HTPC is already initialized with a .git folder"
   stat:
-    path: ~/HTPC/.git
+    path: "{{ projects_dir }}/HTPC/.git"
   register: htpc_git_folder
   when: htpc_repository is defined
 - name: Clone HTPC data from GitLab
   git:
     repo: "{{ htpc_repository }}"
-    dest: ~/HTPC
+    dest: "{{ projects_dir }}/HTPC"
   when:
     - htpc_repository is defined
     - not htpc_git_folder.stat.exists
 - name: Start the HTPC suite of software
   command: "{{ docker_compose_binary }} up -d"
   args:
-    chdir: ~/HTPC
+    chdir: "{{ projects_dir }}/HTPC"
   when: htpc_repository is defined
 - name: Add Cron job to HTPC repository in sync
   become: yes
@@ -25,6 +32,6 @@
     name: HTPC GitLab Sync
     minute: "30"
     user: "{{ ansible_user }}"
-    job: "cd ~/HTPC && git add --all && git commit -m 'Ansible auto-sync' && git push origin master"
+    job: "cd {{projects_dir }}/HTPC && git add --all && git commit -m 'Ansible auto-sync' && git push origin master"
     cron_file: htpc_gitlab_sync
   when: htpc_repository is defined

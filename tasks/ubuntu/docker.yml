@@ -10,14 +10,15 @@
     groups:
       - docker
     append: yes
-- name: Restart the Docker service
-  systemd:
-    name: "snap.docker.dockerd"
-    state: restarted
 - name: Allow TCP connections to Docker
   become: yes
   lineinfile:
     path: /etc/systemd/system/snap.docker.dockerd.service
     regex: "ExecStart="
-    line: ExecStart=/usr/bin/snap run docker.dockerd -H tcp://0.0.0.0:2424
+    line: ExecStart=/usr/bin/snap run docker.dockerd -H tcp://0.0.0.0:2424 -H unix:///var/run/docker.sock
   when: not ('portainer' in (apps_installed | default([])))
+- name: Restart the Docker service
+  systemd:
+    daemon_reload: yes
+    name: "snap.docker.dockerd"
+    state: restarted

@@ -7,6 +7,7 @@
 * Tune Authelia
 * Create Authelia restore.sh and backup.sh
 * set up rclone
+* pull all signatures from ssh
 
 ### Features TODO
 

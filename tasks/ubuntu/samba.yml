@@ -15,11 +15,20 @@
     mode: "770"
 - name: Add Shared Documents to Public folder
   file:
-    src: "/home/{{ ansible_user }}/Documents/Shared"
+    src: "/mnt/{{ ansible_user }}/onedrive/Documents/Shared"
     dest: "/home/{{ ansible_user }}/Public/Media/Documents"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: link
+    force: yes
+- name: Add Protected Shared Documents to Public folder
+  file:
+    src: "/mnt/{{ ansible_user }}/onedrive/Documents/Protected"
+    dest: "/home/{{ ansible_user }}/Public/Protected"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    state: link
+    force: yes
 - name: Add Games to Public folder
   file:
     src: /mnt/auxilary/Games
@@ -36,18 +45,20 @@
     state: link
 - name: Add Music to Public folder
   file:
-    src: "/home/{{ ansible_user }}/Music"
+    src: "/mnt/{{ ansible_user }}/onedrive/Music"
     dest: "/home/{{ ansible_user }}/Public/Media/Music"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: link
+    force: yes
 - name: Add Pictures to Public folder
   file:
-    src: "/home/{{ ansible_user }}/Pictures/Shared"
+    src: "/mnt/{{ ansible_user }}/onedrive/Pictures/Shared"
     dest: "/home/{{ ansible_user }}/Public/Media/Pictures"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: link
+    force: yes
 - name: Add TV to Public folder
   file:
     src: /mnt/tv
@@ -66,31 +77,18 @@
   apt:
     name: samba
     state: latest
-- name: Create the Public Public folder
-  file:
-    path: "/home/{{ ansible_user }}/Public/Public"
-    owner: nobody
-    group: "{{ ansible_user }}"
-    mode: "775"
-    state: directory
 - name: Ensure group "sambausers" exists
   group:
     name: sambausers
     state: present
-- name: Ensure Protected folder has appropriate permissions
-  file:
-    path: "/home/{{ ansible_user }}/Documents/Protected"
-    state: directory
-    owner: root
-    group: sambausers
-    mode: "770"
 - name: Add Samba users that require access to the Protected Samba Share
   user:
     comment: "User that is allowed access to the Protected Samba share"
     create_home: no
-    groups: "{{ item.groups | default(['sambauser']) }}"
+    groups: "{{ item.groups | default(['sambausers']) }}"
     name: "{{ item.name }}"
     password: "{{ item.password }}"
+    system: yes
   with_items: "{{ samba_users | default([]) }}"
 - name: Add Samba password to Samba users
   shell: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
@@ -101,7 +99,7 @@
     marker: "# ANSIBLE MANAGED BLOCK FOR PUBLIC FOLDER SHARE"
     block: |
       [global]
-        hosts allow = 127. 192.168. 10.0.0.
+        hosts allow = 127. 192.168.30. 192.168.35. 192.168.69. 192.168.81. 10.0.0.
         load printers = yes
         map to guest = bad user
         netbios name = {{ samba_netbios_name }}
@@ -125,7 +123,7 @@
         wide links = yes
       [Public]
         browsable = yes
-        comment = Public network share
+        comment = Public folder provided for file sharing on the LAN (this is not backed up regularly)
         directory mode = 0777
         follow symlinks = no
         force create mode = 0777
@@ -161,56 +159,18 @@
         public = yes
       [Private]
         browsable = yes
-        comment = Authenticated share with read/write capabilities
+        comment = Authenticated share with read/write capabilities (backed up to OneDrive)
         directory mode = 0777
         follow symlinks = no
         force create mode = 0777
         guest only = no
         guest ok = no
-        path = /home/{{ ansible_user }}/Documents/Protected
+        path = /mnt/{{ ansible_user }}/onedrive/Protected
         read only = no
-        valid users = @sambauser
+        valid users = @sambausers
         writable = yes
-# Source: https://www.linuxbabe.com/ubuntu/set-up-cups-print-server-ubuntu-bonjour-ipp-samba-airprint
-- name: Download CUPS and related packages
-  apt:
-    name:
-      - avahi-daemon 
-      - cups
-    state: latest
-- name: Copy the CUPS configuration over
-  copy:
-    src: files/config/cupsd.conf
-    dest: /etc/cups/cupsd.conf
-    owner: root
-    group: root
-    mode: "644"
-- name: Restart CUPS and enable on start up
+- name: Restart Samba and enable on start up
   systemd:
-    name: cups
-    state: restarted
-    enabled: yes
-- name: Restart avahi-daemon and enable on start up
-  systemd:
-    name: avahi-daemon
-    state: restarted
-    enabled: yes
-- name: Restart the Samba service
-  service:
     name: smbd
     state: restarted
-- name: Configure UFW for Samba
-  ufw:
-    rule: allow
-    name: samba
-    src: "{{ item }}"
-    comment: Allow LAN access to Samba
-  loop: "{{ rc1918_networks }}"
-- name: Allow Avahi daemon access
-  ufw:
-    comment: Allow Bonjour and IPP protocols
-    port: "5353"
-    proto: udp
-    rule: allow
-    src: "{{ item }}"
-  with_items: "{{ rc1918_networks }}"
+    enabled: yes

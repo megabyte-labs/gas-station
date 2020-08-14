@@ -5,9 +5,9 @@
 * Figure out how to make code . work when SSH
 * https://github.com/stefangweichinger/ansible-rclone
 * Tune Authelia
-* Create Authelia restore.sh and backup.sh
 * set up rclone
 * pull all signatures from ssh
+* Get avahi-daemon for CUPS working with UniFi
 
 ### Features TODO
 

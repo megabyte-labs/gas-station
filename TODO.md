@@ -5,8 +5,8 @@
 * Figure out how to make code . work when SSH
 * https://github.com/stefangweichinger/ansible-rclone
 * Tune Authelia
-* set up rclone
 * pull all signatures from ssh
+* Test iPXE
 * Get avahi-daemon for CUPS working with UniFi
 
 ### Features TODO
@@ -18,9 +18,7 @@
 * NAS
 * NGINX Optimized Dockerized
 * AWX
-* Portainer
 * Kubernetes Juju
-* /var/lib/docker/volumes/ sync
 * LDAP
 
 ### Ubuntu

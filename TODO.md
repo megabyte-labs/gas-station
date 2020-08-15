@@ -6,8 +6,8 @@
 * https://github.com/stefangweichinger/ansible-rclone
 * Tune Authelia
 * pull all signatures from ssh
-* Test iPXE
 * Get avahi-daemon for CUPS working with UniFi
+* Docker requires restart before Run docker-compose up, if configured to do so
 
 ### Features TODO
 
@@ -19,13 +19,17 @@
 * NGINX Optimized Dockerized
 * AWX
 * Kubernetes Juju
-* LDAP
+* JumpCloud
+* Adminer
+? Bacula
+* Graylog?
 
 ### Ubuntu
 
 * Unattended Homebrew install
 * Install custom self-signed certificates
 * Add Wireguard to NetworkManager via applet
+* Get Rclone 1.51+ to fix issue with OneDrive only opening docs on 2nd try
 
 ### Windows
 

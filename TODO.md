@@ -23,6 +23,7 @@
 * Adminer
 ? Bacula
 * Graylog?
+* Add *.home.megabyte.space to NUC
 
 ### Ubuntu
 
@@ -46,3 +47,7 @@
 ## Cool
 
 * dockerslim
+
+## Questions
+
+* Why does sonarr/ not resolve to sonarr.home.megabyte.space

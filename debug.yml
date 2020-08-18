@@ -1,4 +1,65 @@
 ---
+- hosts: pfsense
+  tasks:
+    - name: Update pfSense configuration
+      include_tasks: tasks/pfsense/base.yml
+- hosts: windows
+  tasks:
+    - name: Set hosts file
+      include_tasks: tasks/windows/hosts.yml
+    - name: Register the product key
+      include_tasks: tasks/windows/activation.yml
+    - name: Update the operating system
+      include_tasks: tasks/windows/update.yml
+    - name: Ensure software is installed
+      include_tasks: tasks/windows/install.yml
+    - name: Clean up shortcuts
+      include_tasks: tasks/windows/shortcuts.yml
+    - name: Modify Windows settings
+      include_tasks: tasks/windows/windows-settings.yml
+    - name: Add/update dotfiles
+      include_tasks: tasks/windows/dotfiles.yml
+    - name: Attempt authentication
+      include_tasks: tasks/windows/authenticate.yml
+    - name: Perform miscellaneous tasks
+      include_tasks: tasks/windows/misc.yml
+- hosts: all:!windows
+  tasks:
+    - name: Ensure proper SSH port is used for connecting
+      include_tasks: tasks/misc/connect.yml
+      when: ansible_connection != 'local'
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
+  tasks:
+    - name: Set up authentication (set up .ssh folder)
+      include_tasks: tasks/ubuntu/authenticate.yml
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
+  become: yes
+  tasks:
+    - name: Revert Tor apt sources for duration of the script
+      include_tasks: tasks/ubuntu/applications/tor-apt-revert.yml
+    - name: Configure /etc/hosts and set hostname
+      include_tasks: tasks/ubuntu/hosts.yml
+    - name: Update security settings
+      include_role:
+        name: geerlingguy.security
+- hosts: all:!windows:!pfsense
+  tasks:
+    - name: Install AWX
+      include_role:
+        name: geerlingguy.awx
+      when: ('awx' in (apps_installed | default([])))
+    - name: Install InstaPy
+      include_role:
+        name: professormanhattan.ansible_instapy
+      when: ('instapy' in (apps_installed | default([])))
+    - name: Install MAAS
+      include_role:
+        name: professormanhattan.ansible_maas
+      when: ('maas' in (apps_installed | default([])))
+    - name: Install PiHole
+      include_role:
+        name: professormanhattan.ansible_pihole_cloudflared
+      when: ('pihole' in (apps_installed | default([])))
 - hosts: all:!windows:!pfsense
   become: yes
   tasks:

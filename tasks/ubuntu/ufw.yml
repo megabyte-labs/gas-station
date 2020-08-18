@@ -25,7 +25,7 @@
     port: '443'
     proto: tcp
     comment: Allow HTTPS
-  when: software | default([]) | selectattr("name", "equalto", "nginx") | list | first | default(false)
+  when: (software | default([]) | selectattr("name", "equalto", "nginx") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "nginx") | list | first | default(false))
 - name: Allow RDP access if xrdp is installed
   ufw:
     rule: allow
@@ -35,7 +35,7 @@
     comment: Allow RDP
   loop:
     - 192.168.69.0/24
-  when: software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)
+  when: (software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false))
 - name: Allow remote Docker access if Docker is installed and machine does not have Portainer installed
   ufw:
     rule: allow
@@ -45,7 +45,7 @@
     comment: Allow access to Docker from Portainer
   when:
     - not ('portainer' in (apps_installed | default([])))
-    - snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)
+    - (snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false))
   with_items: "{{ portainer_ip_addresses }}"
 - name: Allow TFTP access to Netboot.xyz
   ufw:
@@ -54,7 +54,37 @@
     proto: udp
     src: "{{ item }}"
     comment: Allow TFTP access for booting iPXE files
+  when:
+    - ('netboot' in (apps_installed | default([])))
   with_items: "{{ rc1918_networks }}"
+- name: Allow access to Cockpit
+  ufw:
+    rule: allow
+    port: "9090"
+    proto: tcp
+    src: "{{ item }}"
+    comment: Allow access to Cockpit
+  with_items: "{{ cockpit_ip_addresses }}"
+  when: (software | default([]) | selectattr("name", "equalto", "cockpit") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "cockpit") | list | first | default(false))
+- name: Allow access to Plex Media Server from LAN
+  ufw:
+    rule: allow
+    port: '32400'
+    proto: tcp
+    src: "{{ item }}"
+    comment: Allow access to Plex Media Server from LAN
+  with_items: "{{ rc1918_networks }}"
+  when:
+    - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
+- name: Allow access to Plex Media Server from Internet
+  ufw:
+    rule: allow
+    port: '32400'
+    proto: tcp
+    src: "{{ plex_upstream_ip_address }}"
+    comment: Allow access to Plex Media Server from Internet
+  when:
+    - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
 - name: Enable UFW
   ufw:
     state: enabled

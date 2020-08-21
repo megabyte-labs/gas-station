@@ -22,3 +22,16 @@
     daemon_reload: yes
     name: "snap.docker.dockerd"
     state: restarted
+- name: Check if Docker triggered a restart
+  stat:
+    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"
+  register: docker_restarted
+- name: Create file for tracking if Docker triggered a restart
+  file:
+    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"
+    state: touch
+  when: not docker_restarted.stat.exists
+- name: Reboot the system, if required
+  reboot:
+    reboot_timeout: 600
+  when: not docker_restarted.stat.exists

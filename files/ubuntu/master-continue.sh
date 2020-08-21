@@ -1,5 +1,4 @@
 #!/bin/bash
-sudo apt install ansible
 cd ~/Playbooks
-ansible-galaxy install -r requirements.yml
+rm ~/.config/autostart/ansible-installer.desktop
 ansible-playbook --ask-vault-pass -i inventories/workstation.yml main.yml

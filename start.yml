@@ -1,0 +1,36 @@
+---
+- hosts: all
+  tasks:
+    - name: Install Docker
+      snap:
+        name: docker
+        state: present
+    - name: Configure Docker
+      include_tasks: tasks/ubuntu/applications/docker.yml
+    - name: Add vault_password file for automation purposes
+      template:
+        src: vault_password.j2
+        dest: ~/Playbooks/vault_password
+    - name: Add labels to hard drives
+      shell: "e2label {{ item.path }} {{ item.label }}"
+      with_items:
+        - path: /dev/sda
+          label: Movies
+        - path: /dev/sdb
+          label: TV
+        - path: /dev/nvme0n1
+          label: Auxilary
+    - name: Ensure /etc/fstab has proper entries
+      lineinfile:
+        dest: /etc/fstab
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - regexp: "LABEL=Movies"
+          line: LABEL=Movies /mnt/movies auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Movies 0 0
+        - regexp: "LABEL=TV"
+          line: LABEL=TV /mnt/tv auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=TV%20Shows 0 0
+        - regexp: "LABEL=Auxilary"
+          line: LABEL=Auxilary /mnt/auxilary auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Auxilary 0 0
+    - name: Reboot machine
+      reboot:

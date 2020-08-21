@@ -1,3 +1,7 @@
+# Ubuntu Master
+
+bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh)
+
 # Playbooks
 On a fresh install of Windows 10 Enterprise, run the following command in an Administrator Powershell:
 

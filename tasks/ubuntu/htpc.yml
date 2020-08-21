@@ -25,7 +25,9 @@
   command: "{{ docker_compose_binary }} up -d"
   args:
     chdir: "{{ projects_dir }}/HTPC"
-  when: htpc_repository is defined
+  when:
+    - htpc_repository is defined
+    - htpc_disabled is not defined
 - name: Add Cron job to HTPC repository in sync
   become: yes
   cron:
@@ -34,4 +36,6 @@
     user: "{{ ansible_user }}"
     job: "cd {{projects_dir }}/HTPC && docker-compose stop && git add --all && git commit -m 'Ansible auto-sync' && git push origin master && docker compose up -d"
     cron_file: htpc_gitlab_sync
-  when: htpc_repository is defined
+  when:
+    - htpc_repository is defined
+    - htpc_disabled is not defined

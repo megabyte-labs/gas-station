@@ -3,7 +3,6 @@
 * Test PiHole role
 * https://docs.docker.com/engine/security/https/
 * Figure out how to make code . work when SSH
-* https://github.com/stefangweichinger/ansible-rclone
 * Tune Authelia
 * pull all signatures from ssh
 * Get avahi-daemon for CUPS working with UniFi
@@ -23,7 +22,6 @@
 * Adminer
 ? Bacula
 * Graylog?
-* Add *.home.megabyte.space to NUC
 
 ### Ubuntu
 

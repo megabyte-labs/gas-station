@@ -1,35 +1,25 @@
 ---
 - hosts: ubuntu-desktop
+  become: yes
   tasks:
+    - name: Add OpenVPN profiles
+      include_tasks: tasks/ubuntu/vpn-client.yml
+    - name: Install VMWare
+      include_tasks: tasks/ubuntu/vmware.yml
+    - name: Install Samba share
+      include_tasks: tasks/ubuntu/samba.yml
+      when: samba_users is defined
+- hosts: ubuntu-desktop
+  tasks:
+    - name: Run miscellaneous desktop tasks
+      include_tasks: tasks/ubuntu/desktop-misc.yml
+    - name: Install Hyper.js
+      include_tasks: tasks/ubuntu/hyper.yml
+    - name: Include AppImages
+      include_tasks: tasks/ubuntu/appimages.yml
+    - name: Install/Update Postman
+      include_tasks: tasks/ubuntu/postman.yml
+    - name: Set up HTPC
+      include_tasks: tasks/ubuntu/htpc.yml
     - name: Set up git repositories
       include_tasks: tasks/misc/git.yml
-- hosts: all:!windows:!pfsense
-  tasks:
-    - name: Install AWX
-      include_role:
-        name: geerlingguy.awx
-      when: ('awx' in (apps_installed | default([])))
-    - name: Install InstaPy
-      include_role:
-        name: professormanhattan.ansible_instapy
-      when: ('instapy' in (apps_installed | default([])))
-    - name: Install MAAS
-      include_role:
-        name: professormanhattan.ansible_maas
-      when: ('maas' in (apps_installed | default([])))
-    - name: Install PiHole
-      include_role:
-        name: professormanhattan.ansible_pihole_cloudflared
-      when: ('pihole' in (apps_installed | default([])))
-- hosts: all:!windows:!pfsense
-  become: yes
-  tasks:
-    - name: Install NGINX Optimized
-      include_role:
-        name: professormanhattan.ansible_nginx_optimized
-      when: (nginx_sites_available | default([])) | length
-- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
-  become: yes
-  tasks:
-    - name: Install Tor services
-      include_tasks: tasks/ubuntu/applications/tor.yml

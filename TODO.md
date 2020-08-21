@@ -6,7 +6,7 @@
 * Tune Authelia
 * pull all signatures from ssh
 * Get avahi-daemon for CUPS working with UniFi
-* Docker requires restart before Run docker-compose up, if configured to do so
+* Add static VPN routes
 
 ### Features TODO
 

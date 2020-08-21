@@ -2,16 +2,19 @@
 - hosts: all
   tasks:
     - name: Install Docker
+      become: yes
       snap:
         name: docker
         state: present
     - name: Configure Docker
+      become: yes
       include_tasks: tasks/ubuntu/applications/docker.yml
     - name: Add vault_password file for automation purposes
       template:
         src: vault_password.j2
         dest: ~/Playbooks/vault_password
     - name: Add labels to hard drives
+      become: yes
       shell: "e2label {{ item.path }} {{ item.label }}"
       with_items:
         - path: /dev/sda
@@ -21,6 +24,7 @@
         - path: /dev/nvme0n1
           label: Auxilary
     - name: Ensure /etc/fstab has proper entries
+      become: yes
       lineinfile:
         dest: /etc/fstab
         regexp: "{{ item.regexp }}"
@@ -33,4 +37,5 @@
         - regexp: "LABEL=Auxilary"
           line: LABEL=Auxilary /mnt/auxilary auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Auxilary 0 0
     - name: Reboot machine
+      become: yes
       reboot:

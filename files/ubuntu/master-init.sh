@@ -1,4 +1,5 @@
 #!/bin/bash
+sudo apt update
 sudo apt install ansible
 cd ~
 git clone https://gitlab.com/ProfessorManhattan/Playbooks.git

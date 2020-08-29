@@ -1,0 +1,38 @@
+---
+- name: Ensure dnsmasq is installed
+  apt:
+    name: dnsmasq
+    state: latest
+- name: Ensure resolv.conf has proper search domain
+  lineinfile:
+    path: /etc/resolv.conf
+    regexp: "^search"
+    line: search lab.megabyte.space
+- name: Domain needed for DNS queries
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    regexp: "#domain-needed"
+    line: "domain-needed"
+- name: Ensure bogus-priv is enabled
+  lineinfile:
+    path: /etc/dnsmasq.conf
+    regexp: "#bogus-priv"
+    line: "bogus-priv"
+#- name: Force machine to use dnsmasq via no-resolv
+#  lineinfile:
+#    path: /etc/dnsmasq.conf
+#    regexp: "#no-resolv"
+#    line: "no-resolv"
+- name: Configure dnsmasq's DHCP server if a dhcp_interface is defined
+  blockinfile:
+    path: /etc/dnsmasq.conf
+    marker: "# ANSIBLE MANAGED CONFIGURATION BLOCK"
+    block: |
+      dhcp-range={{ dhcp_interface }},192.168.168.50,192.168.168.150,12h
+      dhcp-option=option:router,192.168.168.1
+      dhcp-option=6,192.168.168.1
+      log-facility=/var/log/dnsmasq.log # Log file path
+      log-async
+      log-queries       # Log queries
+      log-dhcp          # Log DHCP related messages
+  when: dhcp_interface is defined

@@ -25,7 +25,7 @@
     src: "{{ item }}"
     comment: Allow and limit SSH connections
   loop:
-    - 10.14.14.0/24
+    - "{{ lan_network.work }}"
 - name: Allow RDP access if xrdp is installed
   ufw:
     rule: allow
@@ -33,7 +33,7 @@
     src: "{{ item }}"
     comment: Allow RDP
   loop:
-    - 10.14.14.0/24
+    - "{{ lan_network.work }}"
   when: (software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false))
 - name: Allow remote Docker access if Docker is installed and machine does not have Portainer installed
   ufw:
@@ -54,7 +54,11 @@
     comment: Allow TFTP access for booting iPXE files
   when:
     - ('netboot' in (apps_installed | default([])))
-  with_items: "{{ lan_networks }}"
+  with_items:
+    - "{{ lan_network.kubernetes }}"
+    - "{{ lan_network.misc }}"
+    - "{{ lan_network.production }}"
+    - "{{ lan_network.work }}"
 - name: Allow access to Cockpit
   ufw:
     rule: allow
@@ -71,7 +75,10 @@
     name: 'PlexMediaServer Full'
     src: "{{ item }}"
     comment: Allow full access to Plex Media Server from LAN
-  with_items: "{{ lan_networks }}"
+  with_items:
+    - "{{ lan_network.guest }}"
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.work }}"
   when:
     - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
 - name: Allow access to Plex Media Server from Internet
@@ -88,7 +95,9 @@
     name: 'CUPS'
     src: "{{ item }}"
     comment: Allow printer sharing
-  with_items: "{{ lan_networks }}"
+  with_items:
+    - "{{ lan_network.guest }}"
+    - "{{ lan_network.work }}"
   when:
     - printer_sharing is defined
     - printer_sharing
@@ -100,6 +109,14 @@
     comment: Allow MAAS communication
   when: ('maas' in (apps_installed | default([])))
   with_items: "{{ maas_managed_networks | default([]) }}"
+- name: Allow UniFi access if it is included
+  ufw:
+    rule: allow
+    name: 'UniFi'
+    comment: Allow UniFi communication
+  when: ('unifilab' in (apps_installed | default([])))
+  with_items:
+    - "{{ lan_network.xg16 }}"
 - name: Enable UFW
   ufw:
     state: enabled

@@ -7,6 +7,7 @@
 * pull all signatures from ssh
 * Get avahi-daemon for CUPS working with UniFi
 * Add static VPN routes
+* Make git do shallow clone
 
 ### Features TODO
 
@@ -22,6 +23,7 @@
 * Adminer
 ? Bacula
 * Graylog?
+* Nextcloud
 
 ### Ubuntu
 

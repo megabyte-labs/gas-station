@@ -29,3 +29,11 @@
     sysctl_set: yes
     value: '262144'
   when: ('kibana' in (apps_installed | default([])))
+- name: Copy UniFi .pem if an NGINX proxy configuration is present
+  copy:
+    src: files/keys/unifihome.pem
+    dest: /etc/ssl/private/unifihome.pem
+    owner: root
+    group: root
+    mode: "640"
+  when: nginx_sites_available_proxy | default([]) | selectattr("name", "equalto", "unifihome") | list | first | default(false)

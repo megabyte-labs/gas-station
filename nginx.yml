@@ -2,6 +2,48 @@
 - hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   become: yes
   tasks:
+    - name: Install NodeJS/NPM
+      include_role:
+        name: geerlingguy.nodejs
+      when: (nodejs_npm_global_packages | default([])) | length
+    - name: Install Java
+      include_role:
+        name: geerlingguy.java
+      when: java_home is defined
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
+  tasks:
+    - name: Set up git repositories
+      include_tasks: tasks/misc/git.yml
+- hosts: all:!windows:!pfsense
+  tasks:
+    - name: Install AWX
+      include_role:
+        name: geerlingguy.awx
+      when: ('awx' in (apps_installed | default([])))
+    - name: Install InstaPy
+      include_role:
+        name: professormanhattan.ansible_instapy
+      when: ('instapy' in (apps_installed | default([])))
+    - name: Install MAAS
+      include_role:
+        name: professormanhattan.ansible_maas
+      when: ('maas' in (apps_installed | default([])))
+    - name: Install PiHole
+      include_role:
+        name: professormanhattan.ansible_pihole_cloudflared
+      when: ('pihole' in (apps_installed | default([])))
+- hosts: all:!windows:!pfsense
+  become: yes
+  tasks:
+    - name: Install NGINX Optimized
+      include_role:
+        name: professormanhattan.ansible_nginx_optimized
+      when: (nginx_sites_available | default([])) | length
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
+  become: yes
+  tasks:
+    - name: Install Tor services
+      include_tasks: tasks/ubuntu/applications/tor.yml
     - name: Install and configure dnsmasq
       include_tasks: tasks/ubuntu/applications/dnsmasq.yml
 - hosts: ubuntu-server
@@ -9,8 +51,3 @@
   tasks:
     - name: Enroll system in JumpCloud
       include_tasks: tasks/misc/jumpcloud.yml
-- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
-  become: yes
-  tasks:
-    - name: Perform finishing tasks
-      include_tasks: tasks/ubuntu/finish.yml

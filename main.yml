@@ -24,6 +24,7 @@
     - name: Perform miscellaneous tasks
       include_tasks: tasks/windows/misc.yml
 - hosts: all:!windows
+  gather_facts: no
   tasks:
     - name: Ensure proper SSH port is used for connecting
       include_tasks: tasks/misc/connect.yml
@@ -73,20 +74,22 @@
     - name: Install and configure WireGuard
       include_tasks: tasks/ubuntu/applications/wireguard.yml
       when: wireguard_nmconnections is defined
-- hosts: ubuntu-desktop:ubuntu-server:ubuntu-wsl
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   become: yes
   tasks:
     - name: Install NodeJS/NPM
       include_role:
         name: geerlingguy.nodejs
+      when: (nodejs_npm_global_packages | default([])) | length
     - name: Install Java
       include_role:
         name: geerlingguy.java
       when: java_home is defined
-- hosts: ubuntu-desktop:ubuntu-wsl
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   tasks:
     - name: Ensure Homebrew and accompanying packages are installed
       include_tasks: tasks/ubuntu/homebrew.yml
+      when: (homebrew_packages | default([])) | length
     - name: Add dotfiles
       include_tasks: tasks/ubuntu/dotfiles.yml
 - hosts: ubuntu-desktop
@@ -110,6 +113,8 @@
       include_tasks: tasks/ubuntu/postman.yml
     - name: Set up HTPC
       include_tasks: tasks/ubuntu/htpc.yml
+- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
+  tasks:
     - name: Set up git repositories
       include_tasks: tasks/misc/git.yml
 - hosts: all:!windows:!pfsense

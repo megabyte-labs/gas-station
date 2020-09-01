@@ -6,12 +6,35 @@
 - name: Set variable equal to true if Homebrew exists
   set_fact:
     homebrew_installed: "{{ homebrew_install_dir.stat.exists | default(false) }}"
+- name: Temporarily enable passwordless sudo for the ansible_user
+  become: yes
+  lineinfile:
+    dest: /etc/sudoers
+    regexp: '^{{ ansible_user }}'
+    line: '{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL'
+    state: present
+    validate: 'visudo -cf %s'
+    mode: 0644
+  when:
+    - not homebrew_installed
 - name: Install Homebrew if not already installed
   shell: |
     echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
   environment:
     CI: 1
-  when: not homebrew_installed
+  when:
+    - not homebrew_installed
+- name: Re-enable sudo with password
+  become: yes
+  lineinfile:
+    dest: /etc/sudoers
+    regexp: '^{{ ansible_user }}'
+    line: '{{ ansible_user }} ALL=(ALL) ALL'
+    state: present
+    validate: 'visudo -cf %s'
+    mode: 0644
+  when:
+    - not homebrew_installed
 - name: Make sure .bashrc imports Homebrew
   lineinfile:
     path: ~/.bashrc

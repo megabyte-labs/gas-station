@@ -3,11 +3,15 @@
 * Test PiHole role
 * https://docs.docker.com/engine/security/https/
 * Figure out how to make code . work when SSH
-* Tune Authelia
 * pull all signatures from ssh
 * Get avahi-daemon for CUPS working with UniFi
 * Add static VPN routes
 * Make git do shallow clone
+* disable netbios
+* test DNS NAT trap
+* Proxy for apt-get
+* Handle reboot from Docker with port change
+* fix git-cache-meta to handle spaces
 
 ### Features TODO
 

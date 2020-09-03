@@ -27,6 +27,14 @@
   loop:
     - "{{ lan_network.management }}"
     - "{{ lan_network.work }}"
+  when: not (cloud_server | default(false))
+- name: Limit connections via SSH to prevent brute force attacks (Cloud server)
+  ufw:
+    rule: limit
+    port: "{{ security_ssh_port }}"
+    proto: tcp
+    comment: Allow SSH connections originating from the Internet
+  when: cloud_server | default(false)
 - name: Allow RDP access if xrdp is installed
   ufw:
     rule: allow
@@ -46,6 +54,7 @@
   when:
     - not ('portainer' in (apps_installed | default([])))
     - (snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "docker") | list | first | default(false))
+    - not (cloud_server | default(false))
   with_items: "{{ portainer_ip_addresses }}"
 - name: Allow TFTP access to Netboot.xyz
   ufw:
@@ -70,6 +79,7 @@
   when:
     - (software | default([]) | selectattr("name", "equalto", "cockpit") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "cockpit") | list | first | default(false))
     - item.host != ansible_host
+    - not (cloud_server | default(false))
   with_items: "{{ cockpit_ip_addresses }}"
 - name: Allow access to Plex Media Server from LAN
   ufw:

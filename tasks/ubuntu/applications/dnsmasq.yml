@@ -8,6 +8,11 @@
     path: /etc/resolv.conf
     regexp: "^search"
     line: search lab.megabyte.space
+- name: Make resolv.conf pass DNS requests to dnsmasq
+  lineinfile:
+    path: /etc/resolv.conf
+    regexp: "^nameserver"
+    line: nameserver 127.0.0.1
 - name: Domain needed for DNS queries
   lineinfile:
     path: /etc/dnsmasq.conf
@@ -36,3 +41,20 @@
       log-queries       # Log queries
       log-dhcp          # Log DHCP related messages
   when: dhcp_interface is defined
+- name: Stop systemd-resolved in case it has binded to 127.0.0.1:53
+  service:
+    name: systemd-resolved
+    state: stopped
+- name: Ensure systemd-resolved does not try to bind to port 53
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regex: "DNSStubListener="
+    line: "DNSStubListener=no"
+- name: Restart dnsmasq
+  service:
+    name: dnsmasq
+    state: restarted
+- name: Restart systemd-resolved
+  service:
+    name: systemd-resolved
+    state: started

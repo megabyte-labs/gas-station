@@ -12,6 +12,10 @@
 * Proxy for apt-get
 * Handle reboot from Docker with port change
 * fix git-cache-meta to handle spaces
+* OpenVPN server
+* pfSense squid cache proxy
+* Healthchecks
+* Conditionally apply timeout before Certbot in NGINX Optimized
 
 ### Features TODO
 

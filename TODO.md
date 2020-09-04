@@ -16,6 +16,9 @@
 * pfSense squid cache proxy
 * Healthchecks
 * Conditionally apply timeout before Certbot in NGINX Optimized
+* UniFi firewall rules on Raspi
+* Set up certificates for Portainer connections
+* Debug Portainer
 
 ### Features TODO
 

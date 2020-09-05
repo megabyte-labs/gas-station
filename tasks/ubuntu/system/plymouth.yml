@@ -1,0 +1,11 @@
+---
+- name: Copy over and unarchive the Plymouth theme
+  unarchive:
+    src: "files/themes/plymouth/{{ grub_plymouth_theme }}.tar.gz"
+    dest: "/usr/share/plymouth/themes"
+- name: Register the Plymouth theme
+  command: "update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/{{ grub_plymouth_theme }}/{{ grub_plymouth_theme }}.plymouth 100"
+- name: Activate the Plymouth theme
+  command: "echo $(echo | sudo update-alternatives --config default.plymouth | grep {{ grub_plymouth_theme }} | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\\+//') | sudo update-alternatives --config default.plymouth"
+- name: Install the Plymouth theme
+  command: update-initramfs -u

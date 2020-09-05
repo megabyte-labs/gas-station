@@ -19,6 +19,9 @@
 * UniFi firewall rules on Raspi
 * Set up certificates for Portainer connections
 * Debug Portainer
+* Use random passwords more
+* Cloud-init
+* Automate IP selection for Docker certs
 
 ### Features TODO
 

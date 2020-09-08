@@ -1,15 +1,11 @@
 ---
-- name: Create Docker system group
-  group:
-    name: docker
-    state: present
-    system: yes
-- name: Add user to the Docker system group
-  user:
-    name: "{{ ansible_user }}"
-    groups:
-      - docker
-    append: yes
+- name: Install Docker
+  include_role:
+    name: geerlingguy.docker
+- name: Ensure user folder ~/.docker exists
+  file:
+    path: "/home/{{ ansible_user }}/.docker"
+    state: directory
 - name: Check if docker-ca.pem exists in /etc/ssl/private
   become: yes
   stat:
@@ -32,7 +28,6 @@
   become_user: "{{ ansible_user }}"
   shell: |
     export HOST={{ host_fqdn }}
-    mkdir -pv ~/.docker
     cd ~/.docker
     openssl genrsa -aes256 -passout file:/home/{{ ansible_user }}/.docker/.pw -out docker-ca-key.pem 4096
     openssl req -new -passin file:/home/{{ ansible_user }}/.docker/.pw -subj '/C=US/ST=New Jersey/L=The Hood/O=Megabyte LLC/OU=Home Lab/CN=$HOST' -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem
@@ -77,7 +72,7 @@
 - name: Copy ca.pem to root Docker configuration directory
   fetch:
     src: "/home/{{ ansible_user }}/.docker/{{ item }}"
-    dest: "~/.docker/{{ ansible_host }}-{{ item }}"
+    dest: "~/.docker/{{ ansible_host }}/{{ item }}"
     mode: "400"
   with_items:
     - ca.pem
@@ -86,37 +81,37 @@
   when:
     - ansible_host != 'local'
     - generate_docker_certificates
-- name: Allow TCP connections to Docker
-  become: yes
-  lineinfile:
-    path: /etc/systemd/system/snap.docker.dockerd.service
-    regex: "ExecStart="
-    line: ExecStart=/usr/bin/snap run docker.dockerd -H=unix://var/run/docker.sock --tlsverify --tlscacert=/etc/ssl/private/docker-ca.pem --tlscert=/etc/ssl/private/docker-server-cert.pem --tlskey=/etc/ssl/private/docker-server-key.pem -H=0.0.0.0:2424
-  when: not ('portainer' in (apps_installed | default([])))
-- name: Restart the Docker service
-  systemd:
-    daemon_reload: yes
-    name: "snap.docker.dockerd"
-    state: restarted
-- name: Check if Docker triggered a restart
-  stat:
-    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"
-  register: docker_restarted
-- name: Ensure user .config folder exists
-  file:
-    path: "/home/{{ ansible_user }}/.config"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "700"
-- name: Create file for tracking if Docker triggered a restart
-  file:
-    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"
-    state: touch
-  when: not docker_restarted.stat.exists
-- name: Reboot the system, if required
-  reboot:
-    reboot_timeout: 600
-  when:
-    - not docker_restarted.stat.exists
-    - ansible_connection != 'local'
+#- name: Allow TCP connections to Docker
+#  become: yes
+#  lineinfile:
+#    path: /etc/systemd/system/snap.docker.dockerd.service
+#    regex: "ExecStart="
+#    line: ExecStart=/usr/bin/snap run docker.dockerd -H=unix://var/run/docker.sock --tlsverify --tlscacert=ca.pem --tlscert=docker-server-cert.pem --tlskey=docker-server-key.pem -H=0.0.0.0:2424
+#  when: not ('portainer' in (apps_installed | default([])))
+#- name: Restart the Docker service
+#  systemd:
+#    daemon_reload: yes
+#    name: "snap.docker.dockerd"
+#    state: restarted
+#- name: Check if Docker triggered a restart
+#  stat:
+#    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"
+#  register: docker_restarted
+#- name: Ensure user .config folder exists
+#  file:
+#    path: "/home/{{ ansible_user }}/.config"
+#    state: directory
+#    owner: "{{ ansible_user }}"
+#    group: "{{ ansible_user }}"
+#    mode: "700"
+#- name: Create file for tracking if Docker triggered a restart
+#  file:
+#    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"
+#    state: touch
+#  when: not docker_restarted.stat.exists
+#- name: Reboot the system, if required
+#  reboot:
+#    reboot_timeout: 600
+#  when:
+#    - not docker_restarted.stat.exists
+#    - ansible_connection != 'local'

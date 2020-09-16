@@ -14,14 +14,11 @@
 * fix git-cache-meta to handle spaces
 * OpenVPN server
 * pfSense squid cache proxy
-* Healthchecks
 * Conditionally apply timeout before Certbot in NGINX Optimized
 * UniFi firewall rules on Raspi
-* Set up certificates for Portainer connections
-* Debug Portainer
-* Use random passwords more
 * Cloud-init
-* Automate IP selection for Docker certs
+* Add alt+shift+4 for screenshot
+* Add https://linuxconfig.org/how-to-install-teamviewer-on-ubuntu-20-04-focal-fossa-linux to ubuntu desktop
 
 ### Features TODO
 
@@ -65,3 +62,8 @@
 ## Questions
 
 * Why does sonarr/ not resolve to sonarr.home.megabyte.space
+
+## pfSense
+
+* set up auth.megabyte.space as a web server
+* make DNS resolver include domains and domain aliases

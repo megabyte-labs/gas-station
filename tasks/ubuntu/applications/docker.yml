@@ -5,12 +5,17 @@
 - name: Check if docker-ca.pem exists in /etc/ssl/private
   become: yes
   stat:
-    path: /etc/ssl/private/docker-ca.pem
+    path: /etc/ssl/docker/docker-ca.pem
   register: docker_ca_pem
 - name: Determine whether or not the Docker certificates should be generated
   set_fact:
-    generate_docker_certificates: yes
-    #generate_docker_certificates: "{{ ((not docker_ca_pem.stat.exists) or (docker_regenerate_certificates | default(false))) and (not ('portainer' in (apps_installed | default([])))) }}"
+    generate_docker_certificates: "{{ ((not docker_ca_pem.stat.exists) or (docker_regenerate_certificates | default(false))) and (not ('portainer' in (apps_installed | default([])))) }}"
+- name: Ensure .docker user folder exists
+  become: yes
+  become_user: "{{ ansible_user }}"
+  file:
+    path: ~/.docker
+    state: directory
 - name: Create a Docker password file for the TLS certificates
   become: yes
   become_user: "{{ ansible_user }}"
@@ -74,6 +79,7 @@
     src: "/home/{{ ansible_user }}/.docker/{{ item }}"
     dest: "/home/{{ ansible_user }}/.docker/{{ ansible_host }}-{{ item }}"
     mode: "400"
+    flat: yes
   with_items:
     - ca.pem
     - cert.pem
@@ -86,7 +92,7 @@
   lineinfile:
     path: /etc/systemd/system/multi-user.target.wants/docker.service
     regex: "ExecStart="
-    line: ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --tlsverify --tlscacert=/etc/ssl/private/docker-ca.pem --tlscert=/etc/ssl/private/docker-server-cert.pem --tlskey=/etc/ssl/private/docker-server-key.pem -H=0.0.0.0:2424
+    line: ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --tlsverify --tlscacert=/etc/ssl/docker/docker-ca.pem --tlscert=/etc/ssl/docker/docker-server-cert.pem --tlskey=/etc/ssl/docker/docker-server-key.pem -H=0.0.0.0:2424
   when: not ('portainer' in (apps_installed | default([])))
 - name: Restart the Docker service
   systemd:

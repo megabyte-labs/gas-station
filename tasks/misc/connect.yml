@@ -3,7 +3,7 @@
   wait_for:
     host: "{{ ansible_host }}"
     port: "{{ ansible_port }}"
-    timeout: 3
+    timeout: 5
   ignore_errors: yes
   register: ssh_check_test
   delegate_to: localhost
@@ -11,3 +11,8 @@
   set_fact:
     ansible_port: '22'
   when: ssh_check_test.failed
+- name: Ensure ansible_user has password set
+  become: yes
+  user:
+    name: "{{ ansible_user }}"
+    password: "{{ ansible_password | password_hash('sha512', password_salt) }}"

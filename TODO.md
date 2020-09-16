@@ -19,6 +19,8 @@
 * Cloud-init
 * Add alt+shift+4 for screenshot
 * Add https://linuxconfig.org/how-to-install-teamviewer-on-ubuntu-20-04-focal-fossa-linux to ubuntu desktop
+* Change NGINX resolver to 127.0.0.53
+* Check what DNS server cloud servers are using
 
 ### Features TODO
 

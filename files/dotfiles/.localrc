@@ -40,6 +40,15 @@ randomstring() {
     fi
 }
 
+# Reset Docker to factory settings
+resetdocker() {
+    set +e
+    docker stop $(docker ps -a -q)
+    docker rm $(docker ps -a -q)
+    docker volume rm $(docker volume ls -q)
+    docker system prune --force'
+}
+
 # Source: https://itnext.io/bash-aliases-are-awesome-8a76aecc96ab
 # Type ".. 5" to cd .. 5 times
 ..() {
@@ -66,6 +75,12 @@ alias cp='cp -v'
 
 # Copies with a progress bar
 alias cpv='rsync -ah --info=progress2'
+
+# Download a file
+alias download='curl --continue-at - --location --progress-bar --remote-name --remote-time'
+
+# Download a website
+alias downloadsite='wget --mirror -p --convert-links -P'
 
 # Edit Ansible vault
 alias editvault='ansible-vault edit /home/$(whoami)/Playbooks/group_vars/all/vault.yml'
@@ -97,6 +112,9 @@ alias mv='mv -v'
 # Show IP address
 alias myip='curl http://ipecho.net/plain; echo'
 
+# Show local IP addresses
+mylocalip='ifconfig | grep -Eo "inet (addr:|adr:)?([0-9]*\.){3}[0-9]*" | grep -Eo "([0-9]*\.){3}[0-9]*" | grep -v "127.0.0.1"'
+
 # Show open ports
 alias ports='sudo netstat -tulanp'
 
@@ -108,9 +126,6 @@ alias rclonegui='rclone rcd --rc-web-gui'
 
 # Reboot the computer
 alias reboot='sudo /sbin/reboot'
-
-# Removes all Docker containers/volumes/networks
-alias resetdocker='docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) && docker volume rm $(docker volume ls -q) && docker system prune --force'
 
 # Make rm command verbose
 alias rm='rm -vi'
@@ -124,8 +139,14 @@ alias sha1='openssl sha1'
 # Shutdown the computer
 alias shutdown='sudo /sbin/shutdown'
 
+# Speed test
+alias speedtest='wget -O /dev/null http://speedtest.wdc01.softlayer.com/downloads/test10.zip'
+
 # Shortcut for config file
 alias sshconfig='${EDITOR:code} ~/.ssh/config'
+
+# Pastebin
+alias sprunge='curl -F "sprunge=<-" http://sprunge.us'
 
 # Alias for sudo vim
 alias svim='sudo vim'
@@ -141,3 +162,6 @@ alias v='vim'
 
 # Recursively encrypts files using Ansible Vault
 alias vaultdirectory='find . -type f -printf "%h/\"%f\" " | xargs ansible-vault encrypt'
+
+# Shows nice looking report of weather
+alias weather='curl -A curl wttr.in'

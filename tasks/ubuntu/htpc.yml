@@ -18,6 +18,7 @@
   git:
     repo: "{{ htpc_repository }}"
     dest: "{{ projects_dir }}/HTPC"
+    depth: "1"
   when:
     - htpc_repository is defined
     - not htpc_git_folder.stat.exists
@@ -34,7 +35,7 @@
     name: HTPC-GitLab-Sync
     minute: "30"
     user: "{{ ansible_user }}"
-    job: "cd {{ projects_dir }}/HTPC && docker-compose stop && git add --all && git commit -m 'Ansible auto-sync' && git push origin master && docker compose up -d"
+    job: "cd {{ projects_dir }}/HTPC && docker-compose stop && git add --all && git commit -m 'Ansible auto-sync' && git push origin master && docker compose up -d && curl -fsS -m 10 --retry 5 -o /dev/null https://{{ healthcheck_endpoint }}/ping/{{ htpc_healthcheck_id }}"
     cron_file: htpc_gitlab_sync
   when:
     - htpc_repository is defined

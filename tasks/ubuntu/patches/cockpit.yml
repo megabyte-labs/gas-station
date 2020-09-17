@@ -1,0 +1,31 @@
+---
+- name: Ensure libvirt-dbus is installed
+  apt:
+    name: libvirt-dbus
+    state: latest
+- name: Apply usermod -a -G libvirt libvirtdbus
+  shell: usermod -a -G libvirt libvirtdbus
+- name: Apply usermod -a -G libvirt libvirt-qemu
+  shell: usermod -a -G libvirt libvirt-qemu
+- name: Check if a restart for the Cockpit Machines patch is required
+  stat:
+    path: "/home/{{ ansible_user }}/.config/.cockpit_machines_reboot"
+  register: cockpit_rebooted
+- name: Ensure user .config folder exists
+  file:
+    path: "/home/{{ ansible_user }}/.config"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "700"
+- name: Track the pending reboot by creating a file in ~/.config
+  file:
+    path: "/home/{{ ansible_user }}/.config/.cockpit_machines_reboot"
+    state: touch
+  when: not cockpit_rebooted.stat.exists
+- name: Reboot the system, if required
+  reboot:
+    reboot_timeout: 300
+  when:
+    - not cockpit_rebooted.stat.exists
+    - ansible_connection != 'local'

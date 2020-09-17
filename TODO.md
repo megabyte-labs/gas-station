@@ -6,21 +6,16 @@
 * pull all signatures from ssh
 * Get avahi-daemon for CUPS working with UniFi
 * Add static VPN routes
-* Make git do shallow clone
 * disable netbios
 * test DNS NAT trap
-* Proxy for apt-get
-* Handle reboot from Docker with port change
-* fix git-cache-meta to handle spaces
+* Proxy for apt-get or pfSense squid cache proxy
 * OpenVPN server
-* pfSense squid cache proxy
-* Conditionally apply timeout before Certbot in NGINX Optimized
 * UniFi firewall rules on Raspi
 * Cloud-init
 * Add alt+shift+4 for screenshot
-* Add https://linuxconfig.org/how-to-install-teamviewer-on-ubuntu-20-04-focal-fossa-linux to ubuntu desktop
 * Change NGINX resolver to 127.0.0.53
 * Check what DNS server cloud servers are using
+* Install Brave browser
 
 ### Features TODO
 
@@ -69,3 +64,7 @@
 
 * set up auth.megabyte.space as a web server
 * make DNS resolver include domains and domain aliases
+
+## Nice-to-Haves
+
+* Fix git-cache-meta to handle spaces

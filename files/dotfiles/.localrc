@@ -3,7 +3,7 @@ eval "$(starship init bash)"
 
 ### Aliases
 # Change directories and view contents at the same time
-function cl() {
+cl() {
     DIR="$*";
         # if no DIR given, go home
         if [ $# -lt 1 ]; then
@@ -12,6 +12,11 @@ function cl() {
     builtin cd "${DIR}" && \
     # use your preferred ls command
         ls -F --color=auto
+}
+
+# Show a list of the local IP addresses
+mylocalip() {
+    ifconfig | grep -Eo 'inet (addr:|adr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v 127.0.0.1'
 }
 
 # Used to provision machines using Ansible
@@ -46,7 +51,8 @@ resetdocker() {
     docker stop $(docker ps -a -q)
     docker rm $(docker ps -a -q)
     docker volume rm $(docker volume ls -q)
-    docker system prune --force'
+    docker network rm $(docker network ls -q)
+    docker system prune --force
 }
 
 # Source: https://itnext.io/bash-aliases-are-awesome-8a76aecc96ab
@@ -92,7 +98,7 @@ alias flushdns='sudo systemd-resolve --flush-caches && sudo systemd-resolve --st
 alias grubresolutions='sudo hwinfo --framebuffer'
 
 # Execute git command with sudo priviledges while retaining .gitconfig
-alias gsudo='sudo git -c "include.path='"${XDG_CONFIG_DIR:-$HOME/.config}/git/config\" -c \"include.path=$HOME/.gitconfig\""
+alias gsudo='sudo git -c "include.path="${XDG_CONFIG_DIR:-$HOME/.config}/git/config\" -c \"include.path=$HOME/.gitconfig\"'
 
 # Create hashed password for Ansible user creation
 alias hashpassword='mkpasswd --method=sha-512'
@@ -111,9 +117,6 @@ alias mv='mv -v'
 
 # Show IP address
 alias myip='curl http://ipecho.net/plain; echo'
-
-# Show local IP addresses
-mylocalip='ifconfig | grep -Eo "inet (addr:|adr:)?([0-9]*\.){3}[0-9]*" | grep -Eo "([0-9]*\.){3}[0-9]*" | grep -v "127.0.0.1"'
 
 # Show open ports
 alias ports='sudo netstat -tulanp'

@@ -27,6 +27,7 @@
   loop:
     - "{{ lan_network.management }}"
     - "{{ lan_network.work }}"
+    - "{{ lab_ip_address }}"
   when: not (cloud_server | default(false))
 - name: Limit connections via SSH to prevent brute force attacks (Cloud server)
   ufw:
@@ -69,17 +70,6 @@
     - "{{ lan_network.management }}"
     - "{{ lan_network.misc }}"
     - "{{ lan_network.work }}"
-- name: Allow access to Cockpit
-  ufw:
-    rule: allow
-    name: 'Cockpit'
-    src: "{{ item.ip }}"
-    comment: Allow access to Cockpit
-  when:
-    - (software | default([]) | selectattr("name", "equalto", "cockpit") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "cockpit") | list | first | default(false))
-    - item.host != ansible_host
-    - not (cloud_server | default(false))
-  with_items: "{{ cockpit_ip_addresses }}"
 - name: Allow access to Plex Media Server from LAN
   ufw:
     rule: allow
@@ -128,6 +118,26 @@
   when: ('unifilab' in (apps_installed | default([])))
   with_items:
     - "{{ lan_network.xg16 }}"
+- name: Allow HTTP/HTTPS access from LAN
+  ufw:
+    rule: allow
+    name: 'Nginx Full'
+    comment: Allow access to NGINX from proxy host and work network
+    src: "{{ item }}"
+  when:
+    - (nginx_sites_available | default([])) | length
+    - not ('portainer' in (apps_installed | default([])))
+  with_items:
+    - "{{ lan_network.work }}"
+    - "{{ lab_ip_address }}"
+- name: Allow HTTP/HTTPS access from internet
+  ufw:
+    rule: allow
+    name: 'Nginx Full'
+    comment: Allow access to NGINX from internet
+  when:
+    - (nginx_sites_available | default([])) | length
+    - ('portainer' in (apps_installed | default([])))
 - name: Enable UFW
   ufw:
     state: enabled

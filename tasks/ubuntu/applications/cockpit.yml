@@ -1,0 +1,28 @@
+---
+- name: Install Cockpit
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - cockpit
+    - cockpit-machines
+- name: Install Cockpit Docker
+  apt:
+    deb: https://launchpad.net/ubuntu/+source/cockpit/215-1~ubuntu19.10.1/+build/18889196/+files/cockpit-docker_215-1~ubuntu19.10.1_all.deb
+- name: Install 389 directory server if machine is the root host of Cockpit
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - 389-ds
+    - cockpit-389-ds
+  when: ('cockpit' in (apps_installed | default([])))
+- name: Add Cockpit configuration files if the target machine is the root host of Cockpit
+  template:
+    src: cockpit-machine.json.j2
+    dest: "/etc/cockpit/machines.d/{{ item.name }}.json"
+    owner: root
+    group: root
+    mode: "644"
+  with_items: "{{ cockpit_instances }}"
+  when: ('cockpit' in (apps_installed | default([])))

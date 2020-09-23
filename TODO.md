@@ -4,8 +4,6 @@
 * pull all signatures from ssh
 * Add static VPN routes
 * Proxy for apt-get or pfSense squid cache proxy
-* UniFi firewall rules on Raspi
-* Install Brave browser
 * pfSense pfBlocker
 * pfSense ACME
 * pfSense avahi
@@ -20,7 +18,6 @@
 * NGINX Optimized Dockerized
 * AWX
 * Kubernetes Juju
-* JumpCloud
 * Adminer
 ? Bacula
 * Graylog?

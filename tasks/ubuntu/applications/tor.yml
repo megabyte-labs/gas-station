@@ -1,16 +1,15 @@
 ---
-- name: Install Tor and the Tor launcher
+- name: Install Tor and Privoxy
   apt:
     name:
-      - apt-transport-tor
       - privoxy
       - tor
     state: latest
 - name: Forward proxy connections to Tor
   lineinfile:
-    path: /etc/privoxy/config
+    path: /etc/privoxy/config # https://fabianlee.org/2018/02/11/ubuntu-a-centralized-apt-package-cache-using-apt-cacher-ng/
     regex: "forward-socks5 / localhost"
-    line: forward-socks5 / localhost:9150 .
+    line: forward-socks5 / localhost:9050 .
 - name: Restart Privoxy
   service:
     name: privoxy
@@ -19,54 +18,9 @@
   blockinfile:
     path: /etc/tor/torrc
     block: |
-      ExitNodes us
+      ExitNodes {us}
       StrictNodes 1
-- name: Use port 9150 for torsocks
-  lineinfile:
-    path: /etc/tor/torsocks.conf
-    regex: "TorPort"
-    line: TorPort 9150
-- name: Set apt to use Tor
-  copy:
-    src: files/config/tor/apt-tor.conf
-    dest: /etc/apt/apt.conf.d/apt-tor.conf
-    owner: root
-    group: root
-    mode: "644"
 - name: Reload Tor
   service:
     name: tor
     state: restarted
-- name: Acquire a list of sources from /etc/apt/sources.list.d/*
-  find:
-    paths:
-      - /etc/apt/sources.list.d
-  register: sources_files
-  when: tor_apt_get | default(false)
-- name: Configure /etc/apt/sources.list.d/* to use Tor as the transport (https://)
-  replace:
-    path: "{{ item.path }}"
-    regexp: " https:\/\/"
-    replace: " tor+https://"
-  with_items: "{{ sources_files.files }}"
-  when: tor_apt_get | default(false)
-- name: Configure /etc/apt/sources.list.d/* to use Tor as the transport (http://)
-  replace:
-    path: "{{ item.path }}"
-    regexp: " http:\/\/"
-    replace: " tor+http://"
-  with_items: "{{ sources_files.files }}"
-  when: tor_apt_get | default(false)
-- name: Configure /etc/apt/sources.list to use Tor as the transport (https://)
-  replace:
-    path: /etc/apt/sources.list
-    regexp: " https:\/\/"
-    replace: " tor+https://"
-  when: tor_apt_get | default(false)
-- name: Configure /etc/apt/sources.list to use Tor as the transport (http://)
-  replace:
-    path: /etc/apt/sources.list
-    regexp: " http:\/\/"
-    replace: " tor+http://"
-  when: tor_apt_get | default(false)
-# Source: https://www.linuxuprising.com/2018/10/how-to-install-and-use-tor-as-proxy-in.html

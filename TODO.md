@@ -4,9 +4,8 @@
 * pull all signatures from ssh
 * Add static VPN routes
 * Proxy for apt-get or pfSense squid cache proxy
-* pfSense pfBlocker
-* pfSense ACME
 * pfSense avahi
+* Delete old commits figure out how
 
 ### Features TODO
 

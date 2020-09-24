@@ -6,12 +6,13 @@ lab_subdomain: lab                        # This is the subdomain used for servi
 
 cloud_server: no
 
-docker_compose_binary: /snap/bin/docker-compose
 docker_users:
   - "{{ ansible_user }}"
 
 dotfiles_repo: https://gitlab.com/ProfessorManhattan/dotfiles.git # This is the repository that contains dotfiles that are deployed to your desktop workstations (i.e. Ubuntu Desktop or Windows 10)
 
+apt_cacher_endpoint: apt.lab.megabyte.space
+apt_cacher_ip_address: 10.14.24.24
 lab_ip_address: 10.14.24.14
 home_ip_address: 10.14.14.14
 status_ip_address: 104.131.71.194
@@ -28,6 +29,14 @@ cockpit_instances:
     ip_address: "{{ home_ip_address }}"
 
 etc_hosts:
+  apt:
+    hosts: "aptcacher apt.{{ lab_subdomain }} apt.{{ lab_subdomain }}.{{ base_domain }}"
+    letsencrypt_domain: megabyte.space
+    proxy_pass_port: 3142
+    regexp: "# AptCacherNG"
+    subdomain: "{{ lab_subdomain }}"
+    ip_address: "{{ apt_cacher_ip_address }}"
+    transport: https
   authelia:
     authelia: false
     fqdn_override: "auth.{{ base_domain }}"
@@ -47,7 +56,6 @@ etc_hosts:
   bazarr:
     hosts: "bazarr bazarr.{{ home_subdomain }} bazarr.{{ home_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
-    proxy_forward: "bazarr"
     proxy_pass_port: 26671
     regexp: "# Bazarr"
     subdomain: "{{ home_subdomain }}"
@@ -71,6 +79,7 @@ etc_hosts:
     ip_address: "{{ home_ip_address }}"
     transport: 'https'
   elastic:
+    authelia: false
     hosts: "elastic elastic.{{ lab_subdomain }} elastic.{{ lab_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
     proxy_pass_port: 27141
@@ -112,6 +121,7 @@ etc_hosts:
     subdomain: "{{ home_subdomain }}"
     ip_address: "{{ home_ip_address }}"
   kibana:
+    authelia: false
     hosts: "kibana kibana.{{ lab_subdomain }} kibana.{{ lab_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
     proxy_pass_port: 27140
@@ -227,6 +237,11 @@ etc_hosts:
     hosts: "raspi raspi.{{ lab_subdomain }} raspi.{{ lab_subdomain }}.{{ base_domain }}"
     regexp: "# RaspiHelper"
     ip_address: "{{ controller_ip_address }}"
+  raspitor:
+    hostname: "RaspiTor"
+    hosts: "raspitor raspitor.{{ lab_subdomain }} raspitor.{{ lab_subdomain }}.{{ base_domain }}"
+    regexp: "# RaspiTor"
+    ip_address: "{{ apt_cacher_ip_address }}"
   seconion:
     hosts: "seconion seconion.{{ lab_subdomain }} seconion.{{ lab_subdomain }}.{{ base_domain }}"
     regexp: "# Security Onion"
@@ -240,6 +255,7 @@ etc_hosts:
     subdomain: "{{ home_subdomain }}"
     ip_address: "{{ home_ip_address }}"
   statping:
+    authelia: false
     dns_record: "status"
     dns_zone: "{{ base_domain }}"
     external: true
@@ -296,6 +312,7 @@ etc_hosts:
     ip_address: "{{ home_ip_address }}"
 
 etc_hosts_list:
+  - apt
   - authelia
   - awx
   - bazarr
@@ -323,6 +340,7 @@ etc_hosts_list:
   - portainer
   - radarr
   - raspi
+  - raspitor
   - seconion
   - sonarr
   - statping
@@ -338,6 +356,8 @@ grub_theme: Vimix-1080p
 grub_timeout: 5
 
 install_docker: yes
+
+kibana_url: https://kibana.lab.megabyte.space:443
 
 netdata_rooms:
   do: 0f7a2d28-77c0-4eb1-970b-22405a3886f7

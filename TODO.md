@@ -3,9 +3,11 @@
 * Test PiHole role
 * pull all signatures from ssh
 * Add static VPN routes
-* Proxy for apt-get or pfSense squid cache proxy
 * pfSense avahi
 * Delete old commits figure out how
+* https://docs.docker.com/engine/reference/commandline/save/
+* Set Ubuntu manual proxy to 8118 and localhost
+* Get cast working on Ubuntu
 
 ### Features TODO
 
@@ -22,6 +24,18 @@
 * Graylog?
 * Nextcloud
 * Homer
+* Terraform
+* Sentry
+* Vagrant
+* Netlify
+* Rancher
+* Kafka
+* https://www.vaultproject.io/
+https://www.packer.io/
+
+# Revisit
+https://vercel.com/
+https://strapi.io/pricing
 
 ### Ubuntu
 

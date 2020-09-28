@@ -2,6 +2,16 @@
 - name: Install Docker
   include_role:
     name: geerlingguy.docker
+- name: Remove docker-compose installed by role if architecture is not supported
+  file:
+    path: /usr/local/bin/docker-compose
+    state: absent
+  when: ansible_architecture == 'aarch64' # TODO: Add support for 32-bit
+- name: Install docker-compose using apt if architecture is not supported
+  apt:
+    name: docker-compose
+    state: latest
+  when: ansible_architecture == 'aarch64'
 - name: Check if docker-ca.pem exists in /etc/ssl/private
   become: yes
   stat:
@@ -77,7 +87,7 @@
 - name: Copy ca.pem to root Docker configuration directory
   fetch:
     src: "/home/{{ ansible_user }}/.docker/{{ item }}"
-    dest: "/home/{{ ansible_user }}/.docker/{{ ansible_host }}-{{ item }}"
+    dest: "/home/{{ ansible_host_user }}/.docker/{{ ansible_host }}-{{ item }}"
     mode: "400"
     flat: yes
   with_items:

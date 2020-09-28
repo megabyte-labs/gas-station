@@ -6,8 +6,8 @@
 * pfSense avahi
 * Delete old commits figure out how
 * https://docs.docker.com/engine/reference/commandline/save/
-* Set Ubuntu manual proxy to 8118 and localhost
 * Get cast working on Ubuntu
+* Add file checksum verification to Vagrant
 
 ### Features TODO
 
@@ -26,7 +26,6 @@
 * Homer
 * Terraform
 * Sentry
-* Vagrant
 * Netlify
 * Rancher
 * Kafka
@@ -61,3 +60,4 @@ https://strapi.io/pricing
 ## Nice-to-Haves
 
 * Fix git-cache-meta to handle spaces
+* https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e

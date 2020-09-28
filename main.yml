@@ -44,8 +44,14 @@
 - hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
   become: yes
   tasks:
-    - name: Revert Tor apt sources for duration of the script
-      include_tasks: tasks/ubuntu/applications/tor-apt-revert.yml
+    - name: Install Tor services
+      include_tasks: tasks/ubuntu/applications/tor.yml
+    - name: Install NGINX Optimized
+      include_role:
+        name: professormanhattan.ansible_nginx_optimized
+      when: (nginx_sites_available | default([])) | length
+    - name: Install and/or configure AptCacherNG
+      include_tasks: tasks/ubuntu/applications/apt-cacher-ng.yml
     - name: Configure /etc/hosts and set hostname
       include_tasks: tasks/ubuntu/hosts.yml
     - name: Update security settings
@@ -144,25 +150,8 @@
       include_role:
         name: professormanhattan.ansible_pihole_cloudflared
       when: ('pihole' in (apps_installed | default([])))
-- hosts: all:!windows:!pfsense
-  become: yes
-  tasks:
-    - name: Install NGINX Optimized
-      include_role:
-        name: professormanhattan.ansible_nginx_optimized
-      when: (nginx_sites_available | default([])) | length
-- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
-  become: yes
-  tasks:
-    - name: Install Tor services
-      include_tasks: tasks/ubuntu/applications/tor.yml
 #- hosts: ubuntu-server
 #  become: yes
 #  tasks:
 #    - name: Enroll system in JumpCloud
 #      include_tasks: tasks/misc/jumpcloud.yml
-- hosts: raspberry:ubuntu-desktop:ubuntu-server:ubuntu-wsl
-  become: yes
-  tasks:
-    - name: Apply patches
-      include_tasks: tasks/ubuntu/patches/main.yml

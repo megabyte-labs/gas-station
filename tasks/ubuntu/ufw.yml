@@ -36,6 +36,21 @@
     proto: tcp
     comment: Allow SSH connections originating from the Internet
   when: cloud_server | default(false)
+- name: Allow apt-cacher-ng access if apt-cacher-ng is installed
+  ufw:
+    rule: allow
+    name: 'AptCacherNG'
+    src: "{{ item }}"
+    comment: Allow access to apt-cacher-ng
+  loop:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.kubernetes }}"
+    - "{{ lan_network.management }}"
+    - "{{ lan_network.offline }}"
+    - "{{ lan_network.unifi }}"
+    - "{{ lan_network.work }}"
+  when:
+    - ('apt' in (apps_installed | default([])))
 - name: Allow RDP access if xrdp is installed
   ufw:
     rule: allow
@@ -65,10 +80,11 @@
   when:
     - ('netboot' in (apps_installed | default([])))
   with_items:
-    - "{{ lan_network.auxilary }}"
     - "{{ lan_network.iot }}"
+    - "{{ lan_network.kubernetes }}"
     - "{{ lan_network.management }}"
-    - "{{ lan_network.misc }}"
+    - "{{ lan_network.offline }}"
+    - "{{ lan_network.unifi }}"
     - "{{ lan_network.work }}"
 - name: Allow access to Plex Media Server from LAN
   ufw:
@@ -77,7 +93,6 @@
     src: "{{ item }}"
     comment: Allow full access to Plex Media Server from LAN
   with_items:
-    - "{{ lan_network.guest }}"
     - "{{ lan_network.iot }}"
     - "{{ lan_network.work }}"
   when:
@@ -97,7 +112,7 @@
     src: "{{ item }}"
     comment: Allow printer sharing
   with_items:
-    - "{{ lan_network.guest }}"
+    - "{{ lan_network.iot }}"
     - "{{ lan_network.work }}"
   when:
     - printer_sharing is defined
@@ -117,27 +132,24 @@
     comment: Allow UniFi communication
   when: ('unifilab' in (apps_installed | default([])))
   with_items:
-    - "{{ lan_network.xg16 }}"
+    - "{{ lan_network.unifi }}"
 - name: Allow HTTP/HTTPS access from LAN
   ufw:
     rule: allow
     name: 'Nginx Full'
-    comment: Allow access to NGINX from proxy host and work network
+    comment: Allow access to NGINX from LAN
     src: "{{ item }}"
   when:
     - (nginx_sites_available | default([])) | length
-    - not ('portainer' in (apps_installed | default([])))
-  with_items:
-    - "{{ lan_network.work }}"
-    - "{{ lab_ip_address }}"
+    - not ('nuc' in (apps_installed | default([])))
+  with_items: "{{ rc1918_networks }}"
 - name: Allow HTTP/HTTPS access from internet
   ufw:
     rule: allow
     name: 'Nginx Full'
     comment: Allow access to NGINX from internet
   when:
-    - (nginx_sites_available | default([])) | length
-    - ('portainer' in (apps_installed | default([])))
+    - ('nuc' in (apps_installed | default([])))
 - name: Enable UFW
   ufw:
     state: enabled

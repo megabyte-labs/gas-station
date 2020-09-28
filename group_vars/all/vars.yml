@@ -1,3 +1,4 @@
+ansible_host_user: hawkwood
 authorized_key_file: id_rsa_local.pub     # Since this is defined here, this .pub file is added to the authorized_keys SSH configuration by default on all machines
 
 base_domain: megabyte.space               # This is the domain that will be used for all services (e.g. if you access sonarr.home/, you will be redirected to https://sonarr.home.megabyte.space)
@@ -17,11 +18,15 @@ lab_ip_address: 10.14.24.14
 home_ip_address: 10.14.14.14
 status_ip_address: 104.131.71.194
 controller_ip_address: 10.14.49.14
+auth_ip_address: 10.14.24.44
 healthcheck_endpoint: health.megabyte.space
 
 cockpit_instances:
   - name: Raspi
     ip_address: "{{ controller_ip_address }}"
+    user: ubuntu
+  - name: RaspiAuth
+    ip_address: "{{ auth_ip_address }}"
     user: ubuntu
   - name: RaspiTor
     ip_address: "{{ apt_cacher_ip_address }}"
@@ -33,7 +38,8 @@ cockpit_instances:
 
 etc_hosts:
   apt:
-    hosts: "aptcacher apt.{{ lab_subdomain }} apt.{{ lab_subdomain }}.{{ base_domain }}"
+    authelia: false
+    hosts: "apt aptcacher apt.{{ lab_subdomain }} apt.{{ lab_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
     proxy_pass_port: 3142
     regexp: "# AptCacherNG"
@@ -49,14 +55,15 @@ etc_hosts:
     proxy_pass_port: 26690
     regexp: "# Authelia"
     subdomain: "auth"
-    ip_address: "{{ lab_ip_address }}"
+    ip_address: "{{ auth_ip_address }}"
     default_server: true
   awx:
+    authelia: false
     hosts: "awx awx.{{ lab_subdomain }} awx.{{ lab_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
     regexp: "# AWX"
     subdomain: "{{ lab_subdomain }}"
-    ip_address: 10.14.14.69
+    ip_address: 10.0.0.14
     external: true
   bazarr:
     hosts: "bazarr bazarr.{{ home_subdomain }} bazarr.{{ home_subdomain }}.{{ base_domain }}"
@@ -173,20 +180,28 @@ etc_hosts:
     ip_address: "{{ home_ip_address }}"
     external: true
   netboot:
-    hosts: "netboot netboot.{{ home_subdomain }} netboot.{{ home_subdomain }}.{{ base_domain }}"
+    hosts: "netboot netboot.{{ lab_subdomain }} netboot.{{ lab_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
     proxy_pass_port: 26687
     regexp: "# NetbootXYZ"
-    subdomain: "{{ home_subdomain }}"
+    subdomain: "{{ lab_subdomain }}"
     ip_address: "{{ controller_ip_address }}"
     external: true
   netbootassets:
-    hosts: "netbootassets netbootassets.{{ home_subdomain }} netbootassets.{{ home_subdomain }}.{{ base_domain }}"
+    hosts: "netbootassets netbootassets.{{ lab_subdomain }} netbootassets.{{ lab_subdomain }}.{{ base_domain }}"
     letsencrypt_domain: megabyte.space
     proxy_pass_port: 26688
     regexp: "# Assets4XYZ"
-    subdomain: "{{ home_subdomain }}"
+    subdomain: "{{ lab_subdomain }}"
     ip_address: "{{ controller_ip_address }}"
+    external: true
+  nextcloud:
+    hosts: "nextcloud nextcloud.{{ home_subdomain }} nextcloud.{{ home_subdomain }}.{{ base_domain }}"
+    letsencrypt_domain: megabyte.space
+    proxy_pass_port: 26777
+    regexp: "# NextCloud"
+    subdomain: "{{ home_subdomain }}"
+    ip_address: "{{ home_ip_address }}"
     external: true
   nuc:
     hosts: "nuc nuc.{{ lab_subdomain }} nuc.{{ lab_subdomain }}.{{ base_domain }}"
@@ -258,6 +273,11 @@ etc_hosts:
     hosts: "raspi raspi.{{ lab_subdomain }} raspi.{{ lab_subdomain }}.{{ base_domain }}"
     regexp: "# RaspiHelper"
     ip_address: "{{ controller_ip_address }}"
+  raspiauth:
+    hostname: "RaspiAuth"
+    hosts: "raspiauth raspiauth.{{ lab_subdomain }} raspiauth.{{ lab_subdomain }}.{{ base_domain }}"
+    regexp: "# RaspiAuth"
+    ip_address: "{{ auth_ip_address }}"
   raspitor:
     hostname: "RaspiTor"
     hosts: "raspitor raspitor.{{ lab_subdomain }} raspitor.{{ lab_subdomain }}.{{ base_domain }}"
@@ -357,6 +377,7 @@ etc_hosts_list:
   - musicbrainz
   - netboot
   - netbootassets
+  - nextcloud
   - nuc
   - ombi
   - organizr
@@ -366,6 +387,7 @@ etc_hosts_list:
   - portainer
   - radarr
   - raspi
+  - raspiauth
   - raspitor
   - seconion
   - sonarr
@@ -407,9 +429,9 @@ lan_network:
   iot: 10.14.33.0/24
   kubernetes: 10.14.24.0/24
   management: 10.0.0.0/24
-  misc: 10.14.144.0/24
+  offline: 10.14.144.0/24
+  unifi: 10.14.49.0/24
   work: 10.14.14.0/24
-  xg16: 10.14.49.0/24
 
 refresh_vpn_connections: no               # Whether or not to remove all the previous GNOME OpenVPN connections before adding the new ones
 
@@ -425,4 +447,9 @@ security_autoupdate_mail_to: "brian@megabyte.space"
 
 swap_space: 2G
 
+system_timezone: America/New_York
+
 tor_apt_get: no # Figure out how to make this work
+
+vagrant_version: 2.2.10 # Get latest version from https://www.vagrantup.com/downloads.html
+vagrant_vmware_version: 1.0.12

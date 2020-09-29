@@ -2,6 +2,11 @@
 - name: Install Docker
   include_role:
     name: geerlingguy.docker
+  when: not ('portainer' in (apps_installed | default([])))
+- name: Install Docker via snap
+  snap:
+    name: docker
+  when: ('portainer' in (apps_installed | default([])))
 - name: Remove docker-compose installed by role if architecture is not supported
   file:
     path: /usr/local/bin/docker-compose
@@ -59,6 +64,7 @@
   file:
     path: /etc/ssl/docker
     state: directory
+  when: generate_docker_certificates
 - name: Move Docker server certificates to protected SSL folder
   become: yes
   copy:
@@ -109,6 +115,12 @@
     daemon_reload: yes
     name: "docker"
     state: restarted
+  when: not ('portainer' in (apps_installed | default([])))
+- name: Restart the Docker snap service
+  systemd:
+    name: snap.docker.dockerd
+    state: restarted
+  when: ('portainer' in (apps_installed | default([])))
 #- name: Check if Docker triggered a restart
 #  stat:
 #    path: "/home/{{ ansible_user }}/.config/.docker_rebooted"

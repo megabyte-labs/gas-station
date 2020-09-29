@@ -27,7 +27,7 @@ else
 fi
 echo "Detected project name: $PROJECT_NAME"
 # Backup volumes
-VOLUMES=$(docker volume ls -f name=$PROJECT_NAME --format "{{.Name}}")
+VOLUMES=$(docker volume ls -f name=$PROJECT_NAME --format "{% raw %}{{.Name}}{% endraw %}")
 for i in ${VOLUMES[@]}
 do
     if [ "$RUN_OPTION" == 'restore' ]; then
@@ -60,7 +60,7 @@ if [ "$2" == 'full' ]; then
     done
 fi
 # If user is root, then copy over the .ssh details
-if [[ $EUID -ne 0 ]]; then
+if [[ $EUID -eq 0 ]]; then
     cp -rf /home/$ANSIBLE_PLAYBOOK_USER/.ssh/* /root/.ssh
 fi
 echo "Adding latest changes to the Git repository"
@@ -68,8 +68,19 @@ git add --all
 git commit -m "Megabyte Labs Docker backup"
 git push origin master
 # Clean up files copied over when user is root
-if [[ $EUID -ne 0 ]]; then
+if [[ $EUID -eq 0 ]]; then
     rm -rf /root/.ssh/*
 fi
 echo "Bringing the project back online"
 docker-compose up -d
+if [ "$RUN_OPTION" == 'restore' ]; then
+    if [ -f restore.sh ]; then
+        echo "Running restore.sh"
+        bash restore.sh
+    fi
+else
+    if [ -f backup.sh ]; then
+        echo "Running backup.sh"
+        bash backup.sh
+    fi
+fi

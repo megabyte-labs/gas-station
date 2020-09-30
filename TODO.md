@@ -8,6 +8,7 @@
 * https://docs.docker.com/engine/reference/commandline/save/
 * Get cast working on Ubuntu
 * Add file checksum verification to Vagrant
+* Test Docker groupadd theory
 
 ### Features TODO
 
@@ -40,6 +41,7 @@ https://strapi.io/pricing
 
 * Install custom self-signed certificates
 * Get Rclone 1.51+ to fix issue with OneDrive only opening docs on 2nd try
+* Revisit netboot port conflicts (can't have network_mode: host and NGINX on same box working with Authelia)
 
 ### Windows
 

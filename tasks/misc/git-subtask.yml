@@ -15,12 +15,14 @@
   when: not git_folder.stat.exists
 - name: Restore containers if necessary
   become: yes
+  become_user: "{{ item.user }}"
   command: docker-compose-backup restore
   args:
     chdir: "{{ item.folder }}"
   when: not git_folder.stat.exists
 - name: Run docker-compose up, if configured to do so
   become: yes
+  become_user: "{{ item.user }}"
   command: "docker-compose up -d"
   args:
     chdir: "{{ item.folder }}"
@@ -31,6 +33,7 @@
   delegate_to: localhost
 - name: Backup containers if necessary
   become: yes
+  become_user: "{{ ansible_user }}"
   command: docker-compose-backup backup
   args:
     chdir: "{{ item.folder }}"
@@ -41,6 +44,6 @@
     name: "{{ item.name }} Backup Job"
     minute: "45"
     hour: "3"
-    user: root
+    user: "{{ item.user }}"
     job: "cd {{ item.folder }} && docker-compose-backup backup && curl -fsS -m 10 --retry 5 -o /dev/null https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}"
     cron_file: "{{ item.name }}-Backup-Job"

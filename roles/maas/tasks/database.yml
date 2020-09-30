@@ -1,0 +1,36 @@
+---
+- name: Remove MAAS snap image
+  become: yes
+  snap:
+    name: maas
+    state: absent
+  when: reinstall_maas_database
+
+- name: Delete pre-existing MAAS database
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: "{{ maas_database_name }}"
+    state: absent
+  when: reinstall_maas_database
+
+- name: Create the MAAS PostgreSQL database
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: "{{ maas_database_name }}"
+
+- name: Create the MAAS database user
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    db: "{{ maas_database_name }}"
+    name: "{{ maas_database_username }}"
+    password: "{{ maas_database_password }}"
+  no_log: true
+
+- name: Re-install MAAS
+  become: yes
+  snap:
+    name: maas
+  when: reinstall_maas_database

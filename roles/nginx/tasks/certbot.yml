@@ -1,0 +1,67 @@
+---
+- name: Ensure letsencrypt and miscellaneous dependencies are installed
+  apt:
+    name:
+      - letsencrypt
+      - python3
+      - python3-pip
+    state: present
+
+- name: Replace certbot==0.40.0 with certbot>=0.40.0 in /usr/bin/certbot (hack)
+  replace:
+    path: /usr/bin/certbot
+    regexp: "certbot==0.40.0"
+    replace: "certbot>=0.40.0"
+
+- name: Make sure ACME pip is updated for Python3
+  pip:
+    name: acme>=1.6.0
+
+- name: Install certbot-dns-cloudflare
+  shell: "cd {{ certbot_dir }}/certbot-dns-cloudflare && python3 setup.py install"
+
+- name: Create certbot folder
+  file:
+    path: /etc/letsencrypt
+    state: directory
+    owner: root
+    group: root
+    mode: "700"
+
+- name: Ensure certbot templates are available
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "600"
+  with_items:
+    - src: 'templates/dnscloudflare.ini.j2'
+      dest: '/etc/letsencrypt/dnscloudflare.ini'
+    - src: 'templates/letsencryptcli.ini.j2'
+      dest: '/etc/letsencrypt/cli.ini'
+
+- name: Restart Certbot
+  service:
+    name: certbot
+    state: restarted
+
+- name: Test the creation of the Let's Encrypt certificates
+  block:
+    - name: Run the Let's Encrypt routine for the first time
+      vars:
+        certbot_cloudflare_acme_server: "{{ certbot_cloudflare_acme_test }}"
+        certbot_create_if_missing: yes
+      include_role:
+        name: geerlingguy.certbot
+  ignore_errors: yes
+
+- name: Wait for certbot to register appropriate DNS records
+  wait_for:
+    timeout: 30
+
+- name: Create the certificates
+  vars:
+    certbot_create_if_missing: yes
+  include_role:
+    name: geerlingguy.certbot

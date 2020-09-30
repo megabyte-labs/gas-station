@@ -1,0 +1,47 @@
+---
+- name: Check if NGINX configs are from git
+  stat:
+    path: /etc/nginx/README.md
+  register: custom_nginx_readme
+
+- name: Remove default NGINX etc folder
+  become: yes
+  file:
+    path: /etc/nginx
+    state: absent
+  when: not custom_nginx_readme.stat.exists
+
+- name: Clone default NGINX source
+  become: yes
+  git:
+    repo: "{{ optimized_nginx_repository }}"
+    dest: /etc/nginx
+    update: yes
+    force: yes
+    version: "{{ optimized_nginx_repository_version }}"
+
+- name: Clear sites-available if configured to do so
+  become: yes
+  file:
+    path: /etc/nginx/sites-available/*
+    state: absent
+  when: nginx_clear_sites_available
+
+- name: Clear sites-enabled if configured to do so
+  file:
+    path: /etc/nginx/sites-enabled/*
+    state: absent
+  when: nginx_clear_sites_enabled
+
+- name: Generate sites-available
+  include_tasks: site-available.yml
+  with_items: "{{ nginx_sites_available }}"
+
+- name: Symlink sites-enabled
+  become: yes
+  file:
+    src: "/etc/nginx/sites-available/{{ item.name }}.conf"
+    path: "/etc/nginx/sites-enabled/{{ item.name }}.conf"
+    state: link
+  when: not (item.unenabled | default(false))
+  with_items: "{{ nginx_sites_available }}"

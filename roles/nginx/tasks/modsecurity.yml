@@ -1,0 +1,97 @@
+---
+- name: Install Modsecurity dependencies
+  become: yes
+  apt:
+    name:
+    - build-essential
+    - libgeoip-dev
+    - libcurl4-openssl-dev
+    - liblua5.2-dev
+    - libyajl-dev
+    - libxml2-dev
+    - libpcre3-dev
+    - libpcre++-dev
+    - ssdeep
+    - libfuzzy-dev
+    - git
+    state: present
+
+- name: Obtain Modsecurity source code for branch v3/master
+  become: yes
+  git:
+    repo: https://github.com/SpiderLabs/ModSecurity
+    dest: ~/ModSecurity
+    depth: "1"
+    version: v3/master
+    force: yes
+
+- name: Init submodules, configure, build, make install
+  become: yes
+  command: "{{ item }}"
+  args:
+    chdir: "~/ModSecurity"
+    creates: "/usr/local/modsecurity/lib/libmodsecurity.so"
+  with_items:
+    - "git submodule init"
+    - "git submodule update"
+    - "./build.sh"
+    - "./configure"
+    - "make"
+    - "make install"
+  
+- name: Obtain Modsecurity-nginx source code
+  become: yes
+  git:
+    repo: https://github.com/SpiderLabs/ModSecurity-nginx
+    dest: ~/ModSecurity-nginx
+    depth: 1
+    force: yes
+
+- name: Download and unarchive NGINX source code of version {{ nginx_version }}
+  become: yes
+  unarchive:
+    src: https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz
+    dest: ~/
+    remote_src: yes
+
+- name: Configure and make ModSecurity NGNINX module
+  become: yes
+  command: "{{ item }}"
+  args:
+    chdir: "~/nginx-{{ nginx_version }}"
+    creates: "~/mods.so"
+  with_items:
+    - "./configure --with-compat --add-dynamic-module=../ModSecurity-nginx"
+    - "make modules"
+
+- name: Copy Modsecurity-nginx module to NGINX modules folder
+  become: yes
+  copy:
+    src: "~/nginx-{{ nginx_version }}/objs/ngx_http_modsecurity_module.so"
+    dest: /usr/lib/nginx/modules/ngx_http_modsecurity_module.so
+    remote_src: yes
+
+- name: Obtain OWASP Modsecurity Rules
+  become: yes
+  git:
+    repo: https://github.com/SpiderLabs/owasp-modsecurity-crs
+    dest: /etc/nginx/modsec/owasp-modsecurity-crs
+    force: yes
+    version: "v3.3/dev"
+
+- name: Copy crs-setup.conf.example to become crs-setup.conf
+  become: yes
+  copy:
+    src: /etc/nginx/modsec/owasp-modsecurity-crs/crs-setup.conf.example
+    dest: /etc/nginx/modsec/owasp-modsecurity-crs/crs-setup.conf
+    remote_src: yes
+
+- name: Clean up source directories
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - ~/ModSecurity
+    - ~/ModSecurity-nginx
+    - "~/nginx-{{ nginx_version }}"

@@ -46,12 +46,9 @@
   tasks:
     - name: Install Tor services
       include_tasks: tasks/ubuntu/applications/tor.yml
-    - name: Install NGINX Optimized
-      include_role:
-        name: professormanhattan.ansible_nginx_optimized
-      when: (nginx_sites_available | default([])) | length
     - name: Install and/or configure AptCacherNG
       include_tasks: tasks/ubuntu/applications/apt-cacher-ng.yml
+      when: not cloud_server
     - name: Configure /etc/hosts and set hostname
       include_tasks: tasks/ubuntu/hosts.yml
     - name: Update security settings
@@ -69,6 +66,10 @@
       include_tasks: tasks/ubuntu/netdata.yml
     - name: Set up integrations
       include_tasks: tasks/ubuntu/integrations/main.yml
+    - name: Install NGINX Optimized
+      include_role:
+        name: nginx
+      when: (nginx_sites_available | default([])) | length
 - hosts: raspberry:ubuntu-desktop:ubuntu-server
   become: yes
   tasks:
@@ -92,7 +93,7 @@
   tasks:
     - name: Install NodeJS/NPM
       include_role:
-        name: geerlingguy.nodejs
+        name: nodejs
       when: (nodejs_npm_global_packages | default([])) | length
     - name: Install Java
       include_role:
@@ -138,17 +139,13 @@
       include_role:
         name: geerlingguy.awx
       when: ('awx' in (apps_installed | default([])))
-    - name: Install InstaPy
-      include_role:
-        name: professormanhattan.ansible_instapy
-      when: ('instapy' in (apps_installed | default([])))
     - name: Install MAAS
       include_role:
-        name: professormanhattan.ansible_maas
+        name: maas
       when: ('maas' in (apps_installed | default([])))
     - name: Install PiHole
       include_role:
-        name: professormanhattan.ansible_pihole_cloudflared
+        name: pihole
       when: ('pihole' in (apps_installed | default([])))
 #- hosts: ubuntu-server
 #  become: yes

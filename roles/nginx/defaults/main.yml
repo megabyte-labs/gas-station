@@ -1,0 +1,41 @@
+---
+nginx_config_path: files/nginx        # Path to the .conf files in your Playbook
+nginx_sites_available: []             # List of .conf files for NGINX to have ready
+nginx_sites_enabled: []               # List of .conf files for NGINX to serve
+nginx_clear_sites_available: no       # Whether or not to remove all the existing symlinks in sites-available when running this role
+nginx_clear_sites_enabled: yes        # Whether or not to remove all the current configs in sites-enabled when this role runs
+#nginx_amplify_api_key:               # Fill this in with your NGINX Amplify API key to enable this service
+optimized_nginx_repository: https://gitlab.com/megabyte-space/cloud/nginx.git # Repository to use for the base nginx configurations/snippets
+optimized_nginx_repository_version: master                                    # Repository branch to use
+
+#certbot_cloudflare_api_token:         # Add a CloudFlare token with this variable for a wildcard DNS letsencrypt certificate
+#certbot_cloudflare_email:             # A certbot requirement
+certbot_create_standalone_stop_services:
+  - nginx
+certbot_create_if_missing: no
+certbot_cloudflare_acme_test: "https://acme-staging-v02.api.letsencrypt.org/directory"
+certbot_cloudflare_acme_live: "https://acme-v02.api.letsencrypt.org/directory"
+certbot_cloudflare_acme_server: "{{ certbot_cloudflare_acme_live }}"
+
+enable_amplify: yes                    # Whether or not to install the NGINX Amplify agent
+enable_brotli_modules: yes             # Whether or not to compile and include the Brotli compression engine
+enable_modsecurity_waf: yes            # Whether or not to compile and include ModSecurity WAF module
+
+error_page_repo: https://github.com/ProfessorManhattan/NGINX-Error-Page.git
+error_page_directory: /var/www/html
+
+nginx_logrotate_conf_enable: yes
+nginx_logrotate_conf:
+  paths:
+    - "/var/log/nginx/*.log"
+  options:
+    - daily
+    - missingok
+    - rotate 14
+    - compress
+    - delaycompress
+    - notifempty
+    - create 0644 www-data adm  # Changes nginx logs permissions
+    - sharedscripts
+
+refresh_nginx_config_only: no         # Whether or not to only re-generate the sites-available/sites-enabled

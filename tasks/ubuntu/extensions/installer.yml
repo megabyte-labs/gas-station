@@ -1,0 +1,20 @@
+---
+- name: Ensure installer is present on system
+  become: yes
+  copy:
+    src: files/scripts/install-gnome-extensions.sh
+    dest: /usr/bin/install-gnome-extensions
+    owner: root
+    group: root
+    mode: "755"
+- name: Ensure install-gnome-extensions dependencies are installed
+  become: yes
+  apt:
+    name: ['curl', 'jq', 'sed', 'unzip', 'wget']
+    state: latest
+- name: Create a file with the GNOME extensions to be installed
+  copy:
+    dest: /tmp/install-gnome-extensions
+    content: "{{ gnome_extensions }}"
+- name: Run the installer
+  shell: install-gnome-extensions --enable --overwrite --file /tmp/install-gnome-extensions

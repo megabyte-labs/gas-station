@@ -1,35 +1,24 @@
 ---
 - name: "Register {{ item.name }}'s template variables"
   set_fact:
-    app_authelia: "{{ item.authelia | default(etc_hosts[item.name].authelia | default(true)) }}"
-    app_firewall: "{{ item.firewall | default(etc_hosts[item.name].firewall | default(false)) }}"
-    app_fqdn: "{{ item.name }}.{{ etc_hosts[item.name].subdomain }}.{{ base_domain }}"
-    app_http_hosts: "{{ etc_hosts[item.name].hosts }}"
+    app_authelia: "{{ item.authelia | default(hosts[item.name].authelia | default(true)) }}"
+    app_default_server: "{{ item.default_server | default(hosts[item.name].default_server | default(false)) }}"
+    app_firewall: "{{ item.firewall | default(hosts[item.name].firewall | default(false)) }}"
+    app_fqdn: "{{ item.fqdn | default(hosts[item.name].fqdn | default(hosts[item.name].hosts.split()[-1])) }}"
+    app_http_hosts: "{{ hosts[item.name].hosts }}"
     app_id: "{{ item.name }}"
-    app_letsencrypt_domain: "{{ etc_hosts[item.name].subdomain }}.{{ base_domain }}"
+    app_intercept_errors: "{{ item.intercept_errors | default(hosts[item.name].intercept_errors | default(true)) }}"
+    app_letsencrypt_domain: "{{ item.letsencrypt_domain | default(hosts[item.name].letsencrypt_domain | default(base_domain)) }}"
     app_proxy_certificate: "{{ item.certificate | default(false) }}"
     app_proxy_certificate_key: "{{ item.certificate_key | default(false) }}"
     app_proxy_certificate_trusted: "{{ item.certificate_trusted | default(false) }}"
-    app_proxy_file: "{{ etc_hosts[item.name].proxy_file | default('proxy.conf') }}"
-    app_proxy_pass_port: "{{ item.proxy_pass_port | default(etc_hosts[item.name].proxy_pass_port) }}"
+    app_proxy_file: "{{ hosts[item.name].proxy_file | default('proxy.conf') }}"
+    app_proxy_pass_port: "{{ item.proxy_pass_port | default(hosts[item.name].proxy_pass_port) }}"
     app_proxy_pass_url: "{{ item.proxy_pass_url | default(item.name) }}"
     app_ssl_trusted_certificate: "{{ item.ssl_trusted_certificate | default(false) }}"
-    app_waf_rules: "{{ etc_hosts[item.name].custom_waf_rules | default(false) }}"
-    app_transport: "{{ item.transport | default(etc_hosts[item.name].transport | default('http')) }}"
-    app_default_server: "{{ item.default_server | default(etc_hosts[item.name].default_server | default(false)) }}"
-    app_ip_address: "{{ etc_hosts[item.name].ip_address }}"
-    app_external: "{{ item.external | default(etc_hosts[item.name].external | default(false)) }}"
-    app_intercept_errors: "{{ item.intercept_errors | default(etc_hosts[item.name].intercept_errors | default(true)) }}"
-
-- name: Apply LetsEncrypt domain name override if there is one
-  set_fact:
-    app_letsencrypt_domain: "{{ item.letsencrypt_domain | default(etc_hosts[item.name].letsencrypt_domain) }}"
-  when: etc_hosts[item.name].letsencrypt_domain is defined or item.letsencrypt_domain is defined
-
-- name: Apply FQDN override if there is one
-  set_fact:
-    app_fqdn: "{{ etc_hosts[item.name].fqdn_override }}"
-  when: etc_hosts[item.name].fqdn_override is defined
+    app_transport: "{{ item.transport | default(hosts[item.name].transport | default('http')) }}"
+    app_waf_rules: "{{ hosts[item.name].custom_waf_rules | default(false) }}"
+    app_external: "{{ item.external | default(hosts[item.name].external | default(false)) }}"
 
 - name: "Generate NGINX configuration file for {{ item.name }}"
   become: yes

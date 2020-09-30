@@ -16,5 +16,21 @@
   copy:
     dest: /tmp/install-gnome-extensions
     content: "{{ gnome_extensions }}"
+- name: "Make {{ ansible_user }} have passwordless sudo priviledges"
+  become: yes
+  lineinfile:
+    path: /etc/sudoers
+    regex: "^{{ ansible_user }}"
+    line: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL"
 - name: Run the installer
   shell: install-gnome-extensions --enable --overwrite --file /tmp/install-gnome-extensions
+- name: Remove the temporary file
+  file:
+    path: /tmp/install-gnome-extensions
+    state: absent
+- name: "Remove the temporary passwordless sudo priviledges"
+  become: yes
+  lineinfile:
+    path: /etc/sudoers
+    regex: "^{{ ansible_user }}"
+    line: "{{ ansible_user }} ALL=(ALL) ALL"

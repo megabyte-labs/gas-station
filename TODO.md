@@ -6,9 +6,14 @@
 * pfSense avahi
 * Delete old commits figure out how
 * https://docs.docker.com/engine/reference/commandline/save/
-* Get cast working on Ubuntu
+* Get cast working on Ubuntu/
 * Add file checksum verification to Vagrant
 * Test Docker groupadd theory
+* AutoKey functions
+* remove sites available where not needed so NGINX will not install
+* https://github.com/verdaccio/verdaccio
+* Ensure user has home folders
+* Install and set up Verdaccio npm cache proxy
 
 ### Features TODO
 

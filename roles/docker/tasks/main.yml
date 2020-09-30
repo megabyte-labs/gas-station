@@ -1,21 +1,38 @@
 ---
+- name: Ensure old versions of Docker are not installed.
+  package:
+    name:
+      - docker
+      - docker-common
+      - docker-engine
+    state: absent
+
+- include_tasks: setup-snap.yml
+  when: docker_snap_install
+
 - include_tasks: setup-RedHat.yml
-  when: ansible_os_family == 'RedHat'
+  when:
+    - ansible_os_family == 'RedHat'
+    - not docker_snap_install
 
 - include_tasks: setup-Debian.yml
-  when: ansible_os_family == 'Debian'
+  when:
+    - ansible_os_family == 'Debian' # TODO: Install on Windows/Mac OS X as well
+    - not docker_snap_install
 
-- name: Install Docker.
+- name: Install Docker
   package:
     name: "{{ docker_package }}"
     state: "{{ docker_package_state }}"
   notify: restart docker
+  when: not docker_snap_install
 
 - name: Ensure Docker is started and enabled at boot.
   service:
     name: docker
     state: "{{ docker_service_state }}"
     enabled: "{{ docker_service_enabled }}"
+  when: not docker_snap_install
 
 - name: Ensure handlers are notified now to avoid firewall conflicts.
   meta: flush_handlers
@@ -25,3 +42,17 @@
 
 - include_tasks: docker-users.yml
   when: docker_users | length > 0
+
+- name: Determine whether or not the TLS certificates need to be generated
+  stat:
+    path: /etc/ssl/private/docker-ca.pem
+  register: docker_ca_pem
+  when: docker_tls | bool
+
+- include_tasks: docker-tls.yml
+  become: yes
+  become_user: "{{ ansible_user }}"
+  when:
+    - docker_tls | bool
+    - not docker_ca_pem.stat.exists
+    - not docker_snap_install

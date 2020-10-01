@@ -18,7 +18,7 @@
 - name: Install docker-compose using apt if architecture is not supported
   apt:
     name: docker-compose
-    state: latest
+    state: present
   when: ansible_architecture == 'aarch64'
 
 - name: Check if docker-ca.pem exists in /etc/ssl/private
@@ -33,19 +33,20 @@
 
 - name: Ensure .docker user folder exists
   become: yes
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ ansible_user_id }}"
   file:
     path: ~/.docker
     state: directory
+    mode: "0755"
 
 - name: Create a Docker password file for the TLS certificates
   become: yes
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ ansible_user_id }}"
   copy:
     content: "{{ lookup('password', '/dev/null length=50 chars=ascii_letters') }}"
     dest: ~/.docker/.pw
     force: no
-    mode: "400"
+    mode: "0400"
   when: generate_docker_certificates
 
 - name: Generate Docker certificates
@@ -73,6 +74,7 @@
   file:
     path: /etc/ssl/docker
     state: directory
+    mode: "0755"
   when: generate_docker_certificates
 
 - name: Move Docker server certificates to protected SSL folder

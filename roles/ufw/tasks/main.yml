@@ -5,7 +5,7 @@
     state: present
 
 - name: Reset UFW
-  ufw:
+  community.general.ufw:
     state: reset
 
 - name: Copy over UFW application policies
@@ -17,17 +17,17 @@
     mode: "0644"
 
 - name: Set default incoming policy to deny
-  ufw:
+  community.general.ufw:
     default: deny
     direction: incoming
 
 - name: Enable UFW logging
-  ufw:
+  community.general.ufw:
     logging: 'on'
   ignore_errors: yes
 
 - name: Limit connections via SSH to prevent brute force attacks
-  ufw:
+  community.general.ufw:
     rule: limit
     port: "{{ security_ssh_port }}"
     proto: tcp
@@ -40,7 +40,7 @@
   when: not (cloud_server | default(false))
 
 - name: Limit connections via SSH to prevent brute force attacks (Cloud server)
-  ufw:
+  community.general.ufw:
     rule: limit
     port: "{{ security_ssh_port }}"
     proto: tcp
@@ -48,7 +48,7 @@
   when: cloud_server | default(false)
 
 - name: Allow apt-cacher-ng access if apt-cacher-ng is installed
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'AptCacherNG'
     src: "{{ item }}"
@@ -64,7 +64,7 @@
     - ('apt' in (apps_installed | default([])))
 
 - name: Allow RDP access if xrdp is installed
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'RDP'
     src: "{{ item }}"
@@ -74,7 +74,7 @@
   when: (software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false))
 
 - name: Allow remote Docker access if Docker is installed and machine does not have Portainer installed
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '2424'
     proto: tcp
@@ -86,7 +86,7 @@
   with_items: "{{ portainer_ip_addresses }}"
 
 - name: Allow TFTP access to Netboot.xyz
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'NetbootXYZ'
     src: "{{ item }}"
@@ -102,7 +102,7 @@
     - "{{ lan_network.work }}"
 
 - name: Allow access to Plex Media Server from LAN
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'PlexMediaServer Full'
     src: "{{ item }}"
@@ -114,7 +114,7 @@
     - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
 
 - name: Allow access to Plex Media Server from Internet
-  ufw:
+  community.general.ufw:
     rule: allow
     port: '32400'
     proto: tcp
@@ -123,7 +123,7 @@
     - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
 
 - name: Allow printer sharing
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'CUPS'
     src: "{{ item }}"
@@ -136,7 +136,7 @@
     - printer_sharing
 
 - name: Allow MAAS if it is included
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'MAAS'
     src: "{{ item }}"
@@ -145,7 +145,7 @@
   with_items: "{{ maas_managed_networks | default([]) }}"
 
 - name: Allow UniFi access if it is included
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'UniFi'
     comment: Allow UniFi communication
@@ -154,7 +154,7 @@
     - "{{ lan_network.unifi }}"
 
 - name: Allow HTTP/HTTPS access from LAN
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'Nginx Full'
     comment: Allow access to NGINX from LAN
@@ -165,7 +165,7 @@
   with_items: "{{ rc1918_networks }}"
 
 - name: Allow HTTP/HTTPS access from internet
-  ufw:
+  community.general.ufw:
     rule: allow
     name: 'Nginx Full'
     comment: Allow access to NGINX from internet
@@ -173,5 +173,5 @@
     - ('nuc' in (apps_installed | default([])))
 
 - name: Enable UFW
-  ufw:
+  community.general.ufw:
     state: enabled

@@ -1,7 +1,8 @@
 Hyper-V
 =========
 
-Ansible role to interact with a Hyper-V server to power-off, delete, and provision virtual machines.
+Ansible role to interact with a Hyper-V server to power-off, delete, and
+provision virtual machines.
 
 Requirements
 ------------

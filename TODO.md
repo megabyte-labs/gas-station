@@ -10,10 +10,11 @@
 * Add file checksum verification to Vagrant
 * Test Docker groupadd theory
 * AutoKey functions
-* remove sites available where not needed so NGINX will not install
-* https://github.com/verdaccio/verdaccio
 * Ensure user has home folders
 * Install and set up Verdaccio npm cache proxy
+* Add known_hosts populater
+* Set index for apt.lab.megabyte.space to acng.html
+* Set up squid html caching
 
 ### Features TODO
 

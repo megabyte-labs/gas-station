@@ -8,6 +8,7 @@
     state: present
 
 - name: Add Docker apt key
+  become: yes
   apt_key:
     url: "{{ docker_apt_gpg_key }}"
     id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
@@ -16,7 +17,9 @@
   ignore_errors: "{{ docker_apt_ignore_key_error }}"
 
 - name: Ensure curl is present (on older systems without SNI)
-  package: name=curl state=present
+  package:
+    name: curl
+    state: present
   when: add_repository_key is failed
 
 - name: Add Docker apt key (alternative for older systems without SNI)
@@ -27,6 +30,7 @@
   when: add_repository_key is failed
 
 - name: Add Docker repository.
+  become: yes
   apt_repository:
     repo: "{{ docker_apt_repository }}"
     state: present

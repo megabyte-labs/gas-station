@@ -12,27 +12,29 @@
     mode: "400"
 
 - name: Generate Docker certificates
+  become: yes
+  become_user: "{{ ansible_user }}"
   shell: |
     export HOST={{ docker_tls_fqdn }}
     mkdir -pv ~/.docker
     cd ~/.docker
-    openssl genrsa -aes256 -passout file:~/.docker/.pw -out docker-ca-key.pem 4096
-    openssl req -new -passin file:~/.docker/.pw -subj '/C={{ docker_tls_country }}/ST={{ docker_tls_state }}/L={{ docker_tls_locality }}/O={{ docker_tls_organization }}/OU={{ docker_tls_division }}/CN=$HOST' -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem
+    openssl genrsa -aes256 -passout file:/home/{{ ansible_user }}/.docker/.pw -out docker-ca-key.pem 4096
+    openssl req -new -passin file:/home/{{ ansible_user }}/.docker/.pw -subj '/C={{ docker_tls_country }}/ST={{ docker_tls_state }}/L={{ docker_tls_locality }}/O={{ docker_tls_organization }}/OU={{ docker_tls_division }}/CN=$HOST' -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem
     openssl genrsa -out docker-server-key.pem 4096
     openssl req -subj "/CN=$HOST" -sha256 -new -key docker-server-key.pem -out docker-server.csr
     echo subjectAltName = DNS:$HOST,IP:{{ host_ip_address }},IP:127.0.0.1 >> extfile.cnf
     echo extendedKeyUsage = serverAuth >> extfile.cnf
-    openssl x509 -req -days 365 -sha256 -in docker-server.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:~/.docker/.pw -CAcreateserial -out docker-server-cert.pem -extfile extfile.cnf
+    openssl x509 -req -days 365 -sha256 -in docker-server.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:/home/{{ ansible_user }}/.docker/.pw -CAcreateserial -out docker-server-cert.pem -extfile extfile.cnf
     openssl genrsa -out key.pem 4096
     openssl req -subj '/CN=client' -new -key key.pem -out docker-client.csr
     echo extendedKeyUsage = clientAuth > extfile-client.cnf
-    openssl x509 -req -days 365 -sha256 -in docker-client.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:~/.docker/.pw -CAcreateserial -out cert.pem -extfile extfile-client.cnf
+    openssl x509 -req -days 365 -sha256 -in docker-client.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:/home/{{ ansible_user }}/.docker/.pw -CAcreateserial -out cert.pem -extfile extfile-client.cnf
     rm -v docker-client.csr docker-server.csr extfile.cnf extfile-client.cnf
 
 - name: Move Docker server certificates to protected SSL folder
   become: yes
   copy:
-    src: "~/.docker/{{ item.src | default(item) }}"
+    src: "/home/{{ ansible_user }}/.docker/{{ item.src | default(item) }}"
     dest: "/etc/ssl/private/{{ item.dest | default(item) }}"
     owner: root
     group: root

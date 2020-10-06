@@ -21,6 +21,7 @@
     - not docker_snap_install
 
 - name: Install Docker
+  become: yes
   package:
     name: "{{ docker_package }}"
     state: "{{ docker_package_state }}"
@@ -44,14 +45,13 @@
   when: docker_users | length > 0
 
 - name: Determine whether or not the TLS certificates need to be generated
+  become: yes
   stat:
     path: /etc/ssl/private/docker-ca.pem
   register: docker_ca_pem
   when: docker_tls | bool
 
 - include_tasks: docker-tls.yml
-  become: yes
-  become_user: "{{ ansible_user }}"
   when:
     - docker_tls | bool
     - not docker_ca_pem.stat.exists

@@ -1,2 +1,233 @@
 ---
-# tasks file for common
+- name: Copy .gitconfig
+  copy:
+    src: .gitconfig
+    dest: ~/.gitconfig
+    owner: "{{ common_ansible_user }}"
+    group: "{{ common_ansible_user }}"
+    mode: "0600"
+
+- name: Copy .localrc
+  copy:
+    src: .localrc
+    dest: ~/.localrc
+    owner: "{{ common_ansible_user }}"
+    group: "{{ common_ansible_user }}"
+    mode: "0600"
+
+- name: Remove starship import if no homebrew packages are present
+  lineinfile:
+    path: ~/.localrc
+    regex: "starship init bash"
+    line: '#eval "$(starship init bash)"'
+  when: not ((snaps | default([]) | selectattr("name", "equalto", "starship") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "starship") | list | first | default(false)))
+
+- name: Ensure .bashrc exists
+  file:
+    path: ~/.bashrc
+    state: touch
+
+- name: Source .localrc from .bashrc (if the source call does not already exist)
+  lineinfile:
+    path: ~/.bashrc
+    regex: "^source ~\/.localrc$"
+    line: source ~/.localrc
+
+- name: Set PATH in .bashrc
+  lineinfile:
+    path: ~/.bashrc
+    regex: "# PATH modified by Ansible"
+    line: "export PATH=$PATH:/home/{{ common_ansible_user }}/.local/bin # PATH modified by Ansible"
+
+- name: Copy .netrc
+  copy:
+    src: .netrc
+    dest: ~/.netrc
+    owner: "{{ common_ansible_user }}"
+    group: "{{ common_ansible_user }}"
+    mode: "0600"
+  when:
+    - "'raspberry' not in group_names"
+    - "'ubuntu-server' not in group_names"
+
+- name: Copy .npmrc
+  copy:
+    src: .npmrc
+    dest: ~/.npmrc
+    owner: "{{ common_ansible_user }}"
+    group: "{{ common_ansible_user }}"
+    mode: "0600"
+
+- name: Copy .zshrc
+  copy:
+    src: .zshrc
+    dest: ~/.zshrc
+    owner: "{{ common_ansible_user }}"
+    group: "{{ common_ansible_user }}"
+    mode: "0600"
+
+- name: Remove starship import from user's .zshrc
+  lineinfile:
+    path: ~/.zshrc
+    regex: "starship init zsh"
+    line: '#eval "$(starship init zsh)"'
+  when: not ((homebrew_packages | default([])) | length)
+
+- name: Set PATH in root .bashrc
+  become: yes
+  lineinfile:
+    path: /root/.bashrc
+    regex: "# PATH modified by Ansible (root user)"
+    line: "PATH=$PATH:/snap/bin # PATH modified by Ansible (root user)"
+
+- name: Copy .gitconfig to root user's home directory
+  become: yes
+  copy:
+    src: .gitconfig-root
+    dest: /root/.gitconfig
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Copy .localrc to root user's home directory
+  become: yes
+  copy:
+    src: .localrc
+    dest: /root/.localrc
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Remove starship import if no homebrew packages are present
+  become: yes
+  lineinfile:
+    path: /root/.localrc
+    regex: "starship init bash"
+    line: '#eval "$(starship init bash)"'
+  when: not ((snaps | default([]) | selectattr("name", "equalto", "starship") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "starship") | list | first | default(false)))
+
+- name: Ensure .bashrc exists in root user's home directory
+  become: yes
+  file:
+    path: /root/.bashrc
+    state: touch
+
+- name: Source .localrc from root's .bashrc (if the source call does not already exist)
+  become: yes
+  lineinfile:
+    path: /root/.bashrc
+    regex: "^source ~\/.localrc$"
+    line: source ~/.localrc
+
+- name: Copy .zshrc to root user's home directory
+  become: yes
+  copy:
+    src: .zshrc
+    dest: /root/.zshrc
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Remove starship import if no homebrew packages are present
+  become: yes
+  lineinfile:
+    path: /root/.zshrc
+    regex: "starship init zsh"
+    line: '#eval "$(starship init zsh)"'
+  when: not ((homebrew_packages | default([])) | length)
+
+- name: Set hostname
+  hostname:
+    name: "{{ hostname }}"
+  when: hostname is defined
+
+- name: Set up /etc/hosts file
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ etc_hosts[item].regexp }}"
+    line: "{{ etc_hosts[item].ip_address }} {{ etc_hosts[item].hosts }} {{ etc_hosts[item].regexp }}"
+    state: present
+  when:
+    - item not in (apps_installed | default([]))
+    - not (etc_hosts_override | default(false))
+    - not (no_etc_hosts | default(false))
+  with_items: "{{ etc_hosts_list }}"
+
+- name: Set up /etc/hosts for client with etc_hosts_override set
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ etc_hosts[item].regexp }}"
+    line: "{{ etc_hosts[item].ip_address }} {{ etc_hosts[item].hosts }} {{ etc_hosts[item].regexp }}"
+    state: present
+  when: item in (etc_hosts_override | default([]))
+  with_items: "{{ etc_hosts_list }}"
+
+- name: Set up /etc/hosts file for local services
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ etc_hosts[item].regexp }}"
+    line: "127.0.0.1 {{ etc_hosts[item].hosts }} {{ etc_hosts[item].regexp }}"
+    state: present
+  when: item in (apps_installed | default([]))
+  with_items: "{{ etc_hosts_list }}"
+
+- name: Set MOTD
+  copy:
+    src: motd
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Set time zone
+  timezone:
+    name: "{{ system_timezone }}"
+
+- name: Check if Chromium is installed
+  stat:
+    path: /snap/bin/chromium
+  register: chromium_stat
+
+- name: Set Chromium as the default browser if it is installed
+  alternatives:
+    name: x-www-browser
+    link: /usr/bin/x-www-browser
+    path: /snap/bin/chromium
+    priority: 200
+  when: chromium_stat.stat.exists
+
+- name: Make xrdp load on startup if it is installed
+  systemd:
+    enabled: yes
+    name: xrdp
+    state: restarted
+  when: software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)
+
+- name: Increase vm_max_map_count if required (Kibana)
+  sysctl:
+    name: vm.max_map_count
+    sysctl_set: yes
+    value: '262144'
+  when: ('kibana' in (apps_installed | default([])))
+
+- name: Copy UniFi .pem if an NGINX proxy configuration is present
+  copy:
+    src: unifihome.pem
+    dest: /etc/ssl/private/unifihome.pem
+    owner: root
+    group: root
+    mode: "0640"
+  when: nginx_sites_available_proxy | default([]) | selectattr("name", "equalto", "unifihome") | list | first | default(false)
+
+- name: Set ANSIBLE_PLAYBOOK_USER name environment variable
+  become: yes
+  lineinfile:
+    path: /etc/environment
+    regex: "^ANSIBLE_PLAYBOOK_USER="
+    line: "ANSIBLE_PLAYBOOK_USER={{ common_ansible_user }}"
+
+- name: Ensure root .ssh folder exists
+  become: yes
+  file:
+    path: /root/.ssh
+    state: directory

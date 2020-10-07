@@ -53,10 +53,19 @@ randomstring() {
 # Reset Docker to factory settings
 resetdocker() {
     set +e
-    docker stop $(docker ps -a -q)
-    docker rm $(docker ps -a -q)
-    docker volume rm $(docker volume ls -q)
-    docker network rm $(docker network ls -q)
+    CONTAINER_COUNT=$(docker ps -a -q | wc -l)
+    if [ "$CONTAINER_COUNT" -gt 0 ]; then
+        docker stop $(docker ps -a -q)
+        docker rm $(docker ps -a -q)
+    fi
+    VOLUME_COUNT=$(docker volume ls -q | wc -l)
+    if [ "$VOLUME_COUNT" -gt 0 ]; then
+        docker volume rm $(docker volume ls -q)
+    fi
+    NETWORK_COUNT=$(docker network ls -q | wc -l)
+    if [ "$NETWORK_COUNT" -gt 0 ]; then
+        docker network rm $(docker network ls -q)
+    fi
     docker system prune -a --force
 }
 

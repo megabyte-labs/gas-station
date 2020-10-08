@@ -1,26 +1,28 @@
 # TODO
 
 * Test PiHole role
-* pull all signatures from ssh
 * Add static VPN routes
 * pfSense avahi
 * Delete old commits figure out how
 * https://docs.docker.com/engine/reference/commandline/save/
 * Get cast working on Ubuntu/
 * Add file checksum verification to Vagrant
-* Test Docker groupadd theory
 * AutoKey functions
 * Ensure user has home folders
 * Install and set up Verdaccio npm cache proxy
 * Add known_hosts populater
 * Set index for apt.lab.megabyte.space to acng.html
 * Set up squid html caching
+* Switch to docker secrets
+* Figure out how to use "ssh StatusCheck" without -p 2214 or user
+* Generate SSH config file with jinja
 
 ### Features TODO
 
 * Teleport https://github.com/gravitational/teleport
 * Rundeck
 * Wazuh
+* Guacamole
 * SecurityOnion
 * NAS
 * NGINX Optimized Dockerized
@@ -29,7 +31,6 @@
 * Adminer
 ? Bacula
 * Graylog?
-* Nextcloud
 * Homer
 * Terraform
 * Sentry

@@ -4,28 +4,31 @@
   apt:
     name: openssh-server
     state: latest
-- name: Ensure .ssh directory exists.
+
+- name: "Ensure {{ ansible_user }}'s .ssh directory exists"
   file: 
     dest: ~/.ssh
     mode: "700"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: directory
-- name: Ensure .ssh directory exists for root user
+
+- name: Ensure root's .ssh directory exists
   become: yes
   file:
-    dest: ~/.ssh
+    path: ~/.ssh
     mode: "700"
-    owner: root
-    group: root
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     state: directory
-  when: ssh_private_keys_root is defined
+
 - name: Set authorized key
   authorized_key:
     user: "{{ ansible_user }}"
     state: present
     key: "{{ lookup('file', 'files/keys/{{ authorized_key_file }}') }}"
   when: authorized_key_file is defined
+
 - name: Copy SSH private keys
   copy:
     src: "files/keys/{{ item }}"
@@ -34,7 +37,8 @@
     group: "{{ ansible_user }}"
     mode: "600"
   with_items: "{{ ssh_private_keys | default([]) }}"
-- name: Copy SSH private keys for root user
+
+- name: Copy SSH private keys (for root)
   become: yes
   copy:
     src: "files/keys/{{ item }}"
@@ -42,7 +46,8 @@
     owner: root
     group: root
     mode: "600"
-  with_items: "{{ ssh_private_keys_root | default([]) }}"
+  with_items: "{{ ssh_private_keys | default([]) }}"
+
 - name: Copy SSH public keys
   copy:
     src: "files/keys/{{ item }}.pub"
@@ -51,7 +56,8 @@
     group: "{{ ansible_user }}"
     mode: "644"
   with_items: "{{ ssh_private_keys | default([]) }}"
-- name: Copy SSH public keys for root user
+
+- name: Copy SSH public keys (for root)
   become: yes
   copy:
     src: "files/keys/{{ item }}.pub"
@@ -59,7 +65,8 @@
     owner: root
     group: root
     mode: "644"
-  with_items: "{{ ssh_private_keys_root | default([]) }}"
+  with_items: "{{ ssh_private_keys | default([]) }}"
+
 - name: Copy SSH known_hosts
   copy:
     src: files/keys/known_hosts
@@ -67,8 +74,8 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: "644"
-  when: ssh_private_keys is defined
-- name: Copy SSH known_hosts for root
+
+- name: Copy SSH known_hosts (for root)
   become: yes
   copy:
     src: files/keys/known_hosts
@@ -76,28 +83,59 @@
     owner: root
     group: root
     mode: "644"
-  when: ssh_private_keys_root is defined
-- name: Copy SSH config
-  copy:
-    src: files/keys/config
+
+- name: Set the ssh_hosts variable
+  set_fact:
+    ssh_hosts: "{{ hosts | map('extract', hosts) | flatten | selectattr('hostname', 'defined') | list }}"
+
+- name: Generate SSH config file
+  template:
+    src: templates/ssh-config.j2
     dest: ~/.ssh/config
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: "644"
-  when: ssh_private_keys is defined
-- name: Copy SSH config for root
+
+- name: Copy config file to root user's .ssh folder
   become: yes
   copy:
-    src: files/keys/config
+    src: "/home/{{ ansible_user }}/.ssh/config"
     dest: ~/.ssh/config
     owner: root
     group: root
     mode: "644"
-  when: ssh_private_keys_root is defined
-- name: Ensure Playbooks git repository is updated
+    remote_src: yes
+
+- name: Scan server SSH keys using ssh-keyscan
+  command: "ssh-keyscan -p {{ security_ssh_port }} -t ecdsa {{ item.ip_address }}"
+  ignore_errors: yes
+  register: known_host_keys
+  with_items: "{{ ssh_hosts }}"
+
+- name: Add server SSH keys to known_hosts
+  known_hosts:
+    name: "[{{ item.item.ip_address }}]:2214"
+    key: "{{ item.stdout }}"
+    path: ~/.ssh/known_hosts
+  ignore_errors: yes
+  when:
+    - item.item.ip_address is defined
+    - item.stdout is defined
+    - item.rc != 1
+  with_items: "{{ known_host_keys.results }}"
+
+- name: Copy known_hosts to root's .ssh folder
   become: yes
-  become_user: "{{ ansible_user }}"
+  copy:
+    src: "/home/{{ ansible_user }}/.ssh/known_hosts"
+    dest: ~/.ssh/known_hosts
+    owner: root
+    group: root
+    mode: "644"
+    remote_src: yes
+
+- name: Ensure Playbooks git repository is updated
   command: "git remote set-url origin {{ playbooks_source_repository }}"
   args:
-    chdir: "/home/{{ ansible_user }}/Playbooks"
+    chdir: "~/Playbooks"
   when: ansible_connection == 'local'

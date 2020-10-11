@@ -9,13 +9,10 @@
 * Add file checksum verification to Vagrant
 * AutoKey functions
 * Ensure user has home folders
-* Install and set up Verdaccio npm cache proxy
-* Add known_hosts populater
 * Set index for apt.lab.megabyte.space to acng.html
 * Set up squid html caching
 * Switch to docker secrets
-* Figure out how to use "ssh StatusCheck" without -p 2214 or user
-* Generate SSH config file with jinja
+* Set up StatPing when stable
 
 ### Features TODO
 
@@ -61,6 +58,7 @@ https://strapi.io/pricing
 
 * Ubuntu NetworkManager VPN plugin for WireGuard (currently compiling it from source)
 * WireGuard for pfSense
+* Microsoft to release PowerShell for Linux https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
 
 ## pfSense
 

@@ -38,5 +38,5 @@
     minute: "45"
     hour: "3"
     user: "{{ item.user | default(ansible_user) }}"
-    job: "cd {{ item.folder }} && docker-compose-backup backup && curl -fsS -m 10 --retry 5 -o /dev/null https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}"
+    job: 'curl -fsS -m 10 --retry 5 -o /dev/null https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}/start && cd {{ item.folder }} && m=$(docker-compose-backup backup 2>&1) && curl -fsS -m 10 --retry 5 --data-raw "$m" "https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}$([ $? -ne 0 ] && echo -n /fail)"'
     cron_file: "{{ item.name | lower }}-backup"

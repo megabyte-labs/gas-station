@@ -6,13 +6,13 @@
 * Delete old commits figure out how
 * https://docs.docker.com/engine/reference/commandline/save/
 * Get cast working on Ubuntu/
-* Add file checksum verification to Vagrant
+* Add file checksum verification for .deb files
 * AutoKey functions
-* Ensure user has home folders
-* Set index for apt.lab.megabyte.space to acng.html
-* Set up squid html caching
 * Switch to docker secrets
-* Set up StatPing when stable
+* FreeIPA
+* Vault/Consul
+* AWX
+* Adminer
 
 ### Features TODO
 
@@ -23,12 +23,9 @@
 * SecurityOnion
 * NAS
 * NGINX Optimized Dockerized
-* AWX
 * Kubernetes Juju
-* Adminer
 ? Bacula
 * Graylog?
-* Homer
 * Terraform
 * Sentry
 * Netlify
@@ -36,6 +33,7 @@
 * Kafka
 * https://www.vaultproject.io/
 https://www.packer.io/
+* Thanos
 
 # Revisit
 https://vercel.com/
@@ -43,9 +41,7 @@ https://strapi.io/pricing
 
 ### Ubuntu
 
-* Install custom self-signed certificates
 * Get Rclone 1.51+ to fix issue with OneDrive only opening docs on 2nd try
-* Revisit netboot port conflicts (can't have network_mode: host and NGINX on same box working with Authelia)
 
 ### Windows
 
@@ -59,6 +55,9 @@ https://strapi.io/pricing
 * Ubuntu NetworkManager VPN plugin for WireGuard (currently compiling it from source)
 * WireGuard for pfSense
 * Microsoft to release PowerShell for Linux https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
+* Upgrade Ansible to 2.10 via ppa.. waiting on focal support https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#upgrading-ansible-from-version-2-9-and-older-to-version-2-10-or-later
+* Set up StatPing when stable
+* https://github.com/freeipa/ansible-freeipa once Ansible version 2.10/2.9 is out
 
 ## pfSense
 
@@ -68,3 +67,8 @@ https://strapi.io/pricing
 
 * Fix git-cache-meta to handle spaces
 * https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e
+* Set up squid HTTPS caching
+
+## Won't Do
+
+* Set index for apt.lab.megabyte.space to acng.html

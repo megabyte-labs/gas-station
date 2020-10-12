@@ -1,0 +1,28 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: podman
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
+platforms:
+  - name: ssh-ubuntu
+    image: docker.io/library/ubuntu
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      ssh-ubuntu:
+        ansible_python_interpreter: /usr/bin/python3
+        ssh_ansible_user: testuser
+verifier:
+  name: ansible

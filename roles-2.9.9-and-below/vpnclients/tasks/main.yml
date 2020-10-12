@@ -1,0 +1,92 @@
+---
+- name: Install the vpn packages
+  apt:
+    name: "{{ vpn_packages }}"
+    update_cache: yes
+    state: present
+
+- name: Remove previous OpenVPN files
+  become: yes
+  become_user: "{{ vpn_ansible_user }}"
+  file:
+    path: ~/.config/openvpn
+    state: absent
+
+- name: Remove NetworkManager configs
+  file:
+    path: /etc/NetworkManager/system-connections/
+    state: absent
+  when: refresh_vpn_connections | bool
+  notify: restart networkmanager
+
+- name: Copy OpenVPN files
+  become: yes
+  become_user: "{{ vpn_ansible_user }}"
+  copy:
+    src: "openvpn/"
+    dest: "~/.config/openvpn"
+
+- name: Acquire the current VPN connections
+  command: nmcli connection show
+  changed_when: false
+  register: nmcli_connections
+
+- name: Import Mullvad OpenVPN files into the Network Manager
+  shell: |
+    "nmcli connection import type openvpn file /home/{{ vpn_ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && \
+    nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_mullvad_id }}"
+  loop: "{{ mullvad_profiles }}"
+  when: nmcli_connections.stdout.find(item.name) != 1
+  notify: restart networkmanager
+
+- name: Modify Mullvad password files with proper permissions
+  file:
+    path: "/home/{{ vpn_ansible_user }}/.config/openvpn/{{ item.folder }}/mullvad_userpass.txt"
+    mode: "0600"
+  loop: "{{ mullvad_profiles }}"
+  when: nmcli_connections.stdout.find(item.name) != 1
+  notify: restart networkmanager
+
+- name: Change password flag
+  lineinfile:
+    path: "/etc/NetworkManager/system-connections/{{ item.name }}.nmconnection"
+    regex: "password-flags=1"
+    line: password-flags=0
+  loop: "{{ mullvad_profiles }}"
+  notify: restart networkmanager
+
+- name: Set password for Mullvad OpenVPN connections
+  shell: |
+    "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ vault_mullvad_password }}'"
+  loop: "{{ mullvad_profiles }}"
+  notify: restart networkmanager
+
+- name: Import NordVPN OpenVPN file into the Network Manager
+  shell: |
+    "nmcli connection import type openvpn file /home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && \
+    nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_nordvpn_email }}"
+  loop: "{{ nordvpn_profiles }}"
+  when: nmcli_connections.stdout.find(item.name) != 1
+  notify: restart networkmanager
+
+- name: Change password flag
+  lineinfile:
+    path: "/etc/NetworkManager/system-connections/{{ item.name }}.nmconnection"
+    regex: "password-flags=1"
+    line: password-flags=0
+  loop: "{{ nordvpn_profiles }}"
+  notify: restart networkmanager
+
+- name: Set password for NordVPN OpenVPN connection
+  shell: |
+    "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ vault_nordvpn_password }}'"
+  loop: "{{ nordvpn_profiles }}"
+  notify: restart networkmanager
+
+- name: Add static routes that bypass the VPN
+  shell: |
+    "ip route add {{ item.prefix }} via {{ item.next_hop }}"
+  with_items: "{{ vpn_routes | default([]) }}"
+  ignore_errors: yes
+
+- import_tasks: wireguard.yml                                

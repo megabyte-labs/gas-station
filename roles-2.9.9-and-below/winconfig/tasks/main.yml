@@ -1,0 +1,150 @@
+---
+- name: Ensure .ssh folder exists
+  win_file:
+    path: "%USERPROFILE%\\.ssh"
+    state: directory
+
+- name: Copy SSH private keys
+  win_copy:
+    src: "{{ item }}"
+    dest: "%USERPROFILE%\\.ssh\\{{ item }}"
+  with_items: "{{ ssh_private_keys | default([]) }}"
+
+- name: Copy SSH public keys
+  win_copy:
+    src: "{{ item }}.pub"
+    dest: "%USERPROFILE%\\.ssh\\{{ item }}.pub"
+  with_items: "{{ ssh_private_keys | default([]) }}"
+
+- name: Copy SSH known hosts
+  win_copy:
+    src: known_hosts
+    dest: "%USERPROFILE%\\.ssh\\known_hosts"
+
+- name: Copy SSH config
+  win_copy:
+    src: config
+    dest: "%USERPROFILE%\\.ssh\\config"
+
+- name: Ensure proper permissions on the SSH keys
+  win_shell: |
+    Cmd /c Icacls %USERPROFILE%\\.ssh\\{{ item }} /c /t /Inheritance:d
+    Cmd /c Icacls %USERPROFILE%\\.ssh\\{{ item }} /c /t /Grant %UserName%:F
+    Cmd /c Icacls %USERPROFILE%\\.ssh\\{{ item }} /c /t /Remove Administrator BUILTIN\Administrators BUILTIN Everyone System Users
+  with_items: "{{ ssh_private_keys | default([]) }}"
+
+- name: Ensure PowerShell start script directory exists
+  win_file:
+    path: "%USERPROFILE%\\Documents\\WindowsPowerShell"
+    state: directory
+
+- name: Copy PowerShell start script
+  win_copy:
+    src: Microsoft.PowerShell_profile.ps1
+    dest: "%USERPROFILE%\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1"
+  register: git_profile
+
+- name: Copy .gitconfig
+  win_copy:
+    src: .gitconfig
+    dest: "%USERPROFILE%\\.gitconfig"
+
+- name: Copy .localrc
+  win_copy:
+    src: .localrc
+    dest: "%USERPROFILE%\\.localrc"
+
+- name: Ensure .bashrc exists
+  win_file:
+    path: "%USERPROFILE%\\.bashrc"
+    state: touch
+  ignore_errors: yes
+
+- name: Source .localrc from .bashrc (if the source call does not already exist)
+  win_lineinfile:
+    path: "%USERPROFILE%\\.bashrc"
+    regex: "^source ~\/.localrc$"
+    line: source ~/.localrc
+
+- name: Copy .netrc
+  win_copy:
+    src: .netrc
+    dest: "%USERPROFILE%\\.netrc"
+
+- name: Copy .npmrc
+  win_copy:
+    src: .npmrc
+    dest: "%USERPROFILE%\\.npmrc"
+
+- name: Copy .zshrc
+  win_copy:
+    src: .zshrc
+    dest: "%USERPROFILE%\\.zshrc"
+
+- name: Check if Hyper.js is installed
+  win_stat:
+    path: "%USERPROFILE%\\AppData\\Roaming\\Hyper"
+  register: hyper_install_dir
+
+- name: Copy .hyper.js
+  win_copy:
+    src: .hyper.js
+    dest: "%USERPROFILE%\\AppData\\Roaming\\Hyper\\.hyper.js"
+  when:
+    - hyper_install_dir.stat.exists
+
+- name: Update font size in .hyper.js for Windows
+  win_lineinfile:
+    path: "%USERPROFILE%\\.hyper.js"
+    regex: "fontSize: 12,"
+    line: "fontSize: 15,"
+
+- name: Set up etc/hosts file
+  win_lineinfile:
+    path: C:\Windows\System32\Drivers\etc\hosts
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items: "{{ etc_hosts_list }}"
+
+- name: Remove all of the desktop icons
+  win_shell: Remove-Item C:\Users\*\Desktop\*lnk -Force
+  ignore_errors: yes
+
+- name: Check if PowerShell start menu link needs to be moved to top level
+  win_stat:
+    path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows PowerShell\\Windows Powe
+rShell.lnk"
+  register: powershell_shortcut
+
+- name: Move Powershell start menu link to top level
+  win_shell: "Move-Item -Path \"$env:UserProfile\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows 
+PowerShell\\Windows PowerShell.lnk\" -Destination \"$env:UserProfile\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu
+\\Programs\\Windows PowerShell.lnk\""
+  ignore_errors: yes
+  when:
+    - powershell_shortcut.stat.exists is defined
+    - powershell_shortcut.stat.exists
+
+- name: Remove PowerShell folder from start menu
+  win_file:
+    path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Windows PowerShell"
+    state: absent
+
+- name: Remove Visual Studio Installer start menu link
+  win_file:
+    path: "{{ windows_startmenu }}\\Visual Studio Installer.lnk"
+    state: absent
+
+- name: Ensure proper hostname
+  win_shell: "Rename-Computer -NewName {{ hostname }}"
+  when: hostname is defined
+
+- name: Empty Recycling bin
+  win_shell: Clear-RecycleBin -Force
+  ignore_errors: true
+
+- name: Delete PerfLogs folder in drive root
+  win_file:
+    path: C:\PerfLogs
+    state: absent

@@ -1,0 +1,43 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: podman
+lint: |
+  yamllint .
+  ansible-lint .
+platforms:
+  - name: ufw-ubuntu
+    image: docker.io/pycontribs/ubuntu:latest
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+  - name: ufw-archlinux
+    image: docker.io/library/archlinux:latest
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      ufw-ubuntu:
+        apps_installed:
+          - portainer
+          - apt
+        ansible_python_interpreter: /usr/bin/python3
+        install_docker: False
+      ufw-archlinux:
+        apps_installed: portainer
+        ansible_python_interpreter: /usr/bin/python3
+        install_docker: False
+verifier:
+  name: ansible

@@ -53,7 +53,7 @@ poweroff - Power off a vm
     hyperv_vm_dns: 192.168.100.53
 
   roles:
-    - role: hyper-v
+    - role: hyperv
 ```
 
 You can then run the playbook, and pass the required tag.

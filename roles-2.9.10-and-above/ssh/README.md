@@ -1,38 +1,49 @@
 Role Name
 =========
 
-A brief description of the role goes here.
+Install and configure the `ssh-server`.
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- Ansible 2.9.10 or above
+- `ansible.posix` collection
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+The following variables are used.
 
-Dependencies
-------------
-
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+Role Variable | Required | Default | Description
+------------- | -------- | ------- | ----------
+ssh_ansible_user | no | ansible_user | Ansible user
+ssh_private_keys | yes | | SSH private keys
+authorized_key_file | yes | | SSH authorized key file
+ssh_private_keys_root | yes | | SSH private keys for root user
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+```yml
+---
+- hosts: ssh
+  vars:
+    ssh_ansible_user: "{{ ansible_user }}"
+    ssh_private_keys:
+      - id_rsa
+      - id_rsa_local
+      - id_rsa_web
+    authorized_key_file: id_rsa_local.pub
+    ssh_private_keys_root:
+      - id_rsa
+      - id_rsa_local
+      - id_rsa_web
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+  roles:
+    - role: ssh
+```
 
 License
 -------
 
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+[GPLv3](LICENSE)

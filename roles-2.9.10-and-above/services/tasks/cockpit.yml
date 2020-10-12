@@ -32,7 +32,7 @@
     dest: "/etc/cockpit/machines.d/{{ item.name }}.json"
     owner: root
     group: root
-    mode: "644"
+    mode: "0644"
   with_items: "{{ cockpit_instances }}"
   when: ('cockpit' in (apps_installed | default([])))
 
@@ -42,10 +42,10 @@
     state: present
 
 - name: Apply usermod -a -G libvirt libvirtdbus
-  shell: usermod -a -G libvirt libvirtdbus
-
-- name: Apply usermod -a -G libvirt libvirt-qemu
-  shell: usermod -a -G libvirt libvirt-qemu
+  user:
+    name: libvirt
+    groups: libvirtdbus,libvirt-qemu
+    append: yes
 
 - name: Check if a restart for the Cockpit Machines patch is required
   stat:

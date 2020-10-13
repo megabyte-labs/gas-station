@@ -10,9 +10,36 @@
 * AutoKey functions
 * Switch to docker secrets
 * FreeIPA
-* Vault/Consul
 * AWX
 * Adminer
+* Clear theme for Organizr
+* Duplicati
+* FirefoxSend
+* Home Assistant
+* Keycloak
+* Kubernetes Dashboard
+* Piwigo
+* Minio
+* Resilio Sync
+* Guacamole (theme: https://github.com/gilbN/theme.park/wiki/Guacamole)
+* LibreSpeed
+
+# Host Services
+
+* Duplicacy
+* Cockpit
+* Homepage
+* File Browser (theme: https://github.com/gilbN/theme.park)
+* Netdata (theme: https://github.com/gilbN/theme.park/wiki/Netdata)
+
+# LDAP
+
+
+# Megabyte Space
+
+* WikiJS
+* WordPress
+* Strapi
 
 ### Features TODO
 
@@ -24,20 +51,21 @@
 * NAS
 * NGINX Optimized Dockerized
 * Kubernetes Juju
-? Bacula
 * Graylog?
 * Terraform
 * Sentry
 * Netlify
 * Rancher
-* Kafka
-* https://www.vaultproject.io/
 https://www.packer.io/
-* Thanos
+* LibreSpeed
+
 
 # Revisit
+
 https://vercel.com/
 https://strapi.io/pricing
+* Thanos
+* Kafka
 
 ### Ubuntu
 

@@ -1,3 +1,3 @@
-## Download and Verify Security Onion
+# Download and Verify Security Onion
 
-https://github.com/Security-Onion-Solutions/securityonion/blob/master/VERIFY_ISO.md
+[Verify ISO](https://github.com/Security-Onion-Solutions/securityonion/blob/master/VERIFY_ISO.md)

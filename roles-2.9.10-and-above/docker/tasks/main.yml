@@ -1,0 +1,140 @@
+---
+- name: Install Docker
+  include_role:
+    name: geerlingguy.docker
+  when: not ('portainer' in (apps_installed | default([])))
+
+- name: Install Docker via snap
+  community.general.snap:
+    name: docker
+  when: ('portainer' in (apps_installed | default([])))
+
+- name: Remove docker-compose installed by role if architecture is not supported
+  file:
+    path: /usr/local/bin/docker-compose
+    state: absent
+  when: ansible_architecture == 'aarch64'
+
+- name: Install docker-compose using apt if architecture is not supported
+  community.general.apt_rpm:
+    name: docker-compose
+    state: present
+  when: ansible_architecture == 'aarch64'
+
+- name: Check if docker-ca.pem exists in /etc/ssl/private
+  become: yes
+  stat:
+    path: /etc/ssl/docker/docker-ca.pem
+  register: docker_ca_pem
+
+- name: Determine whether or not the Docker certificates should be generated
+  set_fact:
+    generate_docker_certificates: "{{ ((not docker_ca_pem.stat.exists) or (docker_regenerate_certificates | default(false))) and (not ('portainer' in (apps_installed | default([])))) }}"
+
+- name: Ensure .docker user folder exists
+  become: yes
+  become_user: "{{ ansible_user_id }}"
+  file:
+    path: ~/.docker
+    state: directory
+    mode: "0755"
+
+- name: Create a Docker password file for the TLS certificates
+  become: yes
+  become_user: "{{ ansible_user_id }}"
+  copy:
+    content: "{{ lookup('password', '/dev/null length=50 chars=ascii_letters') }}"
+    dest: ~/.docker/.pw
+    force: no
+    mode: "0400"
+  when: generate_docker_certificates
+
+- name: Generate Docker certificates
+  become: yes
+  become_user: "{{ ansible_user }}"
+  shell: |
+    export HOST={{ host_fqdn }}
+    mkdir -pv ~/.docker
+    cd ~/.docker
+    openssl genrsa -aes256 -passout file:/home/{{ ansible_user }}/.docker/.pw -out docker-ca-key.pem 4096
+    openssl req -new -passin file:/home/{{ ansible_user }}/.docker/.pw -subj '/C=US/ST=New Jersey/L=The Hood/O=Megabyte LLC/OU=Home Lab/CN=$HOST' -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem
+    openssl genrsa -out docker-server-key.pem 4096
+    openssl req -subj "/CN=$HOST" -sha256 -new -key docker-server-key.pem -out docker-server.csr
+    echo subjectAltName = DNS:$HOST,IP:{{ host_ip_address }},IP:127.0.0.1 >> extfile.cnf
+    echo extendedKeyUsage = serverAuth >> extfile.cnf
+    openssl x509 -req -days 365 -sha256 -in docker-server.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:/home/{{ ansible_user }}/.docker/.pw -CAcreateserial -out docker-server-cert.pem -extfile extfile.cnf
+    openssl genrsa -out key.pem 4096
+    openssl req -subj '/CN=client' -new -key key.pem -out docker-client.csr
+    echo extendedKeyUsage = clientAuth > extfile-client.cnf
+    openssl x509 -req -days 365 -sha256 -in docker-client.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:/home/{{ ansible_user }}/.docker/.pw -CAcreateserial -out cert.pem -extfile extfile-client.cnf
+    rm -v docker-client.csr docker-server.csr extfile.cnf extfile-client.cnf
+  when: generate_docker_certificates
+
+- name: Ensure /etc/ssl/docker exists
+  file:
+    path: /etc/ssl/docker
+    state: directory
+    mode: "0755"
+  when: generate_docker_certificates
+
+- name: Move Docker server certificates to protected SSL folder
+  become: yes
+  copy:
+    src: "/home/{{ ansible_user }}/.docker/{{ item.src | default(item) }}"
+    dest: "/etc/ssl/docker/{{ item.dest | default(item) }}"
+    owner: root
+    group: root
+    mode: "400"
+    remote_src: yes
+  with_items:
+    - docker-server-cert.pem
+    - docker-server-key.pem
+    - docker-ca-key.pem
+    - src: ca.pem
+      dest: docker-ca.pem
+  when: generate_docker_certificates
+
+- name: Remove server keys from ~/.docker
+  file:
+    path: "/home/{{ ansible_user }}/.docker/{{ item }}"
+    state: absent
+  with_items:
+    - docker-server-cert.pem
+    - docker-server-key.pem
+    - docker-ca-key.pem
+  when: generate_docker_certificates
+
+- name: Copy ca.pem to root Docker configuration directory
+  fetch:
+    src: "/home/{{ ansible_user }}/.docker/{{ item }}"
+    dest: "/home/{{ ansible_host_user }}/.docker/{{ ansible_host }}-{{ item }}"
+    mode: "400"
+    flat: yes
+  with_items:
+    - ca.pem
+    - cert.pem
+    - key.pem
+  when:
+    - ansible_host != 'local'
+    - generate_docker_certificates
+
+- name: Allow TCP connections to Docker
+  become: yes
+  lineinfile:
+    path: /etc/systemd/system/multi-user.target.wants/docker.service
+    regex: "ExecStart="
+    line: ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --tlsverify --tlscacert=/etc/ssl/docker/docker-ca.pem --tlscert=/etc/ssl/docker/docker-server-cert.pem --tlskey=/etc/ssl/docker/docker-server-key.pem -H=0.0.0.0:2424
+  when: not ('portainer' in (apps_installed | default([])))
+
+- name: Restart the Docker service
+  systemd:
+    daemon_reload: yes
+    name: "docker"
+    state: restarted
+  when: not ('portainer' in (apps_installed | default([])))
+
+- name: Restart the Docker snap service
+  systemd:
+    name: snap.docker.dockerd
+    state: restarted
+  when: ('portainer' in (apps_installed | default([])))

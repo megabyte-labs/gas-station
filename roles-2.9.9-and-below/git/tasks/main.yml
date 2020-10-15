@@ -1,0 +1,66 @@
+---
+- name: Ensure git-cache-meta.sh is installed in /usr/bin
+  become: yes
+  copy:
+    src: git-cache-meta.sh
+    dest: /usr/bin/git-cache-meta
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set up the specified git repositories
+  include_tasks: tasks/misc/git-subtask.yml
+  with_items: "{{ git_repositories | default([]) }}"
+
+- name: Ensure git repository folder exists
+  file:
+    path: "{{ git_dir }}"
+    state: directory
+
+- name: Check if git already exists
+  stat:
+    path: "{{ git_dir }}/.git"
+  register: git_folder
+
+- name: Clone the repository
+  git:
+    repo: "{{ git_repo }}"
+    dest: "{{ git_dir }}"
+    depth: "1"
+  when: not git_folder.stat.exists
+
+- name: Restore containers if necessary
+  become: yes
+  command: docker-compose-backup restore
+  args:
+    chdir: "{{ git_dir }}"
+  when: not git_folder.stat.exists
+
+- name: Run docker-compose up, if configured to do so
+  become: yes
+  command: "docker-compose up -d"
+  args:
+    chdir: "{{ git_dir }}"
+  when: item.docker_compose | default(no)
+
+- name: Wait a second to make sure docker-compose up -d is finished
+  wait_for:
+    timeout: 1
+  delegate_to: localhost
+
+- name: Backup containers if necessary
+  become: yes
+  command: docker-compose-backup backup
+  args:
+    chdir: "{{ git_dir }}"
+  when: git_folder.stat.exists
+
+- name: Create backup cron job
+  become: yes
+  cron:
+    name: "{{ git_repo_name }} Backup Job"
+    minute: "45"
+    hour: "3"
+    user: root
+    job: "cd {{ git_dir }} && docker-compose-backup backup && curl -fsS -m 10 --retry 5 -o /dev/null https://{{ git_healthcheck_endpoint }}/ping/{{ git_healthcheck_id }}"
+    cron_file: "{{ git_repo_name }}-Backup-Job"

@@ -1,0 +1,118 @@
+---
+- name: Ensure Public Media folder exists
+  file:
+    path: "/home/{{ services_ansible_user }}/Public/Media"
+    state: directory
+    owner: nobody
+    group: nogroup
+    mode: "0755"
+
+- name: Ensure Public Public folder exists
+  file:
+    path: "/home/{{ services_ansible_user }}/Public/Public"
+    state: directory
+    owner: nobody
+    group: nogroup
+    mode: "0775"
+
+- name: Add Shared Documents to Public folder
+  file:
+    src: "/mnt/{{ services_ansible_user }}/onedrive/Documents/Shared"
+    dest: "/home/{{ services_ansible_user }}/Public/Media/Documents"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+    force: yes
+
+- name: Add Protected Shared Documents to Public folder
+  file:
+    src: "/mnt/{{ services_ansible_user }}/onedrive/Documents/Protected"
+    dest: "/home/{{ services_ansible_user }}/Public/Protected"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+    force: yes
+
+- name: Add Games to Public folder
+  file:
+    src: /mnt/auxilary/Games
+    dest: "/home/{{ services_ansible_user }}/Public/Media/Games"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+
+- name: Add Movies to Public folder
+  file:
+    src: /mnt/movies
+    dest: "/home/{{ services_ansible_user }}/Public/Media/Movies"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ aservices_nsible_user }}"
+    state: link
+
+- name: Add Music to Public folder
+  file:
+    src: "/mnt/{{ services_ansible_user }}/onedrive/Music"
+    dest: "/home/{{ services_ansible_user }}/Public/Media/Music"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+    force: yes
+
+- name: Add Pictures to Public folder
+  file:
+    src: "/mnt/{{ services_ansible_user }}/onedrive/Pictures/Shared"
+    dest: "/home/{{ services_ansible_user }}/Public/Media/Pictures"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+    force: yes
+
+- name: Add TV to Public folder
+  file:
+    src: /mnt/tv
+    dest: "/home/{{ services_ansible_user }}/Public/Media/TV"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+
+- name: Add Videos to Public folder
+  file:
+    src: /mnt/auxilary/Videos
+    dest: "/home/{{ services_ansible_user }}/Public/Media/Videos"
+    owner: "{{ services_ansible_user }}"
+    group: "{{ services_ansible_user }}"
+    state: link
+
+- name: Install Samba
+  apt:
+    name: samba
+    state: present
+    update_cache: yes
+
+- name: Ensure group "sambausers" exists
+  group:
+    name: sambausers
+    state: present
+
+- name: Add Samba users that require access to the Protected Samba Share
+  user:
+    comment: "Samba user ({{ item.name }})"
+    create_home: no
+    groups: "{{ item.name | subelements('groups', skip_missing=True) }}"
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    system: yes
+    uid: "{{ item.uid }}"
+  with_items: "{{ services_samba_users }}"
+
+- import_tasks: smb_conf.yml
+
+- name: Add Samba password to Samba users
+  shell: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
+  with_items: "{{ services_samba_users | default([]) }}"
+
+- name: Restart Samba and enable on start up
+  systemd:
+    name: smbd
+    state: restarted
+    enabled: yes

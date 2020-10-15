@@ -5,13 +5,13 @@
 * Add static VPN routes
 * pfSense avahi
 * Delete old commits figure out how
-* https://docs.docker.com/engine/reference/commandline/save/
+* [Docker Engine](https://docs.docker.com/engine/reference/commandline/save/)
 * Get cast working on Ubuntu
 * Add file checksum verification to Vagrant
 
-### Features TODO
+## Features TODO
 
-* Teleport https://github.com/gravitational/teleport
+* [Teleport](https://github.com/gravitational/teleport)
 * Rundeck
 * Wazuh
 * SecurityOnion
@@ -20,7 +20,7 @@
 * AWX
 * Kubernetes Juju
 * Adminer
-? Bacula
+* Bacula
 * Graylog?
 * Nextcloud
 * Homer
@@ -29,12 +29,13 @@
 * Netlify
 * Rancher
 * Kafka
-* https://www.vaultproject.io/
-https://www.packer.io/
+* [Vault Project](https://www.vaultproject.io/)
+* [Packer](https://www.packer.io/)
 
-# Revisit
-https://vercel.com/
-https://strapi.io/pricing
+## Revisit
+
+[Vercel](https://vercel.com/)
+[Strapi](https://strapi.io/pricing)
 
 ### Ubuntu
 
@@ -60,4 +61,4 @@ https://strapi.io/pricing
 ## Nice-to-Haves
 
 * Fix git-cache-meta to handle spaces
-* https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e
+* [Compile Shell script to binary](https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e)

@@ -1,0 +1,94 @@
+---
+- name: Optimize the GRUB resolution (press C at GRUB menu and then enter videoinfo, then set grub_gfxmode to max allowed resolution)
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_GFXMODE="
+    line: "GRUB_GFXMODE={{ grub_gfxmode }},auto"
+
+- name: Set GRUB timeout
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_TIMEOUT="
+    line: "GRUB_TIMEOUT={{ grub_timeout }}"
+
+- name: Copy/unarchive theme
+  unarchive:
+    src: "{{ grub_theme }}.tar.xz"
+    dest: "/tmp"
+
+- name: Install the GRUB theme
+  command: bash install.sh
+  args:
+    chdir: "/tmp/{{ grub_theme }}"
+
+- name: Clean up temporary theme installer files
+  file:
+    path: "/tmp/{{ grub_theme }}"
+    state: absent
+
+- name: Configure GRUB to only show when Shift key is held down
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_FORCE_HIDDEN_MENU="
+    line: 'GRUB_FORCE_HIDDEN_MENU="true"'
+  notify: update grub
+
+- name: Copy over and unarchive the Plymouth theme
+  unarchive:
+    src: "{{ grub_plymouth_theme }}.tar.gz"
+    dest: "/usr/share/plymouth/themes"
+
+- name: Register the Plymouth theme
+  alternatives:
+    name: default.plymouth
+    link: /usr/share/plymouth/themes/default.plymouth
+    path: "/usr/share/plymouth/themes/{{ grub_plymouth_theme }}/{{ grub_plymouth_theme }}.plymouth"
+    priority: 100
+
+- name: Activate the Plymouth theme
+  command: "echo $(echo | sudo update-alternatives --config default.plymouth | grep {{ grub_plymouth_theme }} | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\\+//') | sudo update-alternatives --config default.plymouth"
+  notify: update initramfs
+
+- name: Check if swap file already exists
+  stat:
+    path: /swapfile
+  register: swap_file_check
+
+- name: Create /swapfile
+  command: "fallocate -l {{ swap_space }} /swapfile"
+  when: not swap_file_check.stat.exists
+
+- name: Set permissions on /swapfile
+  file:
+    path: /swapfile
+    mode: "0600"
+
+- name: Format /swapfile
+  command: mkswap /swapfile
+  when: not swap_file_check.stat.exists
+
+- name: Turn on swap
+  command: swapon /swapfile
+  when: not swap_file_check.stat.exists
+
+- name: Make swapfile permanent
+  lineinfile:
+    dest: /etc/fstab
+    regexp: "/swapfile"
+    line: "/swapfile none swap sw 0 0"
+
+- name: Set swappiness
+  sysctl:
+    name: vm.swappiness
+    value: '10'
+    sysctl_file: /etc/sysctl.conf
+    state: present
+    reload: yes
+
+- name: Set vfs_cache_pressure
+  sysctl:
+    name: vm.vfs_cache_pressure
+    value: '50'
+    sysctl_file: /etc/sysctl.conf
+    state: present
+    reload: yes

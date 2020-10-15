@@ -1,32 +1,46 @@
 # Ubuntu Master
 
-bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh)
+```console
+bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh
+```
 
-# Playbooks
-On a fresh install of Windows 10 Enterprise, run the following command in an Administrator Powershell:
+## Playbooks
+
+On a fresh install of Windows 10 Enterprise, run the following command in an
+Administrator Powershell:
 
 **Windows 10 controller:**
-The controller is responsible for running Ansible to provision other parts of the system. There only needs to be one controller. To provision a controller, run the following on a preferrably fresh install of a fully updated Windows 10 Enterprise:
-```
+The controller is responsible for running Ansible to provision other parts of
+the system. There only needs to be one controller. To provision a controller,
+run the following on a preferrably fresh install of a fully updated Windows 10
+Enterprise:
+
+```console
 powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleController'))"
 ```
-Then, with Ubuntu installed, log into the Ubuntu WSL instance and finish the installation of Ansible:
-```
+
+Then, with Ubuntu installed, log into the Ubuntu WSL instance and finish the
+installation of Ansible:
+
+```console
 ubuntu
-wget https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.sh && bash controller.sh && rm controller.sh
+wget https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.sh
+&& bash controller.sh && rm controller.sh
 ```
 
-The bit.ly links to [https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1]().
+The bit.ly links to [controller.ps1](https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1).
 
 **Windows 10 client:**
 
-A client is a computer you wish to control with the controller. Windows needs to have Remote Execution (RE) enabled. Run the following command in an Administrator Powershell:
+A client is a computer you wish to control with the controller. Windows needs to
+have Remote Execution (RE) enabled. Run the following command in an
+Administrator Powershell:
 
-```
+```console
 powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleClient_'))"
 ```
 
-The bit.ly links to [https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1']().
+The bit.ly links to [client.ps1](https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1).
 
 ## Upgrade to WSL2
 
@@ -34,7 +48,7 @@ wsl --set-version 'Ubuntu' 2
 
 ## Run the playbook
 
-```
+```console
 ansible-playbook --ask-vault-pass main.yml
 ```
 
@@ -42,19 +56,26 @@ ansible-playbook --ask-vault-pass main.yml
 
 On Windows 10 Enterprise with Ubuntu WSL 2, UFW does not work without error.
 
-On Windows 10 Enterprise with Ubuntu WSL 2, the VPN on the Windows 10 host should be disabled when running the scripts.
+On Windows 10 Enterprise with Ubuntu WSL 2, the VPN on the Windows 10 host
+should be disabled when running the scripts.
 
-On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running an ansible-playbook when connecting to Parallels Windows.
+On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running
+an ansible-playbook when connecting to Parallels Windows.
 
 ## Useful Commands
 
 The following commands are Powershell commands used for generating configurations.
 
-* Export the start menu configuration: `Export-StartLayout -path file_name.xml`
-* Import start menu layout: `Import-StartLayout -LayoutPath C:\layout.xml -MountPath %systemdrive%`
-* List all of the installed apps AppIDs: `get-StartApps`
-* List all of the installed APPX files: `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
-* List all of the available optional features: `Get-WindowsOptionalFeature -Online`
+* Export the start menu configuration:
+  * `Export-StartLayout -path file_name.xml`
+* Import start menu layout:
+  * `Import-StartLayout -LayoutPath C:\layout.xml -MountPath %systemdrive%`
+* List all of the installed apps AppIDs:
+  * `get-StartApps`
+* List all of the installed APPX files:
+  * `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
+* List all of the available optional features:
+  * `Get-WindowsOptionalFeature -Online`
 
 ## DISM
 
@@ -62,4 +83,4 @@ The following commands are Powershell commands used for generating configuration
 
 ## Acquiring a self-signed certificate from known host
 
-https://medium.com/@menakajain/export-download-ssl-certificate-from-server-site-url-bcfc41ea46a2
+[Acquiring self-signed cert](https://medium.com/@menakajain/export-download-ssl-certificate-from-server-site-url-bcfc41ea46a2)

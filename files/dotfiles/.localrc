@@ -53,11 +53,20 @@ randomstring() {
 # Reset Docker to factory settings
 resetdocker() {
     set +e
-    docker stop $(docker ps -a -q)
-    docker rm $(docker ps -a -q)
-    docker volume rm $(docker volume ls -q)
-    docker network rm $(docker network ls -q)
-    docker system prune --force
+    CONTAINER_COUNT=$(docker ps -a -q | wc -l)
+    if [ "$CONTAINER_COUNT" -gt 0 ]; then
+        docker stop $(docker ps -a -q)
+        docker rm $(docker ps -a -q)
+    fi
+    VOLUME_COUNT=$(docker volume ls -q | wc -l)
+    if [ "$VOLUME_COUNT" -gt 0 ]; then
+        docker volume rm $(docker volume ls -q)
+    fi
+    NETWORK_COUNT=$(docker network ls -q | wc -l)
+    if [ "$NETWORK_COUNT" -gt 0 ]; then
+        docker network rm $(docker network ls -q)
+    fi
+    docker system prune -a --force
 }
 
 # Source: https://itnext.io/bash-aliases-are-awesome-8a76aecc96ab
@@ -89,6 +98,9 @@ alias cp='cp -v'
 
 # Copies with a progress bar
 alias cpv='rsync -ah --info=progress2'
+
+# Reload docker-compose.yml
+alias docker-reboot='docker-compose stop && docker-compose up -d'
 
 # Download a file
 alias download='curl --continue-at - --location --progress-bar --remote-name --remote-time'

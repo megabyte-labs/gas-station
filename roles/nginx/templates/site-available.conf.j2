@@ -1,0 +1,117 @@
+{%if app_nginx_serve_http %}
+server {
+    listen                  80{%if app_default_server %} default_server{% endif %};
+    listen                  [::]:80{%if app_default_server %} default_server{% endif %};
+
+    server_name             {{ app_http_hosts }};
+
+    return                  301 https://{{ app_fqdn }}$request_uri;
+}
+{% endif %}
+
+server {
+    listen                  443 ssl http2{%if app_default_server %} default_server{% endif %};
+    listen                  [::]:443 ssl http2{%if app_default_server %} default_server{% endif %};
+
+    server_name             {{ app_fqdn }};
+
+    ssl_certificate         /etc/letsencrypt/live/{{ app_letsencrypt_domain }}/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/{{ app_letsencrypt_domain }}/privkey.pem;
+{% if app_ssl_trusted_certificate %}
+    ssl_trusted_certificate {{ app_ssl_trusted_certificate }};
+{% else %}
+    ssl_trusted_certificate /etc/letsencrypt/live/{{ app_letsencrypt_domain }}/chain.pem;
+{% endif %}
+
+{% if app_authelia %}
+{% if app_with_authelia %}
+    include                 snippets/authelia.conf;
+{% else %}
+    include                 snippets/authelia-fqdn.conf;
+{% endif %}
+{% endif %}
+    include                 snippets/ssl.conf;
+    include                 snippets/misc.conf;
+{% if app_firewall %}
+    include                 snippets/waf.conf;
+{% endif %}
+
+    location / {
+        proxy_pass          {{ app_transport }}://{{ app_proxy_pass_url }}:{{ app_proxy_pass_port }};
+        include             snippets/{{ app_proxy_file }};
+{% if app_theme_url %}
+        set $theme {{ app_theme_url }};
+        include             snippets/theme.conf;
+{% endif %}
+{% if app_intercept_errors %}
+        include             snippets/proxy-errors.conf;
+{% endif %}
+{% if app_authelia %}
+        include             snippets/auth.conf;
+{% endif %}
+{% if app_waf_rules %}
+        include             /etc/nginx/modsec/sites/{{ app_waf_rules }}.conf;
+{% endif %}
+{% if app_proxy_certificate %}
+        proxy_ssl_certificate {{ app_proxy_certificate }};
+{% endif %}
+{% if app_proxy_certificate_key %}
+        proxy_ssl_certificate_key {{ app_proxy_certificate_key }};
+{% endif %}
+{% if app_proxy_certificate_trusted %}
+        proxy_ssl_trusted_certificate {{ app_proxy_certificate_trusted }}; # Source: https://docs.nginx.com/nginx/admin-guide/security-controls/securing-http-traffic-upstream/
+        proxy_ssl_verify    on;
+        proxy_ssl_verify_depth 2;
+        proxy_ssl_session_reuse on;
+{% endif %}
+    }
+{% if app_id == 'maas' %}
+
+    location /MAAS/ws {
+        proxy_pass          {{ app_transport }}://{{ app_proxy_pass_url }}:{{ app_proxy_pass_port }}/MAAS/ws;
+        include             snippets/proxy-ws.conf;
+{% if app_intercept_errors %}
+        include             snippets/proxy-errors.conf;
+{% endif %}
+{% if app_authelia %}
+        include             snippets/auth.conf;
+{% endif %}
+{% if app_waf_rules %}
+        include             /etc/nginx/modsec/sites/{{ app_waf_rules }}.conf;
+{% endif %}
+    }
+{% endif %}
+{% if app_id == 'portainer' %}
+
+    location /ws/ {
+        proxy_pass          {{ app_transport }}://{{ app_proxy_pass_url }}:{{ app_proxy_pass_port }}/ws/;
+        include             snippets/proxy-ws.conf;
+{% if app_intercept_errors %}
+        include             snippets/proxy-errors.conf;
+{% endif %}
+{% if app_authelia %}
+        include             snippets/auth.conf;
+{% endif %}
+{% if app_waf_rules %}
+        include             /etc/nginx/modsec/sites/{{ app_waf_rules }}.conf;
+{% endif %}
+    }
+{% endif %}
+{% if 'unifi' in app_id %}
+
+    location /wss/ {
+        proxy_pass          {{ app_transport }}://{{ app_proxy_pass_url }}:{{ app_proxy_pass_port }};
+        include             snippets/proxy-ws.conf;
+{% if app_intercept_errors %}
+        include             snippets/proxy-errors.conf;
+{% endif %}
+        proxy_redirect      off;
+{% if app_authelia %}
+        include             snippets/auth.conf;
+{% endif %}
+{% if app_waf_rules %}
+        include             /etc/nginx/modsec/sites/{{ app_waf_rules }}.conf;
+{% endif %}
+    }
+{% endif %}
+}

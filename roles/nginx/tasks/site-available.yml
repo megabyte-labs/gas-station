@@ -1,0 +1,32 @@
+---
+- name: "Register {{ item.name }}'s template variables"
+  set_fact:
+    app_authelia: "{{ item.authelia | default(hosts[item.name].authelia | default(true)) }}"
+    app_default_server: "{{ item.default_server | default(hosts[item.name].default_server | default(false)) }}"
+    app_firewall: "{{ item.firewall | default(hosts[item.name].firewall | default(false)) }}"
+    app_fqdn: "{{ item.fqdn | default(hosts[item.name].fqdn | default(hosts[item.name].hosts.split()[-1])) }}"
+    app_http_hosts: "{{ hosts[item.name].hosts }}"
+    app_id: "{{ item.name }}"
+    app_intercept_errors: "{{ item.intercept_errors | default(hosts[item.name].intercept_errors | default(true)) }}"
+    app_letsencrypt_domain: "{{ item.letsencrypt_domain | default(hosts[item.name].letsencrypt_domain | default(base_domain)) }}"
+    app_nginx_serve_http: "{{ nginx_serve_http | default(true) }}"
+    app_proxy_certificate: "{{ item.certificate | default(false) }}"
+    app_proxy_certificate_key: "{{ item.certificate_key | default(false) }}"
+    app_proxy_certificate_trusted: "{{ item.certificate_trusted | default(false) }}"
+    app_proxy_file: "{{ hosts[item.name].proxy_file | default('proxy.conf') }}"
+    app_proxy_pass_port: "{{ item.proxy_pass_port | default(hosts[item.name].proxy_pass_port) }}"
+    app_proxy_pass_url: "{{ item.proxy_pass_url | default(item.name) }}"
+    app_ssl_trusted_certificate: "{{ item.ssl_trusted_certificate | default(false) }}"
+    app_theme_url: "{{ item.theme_url | default(hosts[item.name].theme_url | default(false)) }}"
+    app_transport: "{{ item.transport | default(hosts[item.name].transport | default('http')) }}"
+    app_waf_rules: "{{ hosts[item.name].custom_waf_rules | default(false) }}"
+    app_with_authelia: "{{ nginx_hosting_authelia | default(false) }}"
+
+- name: "Generate NGINX configuration file for {{ item.name }}"
+  become: yes
+  template:
+    src: site-available.conf.j2
+    dest: "/etc/nginx/sites-available/{{ item.name }}.conf"
+    owner: root
+    group: root
+    mode: "644"

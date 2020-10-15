@@ -1,0 +1,46 @@
+---
+# Edition can be one of: 'ce' (Community Edition) or 'ee' (Enterprise Edition).
+docker_edition: 'ce'
+docker_package: "docker-{{ docker_edition }}"
+docker_package_state: present
+
+# Service options.
+docker_service_state: started
+docker_service_enabled: true
+docker_restart_handler_state: restarted
+
+# Docker Compose options.
+docker_install_compose: true
+docker_compose_version: "1.26.0"
+docker_compose_path: /usr/local/bin/docker-compose
+
+# Used only for Debian/Ubuntu. Switch 'stable' to 'edge' if needed.
+docker_apt_release_channel: stable
+docker_apt_arch: amd64
+https_repository_prefix: https://
+docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ https_repository_prefix }}download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} {{ docker_apt_release_channel }}"
+docker_apt_ignore_key_error: true
+docker_apt_gpg_key: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+
+# Used only for RedHat/CentOS/Fedora.
+docker_yum_repo_url: "https://download.docker.com/linux/{{ (ansible_distribution == 'Fedora') | ternary('fedora','centos') }}/docker-{{ docker_edition }}.repo"
+docker_yum_repo_enable_edge: '0'
+docker_yum_repo_enable_test: '0'
+docker_yum_gpg_key: https://download.docker.com/linux/centos/gpg
+
+# A list of users who will be added to the docker group.
+docker_users: []
+
+# Whether or not to use snap to install Docker - use this if there are issues with your configuration
+# Certificates will not be generated for a snap install - see the comment for the docker_tls variable
+docker_snap_install: false
+
+# When set it true, the role will configure Docker for TLS network connections and generate the required certificates
+# The certificates will be stored in /etc/ssl/docker on the client, and in the ~/.docker folder on the host
+docker_tls: true
+docker_tls_country: US # These variables are used when generating the self-signed certificates
+docker_tls_state: New Jersey
+docker_tls_locality: The Hood
+docker_tls_organization: Megabyte LLC
+docker_tls_division: Megabyte Labs
+docker_tls_fqdn: machine.example.com # TODO

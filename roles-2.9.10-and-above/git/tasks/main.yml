@@ -13,9 +13,13 @@
   with_items: "{{ git_repositories | default([]) }}"
 
 - name: Ensure git repository folder exists
+  become: yes
   file:
     path: "{{ git_dir }}"
     state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "755"
 
 - name: Check if git already exists
   stat:
@@ -31,6 +35,7 @@
 
 - name: Restore containers if necessary
   become: yes
+  become_user: "{{ item.user | default(ansible_user) }}"
   command: docker-compose-backup restore
   args:
     chdir: "{{ git_dir }}"
@@ -50,6 +55,7 @@
 
 - name: Backup containers if necessary
   become: yes
+  become_user: "{{ ansible_user }}"
   command: docker-compose-backup backup
   args:
     chdir: "{{ git_dir }}"

@@ -1,0 +1,63 @@
+---
+- name: Install NGINX Optimized base dependencies
+  become: yes
+  apt:
+    name:
+      - git
+      - nginx
+      - openssl
+    state: present
+    update_cache: yes
+
+- name: Gather the apt package facts
+  package_facts:
+    manager: auto
+
+- name: Get Nginx version and set variable
+  set_fact:
+    nginx_version: "{{ ansible_facts.packages['nginx'][0].version | regex_search('^[0-9.]*') }}"
+
+- name: Add default error pages
+  include_tasks: error-pages.yml
+
+- name: Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough
+  become: yes
+  lineinfile:
+    path: /usr/lib/systemd/system/nginx.service
+    regexp: "After=network.target"
+    line: After=network-online.target
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Check if Brotli module exists
+  stat:
+    path: "/usr/share/nginx/modules/ngx_http_brotli_static_module.so"
+  register: brotli_stat
+
+- name: Compile Brotli modules
+  include_tasks: brotli.yml
+  when:
+    - enable_brotli_modules
+    - not brotli_stat.stat.exists
+
+- name: Install NGINX Amplify
+  include_tasks: amplify.yml
+  when:
+    - nginx_amplify_api_key is defined
+    - enable_amplify
+
+- name: Determine if Modsecurity was already installed
+  stat:
+    path: /etc/nginx/modsec/owasp-modsecurity-crs/crs-setup.conf
+  register: modsecurity_installed
+
+- name: Compile ModSecurity WAF module
+  include_tasks: modsecurity.yml
+  when:
+    - enable_modsecurity_waf
+    - not modsecurity_installed.stat.exists
+
+- name: Set up wildcard SSL automatically with CloudFlare
+  include_tasks: certbot.yml
+  when: certbot_cloudflare_api_token is defined

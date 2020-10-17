@@ -11,59 +11,47 @@
 * Switch to docker secrets
 * FreeIPA
 * AWX
-* Adminer
 * Clear theme for Organizr
-* Duplicati
-* FirefoxSend
-* Home Assistant
 * Keycloak
 * Kubernetes Dashboard
-* Piwigo
 * Minio
 * Resilio Sync
 * Guacamole (theme: https://github.com/gilbN/theme.park/wiki/Guacamole)
-* LibreSpeed
+* Home Assistant
+* Piwigo
 
 # Host Services
 
-* Duplicacy
+* Adminer
+* Duplicacy (theme: https://github.com/gilbN/theme.park/wiki/Duplicacy)
 * Cockpit
 * Homepage
 * File Browser (theme: https://github.com/gilbN/theme.park)
 * Netdata (theme: https://github.com/gilbN/theme.park/wiki/Netdata)
-
-# LDAP
-
 
 # Megabyte Space
 
 * WikiJS
 * WordPress
 * Strapi
+* EasyEngine
 
-### Features TODO
+### TODO
 
-* Teleport https://github.com/gravitational/teleport
-* Rundeck
+* Teleport (https://github.com/gravitational/teleport)
+* Rundeck (LDAP)
 * Wazuh
-* Guacamole
 * SecurityOnion
-* NAS
 * NGINX Optimized Dockerized
-* Kubernetes Juju
-* Graylog?
+* Kubernetes/Juju
+* Graylog
 * Terraform
-* Sentry
-* Netlify
-* Rancher
-https://www.packer.io/
-* LibreSpeed
-
+* Sentry (https://sentry.io/welcome/) on Kubernetes
+* Rancher (https://rancher.com/)
+* Packer (https://www.packer.io/)
 
 # Revisit
 
-https://vercel.com/
-https://strapi.io/pricing
 * Thanos
 * Kafka
 
@@ -77,6 +65,7 @@ https://strapi.io/pricing
 * Apply base-layout via group policy
 * Unattended installation
 * Add netdata as docker service to Windows
+* https://www.microsoft.com/en-us/windows-server/windows-admin-center
 
 ## Waiting On
 
@@ -85,11 +74,6 @@ https://strapi.io/pricing
 * Microsoft to release PowerShell for Linux https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
 * Upgrade Ansible to 2.10 via ppa.. waiting on focal support https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#upgrading-ansible-from-version-2-9-and-older-to-version-2-10-or-later
 * Set up StatPing when stable
-* https://github.com/freeipa/ansible-freeipa once Ansible version 2.10/2.9 is out
-
-## pfSense
-
-* Make DNS resolver include domains and domain aliases
 
 ## Nice-to-Haves
 

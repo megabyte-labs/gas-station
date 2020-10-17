@@ -1,0 +1,52 @@
+---
+- name: Check if the Brave repository was already added
+  stat:
+    path: /etc/apt/sources.list.d/brave-browser-release.list
+  register: brave_repo_file
+
+- name: Add Brave keyring
+  apt_key:
+    url: https://brave-browser-apt-release.s3.brave.com/brave-core.asc
+    state: present
+  when: not brave_repo_file.stat.exists
+
+- name: Add Brave repository
+  apt_repository:
+    repo: https://brave-browser-apt-release.s3.brave.com/ stable main
+    state: present
+    filename: brave-browser
+  when: not brave_repo_file.stat.exists
+
+- name: Install Brave Browser
+  apt:
+    name: brave-browser
+    state: present
+    update_cache: yes
+
+- name: Install TeamViewer
+  apt:
+    deb: https://download.teamviewer.com/download/linux/teamviewer_amd64.deb
+
+- name: Install Vagrant
+  apt:
+    deb: "https://releases.hashicorp.com/vagrant/{{ vagrant_version }}/vagrant_{{ vagrant_version }}_x86_64.deb"
+
+- name: Install Vagrant VMware Utility
+  apt:
+    deb: "https://releases.hashicorp.com/vagrant-vmware-utility/{{ vagrant_vmware_version }}/vagrant-vmware-utility_{{ vagrant_vmware_version }}_x86_64.deb"
+
+- name: Populate installation answer for Wireshark install
+  shell: |
+    echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
+
+- name: Ensure Wireshark is installed
+  apt:
+    name: wireshark
+    state: present
+
+- name: Add user to the Wireshark system group
+  user:
+    name: "{{ apps_ansible_user }}"
+    groups:
+      - wireshark
+    append: yes

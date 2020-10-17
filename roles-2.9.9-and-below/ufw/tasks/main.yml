@@ -1,0 +1,177 @@
+---
+- name: Install UFW
+  package:
+    name: "{{ packages }}"
+    state: present
+
+- name: Reset UFW
+  ufw:
+    state: reset
+
+- name: Copy over UFW application policies
+  copy:
+    src: files/
+    dest: /etc/ufw/applications.d
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Set default incoming policy to deny
+  ufw:
+    default: deny
+    direction: incoming
+
+- name: Enable UFW logging
+  ufw:
+    logging: 'on'
+  ignore_errors: yes
+
+- name: Limit connections via SSH to prevent brute force attacks
+  ufw:
+    rule: limit
+    port: "{{ security_ssh_port }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: Allow and limit SSH connections
+  loop:
+    - "{{ lan_network.management }}"
+    - "{{ lan_network.work }}"
+    - "{{ main_ip_address }}"
+  when: not (cloud_server | default(false))
+
+- name: Limit connections via SSH to prevent brute force attacks (Cloud server)
+  ufw:
+    rule: limit
+    port: "{{ security_ssh_port }}"
+    proto: tcp
+    comment: Allow SSH connections originating from the Internet
+  when: cloud_server | default(false)
+
+- name: Allow apt-cacher-ng access if apt-cacher-ng is installed
+  ufw:
+    rule: allow
+    name: 'AptCacherNG'
+    src: "{{ item }}"
+    comment: Allow access to apt-cacher-ng
+  loop:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.kubernetes }}"
+    - "{{ lan_network.management }}"
+    - "{{ lan_network.offline }}"
+    - "{{ lan_network.unifi }}"
+    - "{{ lan_network.work }}"
+  when:
+    - ('apt' in (apps_installed | default([])))
+
+- name: Allow RDP access if xrdp is installed
+  ufw:
+    rule: allow
+    name: 'RDP'
+    src: "{{ item }}"
+    comment: Allow RDP
+  loop:
+    - "{{ lan_network.work }}"
+  when: (software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false)) or (host_software | default([]) | selectattr("name", "equalto", "xrdp") | list | first | default(false))
+
+- name: Allow remote Docker access if Docker is installed and machine does not have Portainer installed
+  ufw:
+    rule: allow
+    port: '2424'
+    proto: tcp
+    src: "{{ item }}"
+    comment: Allow access to Docker from Portainer
+  when:
+    - not ('portainer' in (apps_installed | default([])))
+  with_items: "{{ portainer_ip_addresses }}"
+
+- name: Allow TFTP access to Netboot.xyz
+  ufw:
+    rule: allow
+    name: 'NetbootXYZ'
+    src: "{{ item }}"
+    comment: Allow TFTP access for booting iPXE files
+  when:
+    - ('netboot' in (apps_installed | default([])))
+  with_items:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.kubernetes }}"
+    - "{{ lan_network.management }}"
+    - "{{ lan_network.offline }}"
+    - "{{ lan_network.unifi }}"
+    - "{{ lan_network.work }}"
+
+- name: Allow access to Plex Media Server from LAN
+  ufw:
+    rule: allow
+    name: 'PlexMediaServer Full'
+    src: "{{ item }}"
+    comment: Allow full access to Plex Media Server from LAN
+  with_items:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.work }}"
+  when:
+    - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
+
+- name: Allow access to Plex Media Server from Internet
+  ufw:
+    rule: allow
+    port: '32400'
+    proto: tcp
+    comment: Allow access to Plex Media Server from Internet
+  when:
+    - (snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false)) or (host_snaps | default([]) | selectattr("name", "equalto", "plexmediaserver") | list | first | default(false))
+
+- name: Allow printer sharing
+  ufw:
+    rule: allow
+    name: 'CUPS'
+    src: "{{ item }}"
+    comment: Allow printer sharing
+  with_items:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.work }}"
+  when:
+    - printer_sharing is defined
+    - printer_sharing
+
+- name: Allow MAAS if it is included
+  ufw:
+    rule: allow
+    name: 'MAAS'
+    src: "{{ item }}"
+    comment: Allow MAAS communication
+  when: ('maas' in (apps_installed | default([])))
+  with_items: "{{ maas_managed_networks | default([]) }}"
+
+- name: Allow UniFi access if it is included
+  ufw:
+    rule: allow
+    name: 'UniFi'
+    comment: Allow UniFi communication
+  when: ('unifilab' in (apps_installed | default([])))
+  with_items:
+    - "{{ lan_network.unifi }}"
+
+- name: Allow HTTP/HTTPS access from LAN
+  ufw:
+    rule: allow
+    name: 'Nginx Full'
+    comment: Allow access to NGINX from LAN
+    src: "{{ item }}"
+  when:
+    - (nginx_sites_available | default([])) | length
+    - not ('nuc' in (apps_installed | default([])))
+    - not cloud_server
+  with_items: "{{ rc1918_networks }}"
+
+- name: Allow HTTP/HTTPS access from internet
+  ufw:
+    rule: allow
+    name: 'Nginx Full'
+    comment: Allow access to NGINX from internet
+  when:
+    - ('nuc' in (apps_installed | default([])))
+
+- name: Enable UFW
+  ufw:
+    state: enabled

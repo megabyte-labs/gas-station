@@ -1,6 +1,7 @@
 # TODO
 
 * Test PiHole role
+* pull all signatures from ssh
 * Add static VPN routes
 * pfSense avahi
 * Delete old commits figure out how
@@ -57,6 +58,7 @@
 
 ### Ubuntu
 
+* Install custom self-signed certificates
 * Get Rclone 1.51+ to fix issue with OneDrive only opening docs on 2nd try
 
 ### Windows
@@ -79,8 +81,3 @@
 
 * Fix git-cache-meta to handle spaces
 * https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e
-* Set up squid HTTPS caching
-
-## Won't Do
-
-* Set index for apt.lab.megabyte.space to acng.html

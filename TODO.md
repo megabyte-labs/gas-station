@@ -50,6 +50,7 @@
 * Sentry (https://sentry.io/welcome/) on Kubernetes
 * Rancher (https://rancher.com/)
 * Packer (https://www.packer.io/)
+* https://github.com/Security-Onion-Solutions/securityonion/blob/master/VERIFY_ISO.md
 
 # Revisit
 

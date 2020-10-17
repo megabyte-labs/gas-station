@@ -1,0 +1,30 @@
+---
+- name: Ensure Postman directory is empty
+  file:
+    path: "{{ postman_dir }}"
+    state: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - absent
+    - directory
+
+- name: Install Postman
+  unarchive:
+    src: https://dl.pstmn.io/download/latest/linux
+    dest: "{{ postman_parent_dir }}"
+    owner: root
+    group: root
+    remote_src: yes
+
+- name: Add Postman to /usr/local/bin
+  file:
+    src: "{{ postman_dir }}/Postman"
+    dest: /usr/local/bin/postman
+    state: link
+
+- name: Add Postman desktop shortcut
+  copy:
+    src: files/postman.desktop
+    dest: "{{ postman_desktop_link_dir }}/postman.desktop"

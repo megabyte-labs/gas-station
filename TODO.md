@@ -1,7 +1,6 @@
 # TODO
 
 * Test PiHole role
-* pull all signatures from ssh
 * Add static VPN routes
 * pfSense avahi
 * Delete old commits figure out how
@@ -41,15 +40,12 @@
 
 * Teleport (https://github.com/gravitational/teleport)
 * Rundeck (LDAP)
-* Wazuh
 * SecurityOnion
 * NGINX Optimized Dockerized
 * Kubernetes/Juju
-* Graylog
 * Terraform
 * Sentry (https://sentry.io/welcome/) on Kubernetes
 * Rancher (https://rancher.com/)
-* Packer (https://www.packer.io/)
 * https://github.com/Security-Onion-Solutions/securityonion/blob/master/VERIFY_ISO.md
 
 # Revisit

@@ -1,0 +1,49 @@
+---
+- name: Ensure dnsmasq is installed
+  apt:
+    name: dnsmasq
+    state: present
+
+- name: Prevent systemd-resolved from binding to DNS port 53
+  lineinfile:
+    path: "{{ systemd_resolved_conf_path }}"
+    regex: "DNSStubListener="
+    line: "DNSStubListener=no"
+  register: disable_resolved_stub
+  when: use_dnsmasq_for_dns
+
+- name: Restart systemd-resolved
+  service:
+    name: systemd-resolved
+    state: restarted
+  when: disable_resolved_stub.changed
+  notify: restart dnsmasq
+
+- name: Prevent dnsmasq from forwarding non-domain queries upstream
+  lineinfile:
+    path: "{{ dnsmasq_conf_path }}"
+    regexp: "#domain-needed"
+    line: "domain-needed"
+  notify: restart dnsmasq
+
+- name: Prevent dnsmasq from forwarding reverse-lookup queries upstream
+  lineinfile:
+    path: "{{ dnsmasq_conf_path }}"
+    regexp: "#bogus-priv"
+    line: "bogus-priv"
+  notify: restart dnsmasq
+
+- name: Configure dnsmasq's DHCP server if a dnsmasq_dhcp_interface is defined
+  blockinfile:
+    path: "{{ dnsmasq_conf_path }}"
+    marker: "# ANSIBLE MANAGED CONFIGURATION BLOCK"
+    block: |
+      dhcp-range={{ dhcp_interface }},192.168.168.50,192.168.168.150,12h
+      dhcp-option=option:router,192.168.168.1
+      dhcp-option=6,192.168.168.1
+      log-facility=/var/log/dnsmasq.log # Log file path
+      log-async
+      log-queries       # Log queries
+      log-dhcp          # Log DHCP related messages
+  when: dhcp_interface is defined
+  notify: restart dnsmasq

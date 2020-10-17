@@ -1,2 +1,16 @@
 ---
-# tasks file for wireshark
+- name: Include variables based on OS Family 
+  include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Include tasks based on OS Family
+  become: yes
+  include_tasks: "install-{{ ansible_facts['os_family'] }}.yml"
+
+- name: Add users to wireshark system group
+  become: yes
+  user:
+    name: "{{ item }}"
+    groups:
+      - wireshark
+    append: yes
+  with_items: "{{ wireshark_users }}"

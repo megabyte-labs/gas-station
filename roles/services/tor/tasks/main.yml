@@ -1,2 +1,16 @@
 ---
-# tasks file for tor
+- name: Include variables based on OS Family 
+  include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Include tasks based on OS Family
+  become: yes
+  include_tasks: "install-{{ ansible_facts['os_family'] }}.yml"
+
+- name: Check if GNOME is installed # TODO: Add when system is Linux
+  shell: ps -A | egrep -i "gnome-shell"
+  ignore_errors: yes
+  register: gnome_grep
+
+- name: Add GNOME settings # TODO: Add when system is Linux
+  include_tasks: gnome.yml
+  when: gnome_grep.stdout != ''

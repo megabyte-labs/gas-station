@@ -1,0 +1,37 @@
+---
+- name: Install CUPS and avahi-daemon
+  apt:
+    name:
+      - avahi-daemon
+      - cups
+    state: present
+
+- name: Copy CUPS configuration
+  copy:
+    src: cupsd.conf
+    dest: "{{ cups_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Restart CUPS and enable on start-up
+  systemd:
+    name: cups
+    state: restarted
+    enabled: yes
+
+- name: Restart avahi-daemon and enable on start-up
+  systemd:
+    name: avahi-daemon
+    state: restarted
+    enabled: yes
+
+- name: Gather package facts
+  package_facts:
+    manager: auto
+
+- name: Restart Samba (if installed)
+  service:
+    name: smbd
+    state: restarted
+  when: '"smbd" in ansible_facts.packages'

@@ -1,0 +1,49 @@
+---
+- name: Install Cockpit
+  apt:
+    name:
+      - cockpit
+      - cockpit-machines
+      - libvirt-dbus # Required for cockpit-machines support
+    state: present
+  register: cockpit_install
+
+- name: Enable the Cockpit service
+  systemd:
+    name: cockpit
+    enabled: yes
+    state: started
+
+- name: Install Cockpit Docker
+  apt:
+    deb: "{{ cockpit_docker_deb_url }}"
+
+- name: Install Cockpit 389 DS
+  apt:
+    name:
+      - 389-ds
+      - cockpit-389-ds
+    state: present
+  when: cockpit_install_389_ds
+
+- name: Add Cockpit machine profiles
+  template:
+    src: cockpit-machine.json.j2
+    dest: "{{ cockpit_machines_path }}/{{ item.name }}.json"
+    owner: root
+    group: root
+    mode: "0644"
+  with_items: "{{ cockpit_instances }}"
+  when: cockpit_instances is defined
+
+- name: Add libvirt user to libvirtdbus group
+  user:
+    name: libvirt
+    groups:
+      - libvirtdbus
+    append: yes
+  register: libvirt_group
+
+- name: Reboot system if there were changes # TODO: Figure out if any of the other tasks require a reboot
+  when: cockpit_install.changed or libvirt_group.changed
+  notify: reboot system

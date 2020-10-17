@@ -1,2 +1,23 @@
 ---
-# tasks file for homebrew
+- name: Include OS-specific variables 
+  include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Register Homebrew bin path information
+  stat:
+    path: "{{ homebrew_bin_path }}"
+  register: brew_bin
+
+- name: Install Homebrew
+  include_tasks: "install-{{ ansible_facts['os_family'] }}.yml"
+  when: not brew_bin.stat.exists
+
+- name: Ensure Homebrew packages are installed and up-to-date
+  homebrew:
+    name: "{{ homebrew_packages | default([]) }}"
+    path: "{{ homebrew_bin_path }}"
+    state: present
+    update_homebrew: yes
+    upgrade_all: yes
+
+- name: Ensure .bashrc includes Homebrew # TODO: Make this command only run on *Nix systems since Windows requires different folder structure
+  include_tasks: bashrc-Linux.yml

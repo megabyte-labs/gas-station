@@ -1,0 +1,51 @@
+---
+- name: Ensure install-gnome-extensions dependencies are installed
+  apt:
+    name:
+      - curl
+      - jq
+      - sed
+      - unzip
+      - wget
+    state: present
+
+- name: Copy install-gnome-extensions executable
+  copy:
+    src: install-gnome-extensions.sh
+    dest: /usr/local/bin/install-gnome-extensions
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create a file with the GNOME extensions to be installed
+  copy:
+    dest: /tmp/install-gnome-extensions
+    content: "{{ item.extensions }}"
+
+- name: "Give {{ user.username }} passwordless sudo priviledges"
+  lineinfile:
+    path: /etc/sudoers
+    regex: "^{{ user.username }}"
+    line: "{{ user.username }} ALL=(ALL) NOPASSWD: ALL"
+
+- name: Run the installer
+  become: yes
+  become_user: "{{ user.username }}" # TODO: Add conditional logic so this does not run twice unless extensions changed
+  command: install-gnome-extensions --enable --overwrite --file /tmp/install-gnome-extensions
+
+- name: Remove the GNOME extensions installer list file
+  file:
+    path: /tmp/install-gnome-extensions
+    state: absent
+
+- name: "Remove {{ user.username }}'s passwordless sudo priviledges"
+  lineinfile:
+    path: /etc/sudoers
+    regex: "^{{ user.username }}"
+    line: "{{ user.username }} ALL=(ALL) ALL"
+
+- name: Apply extension settings # TODO: Conditional logic - same as TODO above
+  become: yes
+  become_user: "{{ user.username }}"
+  command: "{{ item }}"
+  with_items: "{{ user.settings }}"

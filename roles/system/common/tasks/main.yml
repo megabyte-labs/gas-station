@@ -1,2 +1,21 @@
 ---
-# tasks file for common
+- name: Include variables based on OS Family 
+  include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Include tasks based on OS Family
+  include_tasks: "local-{{ ansible_facts['os_family'] }}.yml"
+  when: ansible_connection == 'local'
+
+- name: Include tasks based on OS Family
+  become: yes
+  include_tasks: "setup-{{ ansible_facts['os_family'] }}.yml"
+
+- name: Include tasks if the system is a Linux system
+  become: yes
+  include_tasks: "setup-Linux.yml" # TODO: Make this only run when the system is a Linux system
+
+- name: Ensure correct Playbook repository is being used
+  command: "git remote set-url origin {{ playbooks_source_repository }}"
+  args:
+    chdir: ~/Playbooks
+  when: ansible_connection == 'local'

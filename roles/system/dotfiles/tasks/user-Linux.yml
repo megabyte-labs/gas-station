@@ -1,0 +1,61 @@
+---
+- name: Add static dotfiles
+  become: yes
+  become_user: "{{ user.username }}"
+  copy:
+    src: "{{ item }}"
+    dest: "~/{{ item }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    mode: "0600"
+  with_items:
+    - .hyper.js
+    - .localrc
+    - .zshrc
+
+- name: Add dynamic dotfiles
+  become: yes
+  become_user: "{{ user.username }}"
+  template:
+    src: "{{ item }}.j2"
+    dest: "~/{{ item }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    mode: "0600"
+  with_items:
+    - .gitconfig
+    - .netrc
+    - .npmrc
+
+- name: Ensure .bashrc exists in users home directory
+  file:
+    path: ~/.bashrc
+    state: touch
+
+- name: Ensure .localrc is sourced in .bashrc
+  lineinfile:
+    path: ~/.bashrc
+    regex: "^source ~\/.localrc$"
+    line: source ~/.localrc
+
+- name: Set .bashrc PATH variable
+  lineinfile:
+    path: ~/.bashrc
+    regex: "# PATH modified by Ansible"
+    line: "export PATH=$PATH:~/.local/bin # PATH modified by Ansible"
+
+- name: Attempt to run starship and register the response
+  command: starship
+  register: starship
+
+- name: Remove starship references if starship command is unavailable
+  lineinfile:
+    path: "~/{{ item.file }}"
+    regex: "starship init {{ item.exe }}"
+    line: "#eval '$(starship init {{ item.exe }})'"
+  with_items:
+    - file: .localrc
+      exe: bash
+    - file: .zshrc
+      exe: zsh
+  when: starship.rc == 1

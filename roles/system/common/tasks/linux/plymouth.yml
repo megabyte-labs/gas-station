@@ -1,0 +1,16 @@
+---
+- name: Copy and unarchive the Plymouth theme
+  unarchive:
+    src: "plymouth-themes/{{ plymouth_theme }}.tar.gz"
+    dest: "{{ plymouth_themes_dir }}"
+
+- name: Register the Plymouth theme
+  alternatives:
+    name: default.plymouth
+    link: "{{ plymouth_themes_dir }}/default.plymouth"
+    path: "{{ plymouth_themes_dir }}/{{ plymouth_theme }}/{{ plymouth_theme }}.plymouth"
+    priority: 100
+
+- name: Activate the Plymouth theme
+  command: "echo $(echo | sudo update-alternatives --config default.plymouth | grep {{ plymouth_theme }} | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\\+//') | sudo update-alternatives --config default.plymouth"
+  notify: update initramfs

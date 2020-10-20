@@ -1,0 +1,38 @@
+---
+- name: Set hostname
+  hostname:
+    name: "{{ hostname }}"
+  when: hostname is defined
+
+- name: Set time zone
+  timezone:
+    name: "{{ timezone }}"
+
+- name: Set ANSIBLE_PLAYBOOK_USER name environment variable
+  lineinfile:
+    path: /etc/environment
+    regex: "^ANSIBLE_PLAYBOOK_USER="
+    line: "ANSIBLE_PLAYBOOK_USER={{ ansible_user }}"
+
+- name: Set MOTD
+  copy:
+    src: motd
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Customize GRUB
+  include_tasks: linux/grub.yml
+
+- name: Check if boot loading image (Plymouth) is already present
+  stat:
+    path: "{{ plymouth_themes_dir }}/{{ plymouth_theme }}/{{ plymouth_theme }}.plymouth"
+  register: plymouth_theme
+
+- name: Customize boot loading image (Plymouth)
+  include_tasks: linux/plymouth.yml
+  when: not plymouth_theme.stat.exists
+
+- name: Configure swap
+  include_tasks: linux/swap.yml

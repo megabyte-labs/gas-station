@@ -1,33 +1,29 @@
-VLC
+Role Name
 =========
 
-A generic role made for installing VLC on most platforms.
+A generic role made for installing VLC on most of the platforms.
 
-## Supported Platforms
+Current platforms:
+- Linux
+  - CentOS 8
+  - Ubuntu 20.04
+  - ArchLinux
 
-* Linux
-  * ArchLinux
-  * CentOS 8
-  * Fedora
-  * Ubuntu 20.04
-* Mac OS X
-* Windows
+Example Playbook
+----------------
 
-## Example Playbook
+Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
-```
-- hosts: desktops
-  roles:
-    - vlc
-```
+    - hosts: servers
+      roles:
+         - vlc
 
-## License
+License
+-------
 
-MIT
+BSD
 
-## Author Information
+Author Information
+------------------
 
-theJaxon - (GitHub)[https://github.com/theJaxon]
-
-<!-- FOOTER -->
-<!-- END_FOOTER -->
+theJaxon: https://github.com/theJaxon

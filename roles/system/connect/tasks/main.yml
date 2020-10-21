@@ -1,0 +1,14 @@
+---
+- name: Attempt to connect on non-standard port first
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ ansible_port }}"
+    timeout: 3
+  ignore_errors: yes
+  register: ssh_check_test
+  delegate_to: localhost
+
+- name: Revert to standard port 22 for SSH if the "secure" port has not been configured yet
+  set_fact:
+    ansible_port: '22'
+  when: ssh_check_test.failed

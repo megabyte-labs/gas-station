@@ -1,97 +1,15 @@
 ---
+- name: Include variables based on OS Family 
+  include_vars: "{{ ansible_facts['os_family'] }}.yml"
 
-- name: Ensure .ssh directory exists.
-  file:
-    dest: /home/"{{ ssh_ansible_user }}"/.ssh
-    mode: "0700"
-    owner: "{{ ssh_ansible_user }}"
-    group: "{{ ssh_ansible_user }}"
-    state: directory
+- name: Include tasks based on OS Family
+  become: yes
+  include_tasks: "install-{{ ansible_facts['os_family'] }}.yml"
 
-- name: Ensure .ssh directory exists for root user
-  file:
-    dest: ~/.ssh
-    mode: "0700"
-    owner: root
-    group: root
-    state: directory
-  when: ssh_private_keys_root is defined
-
-- name: Set authorized key
-  authorized_key:
-    user: "{{ ssh_ansible_user }}"
-    state: present
-    key: "{{ lookup('file', '{{ authorized_key_file }}') }}"
-  when: authorized_key_file is defined
-
-- name: Copy SSH private keys
-  copy:
-    src: "{{ item }}"
-    dest: "/home/{{ ssh_ansible_user }}/.ssh/{{ item }}"
-    owner: "{{ ssh_ansible_user }}"
-    group: "{{ ssh_ansible_user }}"
-    mode: "0600"
-  with_items: "{{ ssh_private_keys | default([]) }}"
-
-- name: Copy SSH private keys for root user
-  copy:
-    src: "{{ item }}"
-    dest: "~/.ssh/{{ item }}"
-    owner: root
-    group: root
-    mode: "0600"
-  with_items: "{{ ssh_private_keys_root | default([]) }}"
-
-- name: Copy SSH public keys
-  copy:
-    src: "{{ item }}.pub"
-    dest: "/home/{{ ssh_ansible_user }}/.ssh/{{ item }}.pub"
-    owner: "{{ ssh_ansible_user }}"
-    group: "{{ ssh_ansible_user }}"
-    mode: "0644"
-  with_items: "{{ ssh_private_keys | default([]) }}"
-
-- name: Copy SSH public keys for root user
-  copy:
-    src: "{{ item }}.pub"
-    dest: "~/.ssh/{{ item }}.pub"
-    owner: root
-    group: root
-    mode: "0644"
-  with_items: "{{ ssh_private_keys_root | default([]) }}"
-
-- name: Copy SSH known_hosts
-  copy:
-    src: known_hosts
-    dest: "/home/{{ ssh_ansible_user }}/.ssh/known_hosts"
-    owner: "{{ ssh_ansible_user }}"
-    group: "{{ ssh_ansible_user }}"
-    mode: "0644"
-  when: ssh_private_keys is defined
-
-- name: Copy SSH known_hosts for root
-  copy:
-    src: known_hosts
-    dest: ~/.ssh/known_hosts
-    owner: root
-    group: root
-    mode: "0644"
-  when: ssh_private_keys_root is defined
-
-- name: Copy SSH config
-  copy:
-    src: config
-    dest: "/home/{{ ssh_ansible_user }/.ssh/config"
-    owner: "{{ ssh_ansible_user }}"
-    group: "{{ ssh_ansible_user }}"
-    mode: "0644"
-  when: ssh_private_keys is defined
-
-- name: Copy SSH config for root
-  copy:
-    src: config
-    dest: ~/.ssh/config
-    owner: root
-    group: root
-    mode: "644"
-  when: ssh_private_keys_root is defined
+- name: Run tasks for each user specified based on OS family
+  become: yes
+  become_user: "{{ user.username }}"
+  include_tasks: "user-{{ ansible_facts['os_family'] }}.yml"
+  loop: "{{ user_configs }}"
+  loop_control:
+    loop_var: user

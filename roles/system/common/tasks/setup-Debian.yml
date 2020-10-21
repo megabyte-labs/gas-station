@@ -5,9 +5,24 @@
     update_cache: yes
     upgrade: 'yes'
 
+- name: Install Debian base-software
+  apt:
+    name: "{{ debian_base_software }}"
+    state: present
+
 - name: Increase vm_max_map_count if required (Kibana)
   sysctl:
     name: vm.max_map_count
     sysctl_set: yes
     value: '262144'
   when: kibana_installed
+
+- name: Disable wireless drivers (for Raspberry Pi)
+  copy:
+    src: raspi-blacklist.conf
+    dest: /etc/modprobe.d/raspi-blacklist.conf
+    mode: "600"
+  when: disable_wireless
+
+- name: Include generic Linux tasks
+  include_tasks: setup-Linux.yml

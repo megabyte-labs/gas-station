@@ -1,0 +1,30 @@
+
+---
+- name: Add static dotfiles
+  win_copy:
+    src: "{{ item }}"
+    dest: "{{ user_profile }}\\{{ item }}"
+  with_items:
+    - .localrc
+    - .zshrc
+
+- name: Add dynamic dotfiles
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ user_profile }}\\{{ item }}"
+  with_items:
+    - .gitconfig
+    - .netrc
+    - .npmrc
+
+- name: Ensure .bashrc exists in user's home directory
+  win_file:
+    path: "{{ user_profile }}\\.bashrc"
+    state: touch
+  ignore_errors: yes
+
+- name: Ensure .localrc is sourced in .bashrc
+  win_lineinfile:
+    path: "{{ user_profile }}\\.bashrc"
+    regex: "^source ~\/.localrc$"
+    line: source ~/.localrc

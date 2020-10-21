@@ -1,0 +1,24 @@
+---
+- name: Ensure the hostname is correct
+  win_shell: "Rename-Computer -NewName {{ hostname }}"
+  when: hostname is defined
+
+- name: Activate Windows 10
+  win_shell: "cscript slmgr.vbs /ipk {{ windows_enterprise_key }}"
+  args:
+    chdir: C:\Windows\System32\
+  when: windows_activation_key is defined
+
+- name: Install Windows updates
+  win_updates:
+    category_names:
+    - CriticalUpdates
+    - SecurityUpdates
+    - UpdateRollups
+    state: installed
+  register: update
+
+- name: Reboot if required
+  win_reboot:
+    post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
+  when: update.reboot_required

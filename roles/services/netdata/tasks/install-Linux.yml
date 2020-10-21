@@ -1,0 +1,49 @@
+---
+- name: Download the netdata kickstart.sh file
+  get_url:
+    url: https://my-netdata.io/kickstart.sh
+    dest: /tmp/kickstart.sh
+
+- name: Ensure netdata is installed and up-to-date
+  shell: bash /tmp/kickstart.sh --dont-wait --stable-channel --disable-telemetry
+  register: netdata_install
+
+- name: Ensure kickstart.sh is no longer present on the system
+  file:
+    path: /tmp/kickstart.sh
+    state: absent
+
+- name: Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/run)
+  command: echo 1 >/sys/kernel/mm/ksm/run
+  when: '"You have a kernel memory de-duper" in netdata_install.stdout'
+
+- name: Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/sleep_millisecs)
+  command: echo 1000 >/sys/kernel/mm/ksm/sleep_millisecs
+  when: '"You have a kernel memory de-duper" in netdata_install_stat.stdout'
+
+- name: Restart netdata
+  service:
+    name: netdata
+    state: restarted
+  when: '"You have a kernel memory de-duper" in netdata_install_stat.stdout'
+
+- name: Check if netdata instance was claimed by netdata.cloud
+  stat:
+    path: /root/.netdata-claimed
+  register: netdata_claim
+
+- name: Wait for netdata to stabilize
+  wait_for:
+    timeout: 3
+  when:
+    - not netdata_claim.stat.exists
+    - netdata_room is defined
+    - netdata_token is defined
+
+- name: Add instance to netdata cloud
+  shell: "timeout 14s netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }} && touch /root/.netdata-claimed"
+  when:
+    - not netdata_claim.stat.exists
+    - netdata_room is defined
+    - netdata_token is defined
+  ignore_errors: yes

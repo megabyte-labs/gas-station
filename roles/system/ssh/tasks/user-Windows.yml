@@ -1,0 +1,28 @@
+---
+- name: Ensure .ssh folder exists
+  win_file:
+    path: "{{ ssh_folder }}"
+    state: directory
+
+- name: Copy SSH private keys
+  win_copy:
+    src: "{{ item }}"
+    dest: "{{ ssh_folder }}\\{{ item }}"
+  with_items: "{{ user.keys }}"
+
+- name: Copy SSH known hosts
+  win_copy:
+    src: known_hosts
+    dest: "{{ ssh_folder }}\\known_hosts"
+
+- name: Copy SSH config
+  win_template:
+    src: config
+    dest: "{{ ssh_folder }}\\config"
+
+- name: Ensure proper permissions on the SSH keys # TODO: Verify this actually does something
+  win_shell: |
+    Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Inheritance:d
+    Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Grant %UserName%:F
+    Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Remove Administrator BUILTIN\Administrators BUILTIN Everyone System Users
+  with_items: "{{ user.keys }}"

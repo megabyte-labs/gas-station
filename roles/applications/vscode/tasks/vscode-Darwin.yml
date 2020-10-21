@@ -1,0 +1,23 @@
+- name: Check if VSCode is already defined 
+  shell: "/usr/local/bin/brew list --cask"
+  register: vscode_state
+
+- name: Install VSCode If not installed 
+  block:
+  - assert:
+      that:
+      - vscode_state.stdout.find('visual-studio-code') != -1
+      fail_msg: "VSCode isn't installed .."
+      success_msg: "VSCode is already installed"
+
+  rescue:
+  - name: Install VSCode Formula
+    homebrew:
+      name: "{{ vscode }}"
+      state: latest
+
+  - name: Install VSCode cask
+    homebrew_cask:
+      name: "{{ vscode }}"
+      state: present
+      install_options: force

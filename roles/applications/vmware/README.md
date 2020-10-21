@@ -1,22 +1,22 @@
-Role Name
+ansible-role-vmware-workstation
 =========
 
-A brief description of the role goes here.
+A role for installing VMware Workstation on Linux
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+Requires an internet connection to download the installer.  This can be downloaded separatly if desired.
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+* **workstation__license** is the license key to use when installing.
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+None
 
 Example Playbook
 ----------------
@@ -25,14 +25,13 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: servers
       roles:
-         - { role: username.rolename, x: 42 }
+         - { role: vmware.vmware-workstation, workstation_license: XXX-YYY-XXX }
 
-License
--------
 
-BSD
+## Contributing
 
-Author Information
-------------------
+The ansible-role-vmware-workstation project team welcomes contributions from the community. Before you start working with ansible-role-vmware-workstation, please read our [Developer Certificate of Origin](https://cla.vmware.com/dco). All contributions to this repository must be signed as described on that page. Your signature certifies that you wrote the patch or have the right to pass it on as an open-source patch. For more detailed information, refer to [CONTRIBUTING.md](CONTRIBUTING.md).
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+## License
+Copyright © 2018 VMware, Inc. All Rights Reserved.
+SPDX-License-Identifier: MIT OR GPL-3.0-only

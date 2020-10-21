@@ -1,0 +1,22 @@
+---
+- name: "Ensure {{ item.path }} is a directory"
+  file:
+    path: "{{ item.path }}"
+    state: directory
+
+- name: Check if symbolic link already exists
+  stat:
+    path: "{{ item.link }}"
+  register: sym_link
+
+- name: Remove directory if it is not a symbolic link
+  file:
+    path: "{{ item.link }}"
+    state: absent
+  when: sym_link.stat.islnk is not defined or (sym_link.stat.islnk is defined and not sym_link.stat.islnk)
+
+- name: Add symbolic link
+  file:
+    src: "{{ item.path }}"
+    dest: "{{ item.link }}"
+    state: link

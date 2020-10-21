@@ -1,0 +1,33 @@
+- name: Add docker-ce repo
+  block: 
+  - name: Add CentOS 8 docker-ce repo
+    copy:
+      content: |
+        [docker-ce-stable]
+        name=Docker CE Stable - $basearch
+        baseurl=https://download.docker.com/linux/centos/8/$basearch/stable/
+        enabled=1
+        gpgcheck=1
+        gpgkey=https://download.docker.com/linux/centos/gpg
+      dest: "{{ docker_repo_dir }}"
+    when: ansible_facts['distribution'] == "CentOS"
+
+  - name: Add Fedora 32 docker-ce repo
+    copy:
+      content: |
+        [docker-ce-stable]
+        name=Docker CE Stable - $basearch
+        baseurl=https://download.docker.com/linux/fedora/32/$basearch/stable/
+        enabled=1
+        gpgcheck=1
+        gpgkey=https://download.docker.com/linux/fedora/gpg
+      dest: "{{ docker_repo_dir }}"
+    when: ansible_facts['distribution'] == "Fedora"
+
+  always:
+  - name: Install docker-ce 
+    dnf:
+      name: "{{ docker }}"
+      state: latest
+    notify: start docker 
+

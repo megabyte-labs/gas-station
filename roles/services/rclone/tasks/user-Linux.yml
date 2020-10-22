@@ -1,0 +1,32 @@
+---
+- name: Ensure ~/.config/rclone is a directory
+  file:
+    path: "{{ item }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: directory
+    mode: "700"
+  with_items:
+    - ~/.config
+    - ~/.config/rclone
+
+- name: Add rclone configuration file to ~/.config/rclone
+  template:
+    src: rclone.conf.j2
+    dest: ~/.config/rclone/rclone.conf
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    mode: "600"
+
+- name: Ensure ~/Cloud folder exists
+  file:
+    path: ~/Cloud
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: directory
+    mode: "700"
+
+- name: Mount the rclone drives
+  become: yes
+  include_tasks: mount-Linux.yml
+  with_items: "{{ user.rclone | default([]) }}"

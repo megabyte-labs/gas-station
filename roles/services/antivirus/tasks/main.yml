@@ -1,0 +1,45 @@
+---
+- name: Include OS-Specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- include_tasks: setup-vars.yml
+
+- name: Ensure ClamAV packages are installed.
+  package: name={{ item }} state=present
+  with_items: "{{ clamav_packages }}"
+  register: clamav_packages_install
+
+- name: Run freshclam after ClamAV packages change.
+  command: freshclam
+  when: clamav_packages_install.changed
+  register: freshclam_result
+  notify: restart clamav daemon
+  # On Debian, freshclam is automatically run post-install, so this may fail.
+  failed_when:
+    - freshclam_result is failed
+    - freshclam_result.stderr.find('locked by another process') != -1
+  tags: ['skip_ansible_lint']
+
+- include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- name: Change configuration for the ClamAV daemon.
+  lineinfile:
+    path: "{{ clamav_daemon_config_path }}"
+    regexp: '{{ item.regexp }}'
+    line: "{{ item.line | default('') }}"
+    state: "{{ item.state | default('present') }}"
+    mode: 0644
+  with_items: "{{ clamav_daemon_configuration_changes }}"
+
+- name: Ensure ClamAV daemon is running (if configured).
+  service:
+    name: "{{ clamav_daemon }}"
+    state: "{{ clamav_daemon_state }}"
+    enabled: "{{ clamav_daemon_enabled }}"
+
+- name: Ensure ClamAV freshclam daemon is running (if configured).
+  service:
+    name: "{{ clamav_freshclam_daemon }}"
+    state: "{{ clamav_freshclam_daemon_state }}"
+    enabled: "{{ clamav_freshclam_daemon_enabled }}"

@@ -1,0 +1,34 @@
+---
+- name: Add symlinks to Cloud providers
+  become: yes
+  become_user: "{{ user.username }}"
+  file:
+    src: "/mnt/{{ item.provider }}"
+    dest: "~/Cloud/{{ item.name }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: link
+    force: yes
+
+- name: Ensure provider has folder created
+  file:
+    path: "/mnt/{{ user.provider }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: directory
+    mode: "700"
+  ignore_errors: yes
+
+- name: Install rclone mount services
+  template:
+    src: rclone.service.j2
+    dest: "{{ service_path }}/{{ item.provider }}-rclone.service"
+    owner: root
+    group: root
+    mode: "644"
+
+- name: Start the rclone services # TODO: Make this work on systems other than Ubuntu (systems without systemd)
+  systemd:
+    name: "{{ item.provider }}-rclone.service"
+    state: started
+    enabled: yes

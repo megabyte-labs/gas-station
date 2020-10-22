@@ -1,38 +1,43 @@
-Role Name
-=========
+# Ansible Role: Packer
 
-A brief description of the role goes here.
+[![Build Status](https://travis-ci.org/geerlingguy/ansible-role-packer.svg?branch=master)](https://travis-ci.org/geerlingguy/ansible-role-packer)
 
-Requirements
-------------
+Installs [Packer](https://www.packer.io), a Go-based image and box builder.
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Requirements
 
-Role Variables
---------------
+None.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+## Role Variables
 
-Dependencies
-------------
+Available variables are listed below, along with default values (see `defaults/main.yml`):
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+    packer_version: "1.0.0"
 
-Example Playbook
-----------------
+The Packer version to install.
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+    packer_arch: "amd64"
+
+The system architecture (e.g. `386` or `amd64`) to use.
+
+    packer_bin_path: /usr/local/bin
+
+The location where the Packer binary will be installed (should be in system `$PATH`).
+
+## Dependencies
+
+None.
+
+## Example Playbook
 
     - hosts: servers
       roles:
-         - { role: username.rolename, x: 42 }
+        - geerlingguy.packer
 
-License
--------
+## License
 
-BSD
+MIT / BSD
 
-Author Information
-------------------
+## Author Information
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+This role was created in 2017 by [Jeff Geerling](https://www.jeffgeerling.com/), author of [Ansible for DevOps](https://www.ansiblefordevops.com/).

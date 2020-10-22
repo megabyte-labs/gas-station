@@ -16,9 +16,13 @@
 * Kubernetes Dashboard
 * Minio
 * Resilio Sync
-* Guacamole (theme: https://github.com/gilbN/theme.park/wiki/Guacamole)
 * Home Assistant
 * Piwigo
+* Make Docker role not require a restart
+* NTP - Chrony or NTP?
+* Logrotate
+* Figure out recovery keys for 2FA accounts
+* rTorrent with Flood!
 
 # Host Services
 

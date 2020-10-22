@@ -1,57 +1,56 @@
 ---
-- name: Ensure old versions of Docker are not installed.
-  package:
-    name:
-      - docker
-      - docker-common
-      - docker-engine
-    state: absent
-
-- include_tasks: setup-snap.yml
-  when: docker_snap_install
-
-- include_tasks: setup-RedHat.yml
-  when:
-    - ansible_os_family == 'RedHat'
-    - not docker_snap_install
-
-- include_tasks: setup-Debian.yml
-  when:
-    - ansible_os_family == 'Debian' # TODO: Install on Windows/Mac OS X as well
-    - not docker_snap_install
-
-- name: Install Docker
+- name: Ensure old versions of Docker are not installed
   become: yes
-  package:
-    name: "{{ docker_package }}"
-    state: "{{ docker_package_state }}"
-  notify: restart docker
+  block:
+    - name: Ensure "docker" is not installed
+      package:
+        name: docker
+        state: absent
+    
+    - name: Ensure "docker-common" is not installed
+      package:
+        name: docker-common
+        state: absent
+
+    - name: Ensure "docker-engine" is not installed
+      package:
+        name: docker-engine
+        state: absent
+
+- name: Include tasks based on OS Family
+  become: yes
+  include_tasks: "install-{{ ansible_os_family }}.yml"
   when: not docker_snap_install
 
-- name: Ensure Docker is started and enabled at boot.
-  service:
+- name: Install Docker via snap
+  become: yes
+  snap:
     name: docker
-    state: "{{ docker_service_state }}"
-    enabled: "{{ docker_service_enabled }}"
-  when: not docker_snap_install
+  when: docker_snap_install
 
 - name: Ensure handlers are notified now to avoid firewall conflicts.
   meta: flush_handlers
 
-- include_tasks: docker-compose.yml
+- name: Install Docker Compose (based on OS)
+  become: yes
+  include_tasks: "compose-{{ ansible_os_family }}.yml"
   when: docker_install_compose | bool
 
-- include_tasks: docker-users.yml
+- name: Add users to the "docker" group (based on OS)
+  include_tasks: "users-{{ ansible_os_family }}.yml"
   when: docker_users | length > 0
 
-- name: Determine whether or not the TLS certificates need to be generated
+- name: Determine whether TLS certificates need to be generated
   become: yes
   stat:
     path: /etc/ssl/private/docker-ca.pem
   register: docker_ca_pem
-  when: docker_tls | bool
+  when:
+    - docker_tls | bool
+    - not docker_snap_install
 
-- include_tasks: docker-tls.yml
+- name: Generate TLS certificates
+  include_tasks: "tls-{{ ansible_os_family }}.yml"
   when:
     - docker_tls | bool
     - not docker_ca_pem.stat.exists

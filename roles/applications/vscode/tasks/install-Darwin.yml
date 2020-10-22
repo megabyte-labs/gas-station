@@ -1,0 +1,25 @@
+---
+- name: Check if Visual Studio Code cask is already present
+  shell: "{{ homebrew_path }} list --cask"
+  register: vscode_state # TODO: vscode_state is never referenced... why is here? Remove if possible
+
+- name: Install Visual Studio Code if it is not installed 
+  block:
+    - name: Check if Visual Studio Code is already installed
+      assert:
+        that:
+          - vscode_state.stdout.find('visual-studio-code') != -1
+        fail_msg: "Visual Studio Code is not installed"
+        success_msg: "Visual Studio Code is already installed"
+
+  rescue:
+  - name: Install Visual Studio Code via Homebrew
+    homebrew:
+      name: visual-studio-code
+      state: present
+
+  - name: Install Visual Studio Code cask
+    homebrew_cask:
+      name: visual-studio-code
+      state: present
+      install_options: force

@@ -83,3 +83,9 @@
 
 * Fix git-cache-meta to handle spaces
 * https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e
+
+# Pages on Megabyte Space
+
+* https://megabyte.space/support
+* privacy
+* terms

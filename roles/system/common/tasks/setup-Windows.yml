@@ -44,6 +44,12 @@
     post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
   when: needs_reboot
 
+- name: Remove unnecessary APPX packages
+  win_shell: |
+    Get-AppxPackage -AllUsers -Name "{{ item }}" | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue;
+    Get-AppxProvisionedPackage -Online | where {$_.PackageName -like "{{ item }}"} | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction SilentlyContinue;
+  with_items: "{{ windows_appx_removals | default([]) }}"
+
 - name: Install git
   win_chocolatey:
     name: git

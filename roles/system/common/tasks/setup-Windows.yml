@@ -22,3 +22,16 @@
   win_reboot:
     post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
   when: update.reboot_required
+
+- name: Configure Windows optional features
+  win_optional_feature:
+    include_parent: yes
+    name: "{{ item.name | default(item) }}"
+    state: "{{ item.state | default('present') }}"
+  register: optional_features
+  with_items: "{{ windows_features | default([]) }}"
+
+- name: Reboot if required
+  win_reboot:
+    post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
+  when: optional_features.reboot_required # TODO: Check if this works to reboot.. it might not because the registered variable might be an array since it was used with with_items

@@ -23,6 +23,7 @@
 * Logrotate
 * Figure out recovery keys for 2FA accounts
 * rTorrent with Flood!
+* rkhunter
 
 # Host Services
 

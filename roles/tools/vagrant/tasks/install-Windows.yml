@@ -1,0 +1,31 @@
+---
+- name: Install Vagrant via Chocolatey
+  win_chocolatey:
+    name: vagrant
+    state: latest
+
+- name: Check if Vagrant installation is in default location
+  win_stat:
+    path: "{{ vagrant_default_dir }}"
+  register: hashicorp_default_location
+
+- name: Move the Vagrant installation to Program Files
+  win_shell: 'Move-Item {{ vagrant_default_dir }} "{{ vagrant_destination_dir }}"'
+  when:
+    - hashicorp_default_location.stat.exists is defined
+    - hashicorp_default_location.stat.exists
+
+- name: Delete original Vagrant directory
+  win_file:
+    path: "{{ vagrant_default_parent_dir }}"
+    state: absent
+
+- name: Remove original Vagrant PATH
+  win_path:
+    elements: "{{ vagrant_default_dir }}\\bin"
+    state: absent
+
+- name: Add new Vagrant PATH
+  win_path:
+    elements: "{{ vagrant_destination_dir }}\\bin"
+    state: present

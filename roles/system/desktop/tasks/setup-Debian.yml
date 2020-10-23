@@ -1,0 +1,54 @@
+---
+- name: Copy appimaged.deb
+  copy:
+    src: appimaged.deb
+    dest: ~/appimaged.deb
+
+- name: Install appimaged
+  apt:
+    deb: ~/appimaged.deb
+
+- name: Remove appimaged.deb
+  file:
+    path: ~/appimaged.deb
+    state: absent
+
+- name: Run necessary systemctl commands # TODO: Figure out if there is better Ansible syntax for this command
+  command: systemctl --user add-wants default.target appimaged
+
+- name: Run necessary systemctl command # TODO: Same as above
+  command: systemctl --user start appimaged
+
+- name: Install AppImages
+  become: yes
+  become_user: "{{ user.username }}"
+  include_tasks: appimages-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    loop_var: user
+
+- name: Install custom desktop apt software
+  apt:
+    name: "{{ debian_desktop_apt_packages }}"
+    state: present
+
+- name: Set desktop background
+  shell: "gsettings set org.gnome.desktop.background picture-uri {{ gnome_background_image }}"
+
+- name: Set favorites # gsettings get org.gnome.shell favorite-apps
+  shell: "gsettings set org.gnome.shell favorite-apps {{ gnome_sidedock_shortcuts }}"
+
+- name: Set icon size
+  shell: "gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size {{ gnome_sidedock_icon_size }}"
+
+- name: Set blank screen delay
+  shell: "gsettings set org.gnome.desktop.session idle-delay {{ gnome_idle_delay }}"
+
+- name: Do not report technical problems to vendor
+  shell: gsettings set org.gnome.desktop.privacy report-technical-problems false
+
+- name: Remove undesirable .desktop links
+  file:
+    path: "{{ desktop_links_path }}/{{ item }}"
+    state: absent
+  with_items: "{{ gnome_shortcuts_to_delete }}"

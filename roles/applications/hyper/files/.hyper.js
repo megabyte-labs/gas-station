@@ -25,7 +25,7 @@ module.exports = {
         fontSize: 12,
 
         // font family with optional fallbacks
-        fontFamily: 'Menlo, "DejaVu Sans Mono", Consolas, "Lucida Console", monospace',
+        fontFamily: '"Fira Code", Menlo, "DejaVu Sans Mono", Consolas, "Lucida Console", monospace',
 
         // default font weight: 'normal' or 'bold'
         fontWeight: 'normal',
@@ -148,7 +148,7 @@ module.exports = {
 
         // Whether to use the WebGL renderer. Set it to false to use canvas-based
         // rendering (slower, but supports transparent backgrounds)
-        webGLRenderer: true,
+        webGLRenderer: false,
 
         // for advanced config flags please refer to https://hyper.is/#cfg
     },
@@ -166,6 +166,7 @@ module.exports = {
         "hyperterm-panda",
         "hyper-alt-click",
         "hyper-broadcast",
+        "hyper-font-ligatures",
         "hyper-savetext",
         "hyper-search",
         "hyper-statusline",

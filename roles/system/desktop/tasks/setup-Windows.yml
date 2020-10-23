@@ -1,0 +1,46 @@
+---
+- name: Install custom desktop Chocolatey software
+  win_chocolatey:
+    name: "{{ windows_desktop_choco_packages }}"
+    state: present
+
+- name: Check if Logitech has a start menu shortcut
+  win_stat:
+    path: "{{ windows_startmenu }}\\Logitech\\Logitech Options.lnk"
+  register: startmenu_shortcut
+
+- name: Check if Logitech start menu shortcut was already moved
+  win_stat:
+    path: "{{ windows_startmenu}}\\Logitech Options.lnk"
+  register: logitech_startmenu_lnk
+
+- name: Move the Logitech Options shortcut to the parent directory
+  win_shell: |
+    "mv '{{ windows_startmenu }}\\Logitech\\Logitech Options.lnk' '{{ windows_startmenu }}\\Logitech Options.lnk'"
+  when:
+    - startmenu_shortcut.stat.exists
+    - not logitech_startmenu_lnk.stat.exists
+
+- name: Remove the Logitech folder from the start menu=
+  win_file:
+    path: "{{ windows_startmenu }}\\Logitech"
+    state: absent
+
+- name: Remove OneDriveTemp
+  win_file:
+    path: C:\OneDriveTemp
+    state: absent
+
+- name: Hide the dotfiles in user directory
+  win_shell: "attrib +h $env:USERPROFILE\\{{ item }}"
+  loop: "{{ windows_user_files_hidden }}"
+
+- name: Remove "source" directory from user folder
+  win_file:
+    path: "%USERPROFILE%\\source"
+    state: absent
+
+- name: Remove .idlerc
+  win_file:
+    path: "%USERPROFILE%\\.idlerc"
+    state: absent

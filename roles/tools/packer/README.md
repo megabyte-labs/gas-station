@@ -1,43 +1,23 @@
-# Ansible Role: Packer
+Role Name: packer
+=========
 
-[![Build Status](https://travis-ci.org/geerlingguy/ansible-role-packer.svg?branch=master)](https://travis-ci.org/geerlingguy/ansible-role-packer)
+Role to install pakcer (Hashicorp) on multiple platforms
 
-Installs [Packer](https://www.packer.io), a Go-based image and box builder.
+Requirements
+------------
+- chocolatey on Windows 10
+- homebrew on MacOS
+- yum on Redhat family
+- apt and gpg on Debian family
 
-## Requirements
+Role Variables
+--------------
+Repository URL/setting has to be provided in the variable ending with _repo
+Provide the pre-requisite packages in the variable named so and the package name against the variable named so
 
-None.
+Example Playbook
+----------------
 
-## Role Variables
-
-Available variables are listed below, along with default values (see `defaults/main.yml`):
-
-    packer_version: "1.0.0"
-
-The Packer version to install.
-
-    packer_arch: "amd64"
-
-The system architecture (e.g. `386` or `amd64`) to use.
-
-    packer_bin_path: /usr/local/bin
-
-The location where the Packer binary will be installed (should be in system `$PATH`).
-
-## Dependencies
-
-None.
-
-## Example Playbook
-
-    - hosts: servers
-      roles:
-        - geerlingguy.packer
-
-## License
-
-MIT / BSD
-
-## Author Information
-
-This role was created in 2017 by [Jeff Geerling](https://www.jeffgeerling.com/), author of [Ansible for DevOps](https://www.ansiblefordevops.com/).
+- hosts: servers
+  roles:
+    - role: packer

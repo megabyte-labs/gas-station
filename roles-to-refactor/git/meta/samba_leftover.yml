@@ -82,37 +82,3 @@
     owner: "{{ services_ansible_user }}"
     group: "{{ services_ansible_user }}"
     state: link
-
-- name: Install Samba
-  apt:
-    name: samba
-    state: present
-    update_cache: yes
-
-- name: Ensure group "sambausers" exists
-  group:
-    name: sambausers
-    state: present
-
-- name: Add Samba users that require access to the Protected Samba Share
-  user:
-    comment: "Samba user ({{ item.name }})"
-    create_home: no
-    groups: "{{ item.name | subelements('groups', skip_missing=True) }}"
-    name: "{{ item.name }}"
-    password: "{{ item.password }}"
-    system: yes
-    uid: "{{ item.uid }}"
-  with_items: "{{ services_samba_users }}"
-
-- import_tasks: smb_conf.yml
-
-- name: Add Samba password to Samba users
-  shell: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
-  with_items: "{{ services_samba_users | default([]) }}"
-
-- name: Restart Samba and enable on start up
-  systemd:
-    name: smbd
-    state: restarted
-    enabled: yes

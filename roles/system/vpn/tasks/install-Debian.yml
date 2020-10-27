@@ -1,9 +1,33 @@
 ---
-- name: Install the vpn packages
+- name: Install VPN dependencies
   apt:
-    name: "{{ vpn_packages }}"
-    update_cache: yes
+    name: "{{ vpn_dependencies }}"
     state: present
+
+- name: Remove NetworkManager's system-connections
+  file:
+    path: "{{ system_connections_path }}/"
+    state: absent
+  when: remove_vpn_connections | bool
+  notify: restart networkmanager
+
+- name: Check if WireGuard NetworkManager VPN plugin exists
+  stat:
+    path: /usr/lib/NetworkManager/nm-wireguard-service
+  register: nm_wireguard
+
+- name: Run WireGuard plugin installation, if required
+  include_tasks: wireguard-Debian.yml
+  when: not nm_wireguard.stat.exists
+
+- name: Copy over WireGuard configuration files
+  copy:
+    src: "files/wireguard/"
+    dest: "{{ system_connections_path }}/"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart networkmanager
 
 - name: Remove previous OpenVPN files
   become: yes
@@ -11,13 +35,6 @@
   file:
     path: ~/.config/openvpn
     state: absent
-
-- name: Remove NetworkManager configs
-  file:
-    path: /etc/NetworkManager/system-connections/
-    state: absent
-  when: refresh_vpn_connections | bool
-  notify: restart networkmanager
 
 - name: Copy OpenVPN files
   become: yes
@@ -49,7 +66,7 @@
 
 - name: Change password flag
   lineinfile:
-    path: "/etc/NetworkManager/system-connections/{{ item.name }}.nmconnection"
+    path: "{{ system_connections_path }}/{{ item.name }}.nmconnection"
     regex: "password-flags=1"
     line: password-flags=0
   loop: "{{ mullvad_profiles }}"
@@ -71,15 +88,14 @@
 
 - name: Change password flag
   lineinfile:
-    path: "/etc/NetworkManager/system-connections/{{ item.name }}.nmconnection"
+    path: "{{ system_connections_path }}/{{ item.name }}.nmconnection"
     regex: "password-flags=1"
     line: password-flags=0
   loop: "{{ nordvpn_profiles }}"
   notify: restart networkmanager
 
 - name: Set password for NordVPN OpenVPN connection
-  shell: |
-    "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ vault_nordvpn_password }}'"
+  shell: "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ nordvpn_password }}'"
   loop: "{{ nordvpn_profiles }}"
   notify: restart networkmanager
 
@@ -88,5 +104,3 @@
     "ip route add {{ item.prefix }} via {{ item.next_hop }}"
   with_items: "{{ vpn_routes | default([]) }}"
   ignore_errors: yes
-
-- import_tasks: wireguard.yml

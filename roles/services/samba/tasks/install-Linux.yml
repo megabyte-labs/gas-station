@@ -1,0 +1,83 @@
+---
+- name: Ensure group "sambausers" exists
+  group:
+    name: sambausers
+    state: present
+
+- name: Add Samba users that require access to the private samba shares
+  user:
+    comment: "Samba user ({{ item.name }})"
+    create_home: no
+    groups: "{{ item.name | subelements('groups', skip_missing=True) }}"
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    system: yes
+  with_items: "{{ samba_users }}"
+
+- name: Configure Samba file/printer sharing
+  blockinfile:
+    path: "{{ samba_config }}"
+    marker: "# ANSIBLE MANAGED BLOCK FOR PRINTER/FILE SHARING"
+    block: |
+      [global]
+        allow hosts = {{ samba_allowed_hosts }}
+        {% if samba_printers %}
+        load printers = yes
+        {% endif %}
+        map to guest = bad user        # Allows users without accounts to log in and be assigned to the guest account
+        netbios name = {{ samba_netbios_name }}
+        obey pam restrictions = yes
+        printing = CUPS                # Source: https://wiki.archlinux.org/index.php/CUPS/Printer_sharing
+        proxy = no
+        security = user
+        server role = standalone server
+        server string = Samba on %L
+        unix extension = no            # Required for allowing wide links (symlinks)
+        wide links = yes               # Follow symlinks out of the current share
+        workgroup = {{ samba_workgroup }}
+      {% for share in (samba_shares | default([])) %}
+      [{{ share.id }}]
+        browsable = yes
+        comment = {{ share.comment }}
+        follow symlinks = {{ share.follow_symlinks | default('no') }}
+        guest only = {{ share.public | default('yes') }}
+        path = {{ share.path }}
+        public = {{ share.public | default('no') }}
+      {% if share.users %}
+        valid users = {{ share.users }}
+      {% endif %}
+        writable = {{ share.writable | default('no') }}
+      {% endfor %}
+      {% if samba_printers %}
+      [printers]
+        browsable = yes
+        comment = Printers
+        path = /var/spool/samba/
+        printable = yes
+        public = yes
+        writable = no
+      [print$]
+        browsable = yes
+        comment = Printer drivers
+        path = /var/lib/samba/printers
+        public = yes
+        writable = no
+      {% for printer in (samba_printers | default([])) %}
+      [{{ printer.id }}]
+        comment = {{ printer.comment }}
+        path = /var/spool/samba/
+        printable = yes
+        printer name = {{ printer.name }} # Source: https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Print_Server
+        public = {{ printer.public | default('yes') }}
+        writable = no
+      {% endfor %}
+      {% endif %}
+  when:
+    - samba_allowed_hosts is defined
+    - samba_netbios_name is defined
+    - samba_workgroup is defined
+    - (samba_shares is defined) or (samba_printers is defined)
+
+- name: Add Samba password to Samba users
+  shell: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
+  with_items: "{{ services_samba_users | default([]) }}"

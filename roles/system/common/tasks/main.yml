@@ -1,19 +1,21 @@
 ---
-- name: Include variables based on OS Family 
+- name: Include variables based on the operating system 
   include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Include tasks based on OS Family
+- name: Include tasks based on the operating system
   include_tasks: "local-{{ ansible_os_family }}.yml"
   when: ansible_connection == 'local'
 
-- name: Include tasks based on OS Family
+- name: Include tasks based on the operating system
   become: yes
-  include_tasks: "setup-{{ ansible_os_family }}.yml"
+  block:
+    - include_tasks: "setup-{{ ansible_os_family }}.yml"
 
 - name: Perform per-user tasks
   become: yes
   become_user: "{{ user.username }}"
-  include_tasks: "user-{{ ansible_os_family }}.yml"
+  block:
+    - include_tasks: "user-{{ ansible_os_family }}.yml"
   loop: "{{ user_configs | default([]) }}"
   loop_control:
     loop_var: user

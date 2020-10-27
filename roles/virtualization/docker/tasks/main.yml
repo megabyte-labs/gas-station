@@ -17,9 +17,10 @@
         name: docker-engine
         state: absent
 
-- name: Include tasks based on OS Family
+- name: Include tasks based on the operating system
   become: yes
-  include_tasks: "install-{{ ansible_os_family }}.yml"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
   when: not docker_snap_install
 
 - name: Install Docker via snap
@@ -33,11 +34,14 @@
 
 - name: Install Docker Compose (based on OS)
   become: yes
-  include_tasks: "compose-{{ ansible_os_family }}.yml"
+  block:
+    - include_tasks: "compose-{{ ansible_os_family }}.yml"
   when: docker_install_compose | bool
 
 - name: Add users to the "docker" group (based on OS)
-  include_tasks: "users-{{ ansible_os_family }}.yml"
+  become: yes
+  block:
+    - include_tasks: "users-{{ ansible_os_family }}.yml"
   when: docker_users | length > 0
 
 - name: Determine whether TLS certificates need to be generated

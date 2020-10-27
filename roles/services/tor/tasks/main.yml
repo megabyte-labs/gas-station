@@ -1,16 +1,20 @@
 ---
-- name: Include variables based on OS Family 
+- name: Include variables based on the operating system 
   include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Include tasks based on OS Family
+- name: Include tasks based on the operating system
   become: yes
-  include_tasks: "install-{{ ansible_os_family }}.yml"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
 
-- name: Check if GNOME is installed # TODO: Add when system is Linux
+- name: Check if GNOME is installed
   shell: ps -A | egrep -i "gnome-shell"
   ignore_errors: yes
   register: gnome_grep
+  when: ansible_system == 'Linux'
 
-- name: Add GNOME settings # TODO: Add when system is Linux
+- name: Add GNOME settings
   include_tasks: gnome.yml
-  when: gnome_grep.stdout != ''
+  when:
+    - gnome_grep.stdout != ''
+    - ansible_system == 'Linux'

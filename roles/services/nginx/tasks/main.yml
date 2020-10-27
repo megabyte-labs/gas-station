@@ -1,10 +1,11 @@
 ---
-- name: Include variables based on OS Family 
+- name: Include variables based on the operating system 
   include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Include tasks based on OS Family
+- name: Include tasks based on the operating system
   become: yes
-  include_tasks: "install-{{ ansible_os_family }}.yml"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
 
 - name: Clear all sites-enabled symlinks if configured to do so
   become: yes
@@ -14,7 +15,9 @@
   when: nginx_clear_sites_enabled
 
 - name: Install NGINX on Debian system
-  include_tasks: install-debian.yml
+  become: yes
+  block:
+    - include_tasks: install-debian.yml
   when:
     - ansible_os_family == 'Debian'
     - not refresh_nginx_config_only
@@ -25,13 +28,17 @@
   register: dhparam_pem
 
 - name: Ensure dhparam.pem exists
-  include_tasks: dhparam.yml
+  become: yes
+  block:
+    - include_tasks: dhparam.yml
   when:
     - not refresh_nginx_config_only
     - not dhparam_pem.stat.exists
 
 - name: Update NGINX configuration
-  include_tasks: nginx-configuration.yml
+  become: yes
+  block:
+    - include_tasks: nginx-configuration.yml
   when: not refresh_nginx_config_only
 
 - name: Remove NGINX Amplify stub_status.conf if nginx_amplify_api_key is not provided
@@ -65,7 +72,9 @@
     - not refresh_nginx_config_only
 
 - name: Update the NGINX configuration files
-  include_tasks: nginx-configuration.yml
+  become: yes
+  block:
+    - include_tasks: nginx-configuration.yml
   when: refresh_nginx_config_only
 
 - name: Kill any processes that might be running on port 80 or 443

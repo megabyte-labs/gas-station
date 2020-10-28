@@ -1,0 +1,55 @@
+---
+- name: Ensure git repository folder exists
+  become: yes
+  become_user: "{{ item.user | default(ansible_user) }}"
+  file:
+    path: "{{ item.folder }}"
+    state: directory
+
+- name: Check if git already exists
+  stat:
+    path: "{{ item.folder }}/.git"
+  register: git_folder
+
+- name: Clone the repository if it does not already exist
+  become: yes
+  become_user: "{{ item.user | default(ansible_user) }}"
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.folder }}"
+    depth: "1"
+  when: not git_folder.stat.exists
+
+- name: Restore containers if the repository was freshly cloned
+  become: yes
+  become_user: "{{ item.user | default(ansible_user) }}"
+  command: docker-compose-backup restore
+  args:
+    chdir: "{{ item.folder }}"
+  when: not git_folder.stat.exists
+
+- name: Backup containers if git repository was already present
+  become: yes
+  become_user: "{{ item.user | default(ansible_user) }}"
+  command: docker-compose-backup backup
+  args:
+    chdir: "{{ item.folder }}"
+  when: git_folder.stat.exists
+
+- name: Ensure backup cron-job is in place
+  become: yes
+  cron:
+    name: "{{ item.name }} Daily Backup Job"
+    minute: "0"
+    hour: "{{ git_docker_backup_time }}"
+    user: "{{ item.user | default(ansible_user) }}"
+    job: |
+      {%if (healthcheck_endpoint is defined) and (item.healthcheck_id is defined) %}
+      curl -fsS -m 10 --retry 5 -o /dev/null https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}/start
+      {% endif %}
+      cd {{ item.folder }}
+      m=$(docker-compose-backup backup 2>&1)
+      {%if (healthcheck_endpoint is defined) and (item.healthcheck_id is defined) %}
+      curl -fsS -m 10 --retry 5 --data-raw "$m" "https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}$([ $? -ne 0 ] && echo -n /fail)"
+      {% endif %}
+    cron_file: "{{ item.name | lower }}-backup-job"

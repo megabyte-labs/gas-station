@@ -24,6 +24,7 @@
 * Figure out recovery keys for 2FA accounts
 * rTorrent with Flood!
 * rkhunter
+* Obfuscate docker-compose-backup
 
 # Host Services
 
@@ -81,7 +82,6 @@
 
 ## Nice-to-Haves
 
-* Fix git-cache-meta to handle spaces
 * https://stackoverflow.com/questions/6423007/how-to-compile-a-linux-shell-script-to-be-a-standalone-executable-binary-i-e
 
 # Pages on Megabyte Space

@@ -18,7 +18,6 @@ Role Variable | Required | Default | Description
 security_ssh_port | yes | 2214 | ssh port
 lan_network | yes | | lan networks
 lab_ip_address | yes | 10.14.24.14 | Lab IP Address
-portainer_ip_addresses | yes | "{{ lab_ip_address}}" | Portainer IP Address
 
 Example Playbook
 ----------------
@@ -38,7 +37,6 @@ Example Playbook
       unifi: 10.14.49.0/24
       work: 10.14.14.0/24
     lab_ip_address: 10.14.24.14
-    portainer_ip_addresses: "{{ lab_ip_address }}"
 
   tasks:
     roles:

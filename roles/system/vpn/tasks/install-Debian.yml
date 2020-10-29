@@ -4,7 +4,7 @@
     name: "{{ vpn_dependencies }}"
     state: present
 
-- name: Remove NetworkManager's system-connections
+- name: Remove NetworkManager's system-connections if configured to do so
   file:
     path: "{{ system_connections_path }}/"
     state: absent
@@ -16,91 +16,25 @@
     path: /usr/lib/NetworkManager/nm-wireguard-service
   register: nm_wireguard
 
-- name: Run WireGuard plugin installation, if required
+- name: Run WireGuard plugin installation, if plugin is not present
   include_tasks: wireguard-Debian.yml
   when: not nm_wireguard.stat.exists
 
-- name: Copy over WireGuard configuration files
-  copy:
-    src: "files/wireguard/"
-    dest: "{{ system_connections_path }}/"
-    owner: root
-    group: root
-    mode: "0600"
-  notify: restart networkmanager
-
-- name: Remove previous OpenVPN files
-  become: yes
-  become_user: "{{ vpn_ansible_user }}"
+- name: Ensure temporary directory for OpenVPN files exists # TODO Only run this if there are OpenVPN profiles in vpn_connections
   file:
-    path: ~/.config/openvpn
-    state: absent
+    path: ~/.openvpn_tmp
+    state: directory
 
-- name: Copy OpenVPN files
-  become: yes
-  become_user: "{{ vpn_ansible_user }}"
-  copy:
-    src: "openvpn/"
-    dest: "~/.config/openvpn"
-
-- name: Acquire the current VPN connections
+- name: Acquire a list the current VPN connections
   command: nmcli connection show
   changed_when: false
   register: nmcli_connections
 
-- name: Import Mullvad OpenVPN files into the Network Manager
-  shell: |
-    "nmcli connection import type openvpn file /home/{{ vpn_ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && \
-    nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_mullvad_id }}"
-  loop: "{{ mullvad_profiles }}"
-  when: nmcli_connections.stdout.find(item.name) != 1
-  notify: restart networkmanager
+- name: Install VPN configuration files
+  include_tasks: "profile-{{ ansible_os_family }}.yml"
+  with_items: "{{ vpn_connections }}"
 
-- name: Modify Mullvad password files with proper permissions
+- name: Remove temporary directory for OpenVPN files # TODO Only run this if there are OpenVPN profiles in vpn_connections
   file:
-    path: "/home/{{ vpn_ansible_user }}/.config/openvpn/{{ item.folder }}/mullvad_userpass.txt"
-    mode: "0600"
-  loop: "{{ mullvad_profiles }}"
-  when: nmcli_connections.stdout.find(item.name) != 1
-  notify: restart networkmanager
-
-- name: Change password flag
-  lineinfile:
-    path: "{{ system_connections_path }}/{{ item.name }}.nmconnection"
-    regex: "password-flags=1"
-    line: password-flags=0
-  loop: "{{ mullvad_profiles }}"
-  notify: restart networkmanager
-
-- name: Set password for Mullvad OpenVPN connections
-  shell: |
-    "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ vault_mullvad_password }}'"
-  loop: "{{ mullvad_profiles }}"
-  notify: restart networkmanager
-
-- name: Import NordVPN OpenVPN file into the Network Manager
-  shell: |
-    "nmcli connection import type openvpn file /home/{{ ansible_user }}/.config/openvpn/{{ item.folder }}/'{{ item.name }}.ovpn' && \
-    nmcli connection modify '{{ item.name }}' +vpn.data username={{ vault_nordvpn_email }}"
-  loop: "{{ nordvpn_profiles }}"
-  when: nmcli_connections.stdout.find(item.name) != 1
-  notify: restart networkmanager
-
-- name: Change password flag
-  lineinfile:
-    path: "{{ system_connections_path }}/{{ item.name }}.nmconnection"
-    regex: "password-flags=1"
-    line: password-flags=0
-  loop: "{{ nordvpn_profiles }}"
-  notify: restart networkmanager
-
-- name: Set password for NordVPN OpenVPN connection
-  shell: "nmcli connection modify '{{ item.name }}' vpn.secrets 'password={{ nordvpn_password }}'"
-  loop: "{{ nordvpn_profiles }}"
-  notify: restart networkmanager
-
-- name: Add static routes that bypass the VPN
-  shell: |
-    "ip route add {{ item.prefix }} via {{ item.next_hop }}"
-  with_items: "{{ vpn_routes | default([]) }}"
-  ignore_errors: yes
+    path: ~/.openvpn_tmp # TODO: Question: Is it possible to set changed_when to false for both this and the task that creates the folder after this runs?
+    state: absent

@@ -1,14 +1,14 @@
-### Problem to Solve
+### Problem
 
 <!-- What problem do we solve? -->
+
+### Feature
+
+<!-- Detail the specifics on the feature that is to be added -->
 
 ### Further Details
 
 <!-- Include use cases, benefits, goals, and/or how the feature contributes to our vision -->
-
-### Proposal
-
-<!-- How are we going to solve the problem? -->
 
 ### Links/References
 

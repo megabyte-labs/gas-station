@@ -3,27 +3,21 @@
 * Test PiHole role
 * Add static VPN routes
 * pfSense avahi
-* Delete old commits figure out how
-* https://docs.docker.com/engine/reference/commandline/save/
 * Get cast working on Ubuntu/
-* Add file checksum verification for .deb files
 * AutoKey functions
 * Switch to docker secrets
 * FreeIPA
 * AWX
-* Clear theme for Organizr
 * Keycloak
 * Kubernetes Dashboard
 * Minio
 * Resilio Sync
 * Home Assistant
-* Piwigo
 * Make Docker role not require a restart
 * NTP - Chrony or NTP?
 * Logrotate
 * Figure out recovery keys for 2FA accounts
 * rTorrent with Flood!
-* rkhunter
 * Obfuscate docker-compose-backup
 
 # Host Services
@@ -48,16 +42,16 @@
 * Rundeck (LDAP)
 * SecurityOnion
 * NGINX Optimized Dockerized
-* Kubernetes/Juju
-* Terraform
+* Kubernetes
 * Sentry (https://sentry.io/welcome/) on Kubernetes
 * Rancher (https://rancher.com/)
-* https://github.com/Security-Onion-Solutions/securityonion/blob/master/VERIFY_ISO.md
 
 # Revisit
 
+* Terraform
 * Thanos
 * Kafka
+* Synergy keyboard/mouse sharing
 
 ### Ubuntu
 

@@ -1,2 +1,18 @@
 ---
-[]
+- name: Configure remote host entries
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ hosts[item.key].regexp }}"
+    line: "{{ hosts[item.key].ip_address }} {{ hosts[item.key].hosts }} {{ hosts[item.key].regexp }}"
+    state: present
+  when: item.key not in (apps | default([]))
+  loop: "{{ lookup('dict', hosts) }}"
+
+- name: Configure local host entries
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ hosts[item.key].regexp }}"
+    line: "127.0.0.1 {{ hosts[item.key].hosts }} {{ hosts[item.key].regexp }}"
+    state: present
+  when: item.key in (apps | default([]))
+  loop: "{{ lookup('dict', hosts) }}"

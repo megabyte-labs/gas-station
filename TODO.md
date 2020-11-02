@@ -19,6 +19,7 @@
 * Figure out recovery keys for 2FA accounts
 * rTorrent with Flood!
 * Obfuscate docker-compose-backup
+* Ensure common settings for RedHat repos
 
 # Host Services
 

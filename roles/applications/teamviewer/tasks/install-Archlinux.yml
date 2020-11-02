@@ -1,23 +1,22 @@
-# https://community.teamviewer.com/t5/Knowledge-Base-EN/How-to-use-the-TAR-package-for-Linux/ta-p/30664
-- name: Create teamviewer temp dir 
+---
+- name: Create temporary TeamViewer directory 
   file:
-    path: "{{ teamviewer_dir }}"
+    path: "{{ teamviewer_temp_dir }}"
     state: directory
 
-- name: Download teamviewer tarball 
-  get_url:
-    url: "{{ teamviewer_tarball_url }}"
-    dest: "{{ teamviewer_tarball }}"
-
-- name: Extract teamviewer tarball 
+- name: Extract TeamViewer 
   unarchive:
-    src: "{{ teamviewer_tarball }}"
-    dest: "{{ teamviewer_dir }}"
-    remote_src: True 
+    src: "{{ teamviewer_url }}"
+    dest: "{{ teamviewer_temp_dir }}"
+    remote_src: yes 
     extra_opts: [--strip-components=1]
 
-- name: Run Teamviewer installer 
+- name: Install TeamViewer
   command: ./tv-setup install force
   args:
-    chdir: "{{ teamviewer_dir }}"
-  register: test 
+    chdir: "{{ teamviewer_temp_dir }}"
+
+- name: Remove temporary TeamViewer directory
+  file:
+    path: "{{ teamviewer_temp_dir }}"
+    state: absent

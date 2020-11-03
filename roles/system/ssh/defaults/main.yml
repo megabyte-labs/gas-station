@@ -1,16 +1,36 @@
 ---
+install_fail2ban: yes                       # fail2ban protects your server from attacks on the SSH port - control whether or not it is installed using this variable
+
+# The ssh_hosts variable below requires a specific data structure in order to work.
+# This filter uses the ProfessorManhattan playbook way of storing host data.
+# If you are unsure how to set it up, you can also structure your data using
+# the example provided below the variable.
+ssh_hosts: "{{ lookup('dict', hosts) | selectattr('value.hostname', 'defined') | list }}"
+# Example data structure:
+#ssh_hosts = [{
+#  "key": "workstation",
+#  "value": {
+#    "cockpit": true,
+#    "hostname": "Workstation",
+#    ...
+#    "ssh_user": "hawkwood"
+#  }
+#}, {...}, {...}]
+
+ssh_port: 22                                # Changing this will change the SSH port you connect with (by default, this is port 22)
+
 user_configs: []
 # The following configuration will add the id_rsa private key to both
 # the ansible_user's .ssh folder and root's .ssh folder. It will also
 # set ansible_user's authorized_keys.
 #user_configs:
 #  - username: "{{ ansible_user }}"
-#    authorized_keys:
+#    ssh_authorized_keys:
 #      - "{{ lookup('file', 'id_rsa.pub') }}"
-#    private_keys:
+#    ssh_private_keys:
 #      - name: id_rsa
 #        path: files/keys/id_rsa
 #  - username: root
-#    private_keys:
+#    ssh_private_keys:
 #      - name: id_rsa
 #        path: files/keys/id_rsa

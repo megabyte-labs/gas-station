@@ -1,22 +1,37 @@
 ---
-- import_tasks: include-vars.yml
+- name: Load variable file based on the OS type, or a default if not found
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+    - "default.yml"
 
-- import_tasks: setup-RedHat.yml
+- name: Perform RedHat setup
+  become: yes
+  block:
+    - import_tasks: setup-RedHat.yml
   when: ansible_os_family == 'RedHat'
 
-- import_tasks: install-with-package.yml
+- name: Install Certbot via package
+  become: yes
+  block:
+    - import_tasks: package-Linux.yml
   when: not certbot_install_from_source
 
-- import_tasks: install-from-source.yml
+- name: Install Certbot from source
+  become: yes
+  block:
+    - import_tasks: source-Linux.yml
   when: certbot_install_from_source
 
-- include_tasks: create-cert-standalone.yml
-  with_items: "{{ certbot_certs }}"
-  when:
-    - certbot_create_if_missing
-    - certbot_create_method == 'standalone'
-  loop_control:
-    loop_var: cert_item
+- name: Generate certificate
+  become: yes
+  block:
+    - include_tasks: certificates-Linux.yml
 
-- import_tasks: renew-cron.yml
+- name: Add auto-renewal cronjob
+  become: yes
+  block:
+    - import_tasks: cron-Linux.yml
   when: certbot_auto_renew

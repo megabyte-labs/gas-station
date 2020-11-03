@@ -12,17 +12,17 @@
     user: "{{ user.username }}"
     state: present
     key: "{{ item }}"
-  with_items: "{{ user.authorized_keys }}"
-  when: user.authorized_keys is defined
+  with_items: "{{ user.ssh_authorized_keys }}"
+  when: user.ssh_authorized_keys is defined
 
 - name: Copy private keys
   copy:
-    src: "{{ item.path }}"
-    dest: "~/.ssh/{{ item.name }}"
+    src: "{{ item }}"
+    dest: "~/.ssh/{{ item | basename }}"
     owner: "{{ user.username }}"
     group: "{{ user.username }}"
     mode: "0600"
-  with_items: "{{ user.keys }}"
+  with_items: "{{ user.ssh_private_keys | default([]) }}"
 
 - name: Copy SSH config
   template:

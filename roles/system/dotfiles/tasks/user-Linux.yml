@@ -22,10 +22,16 @@
     - .netrc
     - .npmrc
 
+- name: Determine whether the user's .bashrc file is present in the home directory
+  stat:
+    path: ~/.bashrc
+  register: bashrc
+
 - name: Ensure .bashrc exists in user's home directory
   file:
     path: ~/.bashrc
     state: touch
+  when: not bashrc.stat.exists
 
 - name: Ensure .localrc is sourced in .bashrc
   lineinfile:
@@ -40,7 +46,8 @@
     line: "export PATH=$PATH:~/.local/bin # PATH modified by Ansible"
 
 - name: Attempt to run starship and register the response
-  command: starship
+  command: starship --help
+  changed_when: false
   register: starship
 
 - name: Remove starship references if starship command is unavailable

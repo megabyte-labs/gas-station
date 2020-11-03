@@ -3,6 +3,13 @@
   include_tasks: NetworkManager/WireGuard.yml
   when: '"nmconnection" in item.file'
 
+- name: Register the OpenVPN configuration file name without the ovpn extension
+  set_fact:
+    ovpn_name: "{{ item.file | regex_replace('.ovpn$', '') }}"
+  when: '"ovpn" in item.file'
+
 - name: Import OpenVPN profile
   include_tasks: NetworkManager/OpenVPN.yml
-  when: '"ovpn" in item.file'
+  when:
+    - '"ovpn" in item.file'
+    - nmcli_connections.stdout.find(ovpn_name) == -1

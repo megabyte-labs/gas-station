@@ -7,12 +7,16 @@
   ignore_errors: yes
   register: ssh_check_test
   delegate_to: localhost
+  when: ansible_connection != 'local'
 
 - name: Revert to standard port 22 for SSH if the "secure" port has not been configured yet
   set_fact:
     ansible_port: '22'
-  when: ssh_check_test.failed
+  when:
+    - ansible_connection != 'local'
+    - ssh_check_test.failed
 
 - name: Set facts
   set_fact:
-    vlan: 
+    vlan: lan_network | dict2items
+#    kibana_enrollment_id: "{{ vlan }}"

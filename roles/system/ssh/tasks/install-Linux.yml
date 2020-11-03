@@ -1,0 +1,30 @@
+---
+- name: Copy fail2ban configuration
+  template:
+    src: "{{ fail2ban_config_template }}"
+    dest: "{{ fail2ban_local_jail_file }}"
+    owner: root
+    group: root
+    mode: 0644
+  when: install_fail2ban
+
+- name: Ensure fail2ban is running and that it will start on boot
+  service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: install_fail2ban
+
+- name: Ensure SSH daemon is running
+  service:
+    name: "{{ sshd_service_name }}"
+    state: started
+
+- name: Generate and copy over sshd_config
+  template:
+    src: sshd_config.j2
+    dest: "{{ sshd_config_path }}"
+    owner: root
+    group: root
+    mode: "644"
+  notify: restart sshd

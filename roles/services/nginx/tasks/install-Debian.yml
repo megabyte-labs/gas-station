@@ -2,62 +2,58 @@
 - name: Install NGINX Optimized base dependencies
   become: yes
   apt:
-    name:
-      - git
-      - nginx
-      - openssl
+    name: "{{ dependencies }}"
     state: present
-    update_cache: yes
 
 - name: Gather the apt package facts
   package_facts:
     manager: auto
 
-- name: Get Nginx version and set variable
+- name: Set a variable equal to the NGINX version
   set_fact:
     nginx_version: "{{ ansible_facts.packages['nginx'][0].version | regex_search('^[0-9.]*') }}"
 
-- name: Add default error pages
-  include_tasks: error-pages.yml
+- name: Add styled status code response pages from Git repository
+  include_tasks: linux/status-pages.yml
 
 - name: Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough
   become: yes
   lineinfile:
-    path: /usr/lib/systemd/system/nginx.service
+    path: "{{ nginx_service_path }}"
     regexp: "After=network.target"
     line: After=network-online.target
     owner: root
     group: root
     mode: '0644'
 
-- name: Check if Brotli module exists
+- name: Register file details of the Brotli compression module
   stat:
-    path: "/usr/share/nginx/modules/ngx_http_brotli_static_module.so"
+    path: "{{ nginx_module_path }}/ngx_http_brotli_static_module.so"
   register: brotli_stat
 
 - name: Compile Brotli modules
-  include_tasks: brotli.yml
+  include_tasks: linux/brotli.yml
   when:
-    - enable_brotli_modules
+    - enable_nginx_brotli_module
     - not brotli_stat.stat.exists
 
 - name: Install NGINX Amplify
-  include_tasks: amplify.yml
+  include_tasks: linux/amplify.yml
   when:
     - nginx_amplify_api_key is defined
-    - enable_amplify
+    - enable_nginx_amplify
 
-- name: Determine if Modsecurity was already installed
+- name: Register the file status of the ModSecurity WAF module configuration file
   stat:
-    path: /etc/nginx/modsec/owasp-modsecurity-crs/crs-setup.conf
-  register: modsecurity_installed
+    path: "{{ waf_conf_directory }}/crs-setup.conf"
+  register: modsec_config
 
 - name: Compile ModSecurity WAF module
-  include_tasks: modsecurity.yml
+  include_tasks: linux/modsecurity.yml
   when:
-    - enable_modsecurity_waf
-    - not modsecurity_installed.stat.exists
+    - enable_nginx_modsecurity_waf
+    - not modsec_config.stat.exists
 
 - name: Set up wildcard SSL automatically with CloudFlare
-  include_tasks: certbot.yml
+  include_tasks: linux/certbot.yml
   when: cloudflare_api_token is defined

@@ -2,16 +2,14 @@
 - name: Copy OpenVPN file into temporary directory
   copy:
     src: "files/vpn/{{ item.file }}"
-    dest: "~/.tmp_openvpn/{{ item.file }}"
-
-- set_fact:
-    ovpn_name: "{{ item.file | regex_replace('.ovpn$', '') }}" 
+    dest: "{{ openvpn_tmp_dir }}/{{ item.file }}"
 
 - name: "Import and configure OpenVPN connection ({{ item.file }})"
   shell: |
-    nmcli connection import type openvpn file ~/.tmp_openvpn/{{ item.file }}
+    nmcli connection import type openvpn file '{{ item.file }}'
     nmcli connection modify '{{ ovpn_name }}' +vpn.data username={{ item.username }}
     nmcli connection modify '{{ ovpn_name }}' vpn.secrets 'password={{ item.password }}'
     nmcli connection modify '{{ ovpn_name }}' +vpn.data password-flags=0
-  when: nmcli_connections.stdout.find(ovpn_name) != 1
+  args:
+    chdir: "{{ openvpn_tmp_dir }}"
   notify: restart networkmanager

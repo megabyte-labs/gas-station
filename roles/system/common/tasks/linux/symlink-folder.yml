@@ -1,4 +1,15 @@
 ---
+- name: Create directory, if specified
+  become: yes
+  become_user: root
+  file:
+    path: "{{ item.create }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: directory
+    recurse: yes
+  when: item.create is defined
+
 - name: "Ensure {{ item.path }} is a directory"
   file:
     path: "{{ item.path }}"
@@ -15,6 +26,13 @@
     path: "{{ item.link }}"
     state: absent
   when: sym_link.stat.islnk is not defined or (sym_link.stat.islnk is defined and not sym_link.stat.islnk)
+
+- name: Ensure symbolic link's parent directory exists
+  file:
+    path: "{{ item.link | dirname }}"
+    state: directory
+    recurse: yes
+  when: (item.link | dirname) != '~'
 
 - name: Add symbolic link
   file:

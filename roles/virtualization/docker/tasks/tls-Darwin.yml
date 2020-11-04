@@ -1,0 +1,49 @@
+---
+- name: Ensure .docker user folder exists
+  file:
+    path: ~/.docker
+    state: directory
+
+- name: Create a Docker password file for the TLS certificates
+  copy:
+    content: "{{ lookup('password', '/dev/null length=50 chars=ascii_letters') }}"
+    dest: ~/.docker/.pw
+    force: no
+    mode: "400"
+
+- name: Generate Docker certificates
+  shell: |
+    export HOST={{ docker_tls_fqdn }}
+    mkdir -pv ~/.docker/certs.d
+    cd ~/.docker/certs.d
+    openssl genrsa -aes256 -passout file:$HOME/.docker/.pw -out docker-ca-key.pem 4096
+    openssl req -new -passin file:$HOME/.docker/.pw -subj "/C={{ docker_tls_country }}/ST={{ docker_tls_state }}/L={{ docker_tls_locality }}/O={{ docker_tls_organization }}/OU={{ docker_tls_division }}/CN=$HOST" -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem
+    openssl genrsa -out docker-server-key.pem 4096
+    openssl req -subj "/CN=$HOST" -sha256 -new -key docker-server-key.pem -out docker-server.csr
+    echo subjectAltName = DNS:$HOST,IP:{{ all_ipv4_addresses[0] }},IP:127.0.0.1 >> extfile.cnf
+    echo extendedKeyUsage = serverAuth >> extfile.cnf
+    openssl x509 -req -days 365 -sha256 -in docker-server.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:$HOME/.docker/.pw -CAcreateserial -out docker-server-cert.pem -extfile extfile.cnf
+    openssl genrsa -out key.pem 4096
+    openssl req -subj '/CN=client' -new -key key.pem -out docker-client.csr
+    echo extendedKeyUsage = clientAuth > extfile-client.cnf
+    openssl x509 -req -days 365 -sha256 -in docker-client.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:$HOME/.docker/.pw -CAcreateserial -out cert.pem -extfile extfile-client.cnf
+    rm -v docker-client.csr docker-server.csr extfile.cnf extfile-client.cnf
+
+- name: Add cert to keystore
+  become: yes
+  shell: |
+    cd "/Users/{{ ansible_user }}/.docker/certs.d"
+    security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.pem
+- name: Create daemon.json
+  shell: |
+    echo "{
+    hosts = "tcp://0.0.0.0:2376";
+    tlsverify = $true;
+    tlscacert = "/Users/{{ ansible_user }}/.docker/certs.d/ca.pem";
+    tlscert = "/Users/{{ ansible_user }}/.docker/certs.d/docker-server-cert.pem";
+    tlskey = "/Users/{{ ansible_user }}/.docker/certs.d/docker-server-key.pem"
+    }" > /Users/{{ ansible_user }}/.docker/daemon.json
+
+- name: Restart Docker App
+  shell: |
+    osascript -e 'quit app "Docker"'; open --background -a Docker

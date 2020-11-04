@@ -10,7 +10,6 @@ lint: |
 platforms:
   - name: CentOS
     image: centos:7
-    command: /sbin/init
     tmpfs:
       - /run
       - /tmp
@@ -18,7 +17,41 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     privileged: true
     pre_build_image: true
+    groups:
+      - linuxcontainers
+  - name: ubuntu
+    image: pycontribs/ubuntu:latest
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+    groups:
+      - linuxcontainers
+  - name: archlinux
+    image: archlinux:latest
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+    groups:
+      - linuxcontainers
 provisioner:
   name: ansible
+  inventory:
+    group_vars:
+      linuxcontainers:
+        ansible_connection: docker
+    links:
+      hosts: external_win_mac
   playbooks:
-    converge: ${MOLECULE_PLAYBOOK:-converge.yml}
+    create: create.yml
+    destroy: destroy.yml
+    converge: converge.yml
+verifier:
+  name: ansible

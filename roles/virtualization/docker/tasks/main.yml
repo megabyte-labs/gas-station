@@ -6,7 +6,7 @@
       package:
         name: docker
         state: absent
-    
+
     - name: Ensure "docker-common" is not installed
       package:
         name: docker-common
@@ -16,6 +16,7 @@
       package:
         name: docker-engine
         state: absent
+  when: ansible_os_family not in ('Windows', 'Darwin')
 
 - name: Include tasks based on the operating system
   become: yes
@@ -27,7 +28,9 @@
   become: yes
   snap:
     name: docker
-  when: docker_snap_install
+  when:
+    - ansible_os_family not in ('Windows', 'Darwin')
+    - docker_snap_install
 
 - name: Ensure handlers are notified now to avoid firewall conflicts.
   meta: flush_handlers
@@ -44,12 +47,24 @@
     - include_tasks: "users-{{ ansible_os_family }}.yml"
   when: docker_users | length > 0
 
-- name: Determine whether TLS certificates need to be generated
+- name: Determine whether TLS certificates need to be generated (non-Windows)
   become: yes
   stat:
     path: /etc/ssl/private/docker-ca.pem
   register: docker_ca_pem
   when:
+    - ansible_os_family != 'Windows'
+    - docker_tls | bool
+    - not docker_snap_install
+
+- name: Determine whether TLS certificates need to be generated (Windows)
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  win_stat:
+    path: C:\DockerSSLCARoot\ca.pem
+  register: docker_ca_pem_win
+  when:
+    - ansible_os_family == 'Windows'
     - docker_tls | bool
     - not docker_snap_install
 
@@ -57,5 +72,5 @@
   include_tasks: "tls-{{ ansible_os_family }}.yml"
   when:
     - docker_tls | bool
-    - not docker_ca_pem.stat.exists
+    - (not docker_ca_pem.stat.exists or not docker_ca_pem_win.stat.exists)
     - not docker_snap_install

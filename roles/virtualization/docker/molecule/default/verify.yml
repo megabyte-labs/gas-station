@@ -5,19 +5,39 @@
 
   tasks:
 
-  - name: Check docker-compose version
-    shell: |
-      mkdir $HOME/tmp && export TMPDIR=$HOME/tmp && docker-compose --version
-    register: docker_compose_version
-    changed_when: false
-    failed_when: false
+  - name: Checking Windows targets
+    block:
+      - name: Check docker-compose version (non-Windows)
+        shell: |
+          mkdir $HOME/tmp && export TMPDIR=$HOME/tmp && docker-compose --version
+        register: docker_compose_version
+        changed_when: false
+        failed_when: false
 
-  - name: Check docker version
-    command: |
-      docker --version
-    register: docker_version
-    changed_when: false
-    failed_when: false
+      - name: Check docker version (non-Windows)
+        command: |
+          docker --version
+        register: docker_version
+        changed_when: false
+        failed_when: false
+    when:
+      - ansible_os_family != 'Windows'
+
+  - name: Checking Windows targets
+    block:
+      - name: Check docker-compose version (Windows)
+        win_shell: docker-compose --version
+        register: docker_compose_version
+        changed_when: false
+        failed_when: false
+
+      - name: Check docker-compose version (Windows)
+        win_shell: docker --version
+        register: docker_version
+        changed_when: false
+        failed_when: false
+    when:
+      - ansible_os_family == 'Windows'
 
   - name: Assertion for Docker
     assert:

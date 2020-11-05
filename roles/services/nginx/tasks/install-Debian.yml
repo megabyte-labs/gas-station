@@ -1,8 +1,7 @@
 ---
 - name: Install NGINX Optimized base dependencies
-  become: yes
   apt:
-    name: "{{ dependencies }}"
+    name: "{{ nginx_dependencies }}"
     state: present
 
 - name: Gather the apt package facts
@@ -17,7 +16,6 @@
   include_tasks: linux/status-pages.yml
 
 - name: Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough
-  become: yes
   lineinfile:
     path: "{{ nginx_service_path }}"
     regexp: "After=network.target"
@@ -37,6 +35,15 @@
     - enable_nginx_brotli_module
     - not brotli_stat.stat.exists
 
+- name: Register file information for dhparam.pem
+  stat:
+    path: "{{ dhparam_path }}"
+  register: dhparam_pem
+
+- name: Ensure dhparam.pem exists
+  include_tasks: dhparam.yml
+  when: not dhparam_pem.stat.exists
+
 - name: Install NGINX Amplify
   include_tasks: linux/amplify.yml
   when:
@@ -45,7 +52,7 @@
 
 - name: Register the file status of the ModSecurity WAF module configuration file
   stat:
-    path: "{{ waf_conf_directory }}/crs-setup.conf"
+    path: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
   register: modsec_config
 
 - name: Compile ModSecurity WAF module
@@ -57,3 +64,23 @@
 - name: Set up wildcard SSL automatically with CloudFlare
   include_tasks: linux/certbot.yml
   when: cloudflare_api_token is defined
+
+- name: Update the NGINX configuration files
+  include_tasks: linux/nginx-configuration.yml
+
+- name: Generate sites-available
+  include_tasks: linux/site-available.yml
+  with_items: "{{ nginx_sites_available }}"
+
+- name: Symlink sites-enabled
+  file:
+    src: "/etc/nginx/sites-available/{{ host_id }}.conf"
+    path: "/etc/nginx/sites-enabled/{{ host_id }}.conf"
+    state: link
+  with_items: "{{ nginx_sites_available }}"
+
+- name: Reload systemd and restart NGINX
+  systemd:
+    daemon_reload: yes
+    name: nginx
+    state: restarted

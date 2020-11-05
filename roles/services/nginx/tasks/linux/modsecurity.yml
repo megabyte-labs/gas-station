@@ -1,93 +1,70 @@
 ---
 - name: Install Modsecurity dependencies
-  become: yes
   apt:
-    name:
-    - build-essential
-    - libgeoip-dev
-    - libcurl4-openssl-dev
-    - liblua5.2-dev
-    - libyajl-dev
-    - libxml2-dev
-    - libpcre3-dev
-    - libpcre++-dev
-    - ssdeep
-    - libfuzzy-dev
-    - git
+    name: "{{ linux_modsec_dependencies }}"
     state: present
 
-- name: Obtain Modsecurity source code for branch v3/master
-  become: yes
+- name: Obtain Modsecurity source code from git repository
   git:
-    repo: https://github.com/SpiderLabs/ModSecurity
+    repo: "{{ modsec_git_repository }}"
     dest: ~/ModSecurity
     depth: "1"
-    version: v3/master
+    version: "{{ modsec_git_version }}"
     force: yes
 
 - name: Init submodules, configure, build, make install
-  become: yes
-  command: "{{ item }}"
+  command: |
+    git submodule init
+    git submodule update
+    ./build.sh
+    ./configure
+    make
+    make install
   args:
-    chdir: "~/ModSecurity"
-    creates: "/usr/local/modsecurity/lib/libmodsecurity.so"
-  with_items:
-    - "git submodule init"
-    - "git submodule update"
-    - "./build.sh"
-    - "./configure"
-    - "make"
-    - "make install"
-  
+    chdir: ~/ModSecurity
+    creates: /usr/local/modsecurity/lib/libmodsecurity.so
+
 - name: Obtain Modsecurity-nginx source code
-  become: yes
   git:
-    repo: https://github.com/SpiderLabs/ModSecurity-nginx
+    repo: "{{ modsec_nginx_git_repository }}"
     dest: ~/ModSecurity-nginx
     depth: 1
     force: yes
 
-- name: Download and unarchive NGINX source code of version {{ nginx_version }}
-  become: yes
+- name: "Download and unarchive NGINX source code of version {{ nginx_version }}"
   unarchive:
-    src: https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz
+    src: "https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
     dest: ~/
     remote_src: yes
 
 - name: Configure and make ModSecurity NGNINX module
-  become: yes
-  command: "{{ item }}"
+  command: |
+    ./configure --with-compat --add-dynamic-module=../ModSecurity-nginx
+    make modules
   args:
     chdir: "~/nginx-{{ nginx_version }}"
-    creates: "~/mods.so"
-  with_items:
-    - "./configure --with-compat --add-dynamic-module=../ModSecurity-nginx"
-    - "make modules"
+    creates: ~/mods.so
 
 - name: Copy Modsecurity-nginx module to NGINX modules folder
-  become: yes
   copy:
     src: "~/nginx-{{ nginx_version }}/objs/ngx_http_modsecurity_module.so"
-    dest: /usr/lib/nginx/modules/ngx_http_modsecurity_module.so
+    dest: "{{ nginx_module_path }}/ngx_http_modsecurity_module.so"
     remote_src: yes
 
 - name: Obtain OWASP Modsecurity Rules
-  become: yes
   git:
-    repo: https://github.com/SpiderLabs/owasp-modsecurity-crs
-    dest: /etc/nginx/modsec/owasp-modsecurity-crs
+    repo: "{{ modsec_rules_git_repository }}"
+    dest: "{{ modsec_waf_conf_directory }}"
     force: yes
-    version: "v3.3/dev"
+    version: "{{ modsec_rules_git_version }}"
 
-- name: Copy crs-setup.conf.example to become crs-setup.conf
-  become: yes
+- name: Copy crs-setup.conf.example to crs-setup.conf
   copy:
-    src: /etc/nginx/modsec/owasp-modsecurity-crs/crs-setup.conf.example
-    dest: /etc/nginx/modsec/owasp-modsecurity-crs/crs-setup.conf
+    src: "{{ modsec_waf_conf_directory }}/crs-setup.conf.example"
+    dest: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
     remote_src: yes
 
 - name: Clean up source directories
-  become: yes
   file:
     path: "{{ item }}"
     state: absent

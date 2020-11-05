@@ -1,10 +1,7 @@
 ---
-- name: Ensure letsencrypt and miscellaneous dependencies are installed
+- name: Ensure Certbot and miscellaneous dependencies are installed
   apt:
-    name:
-      - letsencrypt
-      - python3
-      - python3-pip
+    name: "{{ certbot_dependencies }}"
     state: present
 
 - name: Replace certbot==0.40.0 with certbot>=0.40.0 in /usr/bin/certbot (hack)
@@ -13,14 +10,14 @@
     regexp: "certbot==0.40.0"
     replace: "certbot>=0.40.0"
 
-- name: Make sure ACME pip is updated for Python3
+- name: Make sure ACME pip is updated for Python 3
   pip:
     name: acme>=1.6.0
 
 - name: Install certbot-dns-cloudflare
   shell: "cd {{ certbot_dir }}/certbot-dns-cloudflare && python3 setup.py install"
 
-- name: Create certbot folder
+- name: Ensure letsencrypt folder exists
   file:
     path: /etc/letsencrypt
     state: directory
@@ -40,28 +37,22 @@
       dest: '/etc/letsencrypt/dnscloudflare.ini'
     - src: 'templates/letsencryptcli.ini.j2'
       dest: '/etc/letsencrypt/cli.ini'
+  notify: restart certbot
 
-- name: Restart Certbot
-  service:
-    name: certbot
-    state: restarted
-
-- name: Test the creation of the Let's Encrypt certificates
+- name: Test the creation of the Let's Encrypt certificates # TODO: Only run this if certificate does not already exist
   block:
     - name: Run the Let's Encrypt routine for the first time
       vars:
         certbot_cloudflare_acme_server: "{{ certbot_cloudflare_acme_test }}"
-        certbot_create_if_missing: yes
+        certbot_create_if_missing: no
       include_role:
         name: certbot
-  ignore_errors: yes
+  ignore_errors: yes # TODO: Figure out if it is possible to run this without ignore_errors
 
-- name: Wait for certbot to register appropriate DNS records
+- name: Wait for certbot to register appropriate DNS records # TODO: Only run this if certificate does not already exist
   wait_for:
     timeout: 30
 
-- name: Create the certificates
-  vars:
-    certbot_create_if_missing: yes
+- name: Create the certificates # TODO: Only run this if certificate does not already exist
   include_role:
     name: certbot

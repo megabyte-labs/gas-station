@@ -1,0 +1,53 @@
+---
+- name: Check if NGINX configs are from git # TODO: Add better way of detecting.. like check the git remote and if it matches
+  stat:
+    path: /etc/nginx/README.md
+  register: custom_nginx_readme
+
+- name: Remove default NGINX etc folder
+  file:
+    path: /etc/nginx
+    state: absent
+  when: not custom_nginx_readme.stat.exists
+
+- name: Clone default NGINX source
+  git:
+    repo: "{{ optimized_nginx_repository }}"
+    dest: /etc/nginx
+    update: yes
+    force: yes
+    version: "{{ optimized_nginx_repository_version }}"
+
+- name: Remove NGINX Amplify stub_status.conf if nginx_amplify_api_key is not provided
+  file:
+    path: /etc/nginx/conf.d/stub_status.conf
+    state: absent
+  when:
+    - nginx_amplify_api_key is undefined
+
+- name: Remove Brotli configuration files if Brotli not enabled
+  file:
+    path: "{{ item }}"
+    state: absent
+  when: not enable_brotli_modules
+  with_items:
+    - /etc/nginx/conf.d/brotli.conf
+    - /etc/nginx/modules-enabled/50-mod-brotli.conf
+
+- name: Remove ModSecurity configuration files if ModSecurity is not enabled
+  file:
+    path: /etc/nginx/modules-enabled/50-mod-security.conf
+    state: absent
+  when: not enable_modsecurity_waf
+
+- name: Clear sites-available if configured to do so
+  file:
+    path: /etc/nginx/sites-available/*
+    state: absent
+  when: nginx_clear_sites_available
+
+- name: Clear sites-enabled if configured to do so
+  file:
+    path: /etc/nginx/sites-enabled/*
+    state: absent
+  when: nginx_clear_sites_enabled

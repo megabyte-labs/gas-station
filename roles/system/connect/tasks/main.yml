@@ -16,7 +16,37 @@
     - ansible_connection != 'local'
     - ssh_check_test.failed
 
-- name: Set facts
+- name: Determine the VLAN (set to cloud if none match)
+  vars:
+    netmask: "24"
+  block:
+    - set_fact:
+        vlan_ip: "{{ hosts
+          | map('extract', hosts)
+          | selectattr('hostname', 'defined')
+          | selectattr('hostname', 'equalto', hostname)
+          | map(attribute='ip_address')
+          | flatten }}"
+    - set_fact:
+        cidr: "{{ (vlan_ip[0] + '/' + netmask) | ipaddr('network/prefix') }}"
+      when: vlan_ip is defined
+    - set_fact:
+        vlan: "{{ item.key | default('cloud') }}"
+      loop: "{{ lookup('dict', lan_network) }}"
+      when:
+        - vlan_ip is defined
+        - cidr in item.value
+  always:
+    - set_fact:
+        vlan: cloud
+      when: not vlan_ip
+
+- name: Determine facts based on the host's ID
   set_fact:
-    vlan: lan_network | dict2items
-#    kibana_enrollment_id: "{{ vlan }}"
+    fqdn: "{{ hosts[host_id].hosts.split()[-1] }}"
+    ip_address: "{{ hosts[host_id].ip_address }}"
+
+- name: Set role facts
+  set_fact:
+    docker_tls_fqdn: "{{ fqdn }}"
+    kibana_enrollment_id: "{{ vlan }}"

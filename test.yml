@@ -12,6 +12,50 @@
   roles:
     - roles/system/connect
 
+- name: Set a vlan fact
+  hosts: all:!pfsense:!seconion
+  become: no
+  vars:
+    netmask: "{{ default_netmask | default('24') }}"
+
+  tasks:
+
+    - name: Define VLAN custom facts
+      block:
+        - set_fact:
+            vlan_ip: "{{ hosts
+              | map('extract', hosts)
+              | selectattr('hostname', 'defined')
+              | selectattr('hostname', 'equalto', hostname)
+              | map(attribute='ip_address')
+              | flatten }}"
+
+        - debug:
+            msg: "{{ vlan_ip }}"
+
+        - set_fact:
+            cidr: "{{ (vlan_ip[0] + '/24' + netmask) | ipaddr('network/prefix') }}"
+          when: vlan_ip
+
+        - debug:
+            msg: "{{ cidr }}"
+        - set_fact:
+            vlan: "{{ item.key | default('cloud') }}"
+          loop: "{{ lookup('dict', lan_network) }}"
+          when:
+            - vlan_ip
+            - cidr in item.value
+
+      always:
+        - set_fact:
+            vlan: cloud
+          when: not vlan_ip
+
+    - name: VLAN value
+      debug:
+        msg: "{{ vlan }}"
+
+
 #- hosts: all
 #  tasks:
 #    - name: Output
@@ -25,5 +69,5 @@
 #        ip_address: "{{ hosts | selectattr('hostname', hostname) }}"
 #      debug:
 #        msg: "{{ hostname }}"
-#      when: 
+#      when:
 #      loop: "{{ lan_networks | dict2items }}"

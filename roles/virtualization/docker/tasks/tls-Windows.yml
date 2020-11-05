@@ -1,24 +1,19 @@
 ---
-- name: Install openssl
+- name: Install OpenSSL
   win_chocolatey:
     name: openssl
     state: present
 
-- name: Generate the Powershell script
-  template:
-    src: docker-tls.ps1.j2
-    dest: "{{ role_path }}/files/docker-tls.ps1"
-  delegate_to: localhost
-
-- name: Copy the script to generate certs
-  win_copy:
-    src: "{{ role_path }}/files/docker-tls.ps1"
-    dest: C:\docker-tls.ps1
-
-- name: Execute the script to generate certs
-  win_shell: C:\docker-tls.ps1
-
-- name: Remove the script from the target
-  win_file:
-    path: C:\docker-tls.ps1
-    state: absent
+- name: Generate the security certificates
+  block:
+    - name: Generate the PowerShell script
+      win_template:
+        src: docker-tls.ps1.j2
+        dest: C:\docker-tls.ps1
+    - name: Execute the script to generate security certificates
+      win_shell: C:\docker-tls.ps1
+  always:
+    - name: Remove the script used to generate security certificates
+      win_file:
+        path: C:\docker-tls.ps1
+        state: absent

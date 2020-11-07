@@ -69,9 +69,20 @@
     - docker_tls | bool
     - not docker_snap_install
 
+- debug:
+    msg: "{{ docker_ca_pem }}"
+
 - name: Generate TLS certificates
   include_tasks: "tls-{{ ansible_os_family }}.yml"
   when:
     - docker_tls | bool
-    - (not docker_ca_pem.stat.exists or not docker_ca_pem_win.stat.exists)
+    - ansible_os_family != 'Windows'
+    - not docker_ca_pem.stat.exists
     - not docker_snap_install
+
+- name: Generate TLS certificates for Windows
+  include_tasks: tls-Windows.yml
+  when:
+    - docker_tls | bool
+    - ansible_os_family == 'Windows'
+    - not docker_ca_pem_win.stat.exists

@@ -15,6 +15,14 @@
   when:
     - ansible_connection != 'local'
     - ssh_check_test.failed
+- debug:
+    msg: "{{ ansible_connection }}"
+
+- name: Determine facts based on the host's ID
+  set_fact:
+    fqdn: "{{ hosts[host_id].hosts.split()[-1] }}"
+    hostname: "{{ hosts[host_id].hostname }}"
+    ip_address: "{{ hosts[host_id].ip_address }}"
 
 - name: Determine the VLAN (set to cloud if none match)
   vars:
@@ -41,12 +49,14 @@
         vlan: cloud
       when: not vlan_ip
 
-- name: Determine facts based on the host's ID
-  set_fact:
-    fqdn: "{{ hosts[host_id].hosts.split()[-1] }}"
-    ip_address: "{{ hosts[host_id].ip_address }}"
-
-- name: Set role facts
+- name: Set miscellaneous facts
   set_fact:
     docker_tls_fqdn: "{{ fqdn }}"
     kibana_enrollment_id: "{{ vlan }}"
+    netdata_room: "{{ netdata_rooms[vlan] }}" # TODO: Improve this method so that we can segment different cloud providers
+
+- name: Set cloud VLAN facts
+  set_fact:
+    add_hosts: no
+    https_repository_prefix: https://
+  when: vlan == 'cloud'

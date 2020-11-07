@@ -3,11 +3,9 @@
   file:
     path: ~/.docker/certs.d
     state: directory
-
-- name: Ensure ~/.docker/certs.d folder exists
-  file:
-    path: ~/.docker/certs.d
-    state: directory
+  with_items:
+    - ~/.docker
+    - ~/.docker/certs.d
 
 - name: Create a Docker password file for the TLS certificates
   copy:
@@ -23,7 +21,7 @@
     openssl req -new -passin file:$HOME/.docker/.pw -subj "/C={{ docker_tls_country }}/ST={{ docker_tls_state }}/L={{ docker_tls_locality }}/O={{ docker_tls_organization }}/OU={{ docker_tls_division }}/CN=$HOST" -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem
     openssl genrsa -out docker-server-key.pem 4096
     openssl req -subj "/CN=$HOST" -sha256 -new -key docker-server-key.pem -out docker-server.csr
-    echo subjectAltName = DNS:$HOST,IP:{{ all_ipv4_addresses[0] }},IP:127.0.0.1 >> extfile.cnf
+    echo subjectAltName = DNS:$HOST,IP:{{ ip_address }},IP:127.0.0.1 >> extfile.cnf
     echo extendedKeyUsage = serverAuth >> extfile.cnf
     openssl x509 -req -days 365 -sha256 -in docker-server.csr -CA ca.pem -CAkey docker-ca-key.pem -passin file:$HOME/.docker/.pw -CAcreateserial -out docker-server-cert.pem -extfile extfile.cnf
     openssl genrsa -out key.pem 4096

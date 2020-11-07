@@ -2,11 +2,12 @@
 - name: Register display manager path
   command: cat /etc/X11/default-display-manager
   register: display_manager
+  changed_when: false
 
 - name: Set auto login user for LightDM
   blockinfile:
     path: /etc/lightdm/lightdm.conf
-    marker: "# ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
     block: |
       [Seat:*]
       autologin-user={{ autologin_user }}
@@ -16,7 +17,8 @@
 - name: Set auto-login user for GDM3
   blockinfile:
     path: /etc/gdm3/custom.conf
-    marker: "# ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
+    insertafter: "[daemon]"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
     block: |
       AutomaticLoginEnable = true
       AutomaticLogin = {{ autologin_user }}
@@ -25,7 +27,7 @@
 - name: Set auto-login user for SDDM
   blockinfile:
     path: /etc/sddm.conf.d/autologin.conf
-    marker: "# ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
     block: |
       [Autologin]
       User={{ autologin_user }}

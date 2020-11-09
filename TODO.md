@@ -20,6 +20,8 @@
 * rTorrent with Flood!
 * Obfuscate docker-compose-backup
 * Ensure common settings for RedHat repos
+* Add SSH config for GitLab and others
+* Swap out https:// for http://HTTPS///
 
 # Host Services
 

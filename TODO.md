@@ -55,6 +55,7 @@
 * Thanos
 * Kafka
 * Synergy keyboard/mouse sharing
+* Transmit for Mac OS X (24.99/year)
 
 ### Ubuntu
 

@@ -88,3 +88,4 @@
 * https://megabyte.space/support
 * privacy
 * terms
+* Feature: Blog post to open collective

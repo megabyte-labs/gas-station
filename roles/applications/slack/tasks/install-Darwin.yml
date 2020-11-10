@@ -1,0 +1,13 @@
+---
+- name: Register the MAS installed apps
+  command: mas list
+  register: mas_list
+  changed_when: false
+
+- name: "Ensure {{ slack_mas_name }} is installed"
+  command: "mas install '{{ slack_mas_id }}'"
+  when: (item.id | string) not in mas_list.stdout
+
+- name: Upgrade all apps (if configured to do so)
+  command: mas upgrade
+  when: mas_upgrade_all_apps

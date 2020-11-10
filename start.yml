@@ -1,35 +1,20 @@
 ---
-- hosts: all
+- hosts: all:!pfsense:!seconion
+  gather_facts: no
   roles:
-    - docker
+    - roles/system/connect
+
 - hosts: all
-  become: yes
+  vars:
+    autologin_enabled: yes
+  roles:
+    - roles/services/apt-cacher-ng
+    - roles/system/firewall
+    - roles/system/common
+    - roles/virtualization/docker           # Added here because it requires a reboot
+    - roles/services/cockpit                # Added here because it requires a reboot
+
+- hosts: all
   tasks:
-    - name: Add .vault_pass file for automation purposes
-      template:
-        src: vault_password.j2
-        dest: "/home/{{ ansible_user }}/Playbooks/.vault_pass"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: "600"
-    - name: Add labels to hard drives
-      shell: "e2label {{ item.path }} {{ item.label }}"
-      with_items:
-        - path: /dev/sda
-          label: Movies
-        - path: /dev/sdb
-          label: TV
-        - path: /dev/nvme0n1
-          label: Auxilary
-    - name: Ensure /etc/fstab has proper entries
-      lineinfile:
-        dest: /etc/fstab
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
-      with_items:
-        - regexp: "LABEL=Movies"
-          line: LABEL=Movies /mnt/movies auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Movies 0 0
-        - regexp: "LABEL=TV"
-          line: LABEL=TV /mnt/tv auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=TV%20Shows 0 0
-        - regexp: "LABEL=Auxilary"
-          line: LABEL=Auxilary /mnt/auxilary auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Auxilary 0 0
+    - name: Perform Workstation specific tasks
+      include_tasks: tasks/init-workstation.yml

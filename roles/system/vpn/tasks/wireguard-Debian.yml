@@ -16,26 +16,31 @@
 - name: Clone the Wireguard NetworkManager VPN plugin git
   git:
     repo: "{{ wireguard_plugin_repo }}"
-    dest: /tmp/wireguard-install
+    dest: "{{ wireguard_tmp_dir }}"
     depth: "1"
 
 - name: Run ./autogen.sh
   command: ./autogen.sh --without-libnm-glib
   args:
-    chdir: /tmp/wireguard-install
+    chdir: "{{ wireguard_tmp_dir }}"
 
 - name: Run ./configure
   command: ./configure --without-libnm-glib --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/x86_64-linux-gnu --libexecdir=/usr/lib/NetworkManager --localstatedir=/var
   args:
-    chdir: /tmp/wireguard-install
+    chdir: "{{ wireguard_tmp_dir }}"
 
 - name: Run "make"
   command: make
   args:
-    chdir: /tmp/wireguard-install
+    chdir: "{{ wireguard_tmp_dir }}"
 
 - name: Run "make install"
   command: make install
   args:
-    chdir: /tmp/wireguard-install
+    chdir: "{{ wireguard_tmp_dir }}"
   notify: restart networkmanager
+
+- name: Remove the Wireguard temporary directory
+  file:
+    path: "{{ wireguard_tmp_dir }}"
+    state: absent

@@ -1,6 +1,19 @@
 ---
-- name: Install AppImages for each specified user
+- name: Clone AppImages from repository
   become: yes
   become_user: "{{ user.username }}"
-  block:
-    - include_tasks: appimages-user-Linux.yml
+  git:
+    repo: "{{ app_images_repository }}"
+    dest: ~/Applications
+    depth: "1"
+    force: yes
+
+- name: Make Applications executable
+  become: yes
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/Applications
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    mode: "700"
+    recurse: yes

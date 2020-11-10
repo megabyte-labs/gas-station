@@ -2,7 +2,7 @@
 
 <!-- What problem do we solve? -->
 
-### Feature
+### Instructions
 
 <!-- Detail the specifics on the feature that is to be added -->
 

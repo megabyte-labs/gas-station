@@ -20,6 +20,9 @@
 * rTorrent with Flood!
 * Obfuscate docker-compose-backup
 * Ensure common settings for RedHat repos
+* Add SSH config for GitLab and others
+* Swap out https:// for http://HTTPS///
+* Add snap role
 
 # Host Services
 
@@ -53,6 +56,7 @@
 * Thanos
 * Kafka
 * Synergy keyboard/mouse sharing
+* Transmit for Mac OS X (24.99/year)
 
 ### Ubuntu
 
@@ -84,3 +88,4 @@
 * https://megabyte.space/support
 * privacy
 * terms
+* Feature: Blog post to open collective

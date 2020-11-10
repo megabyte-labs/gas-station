@@ -15,14 +15,14 @@
   when:
     - ansible_connection != 'local'
     - ssh_check_test.failed
-- debug:
-    msg: "{{ ansible_connection }}"
 
 - name: Determine facts based on the host's ID
   set_fact:
     fqdn: "{{ hosts[host_id].hosts.split()[-1] }}"
     hostname: "{{ hosts[host_id].hostname }}"
+    host_list: "{{ hosts | list }}"
     ip_address: "{{ hosts[host_id].ip_address }}"
+    nginx_sites: "{{ apps }}"
 
 - name: Determine the VLAN (set to cloud if none match)
   vars:
@@ -51,8 +51,9 @@
 
 - name: Set miscellaneous facts
   set_fact:
+    authelia_on_localhost: "{{ 'authelia' in apps }}"
     docker_tls_fqdn: "{{ fqdn }}"
-    kibana_enrollment_id: "{{ vlan }}"
+#   kibana_enrollment_id: "{{ vlan }}"
     netdata_room: "{{ netdata_rooms[vlan] }}" # TODO: Improve this method so that we can segment different cloud providers
 
 - name: Set cloud VLAN facts

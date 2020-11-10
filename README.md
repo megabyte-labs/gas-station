@@ -1,19 +1,17 @@
-# Ubuntu Master
+# ProfessorManhattan's Playbook
+
+It is easiest to install this Playbook on **Ubuntu**. To run the playbook on Ubuntu, run the following command in your terminal:
 
 ```console
-bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh
+bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh)
 ```
 
-## Playbooks
+## Windows
 
-On a fresh install of Windows 10 Enterprise, run the following command in an
-Administrator Powershell:
+### Windows 10 Controller
 
-**Windows 10 controller:**
 The controller is responsible for running Ansible to provision other parts of
-the system. There only needs to be one controller. To provision a controller,
-run the following on a preferrably fresh install of a fully updated Windows 10
-Enterprise:
+the system. There only needs to be one controller. To provision a controller on Windows 10, run the following on a preferrably fresh install of a fully updated Windows 10 Enterprise:
 
 ```console
 powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleController'))"
@@ -23,6 +21,7 @@ Then, with Ubuntu installed, log into the Ubuntu WSL instance and finish the
 installation of Ansible:
 
 ```console
+wsl --set-version 'Ubuntu' 2
 ubuntu
 wget https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.sh
 && bash controller.sh && rm controller.sh
@@ -30,7 +29,7 @@ wget https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/
 
 The bit.ly links to [controller.ps1](https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1).
 
-**Windows 10 client:**
+### Windows 10 Client
 
 A client is a computer you wish to control with the controller. Windows needs to
 have Remote Execution (RE) enabled. Run the following command in an
@@ -42,29 +41,13 @@ powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/Ansibl
 
 The bit.ly links to [client.ps1](https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1).
 
-## Upgrade to WSL2
-
-wsl --set-version 'Ubuntu' 2
-
-## Run the playbook
-
-```console
-ansible-playbook --ask-vault-pass main.yml
-```
-
-## Gotchas
+### Windows Notes
 
 On Windows 10 Enterprise with Ubuntu WSL 2, UFW does not work without error.
 
-On Windows 10 Enterprise with Ubuntu WSL 2, the VPN on the Windows 10 host
-should be disabled when running the scripts.
+### Useful Windows Commands
 
-On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running
-an ansible-playbook when connecting to Parallels Windows.
-
-## Useful Commands
-
-The following commands are Powershell commands used for generating configurations.
+The following commands are PowerShell commands used for generating configurations.
 
 * Export the start menu configuration:
   * `Export-StartLayout -path file_name.xml`
@@ -77,10 +60,9 @@ The following commands are Powershell commands used for generating configuration
 * List all of the available optional features:
   * `Get-WindowsOptionalFeature -Online`
 
-## DISM
+## Mac OS X
 
-* dism /online /Enable-Feature /FeatureName:"Containers-DisposableClientVM" -All
+### Mac OS X Notes
 
-## Acquiring a self-signed certificate from known host
-
-[Acquiring self-signed cert](https://medium.com/@menakajain/export-download-ssl-certificate-from-server-site-url-bcfc41ea46a2)
+On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running
+an ansible-playbook when connecting to Parallels Windows.

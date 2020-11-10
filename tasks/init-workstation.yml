@@ -1,0 +1,52 @@
+---
+- name: Add .vault_pass file for automation purposes
+  template:
+    src: vault_password.j2
+    dest: ~/Playbooks/.vault_pass
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "600"
+
+- name: Add labels to hard drives
+  become: yes
+  shell: "e2label {{ item.path }} {{ item.label }}"
+  with_items:
+    - path: /dev/sda
+      label: Movies
+    - path: /dev/sdb
+      label: TV
+    - path: /dev/nvme0n1
+      label: Auxilary
+
+- name: Ensure /etc/fstab has proper entries
+  become: yes
+  lineinfile:
+    dest: /etc/fstab
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - regexp: "LABEL=Movies"
+      line: LABEL=Movies /mnt/movies auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Movies 0 0
+    - regexp: "LABEL=TV"
+      line: LABEL=TV /mnt/tv auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=TV%20Shows 0 0
+    - regexp: "LABEL=Auxilary"
+      line: LABEL=Auxilary /mnt/auxilary auto nosuid,nodev,nofail,x-gvfs-show,x-gvfs-name=Auxilary 0 0
+
+- name: Ensure ~/.config/autostart exists
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "755"
+  with_items:
+    - ~/.config
+    - ~/.config/autostart
+
+- name: Copy ansible-installer.desktop to ~/.config/autostart (for continuing the installation after reboot)
+  copy:
+    src: files/ubuntu/ansible-installer.desktop
+    dest: ~/.config/autostart/ansible-installer.desktop
+    mode: "700"
+
+- name: Reboot
+  become: yes
+  shell: reboot

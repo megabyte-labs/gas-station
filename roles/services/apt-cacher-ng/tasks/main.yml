@@ -1,4 +1,18 @@
 ---
-- name: Continue installation if on a supported platform
-  include_tasks: install-continue.yml
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_os_family == 'Debian'
+
+- name: Include tasks based on the operating system
+  become: yes
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when:
+    - install_apt_cacher
+    - ansible_os_family == 'Debian'
+
+- name: Configure apt to use AptCacherNG endpoint
+  become: yes
+  block:
+    - include_tasks: "client-{{ ansible_os_family }}.yml"
   when: ansible_os_family == 'Debian'

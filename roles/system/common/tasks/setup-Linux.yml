@@ -33,11 +33,19 @@
 - name: Check if boot loading image (Plymouth) is already present
   stat:
     path: "{{ plymouth_themes_dir }}/{{ plymouth_theme }}/{{ plymouth_theme }}.plymouth"
-  register: plymouth_theme
+  register: plymouth_theme_info
 
 - name: Customize boot loading image (Plymouth)
   include_tasks: linux/plymouth.yml
-  when: not plymouth_theme.stat.exists
+  when: not plymouth_theme_info.stat.exists
 
 - name: Configure swap
   include_tasks: linux/swap.yml
+
+- name: Ensure auto-login is enabled
+  include_tasks: linux/autologin-enable.yml
+  when: autologin_enabled
+
+- name: Ensure auto-login is disabled
+  include_tasks: linux/autologin-disable.yml
+  when: not autologin_enabled

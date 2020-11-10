@@ -5,7 +5,7 @@ Ansible Role: NGINX Optimized
 
 In its entireity, this role will:
 
-* Install [NGINX](https://www.nginx.com/) and load an optimized set of base configurations that improve security and performance. You can customize this set of base configurations by cloning the linked repository and pointing the variable `optimized_nginx_repository` to your repository.
+* Install [NGINX](https://www.nginx.com/) and load an optimized set of base configurations that improve security and performance. You can customize this set of base configurations by cloning the linked repository and pointing the variable `nginx_config_repository` to your repository.
 * Provide a way to easily manage site configurations by allowing you to store your .conf files in your Playbook
 * Install [NGINX Amplify](https://www.nginx.com/products/nginx-amplify/) for performance metrics monitoring
 * Automatically encrypt a wildcard SSL certificate so that you can provide properly signed HTTPS certificates for all of `*.lab.myhome.com` domains, for example
@@ -39,14 +39,14 @@ Role Variables
 You can customize the following variables which are viewable in `defaults/main.yml`:
 
 ```
-nginx_config_path: files/nginx        # Path to the .conf files in your Playbook
-nginx_sites_available: []             # List of .conf files for NGINX to have ready
-nginx_sites_enabled: []               # List of .conf files for NGINX to serve
-nginx_clear_sites_available: no       # Whether or not to remove all the existing symlinks in sites-available when running this role
-nginx_clear_sites_enabled: no         # Whether or not to remove all the current configs in sites-enabled when this role runs
-#nginx_amplify_api_key:               # Fill this in with your NGINX Amplify API key to enable this service
-optimized_nginx_repository: https://gitlab.com/megabyte-space/cloud/nginx.git # Repository to use for the base nginx configurations/snippets
-optimized_nginx_repository_version: master                                    # Repository branch to use
+nginx_config_path: files/nginx              # Path to the .conf files in your Playbook
+nginx_sites_available: []                   # List of .conf files for NGINX to have ready
+nginx_sites_enabled: []                     # List of .conf files for NGINX to serve
+nginx_clear_sites_available: no             # Whether or not to remove all the existing symlinks in sites-available when running this role
+nginx_clear_sites_enabled: no               # Whether or not to remove all the current configs in sites-enabled when this role runs
+#nginx_amplify_api_key:                     # Fill this in with your NGINX Amplify API key to enable this service
+nginx_config_repository: https://gitlab.com/megabyte-space/cloud/nginx.git # Repository to use for the base nginx configurations/snippets
+nginx_config_repository_version: master     # Repository branch to use
 ```
 
 There are more configurations to modify if you would like to configure an SSL wildcard or disable/enable the Brotli compression NGINX modules.

@@ -1,4 +1,17 @@
 ---
-- name: Continue with the KVM installation if the system is Mac OS X or Linux
-  include_tasks: continue.yml
-  when: ansible_system == 'Linux' or ansible_system == 'MacOSX'
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_system == 'Linux'
+
+- name: Include tasks based on the operating system
+  become: yes
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when: ansible_system == 'Linux'
+
+- name: Run user-specific tasks # TODO: Only run the installation process if the computer supports virtualization
+  include_tasks: "user-{{ ansible_os_family }}.yml"
+  loop: "{{ user_configs }}"
+  loop_control:
+    loop_var: user
+  when: ansible_system == 'Linux'

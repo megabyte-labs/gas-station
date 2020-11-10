@@ -1,4 +1,6 @@
 ---
+certbot_admin_email: email@example.com
+
 # Certbot auto-renew cron job configuration (for certificate renewals).
 certbot_auto_renew: true
 certbot_auto_renew_user: "{{ ansible_user }}"
@@ -7,9 +9,6 @@ certbot_auto_renew_minute: "30"
 certbot_auto_renew_options: "--quiet --no-self-upgrade"
 
 # Parameters used when creating new Certbot certs.
-certbot_create_if_missing: false
-certbot_create_method: standalone
-certbot_admin_email: email@example.com
 certbot_certs: []
 # - email: janedoe@example.com
 #   domains:
@@ -17,22 +16,16 @@ certbot_certs: []
 #     - example2.com
 # - domains:
 #     - example3.com
-certbot_create_command: >-
-  {{ certbot_script }} certonly --standalone --noninteractive --agree-tos
-  --email {{ cert_item.email | default(certbot_admin_email) }}
-  -d {{ cert_item.domains | join(',') }}
-
-certbot_create_standalone_stop_services:
+certbot_create_command: "certbot certonly --noninteractive --dns-cloudflare --agree-tos --email {{ cert_item.email | default(certbot_admin_email) }} -d {{ cert_item.domains | join(',') }}" # This command is used to generate wildcard certificates automatically by providing a CloudFlare API Token
+certbot_create_if_missing: yes              # Wheter or not to generate certificates when they have not been generated yet
+certbot_create_method: standalone
+certbot_create_standalone_stop_services:    # Services to stop before creating a certificate
   - nginx
-  # - apache
-  # - varnish
 
 # To install from source (on older OSes or if you need a specific or newer
 # version of Certbot), set this variable to `yes` and configure other options.
-certbot_install_from_source: false
-certbot_repo: https://github.com/certbot/certbot.git
-certbot_version: master
-certbot_keep_updated: true
-
-# Where to put Certbot when installing from source.
-certbot_dir: /opt/certbot
+certbot_dir: /opt/certbot                   # Where to put Certbot when installing from source
+certbot_install_from_source: yes            # Whether or not to install from source - installing from source allows you to grab the latest code
+certbot_keep_updated: yes                   # Whether or not to update Certbot with the latest code/package
+certbot_repo: https://github.com/certbot/certbot.git # Certbot repository
+certbot_version: master                     # Branch to retrieve the code from

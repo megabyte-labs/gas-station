@@ -1,0 +1,22 @@
+---
+- name: Check if the application is installed
+  stat:
+    path: "/Applications/{{ item.name }}.app"
+  register: app_path
+  when: ansible_os_family == 'Darwin'
+
+- name: Delete existing application if configured to do so
+  file:
+    path: "/Applications/{{ item.name }}.app"
+    state: absent
+  when:
+    - force_reinstall
+    - ansible_os_family == 'Darwin'
+
+- name: Continue tasks if forcing the installation or if the app does not exist in the Applications folder
+  become: yes
+  block:
+    - include_tasks: continue.yml
+  when:
+    - (not app_path.stat.exists) or (force_reinstall)
+    - ansible_os_family == 'Darwin'

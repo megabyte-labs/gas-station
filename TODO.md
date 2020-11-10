@@ -22,6 +22,7 @@
 * Ensure common settings for RedHat repos
 * Add SSH config for GitLab and others
 * Swap out https:// for http://HTTPS///
+* Add snap role
 
 # Host Services
 

@@ -41,7 +41,7 @@
 
 - name: Reboot if required
   win_reboot:
-    post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
+    post_reboot_delay: 14
   when: needs_reboot
 
 - name: Remove unnecessary APPX packages
@@ -50,11 +50,13 @@
     Get-AppxProvisionedPackage -Online | where {$_.PackageName -like "{{ item }}"} | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction SilentlyContinue;
   with_items: "{{ windows_appx_removals | default([]) }}"
 
-- name: Install APPX packages # TODO Figure out how to automatically install appx files
+- name: Install APPX packages
+  debug:
+    msg: "TODO: Figure out how to install APPX packages from the Microsoft Store"
   with_items: "{{ windows_appx_installs }}"
 
 - name: Install git
-  win_chocolatey:
+  chocolatey.chocolatey.win_chocolatey:
     name: git
     params: /GitAndUnixToolsOnPath /WindowsTerminal /NoShellIntegration /NoCredentialManager /SChannel
     state: present
@@ -66,7 +68,7 @@
     name: windows-startmenu
 
 - name: Install Bandizip
-  win_chocolatey:
+  chocolatey.chocolatey.win_chocolatey:
     name: bandizip
     state: present
 
@@ -92,16 +94,16 @@
     state: absent
 
 - name: Install PuTTY
-  win_chocolatey:
+  chocolatey.chocolatey.win_chocolatey:
     name: putty
     state: present
 
 - name: Install Scoop
   block:
     - name: Install Scoop
-      ansible.windows.win_shell: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+      win_shell: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
     - name: Update Scoop
-      ansible.windows.win_shell: scoop update
+      win_shell: scoop update
     - name: Install Scoops
       community.windows.win_scoop:
         name: "{{ windows_scoop_packages }}"

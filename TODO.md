@@ -19,7 +19,6 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 * Add role that installs snapd on any Linux system
 * Add obfuscation to docker-compose-backup
 * Add SSH config for GitLab
-* Swap out https:// for http://HTTPS///
 * Create machine NGINX profile with the following apps:
   * Adminer
   * Cockpit
@@ -34,6 +33,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 * Create configurations necessary for unattended installations
 * Fix StatPing
 * Make HTPC Docker Compose use bundled WireGuard VPN
+* Symlink NextCloud to include all files
 
 ## pfSense TODOs
 

@@ -1,5 +1,9 @@
 # ProfessorManhattan's Playbook
 
+This playbook is for paranoid developers - the kind of developer that reformats their computer every couple weeks. Its' primary purpose is to set up an array of computers with the *best* software. After you reformat any of your computers, you can run this playbook which will automatically install and configure *dozens* of useful programs, apps, and services that make development and power-using easier.
+
+* List of software/services/apps here (coming soon)
+
 It is easiest to install this Playbook on **Ubuntu**. To run the playbook on Ubuntu, run the following command in your terminal:
 
 ```console

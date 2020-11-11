@@ -6,6 +6,26 @@ It is easiest to install this Playbook on **Ubuntu**. To run the playbook on Ubu
 bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh)
 ```
 
+## Linting
+
+There are two different linting tools used in this playbook. They are **ansible-lint** and **yamllint**. ansible-lint lint offers code suggestions related to Ansible best practices and yamllint offers generic code suggestions for .yml files.
+
+### yamllint Instructions
+
+First off, you need to install yamllint. This requires Python to be installed. Here's a sample set of commands that will get you set up on Ubuntu 20.04:
+
+```
+sudo apt get python3 python3-pip
+pip3 install yamllint
+```
+
+After you have Python and yamllint installed, you can start linting:
+
+1. Go to the root of the project
+2. Run the command `yamllint .`
+
+You should see any linting errors that were found. After you fix some of the errors, commit your changes to the `yamllint` branch. This will allow multiple developers to fix errors at the same time (and prevent double work) since your working directory will be linked to the same repository. In general, you can fix all of the errors except for the *line too long* error - suggestions on addressing this error are welcome.
+
 ## Windows
 
 ### Windows 10 Controller

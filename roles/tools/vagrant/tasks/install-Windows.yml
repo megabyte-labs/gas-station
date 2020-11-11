@@ -29,3 +29,32 @@
   win_path:
     elements: "{{ vagrant_destination_dir }}\\bin"
     state: present
+
+- name: Check if the license file is available on the controller
+  stat:
+    path: "{{ license_local_path }}"
+  register: license_local_file
+  delegate_to: localhost
+
+- name: Install the Vagrant VMWare desktop plugin and add license
+  block:
+    - name: Copy the license file to the target
+      copy:
+        src: "{{ license_local_path }}"
+        dest: "{{ license_remote_path }}"
+
+    - name: Install the Vagrant VMWare desktop plugin
+      win_chocolatey:
+        name: vagrant-vmware-utility
+        state: latest
+
+    - name: Install the licesnse for Vagrant VMWare desktop plugin
+        shell: "vagrant plugin license vagrant-vmware-desktop-license {{ license_remote_path_win }}"
+
+    - name: Remove the license file from target
+      file:
+        path: "{{ license_remote_path_win }}"
+        state: absent
+  when:
+    - license_local_file.stat.exists
+    - vagrant_vmware_support

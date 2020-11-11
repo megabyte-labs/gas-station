@@ -4,19 +4,17 @@
 
 - name: Add certificate to keystore
   become: yes
-  shell: |
-    cd "/Users/{{ ansible_user }}/.docker/certs.d"
-    security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.pem
+  command: security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.pem
+  args:
+    chdir: "/Users/{{ ansible_user }}/.docker/certs.d"
 
 - name: Create daemon.json
-  shell: |
-    echo "{
-    hosts = "tcp://0.0.0.0:2376";
-    tlsverify = $true;
-    tlscacert = "/Users/{{ ansible_user }}/.docker/certs.d/ca.pem";
-    tlscert = "/Users/{{ ansible_user }}/.docker/certs.d/docker-server-cert.pem";
-    tlskey = "/Users/{{ ansible_user }}/.docker/certs.d/docker-server-key.pem"
-    }" > /Users/{{ ansible_user }}/.docker/daemon.json
+  template:
+    src: daemon.json.j2 # TODO: This JSON file is not formatted like regular JSON - is this on purpose?
+    dest: "/Users/{{ ansible_user }}/.docker/daemon.json"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    mode: "600" # TODO: Is this the right permission level?
 
 - name: Copy certificates to the ~/.docker folder on the machine running Ansible
   fetch:
@@ -32,3 +30,5 @@
 
 - name: Restart the Docker Desktop app
   shell: osascript -e 'quit app "Docker"'; open --background -a Docker
+  args:
+    warn: no

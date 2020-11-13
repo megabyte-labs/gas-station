@@ -1,0 +1,27 @@
+---
+- name: Install AppImages
+  become: true
+  become_user: "{{ user.username }}"
+  block:
+    - include_tasks: appimages-Linux.yml
+
+- name: Run necessary systemctl commands # TODO: Figure out if there is better Ansible syntax for this command
+  become: true
+  become_user: "{{ user.username }}"
+  command: systemctl --user add-wants default.target appimaged
+
+- name: Run necessary systemctl command # TODO: Same as above
+  become: true
+  become_user: "{{ user.username }}"
+  command: systemctl --user start appimaged
+
+- name: Apply user dconf settings
+  become: true
+  become_user: "{{ user.username }}"
+  community.general.dconf:
+    key: "{{ item.key | string }}"
+    value: "{{ item.value | string }}"
+    state: present
+  loop: "{{ user.dconf_settings }}"
+  loop_control:
+    label: "{{ item.key }}"

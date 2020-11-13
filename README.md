@@ -30,6 +30,37 @@ After you have Python and yamllint installed, you can start linting:
 
 You should see any linting errors that were found. After you fix some of the errors, commit your changes to the `yamllint` branch. This will allow multiple developers to fix errors at the same time (and prevent double work) since your working directory will be linked to the same repository. In general, you can fix all of the errors except for the _line too long_ error - suggestions on addressing this error are welcome.
 
+### ansible-lint Instructions
+
+First, install ansible-lint:
+
+```
+sudo apt get python3 python3-pip
+pip3 install ansible-base
+pip3 install ansible-lint
+```
+
+After ansible-lint is installed, you can see the ansible-lint errors by running `ansible-lint` in the root directory. Some of the errors are self-expanatory and easy to fix. Other errors might require testing and research. Tips on fixing the trickier errors are listed below.
+
+#### [208] File permissions unset or incorrect
+
+Do some research and figure out the minimum necessary permissions for the file. After you change the permission, test the role.
+
+#### [301] Commands should not change things if nothing needs doing
+
+This error will go away if you tell Ansible what files the command creates or deletes. Ansible will check if the command has already created or deleted a file and only run the command if the system appears to be in the desired state. You should look at the [documentation for command](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/command_module.html). Here's a quick example that will get rid of this lint error:
+
+```
+- name: Run command if /path/to/database does not exist (with 'args' keyword)
+  command: /usr/bin/make_database.sh db_user db_name
+  args:
+    creates: /path/to/database # If the command deletes something, then you can swap out creates with removes
+```
+
+#### [305] Use shell only when shell functionality is required
+
+We should only be using Ansible's shell feature when absolutely necessary. First, test whether or not the role works by replacing shell: with command:. If it works, then change it to command. If it does not, then add a comment at the end of the line that says `# noqa 305`.
+
 ## Windows
 
 ### Windows 10 Controller

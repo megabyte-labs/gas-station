@@ -1,54 +1,62 @@
 ---
 - name: Ensure install-gnome-extensions dependencies are installed
   apt:
-    name:
-      - curl
-      - jq
-      - sed
-      - unzip
-      - wget
+    name: "{{ gnome_extensions_installer_dependencies }}"
     state: present
 
 - name: Copy install-gnome-extensions executable
   copy:
-    src: install-gnome-extensions.sh
     dest: /usr/local/bin/install-gnome-extensions
-    owner: root
     group: root
     mode: "0755"
-
-- name: Create a file with the GNOME extensions to be installed
-  copy:
-    dest: /tmp/install-gnome-extensions
-    content: "{{ item.extensions }}"
     owner: root
-    group: root
-    mode: "755"
+    src: install-gnome-extensions.sh
+
+- name: Determine which GNOME extensions are already installed (user)
+  become: yes
+  become_user: "{{ user.username }}"
+  shell: ls ~/.local/share/gnome-shell/extensions/
+  changed_when: false
+  register: user_gnome_extensions
+
+- name: Configure install list for the GNOME extension installer
+  include_tasks: GNOME-list.yml
+  with_items: "{{ user.extensions | default([]) }}"
+  loop_control:
+    label: "{{ item.url }}"
+
+- name: Determine whether or not an install file was created
+  stat:
+    path: /tmp/install-gnome-extensions.txt
+  register: install_gnome_extensions
 
 - name: "Give {{ user.username }} passwordless sudo priviledges"
   lineinfile:
+    line: "{{ user.username }} ALL=(ALL) NOPASSWD: ALL"
     path: /etc/sudoers
     regex: "^{{ user.username }}"
-    line: "{{ user.username }} ALL=(ALL) NOPASSWD: ALL"
+  when: install_gnome_extensions.stat.exists
 
 - name: Run the installer
   become: yes
-  become_user: "{{ user.username }}" # TODO: Add conditional logic so this does not run twice unless extensions changed
-  command: install-gnome-extensions --enable --overwrite --file /tmp/install-gnome-extensions
-
-- name: Remove the GNOME extensions installer list file
-  file:
-    path: /tmp/install-gnome-extensions
-    state: absent
+  become_user: "{{ user.username }}"
+  command: install-gnome-extensions --enable --overwrite --file /tmp/install-gnome-extensions.txt
+  when: install_gnome_extensions.stat.exists
 
 - name: "Remove {{ user.username }}'s passwordless sudo priviledges"
   lineinfile:
+    line: "{{ user.username }} ALL=(ALL) ALL"
     path: /etc/sudoers
     regex: "^{{ user.username }}"
-    line: "{{ user.username }} ALL=(ALL) ALL"
+  when: install_gnome_extensions.stat.exists
 
-- name: Apply extension settings # TODO: Conditional logic - same as TODO above
-  become: yes
-  become_user: "{{ user.username }}"
-  command: "{{ item }}"
-  with_items: "{{ user.settings }}"
+- name: Remove the GNOME extensions installer list file
+  file:
+    path: /tmp/install-gnome-extensions.txt
+    state: absent
+
+- name: Apply extension settings
+  include_tasks: GNOME-settings.yml
+  with_items: "{{ user.extensions | default([]) }}"
+  loop_control:
+    label: "{{ item.url }}"

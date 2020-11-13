@@ -1,27 +1,27 @@
 - name: Install pip
   pacman:
     name: python-pip
-    state: latest 
+    state: present
 
-- name: Install docker pip package 
+- name: Install docker pip package
   pip:
-    name: docker 
-    state: latest 
+    name: docker
+    state: present
 
-- name: Pull netdata image 
+- name: Pull netdata image
   docker_image:
     name: netdata/netdata
-    source: pull 
+    source: pull
 
-- name: Create required volumes 
+- name: Create required volumes
   docker_volume:
     name: "{{ item }}"
   loop: "{{ docker_volume_list }}"
 
-- name: Run netdata docker container 
+- name: Run netdata docker container
   docker_container:
-    name: netdata 
-    image: netdata/netdata 
+    name: netdata
+    image: netdata/netdata
     restart_policy: unless-stopped
     capabilities:
     - SYS_PTRACE
@@ -29,11 +29,11 @@
     - 19999:19999
     volumes:
     - netdataconfig:/etc/netdata
-    - netdatalib:/var/lib/netdata 
+    - netdatalib:/var/lib/netdata
     - netdatacache:/var/cache/netdata
     mounts:
     - source: "{{ item.host_path }}"
       target: "{{ item.container_path }}"
-      type: bind 
-      read_only : True 
+      type: bind
+      read_only : True
   loop: "{{ bind_volumes }}"

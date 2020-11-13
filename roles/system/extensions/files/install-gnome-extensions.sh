@@ -5,7 +5,7 @@
    #             GNOME Shell Extension Installer v1.2.1            #
    #                                                               #
    #  A simple (scriptable) way to install GNOME Shell Extensions! #
-   #                                                               #      
+   #                                                               #
    #       Author: Cyrus Frost                                     #
    #       License: MIT                                            #
    #                                                               #
@@ -95,7 +95,7 @@ function IsEnvGNOME(){
     fi
 
     desktop=${desktop,,}
- 
+
     if [[ $desktop == *"gnome"* ]]; then
         return 0
     else
@@ -124,7 +124,7 @@ INSTALLED_EXTs=$(printf '%s\n' "${array[@]}");
 }
 
 function install_shell_extensions(){
-    
+
     for ext_id in "${EXTENSIONS_TO_INSTALL[@]}"; do
 
         request_url="https://extensions.gnome.org/extension-info/?pk=$ext_id&shell_version=$GNOME_SHELL_VERSION";
@@ -134,7 +134,7 @@ function install_shell_extensions(){
             printf "\n${error_text}Error: No extension exists matching the ID: $ext_id and GNOME Shell version $GNOME_SHELL_VERSION (Skipping this).\n";
             continue;
         fi
-        
+
         printf "${normal_text}\n";
         ext_info="$(curl -s "$request_url")";
         extension_name="$(echo "$ext_info" | jq -r '.name')"
@@ -177,7 +177,7 @@ function install_shell_extensions(){
         if [ ! "$ENABLE_ALL" = "false" ]; then
             enable_extension "$ext_uuid"
         fi
-        
+
         printf "${info_text_blue}Done!\n${normal_text}";
     done
     printf "\n";
@@ -197,7 +197,7 @@ function print_usage(){
 
 
 printf "
-Usage: ./install-gnome-extensions.sh [options] <extension_ids> | [links_file] 
+Usage: ./install-gnome-extensions.sh [options] <extension_ids> | [links_file]
 Options:
     -e, --enable        Enable extension after installing it.
     -u, --update        Updates existing extensions to latest available versions.
@@ -208,7 +208,7 @@ Options:
 Example usages:
 ---------------
 1) ./install-gnome-extensions.sh 6 8 19 --enable
-    
+
     Installs and enables extensions with IDs 6, 8, and 19.
 2) ./install-gnome-extensions.sh -e --file links.txt
     Installs and enables the extensions from the URLs specified in "links.txt" file.
@@ -240,7 +240,7 @@ function install_exts_from_links_file(){
     trim_file $file
 
     printf "\nParsing file \"$file\" for extension links...\n"
-    
+
     while IFS="" read -r p || [ -n "$p" ]; do
         url="$(echo "$p" | sed '/^[[:space:]]*$/d')"
         ext_id="$(echo "$url" | tr '\n' ' ' | sed -e 's/[^0-9]/ /g' -e 's/^ *//g' -e 's/ *$//g' | tr -s ' ' | awk '{print $1;}')"
@@ -269,19 +269,19 @@ while test $# -gt 0; do
         -e|--enable)
             ENABLE_ALL=true
             ;;
-        -u|--update) 
+        -u|--update)
             UPDATE=true
             ;;
-        -o|--overwrite) 
+        -o|--overwrite)
             OVERWRITE_EXISTING=true
             ;;
-        -h|--help) 
+        -h|--help)
             print_usage; exit 0;
             ;;
-        -l|--list) 
+        -l|--list)
             get_installed_extensions_list; printf "\n============================\nInstalled extensions (UUIDs)\n============================\n\n$INSTALLED_EXTs\n\n$INSTALLED_EXT_COUNT extensions are installed.\n\nDone!\n\n"; exit 0;
             ;;
-        -f|--file) 
+        -f|--file)
             install_exts_from_links_file "$2";
             ;;
     esac

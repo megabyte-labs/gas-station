@@ -39,22 +39,22 @@ description:
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   kdc:
     description: The name or address of the host running the KDC
-    required: no
+    required: false
   kinit_attempts:
     description: Repeat the request for host Kerberos ticket X times
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

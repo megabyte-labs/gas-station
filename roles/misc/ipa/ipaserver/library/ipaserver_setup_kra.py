@@ -38,22 +38,22 @@ description: Setup KRA
 options:
   dm_password:
     description: Directory Manager password
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   setup_ca:
     description: Configure a dogtag CA
-    required: no
+    required: false
   setup_kra:
     description: Configure a dogtag KRA
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   pki_config_override:
     description: Path to ini file with config overrides
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

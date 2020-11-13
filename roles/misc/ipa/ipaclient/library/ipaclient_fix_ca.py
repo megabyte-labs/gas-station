@@ -34,18 +34,18 @@ description: Repair Fix IPA ca certificate
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   basedn:
     description: The basedn of the IPA server (of the form dc=example,dc=com)
-    required: no
+    required: false
   allow_repair:
     description: |
       Allow repair of already joined hosts. Contrary to ipaclient_force_join
       the host entry will not be changed on the server
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''
@@ -56,7 +56,7 @@ EXAMPLES = '''
     servers: ["server1.example.com","server2.example.com"]
     realm: EXAMPLE.COM
     basedn: dc=example,dc=com
-    allow_repair: yes
+    allow_repair: true
 '''
 
 RETURN = '''

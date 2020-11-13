@@ -37,13 +37,13 @@ description:
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   sssd:
     description: The installer sssd setting
-    required: yes
+    required: true
   automount_location:
     description: The automount location
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

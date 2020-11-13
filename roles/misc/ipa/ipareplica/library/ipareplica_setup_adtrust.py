@@ -39,40 +39,40 @@ description:
 options:
   setup_kra:
     description: Configure a dogtag KRA
-    required: yes
+    required: true
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: no
+    required: false
   enable_compat:
     description: Enable support for trusted domains for old clients
-    required: yes
+    required: true
   rid_base:
     description: Start value for mapping UIDs and GIDs to RIDs
-    required: yes
+    required: true
   secondary_rid_base:
     description:
       Start value of the secondary range for mapping UIDs and GIDs to RIDs
-    required: yes
+    required: true
   adtrust_netbios_name:
     description: The adtrust netbios_name setting
-    required: no
+    required: false
   adtrust_reset_netbios_name:
     description: The adtrust reset_netbios_name setting
-    required: no
+    required: false
   ccache:
     description: The local ccache
-    required: no
+    required: false
   _top_dir:
     description: The installer _top_dir setting
-    required: no
+    required: false
   setup_ca:
     description: Configure a dogtag CA
-    required: no
+    required: false
   config_master_host_name:
     description: The config master_host_name setting
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

@@ -38,13 +38,13 @@ description: Setup OTPD
 options:
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   setup_ca:
     description: Configure a dogtag CA
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

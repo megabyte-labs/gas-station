@@ -37,19 +37,19 @@ description:
 options:
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   basedn:
     description: The basedn of the IPA server (of the form dc=example,dc=com)
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

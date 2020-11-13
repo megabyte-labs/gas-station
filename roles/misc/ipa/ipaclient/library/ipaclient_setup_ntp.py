@@ -37,22 +37,22 @@ description:
 options:
   ntp_servers:
     description: ntp servers to use
-    required: yes
+    required: true
   ntp_pool:
     description: ntp server pool to use
-    required: yes
+    required: true
   no_ntp:
     description: Do not configure ntp
-    required: yes
+    required: true
   on_master:
     description: Whether the configuration is done on the master or not
-    required: yes
+    required: true
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: yes
+    required: true
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

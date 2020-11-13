@@ -38,111 +38,111 @@ description: Prepare IPA server deployment
 options:
   force:
     description: Installer force parameter
-    required: yes
+    required: true
   dm_password:
     description: Directory Manager password
-    required: no
+    required: false
   password:
     description: Admin user kerberos password
-    required: no
+    required: false
   ip_addresses:
     description: List of Master Server IP Addresses
-    required: yes
+    required: true
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   ca_cert_files:
     description:
       List of files containing CA certificates for the service certificate
       files
-    required: yes
+    required: true
   no_host_dns:
     description: Do not use DNS for hostname lookup during installation
-    required: yes
+    required: true
   setup_adtrust:
     description: Configure AD trust capability
-    required: yes
+    required: true
   setup_kra:
     description: Configure a dogtag KRA
-    required: yes
+    required: true
   setup_dns:
     description: Configure bind with our zone
-    required: yes
+    required: true
   external_ca:
     description: External ca setting
-    required: yes
+    required: true
   external_ca_type:
     description: Type of the external CA
-    required: yes
+    required: true
   external_ca_profile:
     description:
       Specify the certificate profile/template to use at the external CA
-    required: yes
+    required: true
   external_cert_files:
     description:
       File containing the IPA CA certificate and the external CA certificate
       chain
-    required: yes
+    required: true
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: yes
+    required: true
   ca_subject:
     description: The installer ca_subject setting
-    required: yes
+    required: true
   allow_zone_overlap:
     description: Create DNS zone even if it already exists
-    required: yes
+    required: true
   reverse_zones:
     description: The reverse DNS zones to use
-    required: yes
+    required: true
   no_reverse:
     description: Do not create new reverse DNS zone
-    required: yes
+    required: true
   auto_reverse:
     description: Create necessary reverse zones
-    required: yes
+    required: true
   forwarders:
     description: Add DNS forwarders
-    required: yes
+    required: true
   no_forwarders:
     description: Do not add any DNS forwarders, use root servers instead
-    required: yes
+    required: true
   auto_forwarders:
     description: Use DNS forwarders configured in /etc/resolv.conf
-    required: yes
+    required: true
   forward_policy:
     description: DNS forwarding policy for global forwarders
-    required: yes
+    required: true
   no_dnssec_validation:
     description: Disable DNSSEC validation
-    required: yes
+    required: true
   enable_compat:
     description: Enable support for trusted domains for old clients
-    required: yes
+    required: true
   netbios_name:
     description: NetBIOS name of the IPA domain
-    required: yes
+    required: true
   rid_base:
     description: Start value for mapping UIDs and GIDs to RIDs
-    required: yes
+    required: true
   secondary_rid_base:
     description:
       Start value of the secondary range for mapping UIDs and GIDs to RIDs
-    required: yes
+    required: true
   setup_ca:
     description: Configure a dogtag CA
-    required: yes
+    required: true
   _hostname_overridden:
     description: The installer _hostname_overridden setting
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

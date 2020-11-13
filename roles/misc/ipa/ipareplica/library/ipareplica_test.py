@@ -36,86 +36,86 @@ description: IPA replica deployment tests
 options:
   ip_addresses:
     description: List of Master Server IP Addresses
-    required: yes
+    required: true
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: yes
+    required: true
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: yes
+    required: true
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: yes
+    required: true
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   ca_cert_files:
     description:
       List of files containing CA certificates for the service certificate
       files
-    required: yes
+    required: true
   hidden_replica:
     description: Install a hidden replica
-    required: yes
+    required: true
   setup_adtrust:
     description: Configure AD trust capability
-    required: yes
+    required: true
   setup_kra:
     description: Configure a dogtag KRA
-    required: yes
+    required: true
   setup_dns:
     description: Configure bind with our zone
-    required: yes
+    required: true
   no_pkinit:
     description: Disable pkinit setup steps
-    required: yes
+    required: true
   dirsrv_config_file:
     description:
       The path to LDIF file that will be used to modify configuration of
       dse.ldif during installation of the directory server instance
-    required: yes
+    required: true
   dirsrv_cert_files:
     description:
       Files containing the Directory Server SSL certificate and private key
-    required: yes
+    required: true
   http_cert_files:
     description:
       File containing the Apache Server SSL certificate and private key
-    required: yes
+    required: true
   pkinit_cert_files:
     description:
       File containing the Kerberos KDC SSL certificate and private key
-    required: yes
+    required: true
   no_ntp:
     description: Do not configure ntp
-    required: yes
+    required: true
   ntp_servers:
     description: ntp servers to use
-    required: yes
+    required: true
   ntp_pool:
     description: ntp server pool to use
-    required: yes
+    required: true
   no_reverse:
     description: Do not create new reverse DNS zone
-    required: yes
+    required: true
   auto_reverse:
     description: Create necessary reverse zones
-    required: yes
+    required: true
   forwarders:
     description: Add DNS forwarders
-    required: yes
+    required: true
   no_forwarders:
     description: Do not add any DNS forwarders, use root servers instead
-    required: yes
+    required: true
   auto_forwarders:
     description: Use DNS forwarders configured in /etc/resolv.conf
-    required: yes
+    required: true
   forward_policy:
     description: DNS forwarding policy for global forwarders
-    required: yes
+    required: true
   no_dnssec_validation:
     description: Disable DNSSEC validation
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

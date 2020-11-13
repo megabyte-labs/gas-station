@@ -37,51 +37,51 @@ description:
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   on_master:
     description: Whether the configuration is done on the master or not
-    required: yes
+    required: true
   no_ssh:
     description: Do not configure OpenSSH client
-    required: yes
+    required: true
   no_sshd:
     description: Do not configure OpenSSH server
-    required: yes
+    required: true
   no_sudo:
     description: Do not configure SSSD as data source for sudo
-    required: yes
+    required: true
   all_ip_addresses:
     description:
       All routable IP addresses configured on any interface will be added
       to DNS
-    required: yes
+    required: true
   fixed_primary:
     description: Configure sssd to use fixed server as primary IPA server
-    required: yes
+    required: true
   permit:
     description: Disable access rules by default, permit all access
-    required: yes
+    required: true
   enable_dns_updates:
     description:
       Configures the machine to attempt dns updates when the ip address
       changes
-    required: yes
+    required: true
   preserve_sssd:
     description: Preserve old SSSD configuration if possible
-    required: yes
+    required: true
   no_krb5_offline_passwords:
     description:
       Configure SSSD not to store user password when the server is offline
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''
@@ -93,7 +93,7 @@ EXAMPLES = '''
     domain: example.com
     realm: EXAMPLE.COM
     hostname: client1.example.com
-    no_krb5_offline_passwords: yes
+    no_krb5_offline_passwords: true
 '''
 
 RETURN = '''

@@ -72,7 +72,7 @@
 
     - name: Install - Make sure One-Time Password is enabled if it's already defined
       set_fact:
-        ipaclient_use_otp: "yes"
+        ipaclient_use_otp: "true"
       when: ipaclient_otp is defined
 
     - name: Install - Disable One-Time Password for on_master
@@ -111,7 +111,7 @@
           when: ipaadmin_keytab is undefined and ipaadmin_password is undefined
 
         - name: Install - Get One-Time Password for client enrollment
-          no_log: yes
+          no_log: true
           ipaclient_get_otp:
             state: present
             principal: "{{ ipaadmin_principal | default(omit) }}"
@@ -127,16 +127,16 @@
             "Password cannot be set on enrolled host" not
             in result_ipaclient_get_otp.msg
           delegate_to: "{{ result_ipaclient_test.servers[0] }}"
-          ignore_errors: yes
+          ignore_errors: true
 
         - name: Install - Report error for OTP generation
           debug:
             msg: "{{ result_ipaclient_get_otp.msg }}"
           when: result_ipaclient_get_otp is failed
-          failed_when: yes
+          failed_when: true
 
         - name: Install - Store the previously obtained OTP
-          no_log: yes
+          no_log: true
           set_fact:
             ipaadmin_orig_password: "{{ ipaadmin_password | default(omit) }}"
             ipaadmin_password: "{{ result_ipaclient_get_otp.host.randompassword
@@ -145,7 +145,7 @@
       when: ipaclient_use_otp | bool and ipaclient_otp is not defined
 
     - name: Store predefined OTP in admin_password
-      no_log: yes
+      no_log: true
       set_fact:
         ipaadmin_orig_password: "{{ ipaadmin_password | default(omit) }}"
         ipaadmin_password: "{{ ipaclient_otp }}"
@@ -281,7 +281,7 @@
             servers: "{{ result_ipaclient_test.servers }}"
             realm: "{{ result_ipaclient_test.realm }}"
             hostname: "{{ result_ipaclient_test.hostname }}"
-            # debug: yes
+            # debug: true
           register: result_ipaclient_api
 
         - name: Install - Fix IPA ca
@@ -363,7 +363,7 @@
 
   always:
     - name: Install - Restore original admin password if overwritten by OTP
-      no_log: yes
+      no_log: true
       set_fact:
         ipaadmin_password: "{{ ipaadmin_orig_password }}"
       when: ipaclient_use_otp | bool and ipaadmin_orig_password is defined

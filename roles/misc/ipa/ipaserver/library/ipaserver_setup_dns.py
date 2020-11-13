@@ -38,40 +38,40 @@ description: Setup DNS
 options:
   ip_addresses:
     description: List of Master Server IP Addresses
-    required: yes
+    required: true
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   setup_dns:
     description: Configure bind with our zone
-    required: no
+    required: false
   setup_ca:
     description: Configure a dogtag CA
-    required: no
+    required: false
   zonemgr:
     description: DNS zone manager e-mail address. Defaults to hostmaster@DOMAIN
-    required: yes
+    required: true
   forwarders:
     description: Add DNS forwarders
-    required: no
+    required: false
   forward_policy:
     description: DNS forwarding policy for global forwarders
-    required: yes
+    required: true
   no_dnssec_validation:
     description: Disable DNSSEC validation
-    required: yes
+    required: true
   dns_ip_addresses:
     description: The dns ip_addresses setting
-    required: no
+    required: false
   dns_reverse_zones:
     description: The dns reverse_zones setting
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

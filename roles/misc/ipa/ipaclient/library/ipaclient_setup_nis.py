@@ -37,10 +37,10 @@ description:
 options:
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   nisdomain:
     description: The NIS domain name
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

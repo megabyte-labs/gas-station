@@ -38,13 +38,13 @@ description: Enable IPA
 options:
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   setup_dns:
     description: Configure bind with our zone
-    required: no
+    required: false
   setup_ca:
     description: Configure a dogtag CA
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

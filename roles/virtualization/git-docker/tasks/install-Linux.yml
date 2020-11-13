@@ -1,6 +1,6 @@
 ---
 - name: Ensure git repository folder exists
-  become: yes
+  become: true
   file:
     path: "{{ item.folder }}"
     group: "{{ item.user | default(ansible_user) }}"
@@ -13,7 +13,7 @@
   register: git_folder
 
 - name: Clone the repository if it does not already exist
-  become: yes
+  become: true
   become_user: "{{ item.user | default(ansible_user) }}"
   git:
     depth: "1"
@@ -23,7 +23,7 @@
   when: not git_folder.stat.exists
 
 - name: Restore containers if the repository was freshly cloned
-  become: yes
+  become: true
   become_user: "{{ item.user | default(ansible_user) }}"
   command: docker-compose-backup restore
   args:
@@ -31,7 +31,7 @@
   when: not git_folder.stat.exists
 
 - name: Backup containers if git repository was already present
-  become: yes
+  become: true
   become_user: "{{ item.user | default(ansible_user) }}"
   command: docker-compose-backup backup
   args:
@@ -39,7 +39,7 @@
   when: git_folder.stat.exists
 
 - name: Ensure backup cron-job is in place
-  become: yes
+  become: true
   cron:
     name: "{{ item.name }} Daily Backup Job"
     minute: "0"

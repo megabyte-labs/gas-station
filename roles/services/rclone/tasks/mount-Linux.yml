@@ -1,13 +1,13 @@
 ---
 - name: Check if the Documents folder already has a folder with the rclone configuration's name
-  become: yes
+  become: true
   become_user: "{{ user.username }}"
   stat:
     path: "~/Documents/{{ item.name }}"
   register: document_link
 
 - name: Add symlink to Cloud provider
-  become: yes
+  become: true
   become_user: "{{ user.username }}"
   file:
     src: "/mnt/{{ item.provider }}"
@@ -15,7 +15,7 @@
     owner: "{{ user.username }}"
     group: "{{ user.username }}"
     state: link
-    force: yes
+    force: true
   when: not document_link.stat.exists
 
 - name: Check provider folder information
@@ -24,7 +24,7 @@
   register: provider_folder
 
 - name: Ensure provider has folder created
-  become: yes
+  become: true
   file:
     path: "/mnt/{{ item.provider }}"
     owner: "{{ user.username }}"
@@ -34,7 +34,7 @@
   when: not provider_folder.stat.exists
 
 - name: Install rclone mount services
-  become: yes
+  become: true
   template:
     src: rclone.service.j2
     dest: "{{ service_path }}/{{ item.provider }}-rclone.service"
@@ -43,8 +43,8 @@
     mode: "644"
 
 - name: Start the rclone services # TODO: Make this work on systems other than Ubuntu (systems without systemd)
-  become: yes
+  become: true
   systemd:
     name: "{{ item.provider }}-rclone.service"
     state: started
-    enabled: yes
+    enabled: true

@@ -37,7 +37,7 @@ description:
 options:
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

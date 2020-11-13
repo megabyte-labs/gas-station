@@ -40,49 +40,49 @@ description:
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   kdc:
     description: The name or address of the host running the KDC
-    required: no
+    required: false
   basedn:
     description: The basedn of the IPA server (of the form dc=example,dc=com)
-    required: no
+    required: false
   principal:
     description:
       User Principal allowed to promote replicas and join IPA realm
-    required: yes
+    required: true
   password:
     description: Admin user kerberos password
-    required: yes
+    required: true
   keytab:
     description: Path to backed up keytab from previous enrollment
-    required: yes
+    required: true
   admin_keytab:
     description: The path to a local admin keytab
-    required: yes
+    required: true
   ca_cert_file:
     description:
       A CA certificate to use. Do not acquire the IPA CA certificate via
       automated means
-    required: yes
+    required: true
   force_join:
     description: Force client enrollment even if already enrolled
-    required: yes
+    required: true
   kinit_attempts:
     description: Repeat the request for host Kerberos ticket X times
-    required: yes
+    required: true
   debug:
     description: Turn on extra debugging
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''
@@ -99,7 +99,7 @@ EXAMPLES = '''
     hostname: client1.example.com
     principal: admin
     password: MySecretPassword
-    force_join: yes
+    force_join: true
     kinit_attempts: 5
 
 # Join IPA to get the keytab using ipadiscovery return values

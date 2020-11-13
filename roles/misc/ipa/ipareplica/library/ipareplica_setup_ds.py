@@ -39,104 +39,104 @@ description:
 options:
   dm_password:
     description: Directory Manager password
-    required: yes
+    required: true
   password:
     description: Admin user kerberos password
-    required: yes
+    required: true
   ip_addresses:
     description: List of Master Server IP Addresses
-    required: yes
+    required: true
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: yes
+    required: true
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: yes
+    required: true
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   ca_cert_files:
     description:
       List of files containing CA certificates for the service certificate
       files
-    required: yes
+    required: true
   no_host_dns:
     description: Do not use DNS for hostname lookup during installation
-    required: yes
+    required: true
   setup_adtrust:
     description: Configure AD trust capability
-    required: yes
+    required: true
   setup_ca:
     description: Configure a dogtag CA
-    required: yes
+    required: true
   setup_kra:
     description: Configure a dogtag KRA
-    required: yes
+    required: true
   setup_dns:
     description: Configure bind with our zone
-    required: yes
+    required: true
   no_pkinit:
     description: Disable pkinit setup steps
-    required: yes
+    required: true
   dirsrv_config_file:
     description:
       The path to LDIF file that will be used to modify configuration of
       dse.ldif during installation of the directory server instance
-    required: yes
+    required: true
   dirsrv_cert_files:
     description:
       Files containing the Directory Server SSL certificate and private key
-    required: yes
+    required: true
   force_join:
     description: Force client enrollment even if already enrolled
-    required: yes
+    required: true
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: no
+    required: false
   server:
     description: Fully qualified name of IPA server to enroll to
-    required: no
+    required: false
   ccache:
     description: The local ccache
-    required: no
+    required: false
   installer_ccache:
     description: The installer ccache setting
-    required: no
+    required: false
   _ca_enabled:
     description: The installer _ca_enabled setting
-    required: yes
+    required: true
   _dirsrv_pkcs12_info:
     description: The installer _dirsrv_pkcs12_info setting
-    required: yes
+    required: true
   _top_dir:
     description: The installer _top_dir setting
-    required: no
+    required: false
   _add_to_ipaservers:
     description: The installer _add_to_ipaservers setting
-    required: no
+    required: false
   _ca_subject:
     description: The installer _ca_subject setting
-    required: no
+    required: false
   _subject_base:
     description: The installer _subject_base setting
-    required: no
+    required: false
   dirman_password:
     description: Directory Manager (master) password
-    required: no
+    required: false
   config_setup_ca:
     description: The config setup_ca setting
-    required: no
+    required: false
   config_master_host_name:
     description: The config master_host_name setting
-    required: no
+    required: false
   config_ca_host_name:
     description: The config ca_host_name setting
-    required: no
+    required: false
   config_ips:
     description: The config ips setting
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

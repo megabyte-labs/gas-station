@@ -38,7 +38,7 @@ description: Load cache file
 options:
   dm_password:
     description: Directory Manager password
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

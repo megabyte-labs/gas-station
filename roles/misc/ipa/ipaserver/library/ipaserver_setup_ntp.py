@@ -38,10 +38,10 @@ description: Setup NTP
 options:
   ntp_servers:
     description: ntp servers to use
-    required: yes
+    required: true
   ntp_pool:
     description: ntp server pool to use
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

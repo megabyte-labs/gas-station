@@ -36,81 +36,81 @@ description: Create IPA NSS database
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: no
+    required: false
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: no
+    required: false
   hostname:
     description: Fully qualified name of this host
-    required: no
+    required: false
   basedn:
     description: The basedn of the IPA server (of the form dc=example,dc=com)
-    required: no
+    required: false
   principal:
     description:
       User Principal allowed to promote replicas and join IPA realm
-    required: yes
+    required: true
   subject_base:
     description: |
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: no
+    required: false
   ca_enabled:
     description: Whether the Certificate Authority is enabled or not
-    required: no
+    required: false
   mkhomedir:
     description: Create home directories for users on their first login
-    required: yes
+    required: true
   on_master:
     description: Whether the configuration is done on the master or not
-    required: yes
+    required: true
   dnsok:
     description: The installer dnsok setting
-    required: yes
+    required: true
   enable_dns_updates:
     description: |
       Configures the machine to attempt dns updates when the ip address
       changes
-    required: yes
+    required: true
   all_ip_addresses:
     description: |
       All routable IP addresses configured on any interface will be added
       to DNS
-    required: yes
+    required: true
   ip_addresses:
     description: List of Master Server IP Addresses
-    required: yes
+    required: true
   request_cert:
     description: Request certificate for the machine
-    required: yes
+    required: true
   preserve_sssd:
     description: Preserve old SSSD configuration if possible
-    required: yes
+    required: true
   no_ssh:
     description: Do not configure OpenSSH client
-    required: yes
+    required: true
   no_sshd:
     description: Do not configure OpenSSH server
-    required: yes
+    required: true
   no_sudo:
     description: Do not configure SSSD as data source for sudo
-    required: yes
+    required: true
   fixed_primary:
     description: Configure sssd to use fixed server as primary IPA server
-    required: yes
+    required: true
   permit:
     description: Disable access rules by default, permit all access
-    required: yes
+    required: true
   no_krb5_offline_passwords:
     description:
       Configure SSSD not to store user password when the server is offline
-    required: yes
+    required: true
   no_dns_sshfp:
     description: Do not automatically create DNS SSHFP records
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''
@@ -125,7 +125,7 @@ EXAMPLES = '''
     hostname: client1.example.com
     subject_base: O=EXAMPLE.COM
     principal: admin
-    ca_enabled: yes
+    ca_enabled: true
 '''
 
 RETURN = '''

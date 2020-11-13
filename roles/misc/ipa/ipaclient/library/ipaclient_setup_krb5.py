@@ -37,31 +37,31 @@ description:
 options:
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: yes
+    required: true
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: yes
+    required: true
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: yes
+    required: true
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   kdc:
     description: The name or address of the host running the KDC
-    required: yes
+    required: true
   dnsok:
     description: The installer dnsok setting
-    required: yes
+    required: true
   client_domain:
     description: Primary DNS domain of the IPA deployment
-    required: yes
+    required: true
   sssd:
     description: The installer sssd setting
-    required: yes
+    required: true
   force:
     description: Installer force parameter
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

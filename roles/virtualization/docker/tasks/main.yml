@@ -3,7 +3,7 @@
   include_vars: "{{ ansible_os_family }}.yml"
 
 - name: Ensure old versions of Docker are not installed
-  become: yes
+  become: true
   block:
     - name: Ensure "docker" is not installed
       package:
@@ -20,13 +20,13 @@
   when: ansible_os_family not in ('Windows', 'Darwin')
 
 - name: Include tasks based on the operating system
-  become: yes
+  become: true
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
   when: not docker_snap_install
 
 - name: Install Docker via snap
-  become: yes
+  become: true
   community.general.snap:
     name: docker
   when:
@@ -37,19 +37,19 @@
   meta: flush_handlers
 
 - name: Install Docker Compose (based on OS)
-  become: yes
+  become: true
   block:
     - include_tasks: "compose-{{ ansible_os_family }}.yml"
   when: docker_install_compose | bool
 
 - name: Add users to the "docker" group (based on OS)
-  become: yes
+  become: true
   block:
     - include_tasks: "users-{{ ansible_os_family }}.yml"
   when: docker_users | length > 0
 
 - name: Determine whether TLS certificates need to be generated (non-Windows)
-  become: yes
+  become: true
   stat:
     path: /etc/ssl/private/docker-ca.pem
   register: docker_ca_pem

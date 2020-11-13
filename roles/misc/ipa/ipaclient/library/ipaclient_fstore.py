@@ -36,7 +36,7 @@ description: Backup files using IPA client sysrestore
 options:
   backup:
     description: File to backup
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

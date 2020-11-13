@@ -39,24 +39,24 @@ description:
 options:
   setup_kra:
     description: Configure a dogtag KRA
-    required: yes
+    required: true
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: no
+    required: false
   ccache:
     description: The local ccache
-    required: no
+    required: false
   _top_dir:
     description: The installer _top_dir setting
-    required: no
+    required: false
   config_setup_ca:
     description: The config setup_ca setting
-    required: no
+    required: false
   config_master_host_name:
     description: The config master_host_name setting
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

@@ -37,29 +37,29 @@ options:
   principal:
     description:
       User Principal allowed to promote replicas and join IPA realm
-    required: yes
+    required: true
   ccache:
     description: The local ccache
-    required: yes
+    required: true
   fqdn:
     description:
       The fully-qualified hostname of the host to add/modify/remove
-    required: no
+    required: false
   certificates:
     description: A list of host certificates
-    required: yes
+    required: true
   sshpubkey:
     description: The SSH public key for the host
-    required: yes
+    required: true
   ipaddress:
     description: The IP address for the host
-    required: yes
+    required: true
   random:
     description: Generate a random password to be used in bulk enrollment
-    required: yes
+    required: true
   state:
     description: The desired host state
-    required: yes
+    required: true
 author:
     - "Florence Blanc-Renaud"
 '''

@@ -39,48 +39,48 @@ description:
 options:
   setup_ca:
     description: Configure a dogtag CA
-    required: yes
+    required: true
   setup_kra:
     description: Configure a dogtag KRA
-    required: yes
+    required: true
   no_pkinit:
     description: Disable pkinit setup steps
-    required: yes
+    required: true
   no_ui_redirect:
     description: Do not automatically redirect to the Web UI
-    required: yes
+    required: true
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: no
+    required: false
   config_master_host_name:
     description: The config master_host_name setting
-    required: no
+    required: false
   ccache:
     description: The local ccache
-    required: no
+    required: false
   _ca_enabled:
     description: The installer _ca_enabled setting
-    required: yes
+    required: true
   _ca_file:
     description: The installer _ca_file setting
-    required: yes
+    required: true
   _kra_enabled:
     description: The installer _kra_enabled setting
-    required: yes
+    required: true
   _kra_host_name:
     description: The installer _kra_host_name setting
-    required: yes
+    required: true
   _pkinit_pkcs12_info:
     description: The installer _pkinit_pkcs12_info setting
-    required: yes
+    required: true
   _top_dir:
     description: The installer _top_dir setting
-    required: no
+    required: false
   dirman_password:
     description: Directory Manager (master) password
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

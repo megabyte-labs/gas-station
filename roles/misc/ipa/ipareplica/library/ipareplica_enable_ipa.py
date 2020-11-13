@@ -39,30 +39,30 @@ description: Enable IPA
 options:
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   hidden_replica:
     description: Install a hidden replica
-    required: yes
+    required: true
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
       RDNs are in LDAP order (most specific RDN first).
-    required: no
+    required: false
   ccache:
     description: The local ccache
-    required: no
+    required: false
   _top_dir:
     description: The installer _top_dir setting
-    required: no
+    required: false
   setup_ca:
     description: Configure a dogtag CA
-    required: no
+    required: false
   setup_kra:
     description: Configure a dogtag KRA
-    required: no
+    required: false
   config_master_host_name:
     description: The config master_host_name setting
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

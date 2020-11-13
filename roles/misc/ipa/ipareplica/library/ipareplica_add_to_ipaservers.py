@@ -39,19 +39,19 @@ description:
 options:
   setup_kra:
     description: Configure a dogtag KRA
-    required: no
+    required: false
   config_master_host_name:
     description: The config master_host_name setting
-    required: no
+    required: false
   ccache:
     description: The local ccache
-    required: no
+    required: false
   installer_ccache:
     description: The installer ccache setting
-    required: no
+    required: false
   _top_dir:
     description: The installer _top_dir setting
-    required: no
+    required: false
 author:
     - Thomas Woerner
 '''

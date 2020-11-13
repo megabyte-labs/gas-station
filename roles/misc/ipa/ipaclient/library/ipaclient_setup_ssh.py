@@ -37,19 +37,19 @@ description:
 options:
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: no
+    required: false
   no_ssh:
     description: Do not configure OpenSSH client
-    required: yes
+    required: true
   ssh_trust_dns:
     description: Configure OpenSSH client to trust DNS SSHFP records
-    required: yes
+    required: true
   no_sshd:
     description: Do not configure OpenSSH server
-    required: yes
+    required: true
   sssd:
     description: The installer sssd setting
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''
@@ -58,9 +58,9 @@ EXAMPLES = '''
 - name: Configure ssh and sshd for IPA client
   ipaclient_setup_ssh:
     servers: ["server1.example.com","server2.example.com"]
-    ssh: yes
-    sshd: yes
-    sssd: yes
+    ssh: true
+    sshd: true
+    sssd: true
 '''
 
 RETURN = '''

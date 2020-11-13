@@ -37,68 +37,68 @@ description:
 options:
   domain:
     description: Primary DNS domain of the IPA deployment
-    required: yes
+    required: true
   servers:
     description: Fully qualified name of IPA servers to enroll to
-    required: yes
+    required: true
   realm:
     description: Kerberos realm name of the IPA deployment
-    required: yes
+    required: true
   hostname:
     description: Fully qualified name of this host
-    required: yes
+    required: true
   ntp_servers:
     description: ntp servers to use
-    required: yes
+    required: true
   ntp_pool:
     description: ntp server pool to use
-    required: yes
+    required: true
   no_ntp:
     description: Do not configure ntp
-    required: yes
+    required: true
   force_ntpd:
     description:
       Stop and disable any time&date synchronization services besides ntpd
       Deprecated since 4.7
-    required: yes
+    required: true
   nisdomain:
     description: The NIS domain name
-    required: yes
+    required: true
   no_nisdomain:
     description: Do not configure NIS domain name
-    required: yes
+    required: true
   kinit_attempts:
     description: Repeat the request for host Kerberos ticket X times
-    required: yes
+    required: true
   ca_cert_files:
     description:
       List of files containing CA certificates for the service certificate
       files
-    required: yes
+    required: true
   configure_firefox:
     description: Configure Firefox to use IPA domain credentials
-    required: yes
+    required: true
   firefox_dir:
     description:
       Specify directory where Firefox is installed (for example
       '/usr/lib/firefox')
-    required: yes
+    required: true
   ip_addresses:
     description: List of Master Server IP Addresses
-    required: yes
+    required: true
   all_ip_addresses:
     description:
       All routable IP addresses configured on any interface will be added
       to DNS
-    required: yes
+    required: true
   on_master:
     description: Whether the configuration is done on the master or not
-    required: yes
+    required: true
   enable_dns_updates:
     description:
       Configures the machine to attempt dns updates when the ip address
       changes
-    required: yes
+    required: true
 author:
     - Thomas Woerner
 '''

@@ -1,8 +1,8 @@
 # ProfessorManhattan's Playbook
 
-This playbook is for paranoid developers - the kind of developer that reformats their computer every couple weeks. Its' primary purpose is to set up an array of computers with the *best* software. After you reformat any of your computers, you can run this playbook which will automatically install and configure *dozens* of useful programs, apps, and services that make development and power-using easier.
+This playbook is for paranoid developers - the kind of developer that reformats their computer every couple weeks. Its' primary purpose is to set up an array of computers with the _best_ software. After you reformat any of your computers, you can run this playbook which will automatically install and configure _dozens_ of useful programs, apps, and services that make development and power-using easier.
 
-* List of software/services/apps here (coming soon)
+- List of software/services/apps here (coming soon)
 
 It is easiest to install this Playbook on **Ubuntu**. To run the playbook on Ubuntu, run the following command in your terminal:
 
@@ -28,7 +28,7 @@ After you have Python and yamllint installed, you can start linting:
 1. Go to the root of the project
 2. Run the command `yamllint .`
 
-You should see any linting errors that were found. After you fix some of the errors, commit your changes to the `yamllint` branch. This will allow multiple developers to fix errors at the same time (and prevent double work) since your working directory will be linked to the same repository. In general, you can fix all of the errors except for the *line too long* error - suggestions on addressing this error are welcome.
+You should see any linting errors that were found. After you fix some of the errors, commit your changes to the `yamllint` branch. This will allow multiple developers to fix errors at the same time (and prevent double work) since your working directory will be linked to the same repository. In general, you can fix all of the errors except for the _line too long_ error - suggestions on addressing this error are welcome.
 
 ## Windows
 
@@ -73,16 +73,16 @@ On Windows 10 Enterprise with Ubuntu WSL 2, UFW does not work without error.
 
 The following commands are PowerShell commands used for generating configurations.
 
-* Export the start menu configuration:
-  * `Export-StartLayout -path file_name.xml`
-* Import start menu layout:
-  * `Import-StartLayout -LayoutPath C:\layout.xml -MountPath %systemdrive%`
-* List all of the installed apps AppIDs:
-  * `get-StartApps`
-* List all of the installed APPX files:
-  * `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
-* List all of the available optional features:
-  * `Get-WindowsOptionalFeature -Online`
+- Export the start menu configuration:
+  - `Export-StartLayout -path file_name.xml`
+- Import start menu layout:
+  - `Import-StartLayout -LayoutPath C:\layout.xml -MountPath %systemdrive%`
+- List all of the installed apps AppIDs:
+  - `get-StartApps`
+- List all of the installed APPX files:
+  - `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
+- List all of the available optional features:
+  - `Get-WindowsOptionalFeature -Online`
 
 ## Mac OS X
 

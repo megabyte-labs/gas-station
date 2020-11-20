@@ -9,7 +9,8 @@ if [[ -z "$import_files" || -z "$git_repository_dir" ]]; then
 fi
 
 if [[ -d "$git_repository_dir/roles" ]]; then
-	find "$git_repository_dir" -mindepth 3 -maxdepth 3 -type d | while read gitrepo
+	# added "not path" part to avoid copying files into .git directory and other hidden directories
+	find "$git_repository_dir" -mindepth 3 -maxdepth 3 -type d -not -path '*/\.*' | while read gitrepo
 	do
 		cp -Rf "$import_files"/* "$gitrepo"
 	done

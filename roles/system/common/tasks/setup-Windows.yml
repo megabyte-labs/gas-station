@@ -1,10 +1,10 @@
 ---
 - name: Ensure the hostname is correct
-  win_shell: "Rename-Computer -NewName {{ hostname }}"
+  win_command: "Rename-Computer -NewName {{ hostname }}"
   when: hostname is defined
 
 - name: Activate Windows 10
-  win_shell: "cscript slmgr.vbs /ipk {{ windows_enterprise_key }}"
+  win_command: "cscript slmgr.vbs /ipk {{ windows_enterprise_key }}"
   args:
     chdir: C:\Windows\System32\
   when: windows_activation_key is defined
@@ -24,8 +24,7 @@
   when: update.reboot_required
 
 - name: Add override for Execution Policy for PowerShell profile
-  win_shell: |
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+  win_command: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 - name: Configure Windows optional features
   win_optional_feature:
@@ -45,7 +44,7 @@
   when: needs_reboot
 
 - name: Remove unnecessary APPX packages
-  win_shell: |
+  win_command: |
     Get-AppxPackage -AllUsers -Name "{{ item }}" | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue;
     Get-AppxProvisionedPackage -Online | where {$_.PackageName -like "{{ item }}"} | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction SilentlyContinue;
   with_items: "{{ windows_appx_removals | default([]) }}"
@@ -101,9 +100,9 @@
 - name: Install Scoop
   block:
     - name: Install Scoop
-      win_shell: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+      win_command: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
     - name: Update Scoop
-      win_shell: scoop update
+      win_command: scoop update
     - name: Install Scoops
       community.windows.win_scoop:
         name: "{{ windows_scoop_packages }}"

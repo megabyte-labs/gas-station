@@ -1,7 +1,26 @@
 ---
-- name: Ensure Freshclam service is available.
+- name: Ensure Freshclam service is available
   template:
     dest: /lib/systemd/system/clamd-freshclam.service
     mode: 0644
     src: clamd-freshclam.service.j2
   notify: reload clamav daemon
+
+- name: Add EPEL repository
+  yum_repository:
+    baseurl: "{{ epel_repo_url }}"
+    description: EPEL Repo
+    gpgcheck: true
+    gpgkey: "{{ epel_repo_gpg_key_url }}"
+    name: EPEL Repo
+
+- name: Ensure rkhunter package is installed
+  yum:
+    name: rkhunter
+    state: present
+
+- name: Deploy rkhunter sysconfig
+  template:
+    src: rkhunter-{{ ansible_facts['os_family'] }}.j2
+    dest: /etc/sysconfig/rkhunter
+    mode: 0640

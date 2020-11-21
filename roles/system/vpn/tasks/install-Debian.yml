@@ -20,21 +20,25 @@
   include_tasks: wireguard-Debian.yml
   when: not nm_wireguard.stat.exists
 
-- name: Ensure temporary directory for OpenVPN files exists # TODO Only run this if there are OpenVPN profiles in vpn_connections
+- name: Ensure temporary directory for OpenVPN files exists
   file:
+    mode: 0700
     path: "{{ openvpn_tmp_dir }}"
     state: directory
+  when: vpn_connections | length
 
 - name: Acquire a list the current VPN connections
   command: nmcli -t connection
   changed_when: false
   register: nmcli_connections
+  when: vpn_connections | length
 
 - name: Install VPN configuration files
   include_tasks: "profile-{{ ansible_os_family }}.yml"
-  with_items: "{{ vpn_connections }}"
+  with_items: "{{ vpn_connections | default([]) }}"
 
-- name: Remove temporary directory for OpenVPN files # TODO Only run this if there are OpenVPN profiles in vpn_connections
+- name: Remove temporary directory for OpenVPN files
   file:
-    path: "{{ openvpn_tmp_dir }}" # TODO: Question: Is it possible to set changed_when to false for both this and the task that creates the folder after this runs?
+    path: "{{ openvpn_tmp_dir }}"
     state: absent
+  when: vpn_connections | length

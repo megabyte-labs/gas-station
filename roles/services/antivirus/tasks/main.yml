@@ -5,15 +5,17 @@
 - include_tasks: setup-vars.yml
 
 - name: Ensure ClamAV packages are installed.
-  package: name={{ item }} state=present
-  with_items: "{{ clamav_packages }}"
+  package:
+    name: "{{ item }}"
+    state: present
   register: clamav_packages_install
+  with_items: "{{ clamav_packages }}"
 
 - name: Run freshclam after ClamAV packages change.
   command: freshclam
   when: clamav_packages_install.changed
   register: freshclam_result
-  notify: restart clamav daemon
+  notify: restart clamav
   # On Debian, freshclam is automatically run post-install, so this may fail.
   failed_when:
     - freshclam_result is failed
@@ -25,21 +27,21 @@
 
 - name: Change configuration for the ClamAV daemon.
   lineinfile:
+    line: "{{ item.line | default('') }}"
+    mode: 0644
     path: "{{ clamav_daemon_config_path }}"
     regexp: "{{ item.regexp }}"
-    line: "{{ item.line | default('') }}"
     state: "{{ item.state | default('present') }}"
-    mode: 0644
   with_items: "{{ clamav_daemon_configuration_changes }}"
 
 - name: Ensure ClamAV daemon is running (if configured).
   service:
+    enabled: "{{ clamav_daemon_enabled }}"
     name: "{{ clamav_daemon }}"
     state: "{{ clamav_daemon_state }}"
-    enabled: "{{ clamav_daemon_enabled }}"
 
 - name: Ensure ClamAV freshclam daemon is running (if configured).
   service:
+    enabled: "{{ clamav_freshclam_daemon_enabled }}"
     name: "{{ clamav_freshclam_daemon }}"
     state: "{{ clamav_freshclam_daemon_state }}"
-    enabled: "{{ clamav_freshclam_daemon_enabled }}"

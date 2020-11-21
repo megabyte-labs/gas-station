@@ -15,23 +15,26 @@
     name: acme>=1.6.0
 
 - name: Install certbot-dns-cloudflare
-  command: "cd {{ certbot_dir }}/certbot-dns-cloudflare && python3 setup.py install"
+  command: python3 setup.py install
+  args:
+    chdir: "{{ certbot_dir }}/certbot-dns-cloudflare"
+    creates: /etc/letsencrypt/dnscloudflare.ini
 
 - name: Ensure letsencrypt folder exists
   file:
-    path: /etc/letsencrypt
-    state: directory
-    owner: root
     group: root
     mode: 0700
+    owner: root
+    path: /etc/letsencrypt
+    state: directory
 
 - name: Ensure certbot templates are available
   template:
-    src: "{{ item.src }}"
     dest: "{{ item.dest }}"
-    owner: root
     group: root
     mode: 0600
+    owner: root
+    src: "{{ item.src }}"
   with_items:
     - src: "templates/dnscloudflare.ini.j2"
       dest: "/etc/letsencrypt/dnscloudflare.ini"

@@ -2,7 +2,7 @@
 - name: Run common Darwin/Linux tasks
   include_tasks: tls-Darwin-Linux.yml
 
-- name: Add certificate to keystore
+- name: Add certificate to keystore # noqa 301
   become: true
   command: security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.pem
   args:
@@ -10,25 +10,27 @@
 
 - name: Create daemon.json
   template:
-    src: daemon.json.j2 # TODO: This JSON file is not formatted like regular JSON - is this on purpose?
     dest: "/Users/{{ ansible_user }}/.docker/daemon.json"
-    owner: "{{ user.username }}"
     group: "{{ user.username }}"
-    mode: 0600 # TODO: Is this the right permission level?
+    mode: 0600
+    owner: "{{ user.username }}"
+    src: daemon.json.j2 # TODO: This JSON file is not formatted like regular JSON - is this on purpose?
 
 - name: Copy certificates to the ~/.docker folder on the machine running Ansible
   fetch:
-    src: "~/.docker/certs.d/{{ item }}"
     dest: "~/.docker/certs.d/{{ ansible_host }}-{{ item }}"
-    mode: 0400
     flat: true
+    mode: 0400
+    src: "~/.docker/certs.d/{{ item }}"
   with_items:
     - ca.pem
     - cert.pem
     - key.pem
   when: ansible_host != 'local'
 
-- name: Restart the Docker Desktop app
-  command: osascript -e 'quit app "Docker"'; open --background -a Docker
+- name: Restart the Docker Desktop app # noqa 301
+  command: |
+    osascript -e 'quit app "Docker"'
+    open --background -a Docker
   args:
     warn: no

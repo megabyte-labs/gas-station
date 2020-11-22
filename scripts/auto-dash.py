@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Auto fixes the yamllint warning `document-start`.
 # Walks all the files in the `ansible` directory and executes yamllint on
 # every yaml file. If the document start error is found it prepends the

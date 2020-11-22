@@ -37,7 +37,9 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Module/plugin for determining what files were created/deleted
 - Add Shellcheck to pre-commit
 - Get Docker container that can do all pre-commit stuff
-
+  - [shellcheck](https://github.com/koalaman/shellcheck)
+  - [shfmt](https://github.com/mvdan/sh)
+- Add commit message prompt for git master
 ## pfSense TODOs
 
 - Get Chromecast working on Ubuntu

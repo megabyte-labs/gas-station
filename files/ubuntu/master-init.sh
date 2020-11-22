@@ -3,7 +3,7 @@ sudo apt update
 sudo apt install -y git python3 python3-pip
 pip3 install ansible-base
 cd ~
-if [ -d "./Playbooks" ] ; then
+if [ ! -d ~/Playbooks ] ; then
     git clone https://gitlab.com/ProfessorManhattan/Playbooks.git
 fi
 cd ~/Playbooks

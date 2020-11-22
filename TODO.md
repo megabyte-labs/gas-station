@@ -35,7 +35,8 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Make HTPC Docker Compose use bundled WireGuard VPN
 - Symlink NextCloud to include all files
 - Module/plugin for determining what files were created/deleted
-- Add [Black](https://github.com/psf/black) to pre-commit
+- Add Shellcheck to pre-commit
+- Get Docker container that can do all pre-commit stuff
 
 ## pfSense TODOs
 

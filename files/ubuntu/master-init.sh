@@ -1,7 +1,7 @@
 #!/bin/bash
 sudo apt update
 sudo apt install -y git python3 python3-pip
-sudo python3 -m pip install ansible
+sudo python3 -m pip install ansible psutil
 cd ~
 if [ ! -d ~/Playbooks ] ; then
     git clone https://gitlab.com/ProfessorManhattan/Playbooks.git

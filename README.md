@@ -40,7 +40,7 @@ pip3 install ansible-base
 pip3 install ansible-lint
 ```
 
-After ansible-lint is installed, you can see the ansible-lint errors by running `ansible-lint` in the root directory. Some of the errors are self-expanatory and easy to fix. Other errors might require testing and research. Tips on fixing the trickier errors are listed below.
+After ansible-lint is installed, you can see the ansible-lint errors by running `ansible-lint` in the root directory. Some of the errors are self-expanatory and simple to fix. Other errors might require testing and research. Tips on fixing the trickier errors are listed below.
 
 #### [208] File permissions unset or incorrect
 

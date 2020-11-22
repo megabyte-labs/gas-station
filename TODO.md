@@ -34,6 +34,8 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Fix StatPing
 - Make HTPC Docker Compose use bundled WireGuard VPN
 - Symlink NextCloud to include all files
+- Module/plugin for determining what files were created/deleted
+- Add [Black](https://github.com/psf/black) to pre-commit
 
 ## pfSense TODOs
 

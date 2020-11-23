@@ -1,0 +1,26 @@
+---
+- name: Ensure necessary packages are installed
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - s-nail
+    - cronie
+
+- name: Enable cronie servier
+  systemd:
+    name: cronie
+    enabled: true
+    state: started
+
+- name: Deploy rkhunter config
+  template:
+    src: rkhunter-{{ ansible_facts['os_family'] }}.j2
+    dest: /etc/rkhunter.conf
+    mode: 0600
+
+- name: Copy rkhunter cron config
+  copy:
+    src: rkhuntercron
+    dest: /etc/cron.daily/rkhunter
+    mode: 0755

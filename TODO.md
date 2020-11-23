@@ -40,6 +40,9 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
   - [shellcheck](https://github.com/koalaman/shellcheck)
   - [shfmt](https://github.com/mvdan/sh)
 - Add commit message prompt for git master
+- Figure out Node.js PATH problem
+- Replace with_items with loop
+
 ## pfSense TODOs
 
 - Get Chromecast working on Ubuntu

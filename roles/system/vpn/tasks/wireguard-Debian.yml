@@ -15,19 +15,22 @@
     ./autogen.sh --without-libnm-glib
   args:
     chdir: "{{ wireguard_tmp_dir }}"
+  changed_when: false # TODO: Does this command really not impact the system?
 
 - name: Run ./configure # noqa 301
   command: "./configure --without-libnm-glib --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/x86_64-linux-gnu \
     --libexecdir=/usr/lib/NetworkManager --localstatedir=/var"
   args:
     chdir: "{{ wireguard_tmp_dir }}"
+  changed_when: false # TODO: Does this command really not impact the system?
 
-- name: Run "make" # noqa 301
-  command: |
+- name: Run "make" and "make install" # noqa 301
+  shell: |
     make
     make install
   args:
     chdir: "{{ wireguard_tmp_dir }}"
+    creates: /usr/bin/wg
   notify: restart networkmanager
 
 - name: Remove the Wireguard temporary directory

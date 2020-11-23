@@ -1,15 +1,20 @@
 ---
 - name: Check if certificate already exists
   stat:
-    path: /etc/letsencrypt/live/{{ cert_item.domains | first | replace('*.', '') }}/cert.pem
+    path: /etc/letsencrypt/live/{{ certificate.domains | first | replace('*.', '') }}/cert.pem
   register: letsencrypt_cert
 
-- name: Stop services to allow certbot to generate a cert
+- name: Populate service facts
+  service_facts:
+
+- name: Stop services to allow certbot to generate a certificate
   service:
     name: "{{ item }}"
     state: stopped
-  with_items: "{{ certbot_create_standalone_stop_services }}"
-  when: not letsencrypt_cert.stat.exists
+  loop: "{{ certbot_create_standalone_stop_services }}"
+  when:
+    - not letsencrypt_cert.stat.exists
+    - "('{{ item }}' in services) or ('{{ item }}.service' in services)"
 
 - name: Generate new certificate if one doesn't exist.
   command: "{{ certbot_create_command }}"
@@ -19,5 +24,5 @@
   service:
     name: "{{ item }}"
     state: started
-  with_items: "{{ certbot_create_standalone_stop_services }}"
+  loop: "{{ certbot_create_standalone_stop_services }}"
   when: not letsencrypt_cert.stat.exists

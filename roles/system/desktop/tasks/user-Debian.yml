@@ -6,16 +6,20 @@
     - include_tasks: appimages-Linux.yml
 
 # TODO: Convert this code to use the systemd module instead
-- name: Run necessary systemctl commands # noqa 301 303
+- name: Run necessary systemctl commands
   become: true
   become_user: "{{ user.username }}"
   command: systemctl --user add-wants default.target appimaged
+  changed_when: "systemctl_result.stdout != \"\""
+  register: systemctl_result
 
-# TODO: Convert this code to use the systemd module instead
-- name: Run necessary systemctl command # noqa 301 303
+- name: Run necessary systemctl command
   become: true
   become_user: "{{ user.username }}"
-  command: systemctl --user start appimaged
+  systemd:
+    name: appimaged
+    scope: user
+    state: started
 
 - name: Apply user dconf settings
   become: true

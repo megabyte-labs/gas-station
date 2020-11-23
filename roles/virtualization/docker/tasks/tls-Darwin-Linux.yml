@@ -1,10 +1,10 @@
 ---
 - name: Ensure ~/.docker/certs.d folder exists
   file:
-    mode: 0500
-    path: ~/.docker/certs.d
+    mode: 0700
+    path: "{{ item }}"
     state: directory
-  with_items:
+  loop:
     - ~/.docker
     - ~/.docker/certs.d
 
@@ -17,7 +17,7 @@
 
 # yamllint disable rule:line-length
 - name: Generate Docker certificates
-  command: |
+  shell: |
     export HOST={{ docker_tls_fqdn }}
     openssl genrsa -aes256 -passout file:$HOME/.docker/.pw -out docker-ca-key.pem 4096
     openssl req -new -passin file:$HOME/.docker/.pw -subj "/C={{ docker_tls_country }}/ST={{ docker_tls_state }}/L={{ docker_tls_locality }}/O={{ docker_tls_organization }}/OU={{ docker_tls_division }}/CN=$HOST" -x509 -days 365 -key docker-ca-key.pem -sha256 -out ca.pem

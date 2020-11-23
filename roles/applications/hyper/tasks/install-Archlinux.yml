@@ -1,1 +1,62 @@
 ---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: Check if HyperJS has configuration stored in /root/.config/megabytelabs/hyper
+  stat:
+    path: ~/.config/megabytelabs/hyper
+  register: hyper_config
+
+- name: Detect previously installed Hyper version
+  command: cat hyper
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_hyper_version
+  when: hyper_config.stat.exists
+
+
+- name: Detect the latest HyperJS version
+  shell: curl https://api.github.com/repos/vercel/hyper/releases/latest | grep tag_name | cut -d '"' -f4
+  changed_when: false
+  register: hyper_latest_release_tag
+
+- name: Determine whether or not the latest version of HyperJS's AppImage is already installed
+  set_fact:
+    install_hyper: (current_hyper_version.skipped) or ((not current_hyper_version.skipped) and (current_hyper_version.stdout != hyper_latest_release_tag.stdout))
+
+
+- name: Acquire the latest HyperJS AppImage
+  get_url:
+    url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.stdout }}/hyper-{{ hyper_latest_release_tag.stdout }}-x86_64.AppImage"
+    dest: "{{ hyper_tmp_path }}"
+  when: install_hyper
+
+- name: Ensure the Hyper AppImage is available in all non-system user's Applications folders
+  include_tasks: install-AppImage.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_hyper
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: Save meta information about the version of HyperJS that was installed
+  copy:
+    dest: ~/.config/megabytelabs/hyper
+    mode: 0600
+    content: |
+      {{ hyper_latest_release_tag.stdout }}
+  when: install_hyper
+
+- name: Ensure HyperJS is removed from its' temporary location
+  file:
+    path: "{{ hyper_tmp_path }}"
+    state: absent

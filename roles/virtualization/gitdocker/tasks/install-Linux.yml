@@ -3,8 +3,9 @@
   become: true
   file:
     path: "{{ item.folder }}"
-    group: "{{ item.user | default(ansible_user) }}"
-    owner: "{{ item.user | default(ansible_user) }}"
+    group: "{{ item.user | default(ansible_user | default(lookup('env', 'USER'))) }}"
+    owner: "{{ item.user | default(ansible_user | default(lookup('env', 'USER'))) }}"
+    mode: 0644
     state: directory
 
 - name: Check if git already exists
@@ -14,7 +15,7 @@
 
 - name: Clone the repository if it does not already exist
   become: true
-  become_user: "{{ item.user | default(ansible_user) }}"
+  become_user: "{{ item.user | default(ansible_user | default(lookup('env', 'USER'))) }}"
   git:
     depth: "1"
     dest: "{{ item.folder }}"
@@ -24,7 +25,7 @@
 
 - name: Restore containers if the repository was freshly cloned
   become: true
-  become_user: "{{ item.user | default(ansible_user) }}"
+  become_user: "{{ item.user | default(ansible_user | default(lookup('env', 'USER'))) }}"
   command: docker-compose-backup restore
   args:
     chdir: "{{ item.folder }}"
@@ -32,7 +33,7 @@
 
 - name: Backup containers if git repository was already present
   become: true
-  become_user: "{{ item.user | default(ansible_user) }}"
+  become_user: "{{ item.user | default(ansible_user | default(lookup('env', 'USER'))) }}"
   command: docker-compose-backup backup
   args:
     chdir: "{{ item.folder }}"
@@ -44,7 +45,7 @@
     name: "{{ item.name }} Daily Backup Job"
     minute: "0"
     hour: "{{ git_docker_backup_time }}"
-    user: "{{ item.user | default(ansible_user) }}"
+    user: "{{ item.user | default(ansible_user | default(lookup('env', 'USER'))) }}"
     job: |
       {%if (healthcheck_endpoint is defined) and (item.healthcheck_id is defined) %}
       curl -fsS -m 10 --retry 5 -o /dev/null https://{{ healthcheck_endpoint }}/ping/{{ item.healthcheck_id }}/start

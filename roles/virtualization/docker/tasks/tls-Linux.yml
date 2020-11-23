@@ -5,7 +5,7 @@
 - name: Move Docker server certificates to protected SSL folder
   become: true
   copy:
-    src: "/home/{{ ansible_user }}/.docker/certs.d/{{ item.src | default(item) }}"
+    src: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/.docker/certs.d/{{ item.src | default(item) }}"
     dest: "/etc/ssl/private/{{ item.dest | default(item) }}"
     owner: root
     group: root
@@ -45,4 +45,9 @@
   lineinfile:
     path: /etc/systemd/system/multi-user.target.wants/docker.service
     regex: "ExecStart="
-    line: ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --tlsverify --tlscacert=/etc/ssl/private/docker-ca.pem --tlscert=/etc/ssl/private/docker-server-cert.pem --tlskey=/etc/ssl/private/docker-server-key.pem -H=0.0.0.0:2424 # yamllint disable-line
+    line: "ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --tlsverify \
+      --tlscacert=/etc/ssl/private/docker-ca.pem --tlscert=/etc/ssl/private/docker-server-cert.pem \
+      --tlskey=/etc/ssl/private/docker-server-key.pem -H=0.0.0.0:2424"
+  notify:
+    - reload systemd daemon
+    - restart docker

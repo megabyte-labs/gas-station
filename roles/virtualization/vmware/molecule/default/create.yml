@@ -22,8 +22,9 @@
 
     - name: Create Dockerfiles from image names
       template:
-        src: "{{ molecule_scenario_directory }}/Dockerfile.j2"
         dest: "{{ molecule_ephemeral_directory }}/Dockerfile_{{ item.image | regex_replace('[^a-zA-Z0-9_]', '_') }}"
+        mode: 0640
+        src: "{{ molecule_scenario_directory }}/Dockerfile.j2"
       with_items: "{{ molecule_yml.platforms }}"
       register: platforms
 
@@ -34,7 +35,7 @@
       with_items: "{{ platforms.results }}"
       register: docker_images
 
-    - name: Build an Ansible compatible image
+    - name: Build an Ansible compatible image # noqa 503
       docker_image:
         path: "{{ molecule_ephemeral_directory }}"
         name: "molecule_local/{{ item.item.image }}"

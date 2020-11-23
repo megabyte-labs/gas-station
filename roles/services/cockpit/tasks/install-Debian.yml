@@ -6,7 +6,7 @@
       - cockpit-machines
       - libvirt-dbus # Required for cockpit-machines support
     state: present
-  register: cockpit_install
+  notify: reboot system
 
 - name: Enable the Cockpit service # TODO Figure out why this is always being marked as changed
   systemd:
@@ -42,10 +42,4 @@
     groups:
       - libvirtdbus
     append: true
-  register: libvirt_group
-
-- name: Reboot system if there were changes # TODO: Figure out if any of the other tasks require a reboot
-  reboot:
-  when:
-    - cockpit_install.changed or libvirt_group.changed
-    - ansible_connection != 'local'
+  notify: reboot system

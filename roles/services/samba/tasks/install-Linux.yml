@@ -7,7 +7,7 @@
 - name: Add Samba users that require access to the private samba shares
   user:
     comment: "Samba user"
-    create_home: no
+    create_home: false
     groups: "{{ item.groups }}"
     name: "{{ item.name }}"
     password: "{{ item.password }}"
@@ -86,7 +86,9 @@
     - (samba_shares is defined) or (samba_printers is defined)
 
 - name: Add Samba password to Samba users
-  shell: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
-  with_items: "{{ samba_users | default([]) }}"
+  command: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
+  changed_when: samba_password_result.stdout | bool
+  loop: "{{ samba_users | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
+  register: samba_password_result

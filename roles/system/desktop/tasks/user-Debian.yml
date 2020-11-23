@@ -5,15 +5,21 @@
   block:
     - include_tasks: appimages-Linux.yml
 
-- name: Run necessary systemctl commands # TODO: Figure out if there is better Ansible syntax for this command
+# TODO: Convert this code to use the systemd module instead
+- name: Run necessary systemctl commands # noqa 303
   become: true
   become_user: "{{ user.username }}"
   command: systemctl --user add-wants default.target appimaged
+  changed_when: "systemctl_result.stdout != \"\""
+  register: systemctl_result
 
-- name: Run necessary systemctl command # TODO: Same as above
+- name: Run necessary systemctl command
   become: true
   become_user: "{{ user.username }}"
-  command: systemctl --user start appimaged
+  systemd:
+    name: appimaged
+    scope: user
+    state: started
 
 - name: Apply user dconf settings
   become: true

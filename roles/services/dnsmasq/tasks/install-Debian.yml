@@ -9,15 +9,11 @@
     path: "{{ systemd_resolved_conf_path }}"
     regex: "DNSStubListener="
     line: "DNSStubListener=no"
+  notify:
+    - restart dnsmasq
+    - restart systemd-resolved
   register: disable_resolved_stub
   when: use_dnsmasq_for_dns
-
-- name: Restart systemd-resolved
-  service:
-    name: systemd-resolved
-    state: restarted
-  when: disable_resolved_stub.changed
-  notify: restart dnsmasq
 
 - name: Prevent dnsmasq from forwarding non-domain queries upstream
   lineinfile:

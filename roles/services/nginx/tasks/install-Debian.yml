@@ -61,24 +61,20 @@
     - enable_nginx_modsecurity_waf
     - not modsec_config.stat.exists
 
-- name: Set up wildcard SSL automatically with CloudFlare
-  include_tasks: linux/certbot.yml
-  when: cloudflare_api_token is defined
-
 - name: Update the NGINX configuration files
   include_tasks: linux/nginx-configuration.yml
   tags: nginx_configuration
 
 - name: Generate sites-available
   include_tasks: linux/site-available.yml
-  with_items: "{{ nginx_sites }}"
+  with_items: "{{ apps }}"
   tags: nginx_configuration
 
 - name: Generate sites-available for proxy host
   vars:
     nginx_proxy_host_override: true
   include_tasks: linux/site-available.yml
-  with_items: "{{ hosts | list }}"
+  loop: "{{ hosts | list }}"
   when:
     - nginx_proxy_host
     - not (item in apps)
@@ -88,7 +84,7 @@
     src: "/etc/nginx/sites-available/{{ item | default(item.name) }}.conf"
     path: "/etc/nginx/sites-enabled/{{ item | default(item.name) }}.conf"
     state: link
-  with_items: "{{ nginx_sites }}"
+  with_items: "{{ apps }}"
   tags: nginx_configuration
 
 - name: Reload systemd and restart NGINX

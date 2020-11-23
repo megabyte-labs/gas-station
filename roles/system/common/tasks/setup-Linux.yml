@@ -1,7 +1,7 @@
 ---
 - name: Ensure ansible_user has password set
   user:
-    name: "{{ ansible_user }}"
+    name: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     password: "{{ ansible_password | password_hash('sha512', password_salt) }}"
 
 - name: Set hostname
@@ -17,7 +17,7 @@
   lineinfile:
     path: /etc/environment
     regex: "^ANSIBLE_PLAYBOOK_USER="
-    line: "ANSIBLE_PLAYBOOK_USER={{ ansible_user }}"
+    line: "ANSIBLE_PLAYBOOK_USER={{ ansible_user | default(lookup('env', 'USER')) }}"
 
 - name: Set MOTD
   copy:
@@ -30,14 +30,8 @@
 - name: Customize GRUB
   include_tasks: linux/grub.yml
 
-- name: Check if boot loading image (Plymouth) is already present
-  stat:
-    path: "{{ plymouth_themes_dir }}/{{ plymouth_theme }}/{{ plymouth_theme }}.plymouth"
-  register: plymouth_theme_info
-
 - name: Customize boot loading image (Plymouth)
   include_tasks: linux/plymouth.yml
-  when: not plymouth_theme_info.stat.exists
 
 - name: Configure swap
   include_tasks: linux/swap.yml

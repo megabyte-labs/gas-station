@@ -3,36 +3,15 @@
   apt:
     name: apt-cacher-ng
     state: present
-  register: apt_cacher_install
+  notify:
+    - clear apt cache
+    - apt update
 
 - name: Enable AptCacherNG service
   systemd:
     name: apt-cacher-ng
     enabled: true
     state: started
-
-- name: Clear apt cache folders
-  file:
-    state: "{{ item.state }}"
-    path: "{{ item.path }}"
-    owner: root
-    group: root
-    mode: 0755
-  with_items:
-    - state: absent
-      path: /var/cache/apt
-    - state: directory
-      path: /var/cache/apt
-    - state: absent
-      path: /var/lib/apt/lists
-    - state: directory
-      path: /var/lib/apt/lists
-  when: apt_cacher_install.changed
-
-- name: Update apt-get to recognize cleared cache
-  apt:
-    update_cache: true
-  when: apt_cacher_install.changed
 
 - name: Configure PassThroughPattern
   lineinfile:

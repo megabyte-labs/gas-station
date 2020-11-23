@@ -12,10 +12,8 @@
     repo: "{{ modsec_git_repository }}"
     version: "{{ modsec_git_version }}"
 
-- name: Init submodules, configure, build, make install
+- name: Configure, build, make install
   command: |
-    git submodule init
-    git submodule update
     ./build.sh
     ./configure
     make
@@ -34,9 +32,9 @@
 
 - name: "Download and unarchive NGINX source code of version {{ nginx_version }}"
   unarchive:
-    src: "https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
     dest: ~/
     remote_src: true
+    src: "https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
 
 - name: Configure and make ModSecurity NGNINX module
   command: |
@@ -48,9 +46,10 @@
 
 - name: Copy Modsecurity-nginx module to NGINX modules folder
   copy:
-    src: "~/nginx-{{ nginx_version }}/objs/ngx_http_modsecurity_module.so"
     dest: "{{ nginx_module_path }}/ngx_http_modsecurity_module.so"
+    mode: preserve
     remote_src: true
+    src: "~/nginx-{{ nginx_version }}/objs/ngx_http_modsecurity_module.so"
 
 - name: Obtain OWASP Modsecurity Rules
   git:
@@ -61,15 +60,16 @@
 
 - name: Copy crs-setup.conf.example to crs-setup.conf
   copy:
-    src: "{{ modsec_waf_conf_directory }}/crs-setup.conf.example"
     dest: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
+    mode: 0600
     remote_src: true
+    src: "{{ modsec_waf_conf_directory }}/crs-setup.conf.example"
 
 - name: Clean up source directories
   file:
     path: "{{ item }}"
     state: absent
   with_items:
+    - "~/nginx-{{ nginx_version }}"
     - ~/ModSecurity
     - ~/ModSecurity-nginx
-    - "~/nginx-{{ nginx_version }}"

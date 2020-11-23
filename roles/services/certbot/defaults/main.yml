@@ -1,31 +1,55 @@
 ---
 certbot_admin_email: email@example.com
 
-# Certbot auto-renew cron job configuration (for certificate renewals).
+# Certbot auto-renew cron job configuration (for certificate renewals)
 certbot_auto_renew: true
-certbot_auto_renew_user: "{{ ansible_user }}"
+certbot_auto_renew_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
 certbot_auto_renew_hour: "3"
 certbot_auto_renew_minute: "30"
-certbot_auto_renew_options: "--quiet --no-self-upgrade"
+certbot_auto_renew_options: "--quiet"
 
 # Parameters used when creating new Certbot certs.
 certbot_certs: []
-# - email: janedoe@example.com
-#   domains:
-#     - example1.com
-#     - example2.com
-# - domains:
-#     - example3.com
-certbot_create_command: "certbot certonly --noninteractive --dns-cloudflare --agree-tos --email {{ cert_item.email | default(certbot_admin_email) }} -d {{ cert_item.domains | join(',') }}" # This command is used to generate wildcard certificates automatically by providing a CloudFlare API Token
-certbot_create_if_missing: true # Wheter or not to generate certificates when they have not been generated yet
-certbot_create_method: standalone
-certbot_create_standalone_stop_services: # Services to stop before creating a certificate
-  - nginx
+### EXAMPLE ###
+# certbot_certs:
+#   - email: janedoe@example.com
+#     domains:
+#       - example1.com
+#       - example2.com
+#   - domains:
+#       - example3.com
 
-# To install from source (on older OSes or if you need a specific or newer
-# version of Certbot), set this variable to `true` and configure other options.
-certbot_dir: /opt/certbot # Where to put Certbot when installing from source
-certbot_install_from_source: true # Whether or not to install from source - installing from source allows you to grab the latest code
-certbot_keep_updated: true # Whether or not to update Certbot with the latest code/package
-certbot_repo: https://github.com/certbot/certbot.git # Certbot repository
+certbot_cloudflare_acme_live: "https://acme-v02.api.letsencrypt.org/directory"
+certbot_cloudflare_acme_test: "https://acme-staging-v02.api.letsencrypt.org/directory"
+certbot_cloudflare_acme_server: "{{ certbot_cloudflare_acme_live }}"
+
+# This command is used to generate wildcard certificates automatically by providing a CloudFlare API Token
+certbot_create_command: "{{ certbot_path }} certonly --noninteractive --dns-cloudflare --agree-tos --email \
+  {{ certificate.email | default(certbot_admin_email) }} --dns-cloudflare-propagation-seconds 14 -d \
+  {{ certificate.domains | join(',') }}"
+
+# Wheter or not to generate certificates when they have not been generated yet
+certbot_create_if_missing: true
+certbot_create_method: standalone
+
+# Services to stop before creating a certificate
+certbot_create_standalone_stop_services:
+  # - apache
+  - nginx
+  # - varnish
+
+# Where to put Certbot when installing from source
+certbot_dir: /opt/certbot
+
+# Whether or not to update Certbot with the latest code/package
+certbot_keep_updated: true
+
+# Certbot repository
+certbot_repo: https://github.com/certbot/certbot.git
 certbot_version: master # Branch to retrieve the code from
+
+# Add a CloudFlare token with this variable for a wildcard DNS letsencrypt certificate
+# cloudflare_api_token: AddYourTokenHere
+
+# A certbot requirement
+# cloudflare_email: your_email@domain.com

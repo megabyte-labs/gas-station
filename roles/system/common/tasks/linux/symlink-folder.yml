@@ -3,18 +3,20 @@
   become: true
   become_user: root
   file:
-    path: "{{ item.create }}"
-    owner: "{{ user.username }}"
     group: "{{ user.username }}"
-    state: directory
+    mode: 0640
+    owner: "{{ user.username }}"
+    path: "{{ item.create }}"
     recurse: true
+    state: directory
   when: item.create is defined
 
 - name: "Ensure {{ item.path }} is a directory"
   file:
+    mode: 0640
     path: "{{ item.path }}"
-    state: directory
     recurse: true
+    state: directory
 
 - name: Check if symbolic link already exists
   stat:
@@ -29,13 +31,15 @@
 
 - name: Ensure symbolic link's parent directory exists
   file:
+    mode: 0640
     path: "{{ item.link | dirname }}"
-    state: directory
     recurse: true
+    state: directory
   when: (item.link | dirname) != '~'
 
 - name: Add symbolic link
   file:
-    src: "{{ item.path }}"
     dest: "{{ item.link }}"
+    mode: 0640
+    src: "{{ item.path }}"
     state: link

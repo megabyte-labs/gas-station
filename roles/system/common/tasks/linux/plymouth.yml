@@ -25,7 +25,7 @@
   unarchive:
     src: "files/plymouth-themes/{{ plymouth_theme }}.tar.gz"
     dest: "{{ plymouth_themes_dir }}"
-  when: (plymouth_theme is not defined) or (plymouth_theme.stdout != plymouth_theme)
+  when: (plymouth_theme is not defined) or ((plymouth_theme is defined) and (plymouth_theme.stdout != plymouth_theme))
 
 - name: Register the Plymouth theme
   alternatives:
@@ -33,7 +33,7 @@
     link: "{{ plymouth_themes_dir }}/default.plymouth"
     path: "{{ plymouth_themes_dir }}/{{ plymouth_theme }}/{{ plymouth_theme }}.plymouth"
     priority: 100
-  when: (plymouth_theme is not defined) or (plymouth_theme.stdout != plymouth_theme)
+  when: (plymouth_theme is not defined) or ((plymouth_theme is defined) and (plymouth_theme.stdout != plymouth_theme))
 
 - name: Activate the Plymouth theme # noqa 301
   shell: >
@@ -41,7 +41,7 @@
     | grep {{ plymouth_theme }} | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\\+//')
     | sudo update-alternatives --config default.plymouth
   notify: update initramfs
-  when: (plymouth_theme is not defined) or (plymouth_theme.stdout != plymouth_theme)
+  when: (plymouth_theme is not defined) or ((plymouth_theme is defined) and (plymouth_theme.stdout != plymouth_theme))
 
 - name: Save information about the current Plymouth theme
   copy:

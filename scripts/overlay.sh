@@ -1,8 +1,8 @@
 #!/bin/bash
 # Directory where files for import are located (need to point to root directory of ansible role)
-import_files="/Users/bzalewski/Playbooks/shared"
+import_files="/home/hawkwood/Playbooks/scripts/shared"
 # Directory where gitlab repository is located (need to point to directory where roles directory is)
-git_repository_dir="/Users/bzalewski/Playbooks"
+git_repository_dir="/home/hawkwood/Playbooks"
 
 if [[ -z "$import_files" || -z "$git_repository_dir" ]]; then
 	echo "You have not filled variables!"

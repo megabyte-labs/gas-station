@@ -8,12 +8,18 @@
     - ~/.config
     - ~/.config/megabytelabs
 
+- name: Check if Plymouth has configuration stored in /root/.config/megabytelabs/plymouth
+  stat:
+    path: ~/.config/megabytelabs/plymouth
+  register: plymouth_config
+
 - name: Detect previously installed Plymouth theme
   command: cat plymouth
   args:
     chdir: ~/.config/megabytelabs
   changed_when: false
   register: plymouth_theme
+  when: plymouth_config.stat.exists
 
 - name: Copy and unarchive the Plymouth theme
   unarchive:
@@ -30,7 +36,7 @@
   when: plymouth_theme.stdout != plymouth_theme
 
 - name: Activate the Plymouth theme # noqa 301
-  command: >
+  shell: >
     echo $(echo | sudo update-alternatives --config default.plymouth
     | grep {{ plymouth_theme }} | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\\+//')
     | sudo update-alternatives --config default.plymouth

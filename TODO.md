@@ -46,6 +46,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - [ngrok](https://ngrok.com/download)
 - URL shortener
 - adding user libvirt to /home nogo
+- garbage file .wget-hsts
 
 ## pfSense TODOs
 

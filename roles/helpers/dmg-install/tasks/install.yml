@@ -1,0 +1,19 @@
+---
+- name: Download the DMG file to a temporary directory
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ tmp_dir }}/{{ item.name }}.dmg"
+
+- name: Mount the DMG file
+  command: "hdiutil attach {{ tmp_dir }}/{{ item.name }}.dmg -nobrowse -mountpoint {{ tmp_dir }}/{{ item.name }}"
+
+- name: Copy the application to the Applications folder
+  shell: "cp -rf {{ tmp_dir }}/{{ item.name }}/*.app /Applications/{{ item.name }}.app"
+
+- name: Unmount the DMG file
+  command: "hdiutil detach {{ tmp_dir }}/{{ item.name }}"
+
+- name: Remove the source DMG file
+  file:
+    path: "{{ tmp_dir }}/{{ item.name }}.dmg"
+    state: absent

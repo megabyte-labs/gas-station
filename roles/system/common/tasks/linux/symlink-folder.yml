@@ -6,40 +6,40 @@
     group: "{{ user.username }}"
     mode: 0750
     owner: "{{ user.username }}"
-    path: "{{ item.create }}"
+    path: "{{ folder.create }}"
     recurse: true
     state: directory
-  when: item.create is defined
+  when: folder.create is defined
 
-- name: "Ensure {{ item.path }} is a directory"
+- name: "Ensure {{ folder.path }} is a directory"
   file:
     mode: 0750
-    path: "{{ item.path }}"
+    path: "{{ folder.path }}"
     recurse: true
     state: directory
 
 - name: Check if symbolic link already exists
   stat:
-    path: "{{ item.link }}"
+    path: "{{ folder.link }}"
   register: sym_link
 
 - name: Remove directory if it is not a symbolic link
   file:
-    path: "{{ item.link }}"
+    path: "{{ folder.link }}"
     state: absent
   when: sym_link.stat.islnk is not defined or (sym_link.stat.islnk is defined and not sym_link.stat.islnk)
 
 - name: Ensure symbolic link's parent directory exists
   file:
     mode: 0640
-    path: "{{ item.link | dirname }}"
+    path: "{{ folder.link | dirname }}"
     recurse: true
     state: directory
-  when: (item.link | dirname) != '~'
+  when: (folder.link | dirname) != '~'
 
 - name: Add symbolic link
   file:
-    dest: "{{ item.link }}"
+    dest: "{{ folder.link }}"
     mode: 0640
-    src: "{{ item.path }}"
+    src: "{{ folder.path }}"
     state: link

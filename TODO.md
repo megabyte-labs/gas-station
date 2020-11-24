@@ -42,6 +42,9 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Add commit message prompt for git master
 - Figure out Node.js PATH problem
 - FTP client
+- [ffsend](https://github.com/timvisee/ffsend#windows)
+- [ngrok](https://ngrok.com/download)
+- URL shortener
 
 ## pfSense TODOs
 

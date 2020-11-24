@@ -88,14 +88,14 @@
     name: "NetbootXYZ"
     src: "{{ item }}"
     comment: Allow TFTP access for booting iPXE files
-  when: ('netboot' in apps)
-  with_items:
+  loop:
     - "{{ lan_network.iot }}"
     - "{{ lan_network.kubernetes }}"
     - "{{ lan_network.management }}"
     - "{{ lan_network.offline }}"
     - "{{ lan_network.unifi }}"
     - "{{ lan_network.work }}"
+  when: ('netboot' in apps)
 
 - name: Allow access to Plex Media Server from LAN
   ufw:
@@ -103,7 +103,7 @@
     name: "PlexMediaServer Full"
     src: "{{ item }}"
     comment: Allow full access to Plex Media Server from LAN
-  with_items:
+  loop:
     - "{{ lan_network.iot }}"
     - "{{ lan_network.work }}"
   when: ('plex' in apps)
@@ -122,7 +122,7 @@
     name: "CUPS"
     src: "{{ item }}"
     comment: Allow printer sharing
-  with_items:
+  loop:
     - "{{ lan_network.iot }}"
     - "{{ lan_network.work }}"
   when: ('cups' in apps)
@@ -133,9 +133,9 @@
     name: "MAAS"
     src: "{{ item }}"
     comment: Allow MAAS communication
-  when: ('maas' in apps)
-  with_items:
+  loop:
     - "{{ lan_network.kubernetes }}"
+  when: ('maas' in apps)
 
 - name: Allow UniFi access
   ufw:
@@ -143,9 +143,9 @@
     name: "UniFi"
     comment: Allow UniFi communication
     src: "{{ item }}"
-  when: ('unifilab' in apps)
-  with_items:
+  loop:
     - "{{ lan_network.unifi }}"
+  when: ('unifilab' in apps)
 
 - name: Allow HTTP/HTTPS access from LAN
   ufw:
@@ -153,10 +153,10 @@
     name: "Nginx Full"
     comment: Allow access to NGINX from LAN
     src: "{{ item }}"
+  loop: "{{ rc1918_networks }}"
   when:
     - not ('nuc' in apps)
     - vlan != 'cloud'
-  with_items: "{{ rc1918_networks }}"
 
 - name: Allow HTTP/HTTPS access from internet
   ufw:

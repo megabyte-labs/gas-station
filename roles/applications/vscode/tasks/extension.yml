@@ -1,9 +1,15 @@
 ---
 - name: Determine if Visual Studio Code extension is already present
-  command: "ls | grep {{ item }}"
-  register: extension_grep
+  become: true
+  become_user: "{{ user.username }}"
+  command: ls
+  args:
+    chdir: ~/.vscode/extensions
+  register: extension_ls
   changed_when: false
 
 - name: Install Visual Studio Code extensions
-  command: "{{ code_binary_path }} --install-extension {{ item }}"
-  when: not (extension_grep.stdout | length)
+  become: true
+  become_user: "{{ user.username }}"
+  command: "{{ code_binary_path }} --install-extension {{ extension }}"
+  when: not ((extension_ls.stdout | lower) | regex_findall((extension | lower) + '-[0-9]+\.[0-9]+\.[0-9]+') | length)

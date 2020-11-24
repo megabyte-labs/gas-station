@@ -30,22 +30,22 @@
     mode: 0755
 
 - name: Run installer
+  become: true
   command: >
     {{ workstation_tempdir }}/tryworkstation-linux-64.sh --eulas-agreed --console
     --required {{'--set-setting vmware-workstation serialNumber '+ workstation_license
     if workstation_license is defined else '' }}
   args:
     creates: /usr/bin/vmware
-  become: true
   tags:
     - skip_ansible_lint
 
 - name: Install packages needed by VMWare Packer build
+  become: true
   package:
     name: "{{ item }}"
     state: present
-  with_items: "{{ workstation_extra_packages }}"
-  become: true
+  loop: "{{ workstation_extra_packages }}"
   when: workstation_extra_packages is defined
 
 - name: Stat for systemd
@@ -60,12 +60,12 @@
     owner: root
     group: root
     mode: 0644
-  with_items:
+  loop:
     - vmware.service
     - vmware-usbarbitrator.service
     - vmware-workstation-server.service
-  when: systemd_dir.stat.exists
   notify: reload systemd configurations
+  when: systemd_dir.stat.exists
 
 - name: Clone Unlocker (for running Mac OS X on VMWare)
   git:

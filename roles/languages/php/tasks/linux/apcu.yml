@@ -3,8 +3,8 @@
   find:
     paths: "{{ item }}"
     contains: 'extension(\s+)?=(\s+)?apc[u]?\.so'
+  loop: "{{ php_extension_conf_paths }}"
   register: php_installed_apc_confs
-  with_items: "{{ php_extension_conf_paths }}"
 
 - name: Remove any non-role-supplied APCu config files
   file:
@@ -26,14 +26,14 @@
     group: root
     force: true
     mode: 0644
-  with_items: "{{ php_extension_conf_paths }}"
-  when: php_enable_apc
+  loop: "{{ php_extension_conf_paths }}"
   notify: restart webserver
+  when: php_enable_apc
 
 - name: Remove APCu config file if APC is disabled
   file:
     path: "{{ item }}/{{ php_apc_conf_filename }}"
     state: absent
-  with_items: "{{ php_extension_conf_paths }}"
-  when: not php_enable_apc
+  loop: "{{ php_extension_conf_paths }}"
   notify: restart webserver
+  when: not php_enable_apc

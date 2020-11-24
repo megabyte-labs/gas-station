@@ -31,8 +31,8 @@
     include_parent: true
     name: "{{ item.name | default(item) }}"
     state: "{{ item.state | default('present') }}"
+  loop: "{{ windows_features | default([]) }}"
   register: optional_features
-  with_items: "{{ windows_features | default([]) }}"
 
 - name: Determine whether or not a reboot is required
   set_fact:
@@ -47,12 +47,12 @@
   win_command: 'Get-AppxPackage -AllUsers -Name "{{ item }}" | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue; \
     Get-AppxProvisionedPackage -Online | where {$_.PackageName -like "{{ item }}"} | Remove-AppxProvisionedPackage \
     -AllUsers -Online -ErrorAction SilentlyContinue;'
-  with_items: "{{ windows_appx_removals | default([]) }}"
+  loop: "{{ windows_appx_removals | default([]) }}"
 
 - name: Install APPX packages
   debug:
     msg: "TODO: Figure out how to install APPX packages from the Microsoft Store"
-  with_items: "{{ windows_appx_installs }}"
+  loop: "{{ windows_appx_installs }}"
 
 - name: Install git
   chocolatey.chocolatey.win_chocolatey:

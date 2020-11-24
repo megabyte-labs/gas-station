@@ -41,7 +41,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
   - [shfmt](https://github.com/mvdan/sh)
 - Add commit message prompt for git master
 - Figure out Node.js PATH problem
-- Replace with_items with loop
+- FTP client
 
 ## pfSense TODOs
 

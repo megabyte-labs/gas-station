@@ -1,0 +1,18 @@
+---
+- name: Ensure user's extensions directory exists
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0775
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.vscode
+    - ~/.vscode/extensions
+  when: user.vscode_extensions | default([]) | length
+
+- name: Install user's extensions
+  include_tasks: extension.yml
+  loop: "{{ user.vscode_extensions | default([]) }}"
+  loop_control:
+    loop_var: extension

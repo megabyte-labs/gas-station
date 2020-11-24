@@ -13,6 +13,14 @@
     - include_tasks: "install-{{ ansible_os_family }}.yml"
   when: not brew_bin.stat.exists
 
+- name: Ensure .bashrc includes Homebrew (Linux) # TODO: Add the equiavalent to Mac OS X and Windows
+  include_tasks: bashrc-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: ansible_system == 'Linux'
+
 - name: Ensure Homebrew packages are installed and up-to-date
   homebrew: # TODO: Test to see if Windows supports the Ansible homebrew module
     name: "{{ homebrew_packages | default([]) }}"
@@ -20,7 +28,3 @@
     state: present
     update_homebrew: true
     upgrade_all: true
-
-- name: Ensure .bashrc includes Homebrew (Linux) # TODO: Add the equiavalent to Mac OS X and Windows
-  include_tasks: bashrc-Linux.yml
-  when: ansible_system == 'Linux'

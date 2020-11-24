@@ -1,14 +1,14 @@
 ---
 - name: Install configured globally-required packages.
+  become: true
+  become_user: "{{ composer_home_owner }}"
   command: >
     {{ composer_path }} global require {{ item.name }}:{{ item.release | default('@stable') }} --no-progress --no-interaction
     creates={{ composer_home_path }}/vendor/{{ item.name }}
   environment:
     COMPOSER_HOME: "{{ composer_home_path }}"
-  become: true
-  become_user: "{{ composer_home_owner }}"
+  loop: "{{ composer_global_packages }}"
   register: composer_global_require_result
-  with_items: "{{ composer_global_packages }}"
 
 - name: Add composer_home_path bin directory to global $PATH.
   template:

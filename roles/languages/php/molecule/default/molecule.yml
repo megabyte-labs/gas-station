@@ -8,14 +8,51 @@ lint: |
   yamllint .
   ansible-lint
 platforms:
-  - name: instance
-    image: "geerlingguy/docker-${MOLECULE_DISTRO:-centos7}-ansible:latest"
-    command: ${MOLECULE_DOCKER_COMMAND:-""}
+  - name: centos
+    image: centos:7
+    tmpfs:
+      - /run
+      - /tmp
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     privileged: true
     pre_build_image: true
+    groups:
+      - linuxcontainers
+  - name: ubuntu
+    image: pycontribs/ubuntu:latest
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+    groups:
+      - linuxcontainers
+  - name: archlinux
+    image: archlinux:latest
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+    groups:
+      - linuxcontainers
 provisioner:
   name: ansible
+  inventory:
+    group_vars:
+      linuxcontainers:
+        ansible_connection: docker
+    links:
+      hosts: external_win_mac
   playbooks:
-    converge: ${MOLECULE_PLAYBOOK:-converge.yml}
+    prepare: prepare.yml
+    create: create.yml
+    destroy: destroy.yml
+    converge: converge.yml
+verifier:
+  name: ansible

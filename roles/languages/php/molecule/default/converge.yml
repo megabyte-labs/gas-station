@@ -1,70 +1,41 @@
 ---
 - name: Converge
   hosts: all
-  become: true
-
-  vars:
-    php_enable_webserver: false
-    php_enable_php_fpm: true
-    php_memory_limit: "192M"
-    php_enablerepo: "remi,remi-php70"
-    php_install_recommends: false
-
-  handlers:
-    - name: update apt cache
-      apt: update_cache=true
-      when: ansible_os_family == 'Debian'
 
   pre_tasks:
-    - name: Update apt cache.
-      apt: update_cache=true cache_valid_time=600
-      when: ansible_os_family == 'Debian'
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+      when:
+        - ansible_os_family == 'Debian'
+
+    - name: Wait for systemd to complete initialization
+      command: systemctl is-system-running
+      register: systemctl_status
+      until: >
+        'running' in systemctl_status.stdout or
+        'degraded' in systemctl_status.stdout
+      retries: 30
+      delay: 5
+      when:
+        - ansible_os_family != 'Windows'
+        - ansible_service_mgr == 'systemd'
       changed_when: false
+      failed_when: systemctl_status.rc > 1
 
-    # Ubuntu-specific tasks.
-    - name: Ensure dirmngr is installed (gnupg dependency).
-      apt:
-        name: dirmngr
+    - name: Install sudo on RHEL family
+      yum:
+        update_cache: yes
+        name: sudo
         state: present
-      when: ansible_os_family == 'Debian'
-
-    - name: Add repository for PHP 7.
-      apt_repository: repo='ppa:ondrej/php'
-      when: ansible_distribution == 'Ubuntu'
-
-    # Debian-specific tasks.
-    - name: Add dependencies for PHP versions (Debian).
-      apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - gnupg2
-        state: present
-      when: ansible_distribution == "Debian"
-
-    - name: Add Ondrej Sury's apt key (Debian).
-      apt_key:
-        url: https://packages.sury.org/php/apt.gpg
-        state: present
-      when: ansible_distribution == "Debian"
-
-    - name: Add Ondrej Sury's repo (Debian).
-      apt_repository:
-        repo: "deb https://packages.sury.org/php/ {{ ansible_distribution_release }} main"
-        state: present
-      when: ansible_distribution == "Debian"
-      notify: update apt cache
-
-    - meta: flush_handlers
-
-  roles:
-    - role: geerlingguy.repo-remi
       when:
         - ansible_os_family == 'RedHat'
-        - ansible_distribution != 'Fedora'
-    - role: geerlingguy.php
 
   post_tasks:
     - name: Confirm PHP configuration is correct.
       command: php -i | grep 'memory_limit.*192'
       changed_when: false
+
+  roles:
+    - role: php

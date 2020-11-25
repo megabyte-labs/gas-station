@@ -12,6 +12,19 @@
     owner: root
     src: install-gnome-extensions.sh
 
+- name: Ensure gnome-shell extensions folder exists
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.local
+    - ~/.local/share
+    - ~/.local/share/gnome-shell
+    - ~/.local/share/gnome-shell/extensions
+
 - name: Determine which GNOME extensions are already installed (user)
   become: true
   become_user: "{{ user.username }}"
@@ -60,3 +73,7 @@
   loop: "{{ user.gnome_extensions | default([]) }}"
   loop_control:
     label: "{{ item.url }}"
+
+- name: Restart GNOME
+  command: killall -SIGQUIT gnome-shell
+  when: install_gnome_extensions.stat.exists

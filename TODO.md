@@ -45,8 +45,8 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - [ffsend](https://github.com/timvisee/ffsend#windows)
 - [ngrok](https://ngrok.com/download)
 - URL shortener
-- adding user libvirt to /home nogo
 - garbage file .wget-hsts
+- Add kompose for Linux distros to the roles/virtualization/kubernetes (use [the Go method here](https://github.com/kubernetes/kompose/blob/master/docs/installation.md#go))
 
 ## pfSense TODOs
 

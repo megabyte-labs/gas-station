@@ -4,17 +4,17 @@
     name: sambausers
     state: present
 
-- name: Add Samba users that require access to the private samba shares
+- name: Ensure configured users are added to the "sambausers" group
   user:
-    comment: "Samba user"
-    create_home: false
-    groups: "{{ item.groups }}"
-    name: "{{ item.name }}"
-    password: "{{ item.password }}"
-    system: true
-  loop: "{{ samba_users }}"
+    append: yes
+    groups:
+      - sambausers
+    name: "{{ user.username }}"
+  loop: "{{ user_configs }}"
   loop_control:
-    label: "{{ item.name }}"
+    label: "{{ user.username }}"
+    loop_var: user
+  when: user.samba_user | default(false)
 
 - name: Configure Samba file/printer sharing
   blockinfile:
@@ -84,11 +84,3 @@
     - samba_netbios_name is defined
     - samba_workgroup is defined
     - (samba_shares is defined) or (samba_printers is defined)
-
-- name: Add Samba password to Samba users
-  command: "printf '{{ item.samba_password }}\n{{ item.samba_password }}\n' | smbpasswd -a {{ item.name }}"
-  changed_when: samba_password_result.stdout | bool
-  loop: "{{ samba_users | default([]) }}"
-  loop_control:
-    label: "{{ item.name }}"
-  register: samba_password_result

@@ -1,5 +1,82 @@
 ---
-- hosts: localhost
-  gather_facts: no
-  tasks:
-  - ping:
+- hosts: pfsense
+  roles:
+    - roles/misc/pfsense
+
+- hosts: seconion
+  roles:
+    - roles/misc/seconion
+
+- hosts: all:!pfsense:!seconion
+  gather_facts: false
+  roles:
+    - roles/system/connect
+
+- hosts: mac
+  roles:
+    - roles/tools/mas
+
+- hosts: all:!pfsense:!seconion
+  roles:
+    - roles/services/netdata
+    - roles/services/nginx
+    - roles/services/rclone
+    - roles/services/restic
+    - roles/services/samba
+    - roles/services/wazuh
+    - roles/virtualization/docker
+    - roles/virtualization/hyperv
+    - roles/virtualization/kvm
+    - roles/virtualization/parallels
+    - roles/virtualization/gitdocker
+
+- hosts: desktop
+  roles:
+    - roles/virtualization/kubernetes # Kubernetes: Tools useful for managing Kubernetes clusters
+    - roles/virtualization/vagrant # Vagrant: A tool useful for building and managing virtual environments
+    - roles/virtualization/vmware # VMWare: A virtualization platform
+    - roles/applications/android-studio # Android Studio: An IDE used to build Android apps
+    - roles/applications/brave-browser # Brave Browser: A browser with default settings that help with privacy
+    - roles/applications/chrome # Chrome: Google's web browser
+    - roles/applications/firefox # Firefox: An open-source web browser
+    - roles/applications/flameshot # Flameshot: A screenshot utility for Linux
+    - roles/applications/gimp # Gimp: An image editor similar to Photoshop
+    - roles/applications/hyper # Hyper: Extensible terminal built on web technologies like JavaScript, HTML, and CSS
+    - roles/applications/inkscape # Inkscape: Vector graphics software
+    - roles/applications/lollypop # Lollypop: A slick music player available on Linux
+    - roles/applications/mailspring # Mailspring: An e-mail client available on Windows, macOS, and Linux
+    - roles/applications/office # LibreOffice/Microsoft Office: Installs Microsoft Office and LibreOffice if Microsoft Office is not available
+    - roles/applications/plex # Plex: A home media server that includes the capability of streaming movies/shows remotely
+    - roles/applications/postman # Postman: A collaboration platform for API development
+    - roles/applications/qbittorrent # qBittorrent: A torrent downloader
+    - roles/applications/raspberryimager # Raspberry Imager: Utility that flashes MicroSD cards for use with Raspberry Pis
+    - roles/applications/remotedesktop # Remote Desktop: Installs the best remote desktop software based on the operating system
+    - roles/applications/shotwell # Shotwell: A photo management tool
+    - roles/applications/slack # Slack: Team collaboration software
+    - roles/applications/teamviewer # TeamViewer: Software that provides remote access to others
+    - roles/applications/visual-studio # Visual Studio: Installs Visual Studio Community Edition on Windows
+    - roles/applications/vlc # VLC: Cross-platform multimedia player
+    - roles/applications/vscode # Visual Studio Code: A code editor redefined and optimized for building and debugging modern web apps
+    - roles/applications/wireshark # Wireshark: Most widely-used network protocol analyzer (packet sniffer)
+    - roles/applications/xcode # Xcode: Installs Xcode on Mac OS X
+    - roles/tools/composer # Composer: A PHP dependency management tool
+    - roles/tools/homebrew # Homebrew: A package manager for Mac OS X and Linux
+    - roles/tools/juju # Juju: Open source service modelling tool
+    - roles/tools/packer # Packer: Tool for creating identical images for multiple platforms from a single configuration
+    - roles/tools/powershell # PowerShell: Cross-platform task automation and configuration management framework
+    - roles/tools/yarn # Yarn: Fast, reliable, and secure dependency management tool for Node.js
+    - roles/tools/youtubedl # youtube-dl: CLI that can download videos from YouTube and other sites
+    - roles/system/extensions # Extensions: Provides the capability of installing GNOME extensions using a configuration
+    - roles/system/desktop # Desktop: Applies miscellaneous tweaks to desktop computers
+
+- hosts: all:!pfsense:!seconion
+  roles:
+    - role: roles/misc/easyengine
+      when: install_easyengine | default(false)
+    - role: roles/misc/hosthomepage
+      when: install_host_homepage | default(false)
+    - role: roles/misc/ipa
+      when: install_ipa | default(false)
+    - role: roles/misc/maas
+      when: install_maas | default(false)
+    - roles/system/finish

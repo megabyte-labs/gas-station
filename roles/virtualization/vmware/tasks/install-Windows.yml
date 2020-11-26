@@ -1,2 +1,49 @@
 ---
-[] # TODO
+- name: Create temporary directory
+  ansible.windows.win_file:
+    path: "{{ workstation_tempdir }}"
+    state: directory
+
+- name: Check for pre-downloaded binary
+  ansible.windows.win_stat:
+    path: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
+  register: file_stats
+
+- name: Download workstation
+  ansible.windows.win_get_url:
+    url: "{{ workstation_download_url }}"
+    dest: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
+  when: not file_stats.stat.exists
+
+- name: Run installer
+  become: true
+  ansible.windows.win_package:
+    path: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
+    arguments:
+      - /s
+      - "/v\"/qn EULAS_AGREED=1 {{ 'SERIALNUMBER='+workstation_license if workstation_license is defined else '' }} AUTOSOFTWAREUPDATE=1\""
+  tags:
+    - skip_ansible_lint
+
+- name: Download Unlocker release (for running Mac OS X on VMWare)
+  ansible.windows.win_get_url:
+    url: "{{ unlocker_git }}"
+    dest: "{{ unlocker_temp_dir }}\unlocker.zip"
+
+- name: Extract the Unlocker archive
+  community.windows.win_unzip:
+    src: "{{ unlocker_temp_dir }}\unlocker.zip"
+    dest: "{{ unlocker_temp_dir }}\extracted"
+    creates: "{{ unlocker_temp_dir }}\extracted"
+
+- name: Patch VMWare for Mac OS X
+  become: true
+  ansible.windows.win_command: cmd.exe /c win-install.cmd
+  args:
+    chdir: "{{ unlocker_temp_dir }}\extracted"
+  changed_when: false
+
+- name: Remove the temporary Unlocker directory
+  ansible.windows.win_file:
+    path: "{{ unlocker_temp_dir }}"
+    state: absent

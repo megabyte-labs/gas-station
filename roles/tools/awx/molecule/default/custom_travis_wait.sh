@@ -14,11 +14,11 @@ ${command} &
 
 # Ping every second.
 seconds=0
-limit=45*60
+limit=$((45*60))
 while kill -0 $! >/dev/null 2>&1;
 do
     echo -n -e " \b"
-    if [ $seconds == $limit ]; then
+    if [ $seconds == "$limit" ]; then
         break;
     fi
     seconds=$((seconds + 1))

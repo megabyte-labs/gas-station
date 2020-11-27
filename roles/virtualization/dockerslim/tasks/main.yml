@@ -1,1 +1,22 @@
 ---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Fetch the releases page of docker-slim to find the latest version
+  ansible.builtin.uri:
+    url: "{{ github_repo_url }}/releases"
+    return_content: true
+  register: docker_slim_releases
+
+- name: Create the regex to filter out versions found in the releases page
+  ansible.builtin.set_fact:
+    version_regex: "{{ '\/' + github_repo_url.split('/')[4] + '\/tree\/\S[^\"]*' }}"
+
+- name: Set the version of docker-slim to a variable
+  ansible.builtin.set_fact:
+    docker_slim_version: "{{ docker_slim_releases.content | regex_search(version_regex) | regex_search('(\d.){2}.\d') }}"
+
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"

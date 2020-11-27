@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -z "$1" ] || [ "$@" == *'"'* ]; then
+if [[ -z "$1" ]] || [[ "$@" == *'"'* ]]; then
 	echo You have to use double quotes
 	echo 'Usage: ./pass-command.sh "molecule test" (True)'
 	exit 1;

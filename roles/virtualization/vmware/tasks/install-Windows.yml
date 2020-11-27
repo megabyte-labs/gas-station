@@ -21,29 +21,36 @@
     path: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
     arguments:
       - /s
-      - "/v\"/qn EULAS_AGREED=1 {{ 'SERIALNUMBER='+workstation_license if workstation_license is defined else '' }} AUTOSOFTWAREUPDATE=1\""
+      - "/v\"/qn EULAS_AGREED=1 {{ 'SERIALNUMBER=' + workstation_license if workstation_license is defined else '' }} AUTOSOFTWAREUPDATE=1\""
   tags:
     - skip_ansible_lint
 
-- name: Download Unlocker release (for running Mac OS X on VMWare)
+- name: Check if Unlocker archive is present
+  ansible.builtin.stat:
+    path: "{{ workstation_tempdir }}\unlocker-{{ unlocker_git.split('/')[-2] }}.zip"
+  register: unlocker_stat
+
+- name: Download Unlocker archive (for running Mac OS X on VMWare)
   ansible.windows.win_get_url:
     url: "{{ unlocker_git }}"
-    dest: "{{ unlocker_temp_dir }}\unlocker.zip"
+    dest: "{{ workstation_tempdir }}\unlocker-{{ unlocker_git.split('/')[-2] }}.zip"
+  when:
+    - not unlocker_stat.stat.exists
 
 - name: Extract the Unlocker archive
   community.windows.win_unzip:
-    src: "{{ unlocker_temp_dir }}\unlocker.zip"
-    dest: "{{ unlocker_temp_dir }}\extracted"
-    creates: "{{ unlocker_temp_dir }}\extracted"
+    src: "{{ workstation_tempdir }}\unlocker-{{ unlocker_git.split('/')[-2] }}.zip"
+    dest: "{{ workstation_tempdir }}\unlocker"
+    creates: "{{ workstation_tempdir }}\unlocker"
+  when:
+    - not unlocker_stat.stat.exists
 
 - name: Patch VMWare for Mac OS X
   become: true
+  become_method: runas
   ansible.windows.win_command: cmd.exe /c win-install.cmd
   args:
-    chdir: "{{ unlocker_temp_dir }}\extracted"
+    chdir: "{{ workstation_tempdir }}\unlocker"
   changed_when: false
-
-- name: Remove the temporary Unlocker directory
-  ansible.windows.win_file:
-    path: "{{ unlocker_temp_dir }}"
-    state: absent
+  when:
+    - not unlocker_stat.stat.exists

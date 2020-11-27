@@ -1,18 +1,36 @@
 ---
-- name: Install dependencies
-  pacman:
-    name: "{{ item }}"
+- name: Ensure that the dependencies are installed
+  community.general.pacman:
+    name: "{{ pkg_dependencies }}"
     udpate_cache: true
     state: present
-  with_items:
-    - git
-    - binutils
-    - make
-    - gcc
-    - pkg-config
-    - fakeroot
 
-- name: Install Autokey
-  command: git clone https://aur.archlinux.org/autokey.git && cd autokey && makepkg -sic --noconfirm
-  args:
-    creates: /usr/sbin/autokey-gtk
+- name: Check if Autokey is installed
+  ansible.builtin.stat:
+    path: /usr/sbin/autokey-gtk
+  register: autokey_stat
+
+- name: Install Autokey if not already installed
+  block:
+    - name: Ensure to create a temporary directory for Autokey source files
+      ansible.builtin.file:
+        path: "{{ temp_directory }}"
+        state: directory
+        mode: '0770'
+    - name: Ensure that Autokey repo is cloned
+      ansible.builtin.git:
+        repo: "{{ autokey_aur_repo_url }}"
+        dest: "{{ temp_directory }}"
+        clone: true
+    - name: Ensure Autokey is installed
+      ansible.builtin.command: makepkg -sic --noconfirm
+      args:
+        chdir: "{{ temp_directory }}"
+        creates: /usr/sbin/autokey-gtk
+  when:
+    - not autokey_stat.stat.exists
+  always:
+    - name: Ensure to remove the temporary directory created for Autokey source files
+      ansible.builtin.file:
+        path: "{{ temp_directory }}"
+        state: absent

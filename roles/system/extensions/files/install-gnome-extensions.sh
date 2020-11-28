@@ -116,7 +116,7 @@ function disable_extension(){
 
 function get_installed_extensions_list(){
 user_extensions_path="/home/$USER/.local/share/gnome-shell/extensions";
-array=($(ls -l $user_extensions_path --time-style=long-iso | egrep '^d' | awk '{print $8}'));
+array=($(ls -l "$user_extensions_path" --time-style=long-iso | grep -E '^d' | awk '{print $8}'));
 ext_list=$(printf "'%s'," "${array[@]}");
 ext_list=${ext_list%,};
 INSTALLED_EXT_COUNT="${#array[@]}"
@@ -244,7 +244,7 @@ function install_exts_from_links_file(){
     while IFS="" read -r p || [ -n "$p" ]; do
         url="$(echo "$p" | sed '/^[[:space:]]*$/d')"
         ext_id="$(echo "$url" | tr '\n' ' ' | sed -e 's/[^0-9]/ /g' -e 's/^ *//g' -e 's/ *$//g' | tr -s ' ' | awk '{print $1;}')"
-        IsNumber "$ext_id" && EXTENSIONS_TO_INSTALL+=($ext_id) || printf "\n%sError: Invalid URL: %s (Skipping this).%s" "$error_text" "$url" "$normal_text";
+        IsNumber "$ext_id" && EXTENSIONS_TO_INSTALL+=("$ext_id") || printf "\n%sError: Invalid URL: %s (Skipping this).%s" "$error_text" "$url" "$normal_text";
     done < "$file"
     printf "\n"
 }

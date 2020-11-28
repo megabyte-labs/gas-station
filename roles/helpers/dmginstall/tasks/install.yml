@@ -12,12 +12,23 @@
 
 - name: Mount the DMG file
   command: "hdiutil attach {{ tmp_dir }}/{{ dmg.name }}.dmg -nobrowse -mountpoint {{ tmp_dir }}/{{ dmg.name }}"
+  args:
+    creates: "{{ tmp_dir }}/{{ dmg.name }}"
 
 - name: Copy the application to the Applications folder
-  shell: "cp -rf {{ tmp_dir }}/{{ dmg.name }}/*.app /Applications/{{ dmg.name }}.app"
+  copy:
+    dest: "/Applications/"
+    group: wheel
+    mode: preserve
+    owner: root
+    src: "{{ item }}"
+  with_fileglob:
+    - "{{ tmp_dir }}/{{ dmg.name }}/*.app"
 
 - name: Unmount the DMG file
   command: "hdiutil detach {{ tmp_dir }}/{{ dmg.name }}"
+  args:
+    removes: "{{ tmp_dir }}/{{ dmg.name }}"
 
 - name: Remove the source DMG file
   file:

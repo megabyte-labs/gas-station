@@ -22,8 +22,6 @@
     arguments:
       - /s
       - "/v\"/qn EULAS_AGREED=1 {{ 'SERIALNUMBER=' + workstation_license if workstation_license is defined else '' }} AUTOSOFTWAREUPDATE=1\""
-  tags:
-    - skip_ansible_lint
 
 - name: Check if Unlocker archive is present
   ansible.builtin.stat:
@@ -34,16 +32,14 @@
   ansible.windows.win_get_url:
     url: "{{ unlocker_git }}"
     dest: "{{ workstation_tempdir }}\unlocker-{{ unlocker_git.split('/')[-2] }}.zip"
-  when:
-    - not unlocker_stat.stat.exists
+  when: not unlocker_stat.stat.exists
 
 - name: Extract the Unlocker archive
   community.windows.win_unzip:
     src: "{{ workstation_tempdir }}\unlocker-{{ unlocker_git.split('/')[-2] }}.zip"
     dest: "{{ workstation_tempdir }}\unlocker"
     creates: "{{ workstation_tempdir }}\unlocker"
-  when:
-    - not unlocker_stat.stat.exists
+  when: not unlocker_stat.stat.exists
 
 - name: Patch VMWare for Mac OS X
   become: true
@@ -51,6 +47,5 @@
   ansible.windows.win_command: cmd.exe /c win-install.cmd
   args:
     chdir: "{{ workstation_tempdir }}\unlocker"
-  changed_when: false
-  when:
-    - not unlocker_stat.stat.exists
+    creates: "{{ workstation_tempdir }}\unlocker\backup"
+  when: not unlocker_stat.stat.exists

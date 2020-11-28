@@ -1,26 +1,28 @@
 ---
-- name: Determine if appimaged is already installed
-  command: appimaged --version
-  changed_when: false
-  register: appimaged_version
+- name: Gather package facts
+  package_facts:
+    manager: auto
+
+- debug:
+    msg: "{{ ansible_facts.packages }}"
 
 - name: Copy appimaged.deb
   copy:
     dest: ~/appimaged.deb
     mode: 0600
     src: appimaged.deb
-  when: ('built on' not in appimaged_version.stderr)
+  when: ('appimaged' not in ansible_facts.packages)
 
 - name: Install appimaged
   apt:
     deb: ~/appimaged.deb
-  when: ('built on' not in appimaged_version.stderr)
+  when: ('appimaged' not in ansible_facts.packages)
 
 - name: Remove appimaged.deb
   file:
     path: ~/appimaged.deb
     state: absent
-  when: ('built on' not in appimaged_version.stderr)
+  when: ('appimaged' not in ansible_facts.packages)
 
 - name: Install custom desktop apt software
   apt:

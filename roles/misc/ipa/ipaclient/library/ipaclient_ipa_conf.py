@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_ipa_conf
 short description: Configure ipa.conf
@@ -52,9 +52,9 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 # Backup and set hostname
 - name: Backup and set hostname
   ipaclient_ipa_conf:
@@ -63,14 +63,17 @@ EXAMPLES = '''
     realm: EXAMPLE.COM
     hostname: client1.example.com
     basedn: dc=example,dc=com
-'''
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
-    setup_logging, paths, sysrestore, configure_ipa_conf
+    setup_logging,
+    paths,
+    sysrestore,
+    configure_ipa_conf,
 )
 
 
@@ -78,7 +81,7 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             domain=dict(required=True, default=None),
-            servers=dict(required=True, type='list', default=None),
+            servers=dict(required=True, type="list", default=None),
             realm=dict(required=True, default=None),
             hostname=dict(required=True, default=None),
             basedn=dict(required=True),
@@ -89,11 +92,11 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    servers = module.params.get('servers')
-    domain = module.params.get('domain')
-    realm = module.params.get('realm')
-    hostname = module.params.get('hostname')
-    basedn = module.params.get('basedn')
+    servers = module.params.get("servers")
+    domain = module.params.get("domain")
+    realm = module.params.get("realm")
+    hostname = module.params.get("hostname")
+    basedn = module.params.get("basedn")
 
     fstore = sysrestore.FileStore(paths.IPA_CLIENT_SYSRESTORE)
 
@@ -102,5 +105,5 @@ def main():
     module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

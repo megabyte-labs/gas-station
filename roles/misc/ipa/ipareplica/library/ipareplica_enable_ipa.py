@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_enable_ipa
 short description: Enable IPA
@@ -65,22 +65,33 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, DN, paths,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_ReplicaConfig, gen_remote_api, api, redirect_stdout, service,
-    find_providing_servers, services
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    DN,
+    paths,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_ReplicaConfig,
+    gen_remote_api,
+    api,
+    redirect_stdout,
+    service,
+    find_providing_servers,
+    services,
 )
 
 
@@ -88,15 +99,15 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             hostname=dict(required=False),
-            hidden_replica=dict(required=False, type='bool', default=False),
+            hidden_replica=dict(required=False, type="bool", default=False),
             # server
             # certificate system
             subject_base=dict(required=True),
             # additional
             ccache=dict(required=True),
             _top_dir=dict(required=True),
-            setup_ca=dict(required=True, type='bool'),
-            setup_kra=dict(required=True, type='bool'),
+            setup_ca=dict(required=True, type="bool"),
+            setup_kra=dict(required=True, type="bool"),
             config_master_host_name=dict(required=True),
         ),
         supports_check_mode=True,
@@ -109,35 +120,33 @@ def main():
     # get parameters #
 
     options = installer
-    options.host_name = ansible_module.params.get('hostname')
-    options.hidden_replica = ansible_module.params.get('hidden_replica')
+    options.host_name = ansible_module.params.get("hostname")
+    options.hidden_replica = ansible_module.params.get("hidden_replica")
     # server
     # certificate system
-    options.subject_base = ansible_module.params.get('subject_base')
+    options.subject_base = ansible_module.params.get("subject_base")
     if options.subject_base is not None:
         options.subject_base = DN(options.subject_base)
     # additional
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
-    options._top_dir = ansible_module.params.get('_top_dir')
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    config_master_host_name = ansible_module.params.get(
-        'config_master_host_name')
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
+    options._top_dir = ansible_module.params.get("_top_dir")
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    config_master_host_name = ansible_module.params.get("config_master_host_name")
 
     # init #
 
     ansible_log.debug("== INSTALL ==")
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     config = gen_ReplicaConfig()
 
     remote_api = gen_remote_api(config_master_host_name, paths.ETC_IPA)
     installer._remote_api = remote_api
 
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     api.Backend.ldap2.connect()
 
@@ -151,7 +160,7 @@ def main():
         # update DNS SRV records. Although it's only really necessary in
         # enabled-service case, also perform update in hidden replica case.
         api.Command.dns_update_system_records()
-        ca_servers = find_providing_servers('CA', api.Backend.ldap2, api=api)
+        ca_servers = find_providing_servers("CA", api.Backend.ldap2, api=api)
         api.Backend.ldap2.disconnect()
 
         # Everything installed properly, activate ipa service.
@@ -159,11 +168,13 @@ def main():
 
         # Print a warning if CA role is only installed on one server
         if len(ca_servers) == 1:
-            msg = u'''
+            msg = u"""
                 WARNING: The CA service is only installed on one server ({}).
                 It is strongly recommended to install it on another server.
                 Run ipa-ca-install(1) on another master to accomplish this.
-            '''.format(ca_servers[0])
+            """.format(
+                ca_servers[0]
+            )
             ansible_module.debug(msg)
 
     # done #
@@ -171,5 +182,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

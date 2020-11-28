@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_setup_adtrust
 short description: Setup adtrust
@@ -75,21 +75,32 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, DN, paths, sysrestore,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_ReplicaConfig, gen_remote_api, api, redirect_stdout, adtrust
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    DN,
+    paths,
+    sysrestore,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_ReplicaConfig,
+    gen_remote_api,
+    api,
+    redirect_stdout,
+    adtrust,
 )
 
 
@@ -97,20 +108,20 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # server
-            setup_kra=dict(required=False, type='bool'),
+            setup_kra=dict(required=False, type="bool"),
             # certificate system
             subject_base=dict(required=True),
             # ad trust
-            enable_compat=dict(required=False, type='bool', default=False),
-            rid_base=dict(required=False, type='int'),
-            secondary_rid_base=dict(required=False, type='int'),
+            enable_compat=dict(required=False, type="bool", default=False),
+            rid_base=dict(required=False, type="int"),
+            secondary_rid_base=dict(required=False, type="int"),
             # additional
             adtrust_netbios_name=dict(required=True),
-            adtrust_reset_netbios_name=dict(required=True, type='bool'),
+            adtrust_reset_netbios_name=dict(required=True, type="bool"),
             # additional
             ccache=dict(required=True),
             _top_dir=dict(required=True),
-            setup_ca=dict(required=True, type='bool'),
+            setup_ca=dict(required=True, type="bool"),
             config_master_host_name=dict(required=True),
         ),
         supports_check_mode=True,
@@ -124,26 +135,23 @@ def main():
 
     options = installer
     # server
-    options.setup_kra = ansible_module.params.get('setup_kra')
+    options.setup_kra = ansible_module.params.get("setup_kra")
     # certificate system
-    options.subject_base = ansible_module.params.get('subject_base')
+    options.subject_base = ansible_module.params.get("subject_base")
     if options.subject_base is not None:
         options.subject_base = DN(options.subject_base)
     # ad trust
-    options.enable_compat = ansible_module.params.get('enable_compat')
-    options.rid_base = ansible_module.params.get('rid_base')
-    options.secondary_rid_base = ansible_module.params.get(
-        'secondary_rid_base')
+    options.enable_compat = ansible_module.params.get("enable_compat")
+    options.rid_base = ansible_module.params.get("rid_base")
+    options.secondary_rid_base = ansible_module.params.get("secondary_rid_base")
     # additional
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
-    options._top_dir = ansible_module.params.get('_top_dir')
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    config_master_host_name = ansible_module.params.get(
-        'config_master_host_name')
-    adtrust.netbios_name = ansible_module.params.get('adtrust_netbios_name')
-    adtrust.reset_netbios_name = ansible_module.params.get(
-        'adtrust_reset_netbios_name')
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
+    options._top_dir = ansible_module.params.get("_top_dir")
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    config_master_host_name = ansible_module.params.get("config_master_host_name")
+    adtrust.netbios_name = ansible_module.params.get("adtrust_netbios_name")
+    adtrust.reset_netbios_name = ansible_module.params.get("adtrust_reset_netbios_name")
 
     # init #
 
@@ -151,8 +159,7 @@ def main():
 
     ansible_log.debug("== INSTALL ==")
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     config = gen_ReplicaConfig()
     config.subject_base = options.subject_base
@@ -161,7 +168,7 @@ def main():
     remote_api = gen_remote_api(config.master_host_name, paths.ETC_IPA)
     installer._remote_api = remote_api
 
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     api.Backend.ldap2.connect()
 
@@ -175,5 +182,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

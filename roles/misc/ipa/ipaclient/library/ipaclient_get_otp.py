@@ -20,11 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'metadata_version': '1.0',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    "metadata_version": "1.0",
+    "status": ["preview"],
+    "supported_by": "community",
+}
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_get_otp
 short description: Manage IPA hosts
@@ -62,9 +64,9 @@ options:
     required: true
 author:
     - "Florence Blanc-Renaud"
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 # Example from Ansible Playbooks
 # Add a new host with a random OTP, authenticate using principal/password
 - ipaclient_get_otp:
@@ -74,9 +76,9 @@ EXAMPLES = '''
     ipaddress: 192.168.100.23
     random: True
   register: result_ipaclient_get_otp
-'''
+"""
 
-RETURN = '''
+RETURN = """
 host:
   description: the host structure as returned from IPA API
   returned: always
@@ -118,7 +120,7 @@ host:
       description: the IP address for the host
       type: string
       returned: when present
-'''
+"""
 
 import os
 import six
@@ -142,7 +144,7 @@ def get_host_diff(ipa_host, module_host):
 
     :return: a dict representing the host attributes to apply
     """
-    non_updateable_keys = ['ip_address']
+    non_updateable_keys = ["ip_address"]
     data = dict()
     for key in non_updateable_keys:
         if key in module_host:
@@ -171,18 +173,18 @@ def get_module_host(module):
     :returns: a dict representing the host attributes
     """
     data = dict()
-    certificates = module.params.get('certificates')
+    certificates = module.params.get("certificates")
     if certificates:
-        data['usercertificate'] = certificates
-    sshpubkey = module.params.get('sshpubkey')
+        data["usercertificate"] = certificates
+    sshpubkey = module.params.get("sshpubkey")
     if sshpubkey:
-        data['ipasshpubkey'] = unicode(sshpubkey)
-    ipaddress = module.params.get('ipaddress')
+        data["ipasshpubkey"] = unicode(sshpubkey)
+    ipaddress = module.params.get("ipaddress")
     if ipaddress:
-        data['ip_address'] = unicode(ipaddress)
-    random = module.params.get('random')
+        data["ip_address"] = unicode(ipaddress)
+    random = module.params.get("random")
     if random:
-        data['random'] = random
+        data["random"] = random
     return data
 
 
@@ -195,7 +197,7 @@ def ensure_host_present(module, api, ipahost):
     :param ipahost: the host information present in IPA, can be none if the
                     host does not exist
     """
-    fqdn = unicode(module.params.get('fqdn'))
+    fqdn = unicode(module.params.get("fqdn"))
     if ipahost:
         # Host already present, need to compare the attributes
         module_host = get_module_host(module)
@@ -212,17 +214,17 @@ def ensure_host_present(module, api, ipahost):
         # If we want to create a random password, and the host
         # already has Keytab: true, then we need first to run
         # ipa host-disable in order to remove OTP and keytab
-        if module.params.get('random') and ipahost['has_keytab'] is True:
+        if module.params.get("random") and ipahost["has_keytab"] is True:
             api.Command.host_disable(fqdn)
 
         result = api.Command.host_mod(fqdn, **diffs)
         # Save random password as it is not displayed by host-show
-        if module.params.get('random'):
-            randompassword = result['result']['randompassword']
+        if module.params.get("random"):
+            randompassword = result["result"]["randompassword"]
         result = api.Command.host_show(fqdn)
-        if module.params.get('random'):
-            result['result']['randompassword'] = randompassword
-        module.exit_json(changed=True, host=result['result'])
+        if module.params.get("random"):
+            result["result"]["randompassword"] = randompassword
+        module.exit_json(changed=True, host=result["result"])
 
     if not ipahost:
         # Need to add the user, only if not in check_mode
@@ -235,12 +237,12 @@ def ensure_host_present(module, api, ipahost):
         module_host["force"] = True
         result = api.Command.host_add(fqdn, **module_host)
         # Save random password as it is not displayed by host-show
-        if module.params.get('random'):
-            randompassword = result['result']['randompassword']
+        if module.params.get("random"):
+            randompassword = result["result"]["randompassword"]
         result = api.Command.host_show(fqdn)
-        if module.params.get('random'):
-            result['result']['randompassword'] = randompassword
-        module.exit_json(changed=True, host=result['result'])
+        if module.params.get("random"):
+            result["result"]["randompassword"] = randompassword
+        module.exit_json(changed=True, host=result["result"])
 
 
 def ensure_host_absent(module, api, host):
@@ -260,7 +262,7 @@ def ensure_host_absent(module, api, host):
     if module.check_mode:
         module.exit_json(changed=True, host=host)
 
-    fqdn = unicode(module.params.get('fqdn'))
+    fqdn = unicode(module.params.get("fqdn"))
     try:
         api.Command.host_del(fqdn)
     except Exception as e:
@@ -273,27 +275,27 @@ def main():
 
     module = AnsibleModule(
         argument_spec=dict(
-            principal=dict(default='admin'),
-            ccache=dict(required=False, type='path'),
+            principal=dict(default="admin"),
+            ccache=dict(required=False, type="path"),
             fqdn=dict(required=True),
-            certificates=dict(required=False, type='list'),
+            certificates=dict(required=False, type="list"),
             sshpubkey=dict(required=False),
             ipaddress=dict(required=False),
-            random=dict(default=False, type='bool'),
-            state=dict(default='present', choices=['present', 'absent']),
+            random=dict(default=False, type="bool"),
+            state=dict(default="present", choices=["present", "absent"]),
         ),
         supports_check_mode=True,
     )
 
-    ccache = module.params.get('ccache')
-    fqdn = unicode(module.params.get('fqdn'))
-    state = module.params.get('state')
+    ccache = module.params.get("ccache")
+    fqdn = unicode(module.params.get("fqdn"))
+    state = module.params.get("state")
 
     try:
-        os.environ['KRB5CCNAME'] = ccache
+        os.environ["KRB5CCNAME"] = ccache
 
         cfg = dict(
-            context='ansible_module',
+            context="ansible_module",
             confdir=paths.ETC_IPA,
             in_server=False,
             debug=False,
@@ -305,13 +307,13 @@ def main():
 
         try:
             result = api.Command.host_show(fqdn, all=True)
-            host = result['result']
+            host = result["result"]
         except errors.NotFound:
             host = None
 
-        if state in ['present', 'disabled']:
+        if state in ["present", "disabled"]:
             ensure_host_present(module, api, host)
-        elif state == 'absent':
+        elif state == "absent":
             ensure_host_absent(module, api, host)
 
     except Exception as e:
@@ -322,5 +324,5 @@ def main():
     module.exit_json(changed=False, host=host)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

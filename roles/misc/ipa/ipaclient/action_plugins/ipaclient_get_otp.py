@@ -41,8 +41,7 @@ def run_cmd(args, stdin=None):
     if stdin:
         p_in = subprocess.PIPE
 
-    p = subprocess.Popen(args, stdin=p_in, stdout=p_out, stderr=p_err,
-                         close_fds=True)
+    p = subprocess.Popen(args, stdin=p_in, stdout=p_out, stderr=p_err, close_fds=True)
     __temp, stderr = p.communicate(stdin)
 
     if p.returncode != 0:
@@ -56,17 +55,17 @@ def kinit_password(principal, password, ccache_name, config):
     It uses the specified config file to kinit and stores the TGT
     in ccache_name.
     """
-    args = ["/usr/bin/kinit", principal, '-c', ccache_name]
-    old_config = os.environ.get('KRB5_CONFIG')
-    os.environ['KRB5_CONFIG'] = config
+    args = ["/usr/bin/kinit", principal, "-c", ccache_name]
+    old_config = os.environ.get("KRB5_CONFIG")
+    os.environ["KRB5_CONFIG"] = config
 
     try:
         return run_cmd(args, stdin=password.encode())
     finally:
         if old_config is not None:
-            os.environ['KRB5_CONFIG'] = old_config
+            os.environ["KRB5_CONFIG"] = old_config
         else:
-            os.environ.pop('KRB5_CONFIG', None)
+            os.environ.pop("KRB5_CONFIG", None)
 
 
 def kinit_keytab(principal, keytab, ccache_name, config):
@@ -79,19 +78,18 @@ def kinit_keytab(principal, keytab, ccache_name, config):
     if gssapi is None:
         raise ImportError("gssapi is not available")
 
-    old_config = os.environ.get('KRB5_CONFIG')
-    os.environ['KRB5_CONFIG'] = config
+    old_config = os.environ.get("KRB5_CONFIG")
+    os.environ["KRB5_CONFIG"] = config
     try:
         name = gssapi.Name(principal, gssapi.NameType.kerberos_principal)
-        store = {'ccache': ccache_name,
-                 'client_keytab': keytab}
-        cred = gssapi.Credentials(name=name, store=store, usage='initiate')
+        store = {"ccache": ccache_name, "client_keytab": keytab}
+        cred = gssapi.Credentials(name=name, store=store, usage="initiate")
         return cred
     finally:
         if old_config is not None:
-            os.environ['KRB5_CONFIG'] = old_config
+            os.environ["KRB5_CONFIG"] = old_config
         else:
-            os.environ.pop('KRB5_CONFIG', None)
+            os.environ.pop("KRB5_CONFIG", None)
 
 
 KRB5CONF_TEMPLATE = """
@@ -125,7 +123,6 @@ KRB5CONF_TEMPLATE = """
 
 
 class ActionModule(ActionBase):
-
     def run(self, tmp=None, task_vars=None):
         """
         Handle credential cache transfer.
@@ -148,100 +145,110 @@ class ActionModule(ActionBase):
             task_vars = dict()
 
         result = super(ActionModule, self).run(tmp, task_vars)
-        principal = self._task.args.get('principal', None)
-        keytab = self._task.args.get('keytab', None)
-        password = self._task.args.get('password', None)
-        lifetime = self._task.args.get('lifetime', '1h')
+        principal = self._task.args.get("principal", None)
+        keytab = self._task.args.get("keytab", None)
+        password = self._task.args.get("password", None)
+        lifetime = self._task.args.get("lifetime", "1h")
 
-        if (not keytab and not password):
-            result['failed'] = True
-            result['msg'] = "keytab or password is required"
+        if not keytab and not password:
+            result["failed"] = True
+            result["msg"] = "keytab or password is required"
             return result
 
         if not principal:
-            result['failed'] = True
-            result['msg'] = "principal is required"
+            result["failed"] = True
+            result["msg"] = "principal is required"
             return result
 
-        data = self._execute_module(module_name='ipaclient_get_facts',
-                                    module_args=dict(), task_vars=task_vars)
+        data = self._execute_module(
+            module_name="ipaclient_get_facts", module_args=dict(), task_vars=task_vars
+        )
 
         try:
-            domain = data['ansible_facts']['ipa']['domain']
-            realm = data['ansible_facts']['ipa']['realm']
+            domain = data["ansible_facts"]["ipa"]["domain"]
+            realm = data["ansible_facts"]["ipa"]["realm"]
         except KeyError:
-            result['failed'] = True
-            result['msg'] = "The host is not an IPA server"
+            result["failed"] = True
+            result["msg"] = "The host is not an IPA server"
             return result
 
-        items = principal.split('@')
+        items = principal.split("@")
         if len(items) < 2:
-            principal = str('%s@%s' % (principal, realm))
+            principal = str("%s@%s" % (principal, realm))
 
         # Locally create a temp directory to store krb5.conf and ccache
         local_temp_dir = tempfile.mkdtemp()
-        krb5conf_name = os.path.join(local_temp_dir, 'krb5.conf')
-        ccache_name = os.path.join(local_temp_dir, 'ccache')
+        krb5conf_name = os.path.join(local_temp_dir, "krb5.conf")
+        ccache_name = os.path.join(local_temp_dir, "ccache")
 
         # Create the krb5.conf from the template
         template = Template(KRB5CONF_TEMPLATE)
-        content = template.render(dict(
-            ipa_server=task_vars['ansible_host'],
-            ipa_domain=domain,
-            ipa_realm=realm,
-            ipa_lifetime=lifetime))
+        content = template.render(
+            dict(
+                ipa_server=task_vars["ansible_host"],
+                ipa_domain=domain,
+                ipa_realm=realm,
+                ipa_lifetime=lifetime,
+            )
+        )
 
-        with open(krb5conf_name, 'w') as f:
+        with open(krb5conf_name, "w") as f:
             f.write(content)
 
         if password:
             try:
                 # perform kinit -c ccache_name -l 1h principal
-                kinit_password(principal, password, ccache_name,
-                               krb5conf_name)
+                kinit_password(principal, password, ccache_name, krb5conf_name)
             except Exception as e:
-                result['failed'] = True
-                result['msg'] = 'kinit %s with password failed: %s' % \
-                    (principal, to_native(e))
+                result["failed"] = True
+                result["msg"] = "kinit %s with password failed: %s" % (
+                    principal,
+                    to_native(e),
+                )
                 return result
 
         else:
             # Password not supplied, need to use the keytab file
             # Check if the source keytab exists
             try:
-                keytab = self._find_needle('files', keytab)
+                keytab = self._find_needle("files", keytab)
             except AnsibleError as e:
-                result['failed'] = True
-                result['msg'] = to_native(e)
+                result["failed"] = True
+                result["msg"] = to_native(e)
                 return result
             # perform kinit -kt keytab
             try:
                 kinit_keytab(principal, keytab, ccache_name, krb5conf_name)
             except Exception as e:
-                result['failed'] = True
-                result['msg'] = 'kinit %s with keytab %s failed: %s' % \
-                    (principal, keytab, str(e))
+                result["failed"] = True
+                result["msg"] = "kinit %s with keytab %s failed: %s" % (
+                    principal,
+                    keytab,
+                    str(e),
+                )
                 return result
 
         try:
             # Create the remote tmp dir
             tmp = self._make_tmp_path()
             tmp_ccache = self._connection._shell.join_path(
-                tmp, os.path.basename(ccache_name))
+                tmp, os.path.basename(ccache_name)
+            )
 
             # Copy the ccache to the remote tmp dir
             self._transfer_file(ccache_name, tmp_ccache)
             self._fixup_perms2((tmp, tmp_ccache))
 
             new_module_args = self._task.args.copy()
-            new_module_args.pop('password', None)
-            new_module_args.pop('keytab', None)
-            new_module_args.pop('lifetime', None)
+            new_module_args.pop("password", None)
+            new_module_args.pop("keytab", None)
+            new_module_args.pop("lifetime", None)
             new_module_args.update(ccache=tmp_ccache)
 
             # Execute module
-            result.update(self._execute_module(module_args=new_module_args,
-                                               task_vars=task_vars))
+            result.update(
+                self._execute_module(module_args=new_module_args, task_vars=task_vars)
+            )
             return result
         finally:
             # delete the local temp directory

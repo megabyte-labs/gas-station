@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_test
 short description: Tries to discover IPA server
@@ -101,9 +101,9 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 # Complete autodiscovery, register return values as ipaclient_test
 - name: IPA discovery
   ipaclient_test:
@@ -132,9 +132,9 @@ EXAMPLES = '''
   ipaclient_test:
     hostname: host.domain.com
   register: register_ipaclient_test
-'''
+"""
 
-RETURN = '''
+RETURN = """
 servers:
   description: The list of detected or passed in IPA servers.
   returned: always
@@ -186,7 +186,7 @@ ipa_python_version:
   returned: always
   type: int
   sample: 040400
-'''
+"""
 
 import os
 import socket
@@ -200,12 +200,30 @@ except ImportError:
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
     setup_logging,
-    paths, sysrestore, options, CheckedIPAddress, validate_domain_name,
-    logger, x509, normalize_hostname, installer, version, ScriptError,
-    CLIENT_INSTALL_ERROR, tasks, check_ldap_conf, timeconf, constants,
-    validate_hostname, nssldap_exists, gssapi, remove_file,
-    check_ip_addresses, ipadiscovery, print_port_conf_info,
-    IPA_PYTHON_VERSION
+    paths,
+    sysrestore,
+    options,
+    CheckedIPAddress,
+    validate_domain_name,
+    logger,
+    x509,
+    normalize_hostname,
+    installer,
+    version,
+    ScriptError,
+    CLIENT_INSTALL_ERROR,
+    tasks,
+    check_ldap_conf,
+    timeconf,
+    constants,
+    validate_hostname,
+    nssldap_exists,
+    gssapi,
+    remove_file,
+    check_ip_addresses,
+    ipadiscovery,
+    print_port_conf_info,
+    IPA_PYTHON_VERSION,
 )
 
 
@@ -235,9 +253,9 @@ def is_client_configured():
 
     :returns: boolean
     """
-    return (os.path.isfile(paths.IPA_DEFAULT_CONF) and
-            os.path.isfile(os.path.join(paths.IPA_CLIENT_SYSRESTORE,
-                                        sysrestore.SYSRESTORE_STATEFILE)))
+    return os.path.isfile(paths.IPA_DEFAULT_CONF) and os.path.isfile(
+        os.path.join(paths.IPA_CLIENT_SYSRESTORE, sysrestore.SYSRESTORE_STATEFILE)
+    )
 
 
 def get_ipa_conf():
@@ -249,9 +267,9 @@ def get_ipa_conf():
     parser = RawConfigParser()
     parser.read(paths.IPA_DEFAULT_CONF)
     result = dict()
-    for item in ['basedn', 'realm', 'domain', 'server', 'host', 'xmlrpc_uri']:
-        if parser.has_option('global', item):
-            value = parser.get('global', item)
+    for item in ["basedn", "realm", "domain", "server", "host", "xmlrpc_uri"]:
+        if parser.has_option("global", item):
+            value = parser.get("global", item)
         else:
             value = None
         if value:
@@ -265,25 +283,24 @@ def main():
         argument_spec=dict(
             # basic
             domain=dict(required=False, default=None),
-            servers=dict(required=False, type='list', default=None),
+            servers=dict(required=False, type="list", default=None),
             realm=dict(required=False, default=None),
             hostname=dict(required=False, default=None),
-            ntp_servers=dict(required=False, type='list', default=None),
+            ntp_servers=dict(required=False, type="list", default=None),
             ntp_pool=dict(required=False, default=None),
-            no_ntp=dict(required=False, type='bool', default=False),
-            force_ntpd=dict(required=False, type='bool', default=False),
+            no_ntp=dict(required=False, type="bool", default=False),
+            force_ntpd=dict(required=False, type="bool", default=False),
             nisdomain=dict(required=False, default=None),
-            no_nisdomain=dict(required=False, type='bool', default='no'),
-            kinit_attempts=dict(required=False, type='int'),
-            ca_cert_files=dict(required=False, type='list', default=None),
-            configure_firefox=dict(required=False, type='bool', default=False),
+            no_nisdomain=dict(required=False, type="bool", default="no"),
+            kinit_attempts=dict(required=False, type="int"),
+            ca_cert_files=dict(required=False, type="list", default=None),
+            configure_firefox=dict(required=False, type="bool", default=False),
             firefox_dir=dict(required=False),
-            ip_addresses=dict(required=False, type='list', default=None),
-            all_ip_addresses=dict(required=False, type='bool', default=False),
-            on_master=dict(required=False, type='bool', default=False),
+            ip_addresses=dict(required=False, type="list", default=None),
+            all_ip_addresses=dict(required=False, type="bool", default=False),
+            on_master=dict(required=False, type="bool", default=False),
             # sssd
-            enable_dns_updates=dict(required=False, type='bool',
-                                    default=False),
+            enable_dns_updates=dict(required=False, type="bool", default=False),
         ),
         supports_check_mode=True,
     )
@@ -291,31 +308,30 @@ def main():
     # module._ansible_debug = True
     setup_logging()
 
-    options.domain_name = module.params.get('domain')
-    options.servers = module.params.get('servers')
-    options.realm_name = module.params.get('realm')
-    options.host_name = module.params.get('hostname')
-    options.ntp_servers = module.params.get('ntp_servers')
-    options.ntp_pool = module.params.get('ntp_pool')
-    options.no_ntp = module.params.get('no_ntp')
-    options.force_ntpd = module.params.get('force_ntpd')
-    options.nisdomain = module.params.get('nisdomain')
-    options.no_nisdomain = module.params.get('no_nisdomain')
-    options.kinit_attempts = module.params.get('kinit_attempts')
-    options.ca_cert_files = module.params.get('ca_cert_files')
-    options.configure_firefox = module.params.get('configure_firefox')
-    options.firefox_dir = module.params.get('firefox_dir')
-    options.ip_addresses = module.params.get('ip_addresses')
-    options.all_ip_addresses = module.params.get('all_ip_addresses')
-    options.on_master = module.params.get('on_master')
-    options.enable_dns_updates = module.params.get('enable_dns_updates')
+    options.domain_name = module.params.get("domain")
+    options.servers = module.params.get("servers")
+    options.realm_name = module.params.get("realm")
+    options.host_name = module.params.get("hostname")
+    options.ntp_servers = module.params.get("ntp_servers")
+    options.ntp_pool = module.params.get("ntp_pool")
+    options.no_ntp = module.params.get("no_ntp")
+    options.force_ntpd = module.params.get("force_ntpd")
+    options.nisdomain = module.params.get("nisdomain")
+    options.no_nisdomain = module.params.get("no_nisdomain")
+    options.kinit_attempts = module.params.get("kinit_attempts")
+    options.ca_cert_files = module.params.get("ca_cert_files")
+    options.configure_firefox = module.params.get("configure_firefox")
+    options.firefox_dir = module.params.get("firefox_dir")
+    options.ip_addresses = module.params.get("ip_addresses")
+    options.all_ip_addresses = module.params.get("all_ip_addresses")
+    options.on_master = module.params.get("on_master")
+    options.enable_dns_updates = module.params.get("enable_dns_updates")
 
     # Get domain from first server if domain is not set, but if there are
     # servers
     if options.domain_name is None and options.servers is not None:
         if len(options.servers) > 0:
-            options.domain_name = options.servers[0][
-                options.servers[0].find(".")+1:]
+            options.domain_name = options.servers[0][options.servers[0].find(".") + 1 :]
 
     try:
         self = options
@@ -327,8 +343,7 @@ def main():
                 try:
                     CheckedIPAddress(value)
                 except Exception as e:
-                    raise ValueError("invalid IP address {0}: {1}".format(
-                        value, e))
+                    raise ValueError("invalid IP address {0}: {1}".format(value, e))
 
         # ServiceInstallInterface
 
@@ -349,34 +364,32 @@ def main():
         # ClientInstallInterface.__init__
 
         if self.servers and not self.domain_name:
-            raise RuntimeError(
-                "--server cannot be used without providing --domain")
+            raise RuntimeError("--server cannot be used without providing --domain")
 
         if self.force_ntpd:
             logger.warning("Option --force-ntpd has been deprecated")
 
         if self.ntp_servers and self.no_ntp:
-            raise RuntimeError(
-                "--ntp-server cannot be used together with --no-ntp")
+            raise RuntimeError("--ntp-server cannot be used together with --no-ntp")
 
         if self.ntp_pool and self.no_ntp:
-            raise RuntimeError(
-                "--ntp-pool cannot be used together with --no-ntp")
+            raise RuntimeError("--ntp-pool cannot be used together with --no-ntp")
 
         if self.no_nisdomain and self.nisdomain:
             raise RuntimeError(
-                "--no-nisdomain cannot be used together with --nisdomain")
+                "--no-nisdomain cannot be used together with --nisdomain"
+            )
 
         if self.ip_addresses:
             if self.enable_dns_updates:
                 raise RuntimeError(
-                    "--ip-address cannot be used together with"
-                    " --enable-dns-updates")
+                    "--ip-address cannot be used together with" " --enable-dns-updates"
+                )
 
             if self.all_ip_addresses:
                 raise RuntimeError(
-                    "--ip-address cannot be used together with"
-                    "--all-ip-addresses")
+                    "--ip-address cannot be used together with" "--all-ip-addresses"
+                )
 
         # SSSDInstallInterface
 
@@ -395,14 +408,12 @@ def main():
                 if not os.path.isfile(value):
                     raise ValueError("'%s' is not a file" % value)
                 if not os.path.isabs(value):
-                    raise ValueError("'%s' is not an absolute file path" %
-                                     value)
+                    raise ValueError("'%s' is not an absolute file path" % value)
 
                 try:
                     x509.load_certificate_from_file(value)
                 except Exception:
-                    raise ValueError("'%s' is not a valid certificate file" %
-                                     value)
+                    raise ValueError("'%s' is not a valid certificate file" % value)
 
         # self.prompt_password = self.interactive
 
@@ -412,8 +423,8 @@ def main():
 
         if self.firefox_dir and not self.configure_firefox:
             raise RuntimeError(
-                "--firefox-dir cannot be used without --configure-firefox "
-                "option")
+                "--firefox-dir cannot be used without --configure-firefox " "option"
+            )
 
     except (RuntimeError, ValueError) as e:
         module.fail_json(msg=str(e))
@@ -474,15 +485,15 @@ def main():
         logger.info("Version %s", version.VERSION)
         logger.info("")
 
-        cli_domain_source = 'Unknown source'
-        cli_server_source = 'Unknown source'
+        cli_domain_source = "Unknown source"
+        cli_server_source = "Unknown source"
 
         # fstore = sysrestore.FileStore(paths.IPA_CLIENT_SYSRESTORE)
 
         if not os.getegid() == 0:
             raise ScriptError(
-                "You must be root to run ipa-client-install.",
-                rval=CLIENT_INSTALL_ERROR)
+                "You must be root to run ipa-client-install.", rval=CLIENT_INSTALL_ERROR
+            )
 
         tasks.check_selinux_status()
 
@@ -505,7 +516,8 @@ def main():
                 logger.info(
                     "WARNING: conflicting time&date synchronization service "
                     "'%s' will be disabled in favor of chronyd",
-                    e.conflicting_service)
+                    e.conflicting_service,
+                )
                 logger.info("")
             except timeconf.NTPConfigurationError:
                 pass
@@ -524,28 +536,29 @@ def main():
 
         if options.hostname:
             hostname = options.hostname
-            hostname_source = 'Provided as option'
+            hostname_source = "Provided as option"
         else:
             hostname = socket.getfqdn()
             hostname_source = "Machine's FQDN"
         if hostname != hostname.lower():
             raise ScriptError(
                 "Invalid hostname '{}', must be lower-case.".format(hostname),
-                rval=CLIENT_INSTALL_ERROR
+                rval=CLIENT_INSTALL_ERROR,
             )
 
-        if hostname in ('localhost', 'localhost.localdomain'):
+        if hostname in ("localhost", "localhost.localdomain"):
             raise ScriptError(
                 "Invalid hostname, '{}' must not be used.".format(hostname),
-                rval=CLIENT_INSTALL_ERROR)
+                rval=CLIENT_INSTALL_ERROR,
+            )
 
         if hasattr(constants, "MAXHOSTNAMELEN"):
             try:
                 validate_hostname(hostname, maxlen=constants.MAXHOSTNAMELEN)
             except ValueError as e:
                 raise ScriptError(
-                    'invalid hostname: {}'.format(e),
-                    rval=CLIENT_INSTALL_ERROR)
+                    "invalid hostname: {}".format(e), rval=CLIENT_INSTALL_ERROR
+                )
 
         if hasattr(tasks, "is_nosssd_supported"):
             # --no-sssd is not supported any more for rhel-based distros
@@ -554,7 +567,8 @@ def main():
                     "Option '--no-sssd' is incompatible with the 'authselect' "
                     "tool provided by this distribution for configuring "
                     "system authentication resources",
-                    rval=CLIENT_INSTALL_ERROR)
+                    rval=CLIENT_INSTALL_ERROR,
+                )
 
             # --noac is not supported any more for rhel-based distros
             if not tasks.is_nosssd_supported() and options.no_ac:
@@ -562,15 +576,16 @@ def main():
                     "Option '--noac' is incompatible with the 'authselect' "
                     "tool provided by this distribution for configuring "
                     "system authentication resources",
-                    rval=CLIENT_INSTALL_ERROR)
+                    rval=CLIENT_INSTALL_ERROR,
+                )
 
         # when installing with '--no-sssd' option, check whether nss-ldap is
         # installed
         if not options.sssd:
             if not os.path.exists(paths.PAM_KRB5_SO):
                 raise ScriptError(
-                    "The pam_krb5 package must be installed",
-                    rval=CLIENT_INSTALL_ERROR)
+                    "The pam_krb5 package must be installed", rval=CLIENT_INSTALL_ERROR
+                )
 
             (nssldap_installed, nosssd_files) = nssldap_exists()
             (nssldap_installed, __temp) = nssldap_exists()
@@ -578,7 +593,8 @@ def main():
                 raise ScriptError(
                     "One of these packages must be installed: nss_ldap or "
                     "nss-pam-ldapd",
-                    rval=CLIENT_INSTALL_ERROR)
+                    rval=CLIENT_INSTALL_ERROR,
+                )
 
             # principal and keytab are checked in tasks/install.yml
             # if options.keytab and options.principal:
@@ -595,8 +611,8 @@ def main():
         # Remove invalid keytab file
         try:
             gssapi.Credentials(
-                store={'keytab': paths.KRB5_KEYTAB},
-                usage='accept',
+                store={"keytab": paths.KRB5_KEYTAB},
+                usage="accept",
             )
         except gssapi.exceptions.GSSError:
             logger.debug("Deleting invalid keytab: '%s'.", paths.KRB5_KEYTAB)
@@ -605,16 +621,16 @@ def main():
 
         # Check if old certificate exist and show warning
         if (
-            not options.ca_cert_file and
-            get_cert_path(options.ca_cert_file) == paths.IPA_CA_CRT
+            not options.ca_cert_file
+            and get_cert_path(options.ca_cert_file) == paths.IPA_CA_CRT
         ):
-            logger.warning("Using existing certificate '%s'.",
-                           paths.IPA_CA_CRT)
+            logger.warning("Using existing certificate '%s'.", paths.IPA_CA_CRT)
 
         if not check_ip_addresses(options):
             raise ScriptError(
                 "Failed to check ip addresses, check installation log",
-                rval=CLIENT_INSTALL_ERROR)
+                rval=CLIENT_INSTALL_ERROR,
+            )
 
         # Create the discovery instance
         ds = ipadiscovery.IPADiscovery()
@@ -624,7 +640,7 @@ def main():
             servers=options.server,
             realm=options.realm_name,
             hostname=hostname,
-            ca_cert_path=get_cert_path(options.ca_cert_file)
+            ca_cert_path=get_cert_path(options.ca_cert_file),
         )
 
         if options.server and ret != 0:
@@ -632,28 +648,35 @@ def main():
             # was passed as a fixed list of server and thus we cannot discover
             # any better result
             logger.error(
-                "Failed to verify that %s is an IPA Server.",
-                ', '.join(options.server))
+                "Failed to verify that %s is an IPA Server.", ", ".join(options.server)
+            )
             logger.error(
                 "This may mean that the remote server is not up "
-                "or is not reachable due to network or firewall settings.")
+                "or is not reachable due to network or firewall settings."
+            )
             print_port_conf_info()
-            raise ScriptError("Failed to verify that %s is an IPA Server." %
-                              ', '.join(options.server),
-                              rval=CLIENT_INSTALL_ERROR)
+            raise ScriptError(
+                "Failed to verify that %s is an IPA Server."
+                % ", ".join(options.server),
+                rval=CLIENT_INSTALL_ERROR,
+            )
 
         if ret == ipadiscovery.BAD_HOST_CONFIG:
             logger.error("Can't get the fully qualified name of this host")
             logger.info("Check that the client is properly configured")
             raise ScriptError(
                 "Can't get the fully qualified name of this host",
-                rval=CLIENT_INSTALL_ERROR)
+                rval=CLIENT_INSTALL_ERROR,
+            )
         if ret == ipadiscovery.NOT_FQDN:
             raise ScriptError(
                 "{} is not a fully-qualified hostname".format(hostname),
-                rval=CLIENT_INSTALL_ERROR)
-        if ret in (ipadiscovery.NO_LDAP_SERVER, ipadiscovery.NOT_IPA_SERVER) \
-                or not ds.domain:
+                rval=CLIENT_INSTALL_ERROR,
+            )
+        if (
+            ret in (ipadiscovery.NO_LDAP_SERVER, ipadiscovery.NOT_IPA_SERVER)
+            or not ds.domain
+        ):
             if ret == ipadiscovery.NO_LDAP_SERVER:
                 if ds.server:
                     logger.debug("%s is not an LDAP server", ds.server)
@@ -668,11 +691,12 @@ def main():
                 logger.debug("Domain not found")
             if options.domain:
                 cli_domain = options.domain
-                cli_domain_source = 'Provided as option'
+                cli_domain_source = "Provided as option"
             elif options.unattended:
                 raise ScriptError(
                     "Unable to discover domain, not provided on command line",
-                    rval=CLIENT_INSTALL_ERROR)
+                    rval=CLIENT_INSTALL_ERROR,
+                )
             else:
                 raise ScriptError("No interactive installation")
             #    logger.info(
@@ -688,7 +712,8 @@ def main():
                 domain=cli_domain,
                 servers=options.server,
                 hostname=hostname,
-                ca_cert_path=get_cert_path(options.ca_cert_file))
+                ca_cert_path=get_cert_path(options.ca_cert_file),
+            )
 
         if not cli_domain:
             if ds.domain:
@@ -696,18 +721,20 @@ def main():
                 cli_domain_source = ds.domain_source
                 logger.debug("will use discovered domain: %s", cli_domain)
 
-        client_domain = hostname[hostname.find(".")+1:]
+        client_domain = hostname[hostname.find(".") + 1 :]
 
-        if ret in (ipadiscovery.NO_LDAP_SERVER, ipadiscovery.NOT_IPA_SERVER) \
-                or not ds.server:
+        if (
+            ret in (ipadiscovery.NO_LDAP_SERVER, ipadiscovery.NOT_IPA_SERVER)
+            or not ds.server
+        ):
             logger.debug("IPA Server not found")
             if options.server:
                 cli_server = options.server
-                cli_server_source = 'Provided as option'
+                cli_server_source = "Provided as option"
             elif options.unattended:
                 raise ScriptError(
-                    "Unable to find IPA Server to join",
-                    rval=CLIENT_INSTALL_ERROR)
+                    "Unable to find IPA Server to join", rval=CLIENT_INSTALL_ERROR
+                )
             else:
                 raise ScriptError("No interactive installation")
             #    logger.debug("DNS discovery failed to find the IPA Server")
@@ -723,29 +750,29 @@ def main():
                 domain=cli_domain,
                 servers=cli_server,
                 hostname=hostname,
-                ca_cert_path=get_cert_path(options.ca_cert_file))
+                ca_cert_path=get_cert_path(options.ca_cert_file),
+            )
 
         else:
             # Only set dnsok to True if we were not passed in one or more
             # servers and if DNS discovery actually worked.
             if not options.server:
                 (server, domain) = ds.check_domain(
-                    ds.domain, set(), "Validating DNS Discovery")
+                    ds.domain, set(), "Validating DNS Discovery"
+                )
                 if server and domain:
                     logger.debug("DNS validated, enabling discovery")
                     dnsok = True
                 else:
                     logger.debug("DNS discovery failed, disabling discovery")
             else:
-                logger.debug(
-                    "Using servers from command line, disabling DNS discovery")
+                logger.debug("Using servers from command line, disabling DNS discovery")
 
         if not cli_server:
             if options.server:
                 cli_server = ds.servers
-                cli_server_source = 'Provided as option'
-                logger.debug(
-                    "will use provided server: %s", ', '.join(options.server))
+                cli_server_source = "Provided as option"
+                logger.debug("will use provided server: %s", ", ".join(options.server))
             elif ds.server:
                 cli_server = ds.servers
                 cli_server_source = ds.server_source
@@ -755,41 +782,44 @@ def main():
             logger.error("%s is not an IPA v2 Server.", cli_server[0])
             print_port_conf_info()
             logger.debug("(%s: %s)", cli_server[0], cli_server_source)
-            raise ScriptError("%s is not an IPA v2 Server." % cli_server[0],
-                              rval=CLIENT_INSTALL_ERROR)
+            raise ScriptError(
+                "%s is not an IPA v2 Server." % cli_server[0], rval=CLIENT_INSTALL_ERROR
+            )
 
         if ret == ipadiscovery.NO_ACCESS_TO_LDAP:
             logger.warning("Anonymous access to the LDAP server is disabled.")
             logger.info("Proceeding without strict verification.")
             logger.info(
                 "Note: This is not an error if anonymous access "
-                "has been explicitly restricted.")
+                "has been explicitly restricted."
+            )
             ret = 0
 
         if ret == ipadiscovery.NO_TLS_LDAP:
-            logger.warning(
-                "The LDAP server requires TLS is but we do not have the CA.")
+            logger.warning("The LDAP server requires TLS is but we do not have the CA.")
             logger.info("Proceeding without strict verification.")
             ret = 0
 
         if ret != 0:
-            logger.error(
-                "Failed to verify that %s is an IPA Server.",
-                cli_server[0])
+            logger.error("Failed to verify that %s is an IPA Server.", cli_server[0])
             logger.error(
                 "This may mean that the remote server is not up "
-                "or is not reachable due to network or firewall settings.")
+                "or is not reachable due to network or firewall settings."
+            )
             print_port_conf_info()
             logger.debug("(%s: %s)", cli_server[0], cli_server_source)
-            raise ScriptError("Failed to verify that %s is an IPA Server." %
-                              cli_server[0],
-                              rval=CLIENT_INSTALL_ERROR)
+            raise ScriptError(
+                "Failed to verify that %s is an IPA Server." % cli_server[0],
+                rval=CLIENT_INSTALL_ERROR,
+            )
 
         cli_kdc = ds.kdc
         if dnsok and not cli_kdc:
             logger.error(
                 "DNS domain '%s' is not configured for automatic "
-                "KDC address lookup.", ds.realm.lower())
+                "KDC address lookup.",
+                ds.realm.lower(),
+            )
             logger.debug("(%s: %s)", ds.realm, ds.realm_source)
             logger.error("KDC address will be set to fixed value.")
 
@@ -827,14 +857,16 @@ def main():
 
         if options.realm_name and options.realm_name != cli_realm:
             logger.error(
-                "The provided realm name [%s] does not match discovered "
-                "one [%s]",
-                options.realm_name, cli_realm)
+                "The provided realm name [%s] does not match discovered " "one [%s]",
+                options.realm_name,
+                cli_realm,
+            )
             logger.debug("(%s: %s)", cli_realm, cli_realm_source)
             raise ScriptError(
                 "The provided realm name [%s] does not match discovered "
                 "one [%s]" % (options.realm_name, cli_realm),
-                rval=CLIENT_INSTALL_ERROR)
+                rval=CLIENT_INSTALL_ERROR,
+            )
 
         cli_basedn = ds.basedn
         cli_basedn_source = ds.basedn_source
@@ -847,7 +879,7 @@ def main():
         logger.debug("Realm source: %s", cli_realm_source)
         logger.info("DNS Domain: %s", cli_domain)
         logger.debug("DNS Domain source: %s", cli_domain_source)
-        logger.info("IPA Server: %s", ', '.join(cli_server))
+        logger.info("IPA Server: %s", ", ".join(cli_server))
         logger.debug("IPA Server source: %s", cli_server_source)
         logger.info("BaseDN: %s", cli_basedn)
         logger.debug("BaseDN source: %s", cli_basedn_source)
@@ -877,7 +909,8 @@ def main():
                 logger.warning(
                     "It seems that you are using an IP address "
                     "instead of FQDN as an argument to --server. The "
-                    "installation may fail.")
+                    "installation may fail."
+                )
                 break
 
         # logger.info()
@@ -903,31 +936,35 @@ def main():
 
         # Check that realm and domain match
         current_config = get_ipa_conf()
-        if cli_domain != current_config.get('domain'):
-            module.fail_json(msg="IPA client already installed "
-                             "with a conflicting domain")
-        if cli_realm != current_config.get('realm'):
-            module.fail_json(msg="IPA client already installed "
-                             "with a conflicting realm")
+        if cli_domain != current_config.get("domain"):
+            module.fail_json(
+                msg="IPA client already installed " "with a conflicting domain"
+            )
+        if cli_realm != current_config.get("realm"):
+            module.fail_json(
+                msg="IPA client already installed " "with a conflicting realm"
+            )
     else:
         client_already_configured = False
 
     # Done
-    module.exit_json(changed=False,
-                     servers=cli_server,
-                     domain=cli_domain,
-                     realm=cli_realm,
-                     kdc=cli_kdc,
-                     basedn=str(cli_basedn),
-                     hostname=hostname,
-                     client_domain=client_domain,
-                     dnsok=dnsok,
-                     sssd=options.sssd,
-                     ntp_servers=options.ntp_servers,
-                     ntp_pool=options.ntp_pool,
-                     client_already_configured=client_already_configured,
-                     ipa_python_version=IPA_PYTHON_VERSION)
+    module.exit_json(
+        changed=False,
+        servers=cli_server,
+        domain=cli_domain,
+        realm=cli_realm,
+        kdc=cli_kdc,
+        basedn=str(cli_basedn),
+        hostname=hostname,
+        client_domain=client_domain,
+        dnsok=dnsok,
+        sssd=options.sssd,
+        ntp_servers=options.ntp_servers,
+        ntp_pool=options.ntp_pool,
+        client_already_configured=client_already_configured,
+        ipa_python_version=IPA_PYTHON_VERSION,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

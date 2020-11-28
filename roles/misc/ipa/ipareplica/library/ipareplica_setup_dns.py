@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_setup_dns
 short description: Setup DNS
@@ -80,22 +80,32 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, DN, paths,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_ReplicaConfig, gen_remote_api, api, redirect_stdout, dns,
-    ansible_module_get_parsed_ip_addresses
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    DN,
+    paths,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_ReplicaConfig,
+    gen_remote_api,
+    api,
+    redirect_stdout,
+    dns,
+    ansible_module_get_parsed_ip_addresses,
 )
 
 
@@ -103,22 +113,21 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # server
-            setup_kra=dict(required=False, type='bool'),
-            setup_dns=dict(required=False, type='bool'),
+            setup_kra=dict(required=False, type="bool"),
+            setup_dns=dict(required=False, type="bool"),
             # certificate system
             subject_base=dict(required=True),
             # dns
             zonemgr=dict(required=False),
-            forwarders=dict(required=False, type='list', default=[]),
-            forward_policy=dict(default=None, choices=['first', 'only']),
-            no_dnssec_validation=dict(required=False, type='bool',
-                                      default=False),
+            forwarders=dict(required=False, type="list", default=[]),
+            forward_policy=dict(default=None, choices=["first", "only"]),
+            no_dnssec_validation=dict(required=False, type="bool", default=False),
             # additional
-            dns_ip_addresses=dict(required=True, type='list'),
-            dns_reverse_zones=dict(required=True, type='list'),
+            dns_ip_addresses=dict(required=True, type="list"),
+            dns_reverse_zones=dict(required=True, type="list"),
             ccache=dict(required=True),
             _top_dir=dict(required=True),
-            setup_ca=dict(required=True, type='bool'),
+            setup_ca=dict(required=True, type="bool"),
             config_master_host_name=dict(required=True),
         ),
         supports_check_mode=True,
@@ -132,35 +141,35 @@ def main():
 
     options = installer
     # server
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    options.setup_dns = ansible_module.params.get('setup_dns')
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    options.setup_dns = ansible_module.params.get("setup_dns")
     # certificate system
-    options.subject_base = ansible_module.params.get('subject_base')
+    options.subject_base = ansible_module.params.get("subject_base")
     if options.subject_base is not None:
         options.subject_base = DN(options.subject_base)
     # dns
-    options.zonemgr = ansible_module.params.get('zonemgr')
-    options.forwarders = ansible_module.params.get('forwarders')
-    options.forward_policy = ansible_module.params.get('forward_policy')
+    options.zonemgr = ansible_module.params.get("zonemgr")
+    options.forwarders = ansible_module.params.get("forwarders")
+    options.forward_policy = ansible_module.params.get("forward_policy")
     options.no_dnssec_validation = ansible_module.params.get(
-        'no_dnssec_validationdnssec_validation')
+        "no_dnssec_validationdnssec_validation"
+    )
     # additional
     dns.ip_addresses = ansible_module_get_parsed_ip_addresses(
-        ansible_module, 'dns_ip_addresses')
-    dns.reverse_zones = ansible_module.params.get('dns_reverse_zones')
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
-    options._top_dir = ansible_module.params.get('_top_dir')
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    config_master_host_name = ansible_module.params.get(
-        'config_master_host_name')
+        ansible_module, "dns_ip_addresses"
+    )
+    dns.reverse_zones = ansible_module.params.get("dns_reverse_zones")
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
+    options._top_dir = ansible_module.params.get("_top_dir")
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    config_master_host_name = ansible_module.params.get("config_master_host_name")
 
     # init #
 
     ansible_log.debug("== INSTALL ==")
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     config = gen_ReplicaConfig()
     config.subject_base = options.subject_base
@@ -169,7 +178,7 @@ def main():
     remote_api = gen_remote_api(config.master_host_name, paths.ETC_IPA)
     installer._remote_api = remote_api
 
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     # There is a api.Backend.ldap2.connect call somewhere in ca, ds, dns or
     # ntpinstance
@@ -188,5 +197,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

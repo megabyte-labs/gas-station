@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_setup_krb5
 short description: Setup krb5 for IPA client
@@ -64,9 +64,9 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 # Backup and set hostname
 - name: Backup and set hostname
   ipaclient_setup_krb5:
@@ -74,14 +74,18 @@ EXAMPLES = '''
     domain:
     realm:
     hostname: client1.example.com
-'''
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
-    setup_logging, sysrestore, paths, configure_krb5_conf, logger
+    setup_logging,
+    sysrestore,
+    paths,
+    configure_krb5_conf,
+    logger,
 )
 
 
@@ -89,14 +93,14 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             domain=dict(required=False, default=None),
-            servers=dict(required=False, type='list', default=None),
+            servers=dict(required=False, type="list", default=None),
             realm=dict(required=False, default=None),
             hostname=dict(required=False, default=None),
             kdc=dict(required=False, default=None),
-            dnsok=dict(required=False, type='bool', default=False),
+            dnsok=dict(required=False, type="bool", default=False),
             client_domain=dict(required=False, default=None),
-            sssd=dict(required=False, type='bool', default=False),
-            force=dict(required=False, type='bool', default=False),
+            sssd=dict(required=False, type="bool", default=False),
+            force=dict(required=False, type="bool", default=False),
             # on_master=dict(required=False, type='bool', default=False),
         ),
         supports_check_mode=True,
@@ -105,15 +109,15 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    servers = module.params.get('servers')
-    domain = module.params.get('domain')
-    realm = module.params.get('realm')
-    hostname = module.params.get('hostname')
-    kdc = module.params.get('kdc')
-    dnsok = module.params.get('dnsok')
-    client_domain = module.params.get('client_domain')
-    sssd = module.params.get('sssd')
-    force = module.params.get('force')
+    servers = module.params.get("servers")
+    domain = module.params.get("domain")
+    realm = module.params.get("realm")
+    hostname = module.params.get("hostname")
+    kdc = module.params.get("kdc")
+    dnsok = module.params.get("dnsok")
+    client_domain = module.params.get("client_domain")
+    sssd = module.params.get("sssd")
+    force = module.params.get("force")
     # on_master = module.params.get('on_master')
 
     fstore = sysrestore.FileStore(paths.IPA_CLIENT_SYSRESTORE)
@@ -142,13 +146,13 @@ def main():
         client_domain=client_domain,
         client_hostname=hostname,
         configure_sssd=sssd,
-        force=force)
+        force=force,
+    )
 
-    logger.info(
-        "Configured /etc/krb5.conf for IPA realm %s", realm)
+    logger.info("Configured /etc/krb5.conf for IPA realm %s", realm)
 
     module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

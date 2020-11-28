@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_master_password
 short description: Generate kerberos master password if not given
@@ -43,22 +43,26 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
+RETURN = """
 password:
   description: The master password
   returned: always
-'''
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    setup_logging, options, paths, read_cache, ipa_generate_password
+    setup_logging,
+    options,
+    paths,
+    read_cache,
+    ipa_generate_password,
 )
 
 
@@ -75,8 +79,8 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    options.dm_password = module.params.get('dm_password')
-    options.master_password = module.params.get('master_password')
+    options.dm_password = module.params.get("dm_password")
+    options.master_password = module.params.get("master_password")
 
     # This will override any settings passed in on the cmdline
     if os.path.isfile(paths.ROOT_IPA_CACHE):
@@ -90,9 +94,8 @@ def main():
     if not options.master_password:
         options.master_password = ipa_generate_password()
 
-    module.exit_json(changed=True,
-                     password=options.master_password)
+    module.exit_json(changed=True, password=options.master_password)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

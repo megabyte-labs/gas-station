@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_setup_ntp
 short description: Setup NTP for IPA client
@@ -55,21 +55,26 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import inspect
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
     setup_logging,
-    options, sysrestore, paths, sync_time, logger, ipadiscovery,
-    timeconf
+    options,
+    sysrestore,
+    paths,
+    sync_time,
+    logger,
+    ipadiscovery,
+    timeconf,
 )
 
 
@@ -77,13 +82,13 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             # basic
-            ntp_servers=dict(required=False, type='list', default=None),
+            ntp_servers=dict(required=False, type="list", default=None),
             ntp_pool=dict(required=False, default=None),
-            no_ntp=dict(required=False, type='bool', default=False),
+            no_ntp=dict(required=False, type="bool", default=False),
             # force_ntpd=dict(required=False, type='bool', default=False),
-            on_master=dict(required=False, type='bool', default=False),
+            on_master=dict(required=False, type="bool", default=False),
             # additional
-            servers=dict(required=False, type='list', default=None),
+            servers=dict(required=False, type="list", default=None),
             domain=dict(required=False, default=None),
         ),
         supports_check_mode=True,
@@ -92,13 +97,13 @@ def main():
     # module._ansible_debug = True
     setup_logging()
 
-    options.ntp_servers = module.params.get('ntp_servers')
-    options.ntp_pool = module.params.get('ntp_pool')
-    options.no_ntp = module.params.get('no_ntp')
+    options.ntp_servers = module.params.get("ntp_servers")
+    options.ntp_pool = module.params.get("ntp_pool")
+    options.no_ntp = module.params.get("no_ntp")
     # options.force_ntpd = module.params.get('force_ntpd')
-    options.on_master = module.params.get('on_master')
-    cli_server = module.params.get('servers')
-    cli_domain = module.params.get('domain')
+    options.on_master = module.params.get("on_master")
+    cli_server = module.params.get("servers")
+    cli_domain = module.params.get("domain")
 
     options.conf_ntp = not options.no_ntp
     options.debug = False
@@ -112,8 +117,9 @@ def main():
             # Attempt to configure and sync time with NTP server (chrony).
             argspec = inspect.getargspec(sync_time)
             if "options" not in argspec.args:
-                synced_ntp = sync_time(options.ntp_servers, options.ntp_pool,
-                                       fstore, statestore)
+                synced_ntp = sync_time(
+                    options.ntp_servers, options.ntp_pool, fstore, statestore
+                )
             else:
                 synced_ntp = sync_time(options, fstore, statestore)
         elif options.on_master:
@@ -121,7 +127,8 @@ def main():
             # done in ipa-server-install
             logger.info(
                 "Skipping attempt to configure and synchronize time with"
-                " chrony server as it has been already done on master.")
+                " chrony server as it has been already done on master."
+            )
         else:
             logger.info("Skipping chrony configuration")
 
@@ -135,10 +142,11 @@ def main():
             # in the DNS.
             # If that fails, we try to sync directly with IPA server,
             # assuming it runs NTP
-            logger.info('Synchronizing time with KDC...')
+            logger.info("Synchronizing time with KDC...")
             ds = ipadiscovery.IPADiscovery()
-            ntp_srv_servers = ds.ipadns_search_srv(cli_domain, '_ntp._udp',
-                                                   None, break_on_first=False)
+            ntp_srv_servers = ds.ipadns_search_srv(
+                cli_domain, "_ntp._udp", None, break_on_first=False
+            )
             synced_ntp = False
             ntp_servers = ntp_srv_servers
 
@@ -152,19 +160,19 @@ def main():
                     break
 
             if not synced_ntp and not options.ntp_servers:
-                synced_ntp = timeconf.synconce_ntp(cli_server[0],
-                                                   options.debug)
+                synced_ntp = timeconf.synconce_ntp(cli_server[0], options.debug)
             if not synced_ntp:
                 module.warn(
                     "Unable to sync time with NTP "
                     "server, assuming the time is in sync. Please check "
-                    "that 123 UDP port is opened.")
+                    "that 123 UDP port is opened."
+                )
         else:
-            logger.info('Skipping synchronizing time with NTP server.')
+            logger.info("Skipping synchronizing time with NTP server.")
 
     # Done
     module.exit_json(changed=synced_ntp)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

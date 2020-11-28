@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_setup_ntp
 short description: Setup NTP
@@ -44,27 +44,35 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import inspect
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    AnsibleModuleLog, setup_logging, options, sysrestore, paths,
-    redirect_stdout, time_service, sync_time, ntpinstance, timeconf
+    AnsibleModuleLog,
+    setup_logging,
+    options,
+    sysrestore,
+    paths,
+    redirect_stdout,
+    time_service,
+    sync_time,
+    ntpinstance,
+    timeconf,
 )
 
 
 def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
-            ntp_servers=dict(required=False, type='list', default=None),
+            ntp_servers=dict(required=False, type="list", default=None),
             ntp_pool=dict(required=False, default=None),
         ),
     )
@@ -75,8 +83,8 @@ def main():
 
     # set values ############################################################
 
-    options.ntp_servers = ansible_module.params.get('ntp_servers')
-    options.ntp_pool = ansible_module.params.get('ntp_pool')
+    options.ntp_servers = ansible_module.params.get("ntp_servers")
+    options.ntp_pool = ansible_module.params.get("ntp_pool")
 
     # init ##########################################################
 
@@ -94,16 +102,16 @@ def main():
 
         argspec = inspect.getargspec(sync_time)
         if "options" not in argspec.args:
-            synced_ntp = sync_time(options.ntp_servers, options.ntp_pool,
-                                   fstore, sstore)
+            synced_ntp = sync_time(
+                options.ntp_servers, options.ntp_pool, fstore, sstore
+            )
         else:
             synced_ntp = sync_time(options, fstore, sstore)
         if not synced_ntp:
+            ansible_module.log("Warning: IPA was unable to sync time with chrony!")
             ansible_module.log(
-                "Warning: IPA was unable to sync time with chrony!")
-            ansible_module.log(
-                "         Time synchronization is required for IPA "
-                "to work correctly")
+                "         Time synchronization is required for IPA " "to work correctly"
+            )
     else:
         # Configure ntpd
         timeconf.force_ntpd(sstore)
@@ -118,5 +126,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

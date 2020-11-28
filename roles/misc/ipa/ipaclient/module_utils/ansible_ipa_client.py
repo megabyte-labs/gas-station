@@ -22,35 +22,78 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ["gssapi", "version", "ipadiscovery", "api", "errors", "x509",
-           "constants", "sysrestore", "certmonger", "certstore",
-           "delete_persistent_client_session_data", "ScriptError",
-           "CheckedIPAddress", "validate_domain_name", "normalize_hostname",
-           "validate_hostname", "services", "tasks", "CalledProcessError",
-           "write_tmp_file", "ipa_generate_password", "DN", "kinit_keytab",
-           "kinit_password", "GSSError", "CLIENT_INSTALL_ERROR",
-           "is_ipa_client_installed", "CLIENT_ALREADY_CONFIGURED",
-           "nssldap_exists", "remove_file", "check_ip_addresses",
-           "print_port_conf_info", "configure_ipa_conf", "purge_host_keytab",
-           "configure_sssd_conf", "realm_to_suffix", "run", "timeconf",
-           "serialization", "configure_krb5_conf", "get_ca_certs",
-           "SECURE_PATH", "get_server_connection_interface",
-           "disable_ra", "client_dns",
-           "configure_certmonger", "update_ssh_keys",
-           "configure_openldap_conf", "hardcode_ldap_server",
-           "get_certs_from_ldap", "save_state", "create_ipa_nssdb",
-           "configure_nisdomain", "configure_ldap_conf",
-           "configure_nslcd_conf", "nosssd_files", "configure_ssh_config",
-           "configure_sshd_config", "configure_automount",
-           "configure_firefox", "sync_time", "check_ldap_conf",
-           "sssd_enable_ifp"]
+__all__ = [
+    "gssapi",
+    "version",
+    "ipadiscovery",
+    "api",
+    "errors",
+    "x509",
+    "constants",
+    "sysrestore",
+    "certmonger",
+    "certstore",
+    "delete_persistent_client_session_data",
+    "ScriptError",
+    "CheckedIPAddress",
+    "validate_domain_name",
+    "normalize_hostname",
+    "validate_hostname",
+    "services",
+    "tasks",
+    "CalledProcessError",
+    "write_tmp_file",
+    "ipa_generate_password",
+    "DN",
+    "kinit_keytab",
+    "kinit_password",
+    "GSSError",
+    "CLIENT_INSTALL_ERROR",
+    "is_ipa_client_installed",
+    "CLIENT_ALREADY_CONFIGURED",
+    "nssldap_exists",
+    "remove_file",
+    "check_ip_addresses",
+    "print_port_conf_info",
+    "configure_ipa_conf",
+    "purge_host_keytab",
+    "configure_sssd_conf",
+    "realm_to_suffix",
+    "run",
+    "timeconf",
+    "serialization",
+    "configure_krb5_conf",
+    "get_ca_certs",
+    "SECURE_PATH",
+    "get_server_connection_interface",
+    "disable_ra",
+    "client_dns",
+    "configure_certmonger",
+    "update_ssh_keys",
+    "configure_openldap_conf",
+    "hardcode_ldap_server",
+    "get_certs_from_ldap",
+    "save_state",
+    "create_ipa_nssdb",
+    "configure_nisdomain",
+    "configure_ldap_conf",
+    "configure_nslcd_conf",
+    "nosssd_files",
+    "configure_ssh_config",
+    "configure_sshd_config",
+    "configure_automount",
+    "configure_firefox",
+    "sync_time",
+    "check_ldap_conf",
+    "sssd_enable_ifp",
+]
 
 from ipapython.version import NUM_VERSION, VERSION
 
 if NUM_VERSION < 30201:
     # See ipapython/version.py
     IPA_MAJOR, IPA_MINOR, IPA_RELEASE = [int(x) for x in VERSION.split(".", 2)]
-    IPA_PYTHON_VERSION = IPA_MAJOR*10000 + IPA_MINOR*100 + IPA_RELEASE
+    IPA_PYTHON_VERSION = IPA_MAJOR * 10000 + IPA_MINOR * 100 + IPA_RELEASE
 else:
     IPA_PYTHON_VERSION = NUM_VERSION
 
@@ -100,12 +143,14 @@ if NUM_VERSION >= 40400:
     import logging
 
     from ipapython import version
+
     try:
         from ipaclient.install import ipadiscovery
     except ImportError:
         from ipaclient import ipadiscovery
     from ipalib import api, errors, x509
     from ipalib import constants
+
     try:
         from ipalib import sysrestore
     except ImportError:
@@ -125,37 +170,64 @@ if NUM_VERSION >= 40400:
     from ipapython import certdb, ipautil
     from ipapython.admintool import ScriptError
     from ipapython.ipautil import CheckedIPAddress
-    from ipalib.util import validate_domain_name, normalize_hostname, \
-        validate_hostname
+    from ipalib.util import validate_domain_name, normalize_hostname, validate_hostname
     from ipaplatform import services
     from ipaplatform.paths import paths
     from ipaplatform.tasks import tasks
+
     try:
         from cryptography.hazmat.primitives import serialization
     except ImportError:
         serialization = None
-    from ipapython.ipautil import CalledProcessError, write_tmp_file, \
-        ipa_generate_password
+    from ipapython.ipautil import (
+        CalledProcessError,
+        write_tmp_file,
+        ipa_generate_password,
+    )
     from ipapython.dn import DN
+
     try:
         from ipalib.install.kinit import kinit_keytab, kinit_password
     except ImportError:
         from ipapython.ipautil import kinit_keytab, kinit_password
     from ipapython.ipa_log_manager import standard_logging_setup
     from gssapi.exceptions import GSSError
+
     try:
-        from ipaclient.install.client import configure_krb5_conf, \
-            get_ca_certs, SECURE_PATH, get_server_connection_interface, \
-            disable_ra, client_dns, \
-            configure_certmonger, update_ssh_keys, configure_openldap_conf, \
-            hardcode_ldap_server, get_certs_from_ldap, save_state, \
-            create_ipa_nssdb, configure_ssh_config, configure_sshd_config, \
-            configure_automount, configure_firefox, configure_nisdomain, \
-            CLIENT_INSTALL_ERROR, is_ipa_client_installed, \
-            CLIENT_ALREADY_CONFIGURED, nssldap_exists, remove_file, \
-            check_ip_addresses, print_port_conf_info, configure_ipa_conf, \
-            purge_host_keytab, configure_sssd_conf, configure_ldap_conf, \
-            configure_nslcd_conf, nosssd_files
+        from ipaclient.install.client import (
+            configure_krb5_conf,
+            get_ca_certs,
+            SECURE_PATH,
+            get_server_connection_interface,
+            disable_ra,
+            client_dns,
+            configure_certmonger,
+            update_ssh_keys,
+            configure_openldap_conf,
+            hardcode_ldap_server,
+            get_certs_from_ldap,
+            save_state,
+            create_ipa_nssdb,
+            configure_ssh_config,
+            configure_sshd_config,
+            configure_automount,
+            configure_firefox,
+            configure_nisdomain,
+            CLIENT_INSTALL_ERROR,
+            is_ipa_client_installed,
+            CLIENT_ALREADY_CONFIGURED,
+            nssldap_exists,
+            remove_file,
+            check_ip_addresses,
+            print_port_conf_info,
+            configure_ipa_conf,
+            purge_host_keytab,
+            configure_sssd_conf,
+            configure_ldap_conf,
+            configure_nslcd_conf,
+            nosssd_files,
+        )
+
         get_ca_cert = None
     except ImportError:
         # Create temporary copy of ipa-client-install script (as
@@ -167,6 +239,7 @@ if NUM_VERSION >= 40400:
         # after ipa_client_install has been imported.
         import shutil
         import tempfile
+
         temp_dir = tempfile.mkdtemp(dir="/tmp")
         sys.path.append(temp_dir)
         temp_file = "%s/ipa_client_install.py" % temp_dir
@@ -184,16 +257,34 @@ if NUM_VERSION >= 40400:
 
         argspec = inspect.getargspec(ipa_client_install.configure_krb5_conf)
         if argspec.keywords is None:
+
             def configure_krb5_conf(
-                    cli_realm, cli_domain, cli_server, cli_kdc, dnsok,
-                    filename, client_domain, client_hostname, force=False,
-                    configure_sssd=True):
+                cli_realm,
+                cli_domain,
+                cli_server,
+                cli_kdc,
+                dnsok,
+                filename,
+                client_domain,
+                client_hostname,
+                force=False,
+                configure_sssd=True,
+            ):
                 global options
                 options.force = force
                 options.sssd = configure_sssd
                 return ipa_client_install.configure_krb5_conf(
-                    cli_realm, cli_domain, cli_server, cli_kdc, dnsok, options,
-                    filename, client_domain, client_hostname)
+                    cli_realm,
+                    cli_domain,
+                    cli_server,
+                    cli_kdc,
+                    dnsok,
+                    options,
+                    filename,
+                    client_domain,
+                    client_hostname,
+                )
+
         else:
             configure_krb5_conf = ipa_client_install.configure_krb5_conf
         if NUM_VERSION < 40100:
@@ -202,11 +293,13 @@ if NUM_VERSION >= 40400:
         else:
             get_ca_cert = None
             get_ca_certs = ipa_client_install.get_ca_certs
-        SECURE_PATH = ("/bin:/sbin:/usr/kerberos/bin:/usr/kerberos/sbin:"
-                       "/usr/bin:/usr/sbin")
+        SECURE_PATH = (
+            "/bin:/sbin:/usr/kerberos/bin:/usr/kerberos/sbin:" "/usr/bin:/usr/sbin"
+        )
 
-        get_server_connection_interface = \
+        get_server_connection_interface = (
             ipa_client_install.get_server_connection_interface
+        )
         disable_ra = ipa_client_install.disable_ra
         client_dns = ipa_client_install.client_dns
         configure_certmonger = ipa_client_install.configure_certmonger
@@ -222,6 +315,7 @@ if NUM_VERSION >= 40400:
         if len(argspec.args) == 3:
             configure_nisdomain = ipa_client_install.configure_nisdomain
         else:
+
             def configure_nisdomain(options, domain, statestore=None):
                 return ipa_client_install.configure_nisdomain(options, domain)
 
@@ -238,6 +332,7 @@ if NUM_VERSION >= 40400:
 
     try:
         from ipaclient.install import timeconf
+
         time_service = "chronyd"
     except ImportError:
         try:
@@ -272,12 +367,15 @@ else:
 
 def setup_logging():
     standard_logging_setup(
-        paths.IPACLIENT_INSTALL_LOG, verbose=False, debug=False,
-        filemode='a', console_format='%(message)s')
+        paths.IPACLIENT_INSTALL_LOG,
+        verbose=False,
+        debug=False,
+        filemode="a",
+        console_format="%(message)s",
+    )
 
 
-def ansible_module_get_parsed_ip_addresses(ansible_module,
-                                           param='ip_addresses'):
+def ansible_module_get_parsed_ip_addresses(ansible_module, param="ip_addresses"):
     ip_addresses = ansible_module.params.get(param)
     if ip_addresses is None:
         return None

@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_setup_ssh
 short description: Configure ssh and sshd for IPA client
@@ -52,35 +52,39 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: Configure ssh and sshd for IPA client
   ipaclient_setup_ssh:
     servers: ["server1.example.com","server2.example.com"]
     ssh: true
     sshd: true
     sssd: true
-'''
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
     setup_logging,
-    options, sysrestore, paths, configure_ssh_config, configure_sshd_config
+    options,
+    sysrestore,
+    paths,
+    configure_ssh_config,
+    configure_sshd_config,
 )
 
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            servers=dict(required=True, type='list'),
-            no_ssh=dict(required=False, type='bool', default='no'),
-            ssh_trust_dns=dict(required=False, type='bool', default='no'),
-            no_sshd=dict(required=False, type='bool', default='no'),
-            sssd=dict(required=False, type='bool', default='no'),
+            servers=dict(required=True, type="list"),
+            no_ssh=dict(required=False, type="bool", default="no"),
+            ssh_trust_dns=dict(required=False, type="bool", default="no"),
+            no_sshd=dict(required=False, type="bool", default="no"),
+            sssd=dict(required=False, type="bool", default="no"),
         ),
         supports_check_mode=True,
     )
@@ -88,14 +92,14 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    options.servers = module.params.get('servers')
+    options.servers = module.params.get("servers")
     options.server = options.servers
-    options.no_ssh = module.params.get('no_ssh')
+    options.no_ssh = module.params.get("no_ssh")
     options.conf_ssh = not options.no_ssh
-    options.trust_sshfp = module.params.get('ssh_trust_dns')
-    options.no_sshd = module.params.get('no_sshd')
+    options.trust_sshfp = module.params.get("ssh_trust_dns")
+    options.no_sshd = module.params.get("no_sshd")
     options.conf_sshd = not options.no_sshd
-    options.sssd = module.params.get('sssd')
+    options.sssd = module.params.get("sssd")
 
     fstore = sysrestore.FileStore(paths.IPA_CLIENT_SYSRESTORE)
 
@@ -113,5 +117,5 @@ def main():
     module.exit_json(changed=changed)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

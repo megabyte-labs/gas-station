@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_setup_otpd
 short description: Setup OTPD
@@ -47,18 +47,23 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    AnsibleModuleLog, setup_logging, options,
-    api_Backend_ldap2, redirect_stdout, otpdinstance, ipautil
+    AnsibleModuleLog,
+    setup_logging,
+    options,
+    api_Backend_ldap2,
+    redirect_stdout,
+    otpdinstance,
+    ipautil,
 )
 
 
@@ -68,7 +73,7 @@ def main():
             # basic
             realm=dict(required=True),
             hostname=dict(required=False),
-            setup_ca=dict(required=False, type='bool', default=False),
+            setup_ca=dict(required=False, type="bool", default=False),
         ),
     )
 
@@ -78,9 +83,9 @@ def main():
 
     # set values ####################################################
 
-    options.realm_name = ansible_module.params.get('realm')
-    options.host_name = ansible_module.params.get('hostname')
-    options.setup_ca = ansible_module.params.get('setup_ca')
+    options.realm_name = ansible_module.params.get("realm")
+    options.host_name = ansible_module.params.get("hostname")
+    options.setup_ca = ansible_module.params.get("setup_ca")
 
     # init ##########################################################
 
@@ -91,13 +96,14 @@ def main():
     otpd = otpdinstance.OtpdInstance()
     otpd.set_output(ansible_log)
     with redirect_stdout(ansible_log):
-        otpd.create_instance('OTPD', options.host_name,
-                             ipautil.realm_to_suffix(options.realm_name))
+        otpd.create_instance(
+            "OTPD", options.host_name, ipautil.realm_to_suffix(options.realm_name)
+        )
 
     # done ##########################################################
 
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

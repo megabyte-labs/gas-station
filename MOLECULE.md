@@ -4,23 +4,24 @@ All Molecule tests should include tests for the following environments:
 
 **Supported Operating Systems**
 
-* CentOS 8
-* Debian 10 (buster)
-* Ubuntu 20.04 (focal)
-* Fedora 33
-* Latest Archlinux
+- CentOS 8
+- Debian 10 (buster)
+- Ubuntu 20.04 (focal)
+- Fedora 33
+- Latest Archlinux
 
 **Test-Only Operating Systems**
 
-*The following operating systems should be included in Molecule tests at the latest version but are not officially supported:*
+_The following operating systems should be included in Molecule tests at the latest version but are not officially supported:_
 
-* Elementary OS
-* Zorin
-* OpenSUSE
-* Manjaro
-* Mint
+- Elementary OS
+- Zorin
+- OpenSUSE
+- Manjaro
+- Mint
 
 On top of that, the tests should run on Mac OS X and Windows through Travis. [This link](https://docs.travis-ci.com/user/multi-os/) describes some of the basics that will be involved with this.
+
 ## Getting Started
 
 It is highly recommended to install `molecule` in a Python virtual environment.

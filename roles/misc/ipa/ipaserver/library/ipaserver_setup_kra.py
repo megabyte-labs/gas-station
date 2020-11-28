@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_setup_kra
 short description: Setup KRA
@@ -56,18 +56,24 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    AnsibleModuleLog, setup_logging, options,
-    api_Backend_ldap2, redirect_stdout, api, custodiainstance, kra
+    AnsibleModuleLog,
+    setup_logging,
+    options,
+    api_Backend_ldap2,
+    redirect_stdout,
+    api,
+    custodiainstance,
+    kra,
 )
 
 
@@ -77,8 +83,8 @@ def main():
             # basic
             dm_password=dict(required=True, no_log=True),
             hostname=dict(required=True),
-            setup_ca=dict(required=True, type='bool'),
-            setup_kra=dict(required=True, type='bool'),
+            setup_ca=dict(required=True, type="bool"),
+            setup_kra=dict(required=True, type="bool"),
             realm=dict(required=True),
             pki_config_override=dict(required=False),
         ),
@@ -90,13 +96,12 @@ def main():
 
     # set values ####################################################
 
-    options.dm_password = ansible_module.params.get('dm_password')
-    options.host_name = ansible_module.params.get('hostname')
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    options.realm_name = ansible_module.params.get('realm')
-    options.pki_config_override = ansible_module.params.get(
-        'pki_config_override')
+    options.dm_password = ansible_module.params.get("dm_password")
+    options.host_name = ansible_module.params.get("hostname")
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    options.realm_name = ansible_module.params.get("realm")
+    options.pki_config_override = ansible_module.params.get("pki_config_override")
     options.promote = False  # first master, no promotion
 
     # init ##########################################################
@@ -122,5 +127,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

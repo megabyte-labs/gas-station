@@ -3,56 +3,77 @@ dependency:
   name: galaxy
 driver:
   name: docker
-lint: |
-  set -e
-  yamllint .
-  ansible-lint
+lint:
+  name: yamllint
 platforms:
-  - name: centos
+  - name: CentOS 7
     image: centos:7
-    tmpfs:
-      - /run
-      - /tmp
+    command: ""
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
+    priviledged: true
     pre_build_image: true
-    groups:
-      - linuxcontainers
-  - name: ubuntu
-    image: pycontribs/ubuntu:latest
-    tmpfs:
-      - /run
-      - /tmp
+  - name: CentOS 8
+    image: centos:8
+    command: ""
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
+    priviledged: true
     pre_build_image: true
-    groups:
-      - linuxcontainers
-  - name: archlinux
-    image: archlinux:latest
-    tmpfs:
-      - /run
-      - /tmp
+  - name: Fedora 33
+    image: fedora:33
+    command: ""
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
+    priviledged: true
     pre_build_image: true
-    groups:
-      - linuxcontainers
+  - name: Ubuntu 20.04
+    image: ubuntu:20.04
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    priviledged: true
+    pre_build_image: true
 provisioner:
   name: ansible
-  inventory:
-    group_vars:
-      linuxcontainers:
-        ansible_connection: docker
-    links:
-      hosts: external_win_mac
-  playbooks:
-    prepare: prepare.yml
-    create: create.yml
-    destroy: destroy.yml
-    converge: converge.yml
+  lint:
+    name: ansible-lint
 verifier:
   name: ansible
+scenario:
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - lint
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy

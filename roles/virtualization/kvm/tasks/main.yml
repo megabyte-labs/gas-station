@@ -7,12 +7,16 @@
   become: true
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
-  when: ansible_system == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - ansible_facts['virtualization_type'] != "NA"
 
-- name: Run user-specific tasks # TODO: Only run the installation process if the computer supports virtualization
+- name: Run user-specific tasks
   include_tasks: "user-{{ ansible_os_family }}.yml"
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
-  when: ansible_system == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - ansible_facts['virtualization_type'] != "NA"

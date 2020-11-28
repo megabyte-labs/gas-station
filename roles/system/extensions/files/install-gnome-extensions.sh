@@ -116,7 +116,8 @@ function disable_extension(){
 
 function get_installed_extensions_list(){
 user_extensions_path="/home/$USER/.local/share/gnome-shell/extensions";
-array=($(ls -l "$user_extensions_path" --time-style=long-iso | grep -E '^d' | awk '{print $8}'));
+array=();
+while IFS="" read -r line; do array+=("$line"); done < <(find "$user_extensions_path" -maxdepth 1 -mindepth 1 -type d -not -path '*/\.*' -printf "%f\n")
 ext_list=$(printf "'%s'," "${array[@]}");
 ext_list=${ext_list%,};
 INSTALLED_EXT_COUNT="${#array[@]}"

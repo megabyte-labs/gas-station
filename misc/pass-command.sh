@@ -13,7 +13,7 @@ fi
 # Directory where gitlab repository is located (need to point to directory where roles directory is)
 git_repository_dir="/home/hawkwood/Playbooks"
 
-find "$git_repository_dir" -mindepth 3 -maxdepth 3 -type d -not -path '*/\.*' | while read -r gitrepo
+find "$git_repository_dir/roles" -mindepth 2 -maxdepth 2 -type d -not -path '*/\.*' | while read -r gitrepo
 do
 	cd "$gitrepo" || continue
 	$1

@@ -1,6 +1,37 @@
 ---
-- name: Run generic Linux tasks
-  become: true
-  become_user: "{{ user.username }}"
-  block:
-    - include_tasks: user-Linux.yml
+- name: Ensure ~/.config/rclone is a directory
+  file:
+    path: "{{ item }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    state: directory
+    mode: 0755
+  loop:
+    - ~/.config
+    - ~/.config/rclone
+  when: user.rclone is defined
+
+- name: Add rclone configuration file to ~/.config/rclone
+  template:
+    src: rclone.conf.j2
+    dest: ~/.config/rclone/rclone.conf
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    mode: 0600
+  when: user.rclone is defined
+
+- name: Ensure ~/Documents folder exists
+  file:
+    path: ~/Documents
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    state: directory
+    mode: 0755
+  when: user.rclone is defined
+
+- name: Mount the rclone drives
+  include_tasks: mount-Darwin.yml
+  loop: "{{ user.rclone | default([]) }}"
+  loop_control:
+    label: "{{ mount.name }}"
+    loop_var: mount

@@ -1,5 +1,17 @@
 # Contributing
 
+## Supported Operating Systems
+
+All of the roles should support the following operating systems:
+
+* Archlinux (Latest)
+* CentOS 8
+* Debian 10 (buster)
+* Ubuntu 20.04 (focal)
+* Fedora 33
+* Mac OS X/Darwin (Latest)
+* Windows (Latest)
+
 ## Linting
 
 There are primarily two different linting tools used in this playbook. They are **ansible-lint** and **yamllint**. ansible-lint lint offers code suggestions related to Ansible best practices and yamllint offers generic code suggestions for .yml files.

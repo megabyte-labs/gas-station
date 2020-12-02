@@ -1,0 +1,31 @@
+---
+- name: Check if certificate already exists
+  ansible.windows.win_stat:
+    path: "{{ certbot_path }}\live\{{ certificate.domains | first | replace('*.', '') }}\cert.pem"
+  register: letsencrypt_cert
+
+- name: Populate service facts
+  ansible.windows.win_service_info:
+  register: service_info
+
+- name: Stop services to allow certbot to generate a certificate
+  ansible.windows.win_service:
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ certbot_create_standalone_stop_services }}"
+  when:
+    - not letsencrypt_cert.stat.exists
+    - "('{{ item }}' in service_info) or ('{{ item }}.service' in service_info)"
+
+- name: Generate new certificate if one doesn't exist
+  ansible.windows.win_command: "{{ certbot_create_command }}"
+  when: not letsencrypt_cert.stat.exists
+
+- name: Start services after cert has been generated
+  ansible.windows.win_service:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ certbot_create_standalone_stop_services }}"
+  when:
+    - not letsencrypt_cert.stat.exists
+    - "('{{ item }}' in services) or ('{{ item }}.service' in services)"

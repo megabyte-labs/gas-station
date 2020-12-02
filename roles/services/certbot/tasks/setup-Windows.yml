@@ -1,2 +1,50 @@
 ---
-[] # TODO
+- name: Ensure that {{ certbot_path }} directory exists
+  become: true
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  ansible.windows.win_file:
+    path: "{{ certbot_path }}"
+    state: directory
+
+- name: Check for pre-downloaded binary
+  ansible.windows.win_stat:
+    path: "{{ certbot_path }}\certbot-installer-win32.exe"
+  register: file_stats
+
+- name: Download Certbot Installer
+  ansible.windows.win_get_url:
+    url: "{{ certbot_url }}"
+    dest: "{{ certbot_path }}\certbot-installer-win32.exe"
+  when: not file_stats.stat.exists
+
+- name: Run installer
+  become: true
+  ansible.windows.win_package:
+    path: "{{ certbot_path }}\certbot-installer-win32.exe"
+    arguments:
+      - /s
+  when: not file_stats.stat.exists
+
+- name: Generate Let's Encrypt certificates
+  include_tasks: certificate-Windows.yml
+  loop: "{{ certbot_certs }}"
+  loop_control:
+    loop_var: certificate
+  when:
+    - certbot_create_if_missing
+    - certbot_create_method == 'standalone'
+
+- name: Create a task to renew Let's Encrypt Certs
+  community.windows.win_scheduled_task:
+    name: Certbot automatic renewal
+    description: Task to renew Let's Encrypt Certs
+    actions:
+    - path: certbot
+      arguments: renew {{ certbot_auto_renew_options }}"
+    triggers:
+    - type: daily
+      start_boundary: "2020-01-01T{{ certbot_auto_renew_hour }}:{{ certbot_auto_renew_minute }}:00"
+    username: "{{ certbot_auto_renew_user }}"
+    state: present
+    enabled: true

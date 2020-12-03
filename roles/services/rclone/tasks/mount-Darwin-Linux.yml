@@ -1,0 +1,29 @@
+---
+- name: Check if the Documents folder already has a folder with the rclone configuration's name
+  become: true
+  become_user: "{{ user.username }}"
+  stat:
+    path: "~/Documents/{{ mount.name }}"
+  register: document_link
+
+- name: Ensure provider has folder created
+  become: true
+  become_user: root
+  file:
+    path: "/mnt/{{ mount.provider }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    state: directory
+    mode: 0640
+
+- name: Add symlink to Cloud provider
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    src: "/mnt/{{ mount.provider }}"
+    dest: "~/Documents/{{ mount.name }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    state: link
+    force: true
+  when: not document_link.stat.exists

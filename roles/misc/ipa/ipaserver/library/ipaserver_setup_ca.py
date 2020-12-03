@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_setup_ca
 short description: Setup CA
@@ -148,22 +148,33 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    AnsibleModuleLog, setup_logging, options, sysrestore, paths,
+    AnsibleModuleLog,
+    setup_logging,
+    options,
+    sysrestore,
+    paths,
     ansible_module_get_parsed_ip_addresses,
-    api_Backend_ldap2, redirect_stdout, ca, installutils, ds_init_info,
-    custodiainstance, write_cache, x509, decode_certificate
+    api_Backend_ldap2,
+    redirect_stdout,
+    ca,
+    installutils,
+    ds_init_info,
+    custodiainstance,
+    write_cache,
+    x509,
+    decode_certificate,
 )
 
 
@@ -174,41 +185,40 @@ def main():
             dm_password=dict(required=True, no_log=True),
             password=dict(required=True, no_log=True),
             master_password=dict(required=True, no_log=True),
-            ip_addresses=dict(required=False, type='list', default=[]),
+            ip_addresses=dict(required=False, type="list", default=[]),
             domain=dict(required=True),
             realm=dict(required=True),
             hostname=dict(required=False),
-            no_host_dns=dict(required=False, type='bool', default=False),
+            no_host_dns=dict(required=False, type="bool", default=False),
             pki_config_override=dict(required=False),
             # server
-            setup_adtrust=dict(required=False, type='bool', default=False),
-            setup_kra=dict(required=False, type='bool', default=False),
-            setup_dns=dict(required=False, type='bool', default=False),
-            setup_ca=dict(required=False, type='bool', default=False),
-            idstart=dict(required=True, type='int'),
-            idmax=dict(required=True, type='int'),
-            no_hbac_allow=dict(required=False, type='bool', default=False),
-            no_pkinit=dict(required=False, type='bool', default=False),
+            setup_adtrust=dict(required=False, type="bool", default=False),
+            setup_kra=dict(required=False, type="bool", default=False),
+            setup_dns=dict(required=False, type="bool", default=False),
+            setup_ca=dict(required=False, type="bool", default=False),
+            idstart=dict(required=True, type="int"),
+            idmax=dict(required=True, type="int"),
+            no_hbac_allow=dict(required=False, type="bool", default=False),
+            no_pkinit=dict(required=False, type="bool", default=False),
             dirsrv_config_file=dict(required=False),
-            dirsrv_cert_files=dict(required=False, type='list'),
-            _dirsrv_pkcs12_info=dict(required=False, type='list'),
+            dirsrv_cert_files=dict(required=False, type="list"),
+            _dirsrv_pkcs12_info=dict(required=False, type="list"),
             # certificate system
-            external_ca=dict(required=False, type='bool', default=False),
+            external_ca=dict(required=False, type="bool", default=False),
             external_ca_type=dict(required=False),
             external_ca_profile=dict(required=False),
-            external_cert_files=dict(required=False, type='list',
-                                     default=None),
+            external_cert_files=dict(required=False, type="list", default=None),
             subject_base=dict(required=False),
             _subject_base=dict(required=False),
             ca_subject=dict(required=False),
             _ca_subject=dict(required=False),
             ca_signing_algorithm=dict(required=False),
             # dns
-            reverse_zones=dict(required=False, type='list', default=[]),
-            no_reverse=dict(required=False, type='bool', default=False),
-            auto_forwarders=dict(required=False, type='bool', default=False),
+            reverse_zones=dict(required=False, type="list", default=[]),
+            no_reverse=dict(required=False, type="bool", default=False),
+            auto_forwarders=dict(required=False, type="bool", default=False),
             # additional
-            domainlevel=dict(required=False, type='int'),
+            domainlevel=dict(required=False, type="int"),
             _http_ca_cert=dict(required=False),
         ),
     )
@@ -220,51 +230,44 @@ def main():
     # set values ############################################################
 
     # basic
-    options.dm_password = ansible_module.params.get('dm_password')
-    options.admin_password = ansible_module.params.get('password')
-    options.master_password = ansible_module.params.get('master_password')
-    options.ip_addresses = ansible_module_get_parsed_ip_addresses(
-        ansible_module)
-    options.domain_name = ansible_module.params.get('domain')
-    options.realm_name = ansible_module.params.get('realm')
-    options.host_name = ansible_module.params.get('hostname')
-    options.no_host_dns = ansible_module.params.get('no_host_dns')
-    options.pki_config_override = ansible_module.params.get(
-        'pki_config_override')
+    options.dm_password = ansible_module.params.get("dm_password")
+    options.admin_password = ansible_module.params.get("password")
+    options.master_password = ansible_module.params.get("master_password")
+    options.ip_addresses = ansible_module_get_parsed_ip_addresses(ansible_module)
+    options.domain_name = ansible_module.params.get("domain")
+    options.realm_name = ansible_module.params.get("realm")
+    options.host_name = ansible_module.params.get("hostname")
+    options.no_host_dns = ansible_module.params.get("no_host_dns")
+    options.pki_config_override = ansible_module.params.get("pki_config_override")
     # server
-    options.setup_adtrust = ansible_module.params.get('setup_adtrust')
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    options.setup_dns = ansible_module.params.get('setup_dns')
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    options.idstart = ansible_module.params.get('idstart')
-    options.idmax = ansible_module.params.get('idmax')
-    options.no_hbac_allow = ansible_module.params.get('no_hbac_allow')
-    options.no_pkinit = ansible_module.params.get('no_pkinit')
-    options.dirsrv_config_file = ansible_module.params.get(
-        'dirsrv_config_file')
-    options.dirsrv_cert_files = ansible_module.params.get('dirsrv_cert_files')
-    options._dirsrv_pkcs12_info = ansible_module.params.get(
-        '_dirsrv_pkcs12_info')
+    options.setup_adtrust = ansible_module.params.get("setup_adtrust")
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    options.setup_dns = ansible_module.params.get("setup_dns")
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    options.idstart = ansible_module.params.get("idstart")
+    options.idmax = ansible_module.params.get("idmax")
+    options.no_hbac_allow = ansible_module.params.get("no_hbac_allow")
+    options.no_pkinit = ansible_module.params.get("no_pkinit")
+    options.dirsrv_config_file = ansible_module.params.get("dirsrv_config_file")
+    options.dirsrv_cert_files = ansible_module.params.get("dirsrv_cert_files")
+    options._dirsrv_pkcs12_info = ansible_module.params.get("_dirsrv_pkcs12_info")
     # certificate system
-    options.external_ca = ansible_module.params.get('external_ca')
-    options.external_ca_type = ansible_module.params.get('external_ca_type')
-    options.external_ca_profile = ansible_module.params.get(
-        'external_ca_profile')
-    options.external_cert_files = ansible_module.params.get(
-        'external_cert_files')
-    options.subject_base = ansible_module.params.get('subject_base')
-    options._subject_base = ansible_module.params.get('_subject_base')
-    options.ca_subject = ansible_module.params.get('ca_subject')
-    options._ca_subject = ansible_module.params.get('_ca_subject')
-    options.ca_signing_algorithm = ansible_module.params.get(
-        'ca_signing_algorithm')
+    options.external_ca = ansible_module.params.get("external_ca")
+    options.external_ca_type = ansible_module.params.get("external_ca_type")
+    options.external_ca_profile = ansible_module.params.get("external_ca_profile")
+    options.external_cert_files = ansible_module.params.get("external_cert_files")
+    options.subject_base = ansible_module.params.get("subject_base")
+    options._subject_base = ansible_module.params.get("_subject_base")
+    options.ca_subject = ansible_module.params.get("ca_subject")
+    options._ca_subject = ansible_module.params.get("_ca_subject")
+    options.ca_signing_algorithm = ansible_module.params.get("ca_signing_algorithm")
     # dns
-    options.reverse_zones = ansible_module.params.get('reverse_zones')
-    options.no_reverse = ansible_module.params.get('no_reverse')
-    options.auto_forwarders = ansible_module.params.get('auto_forwarders')
+    options.reverse_zones = ansible_module.params.get("reverse_zones")
+    options.no_reverse = ansible_module.params.get("no_reverse")
+    options.auto_forwarders = ansible_module.params.get("auto_forwarders")
     # additional
-    options.domainlevel = ansible_module.params.get('domainlevel')
-    options._http_ca_cert = ansible_module.params.get('_http_ca_cert')
+    options.domainlevel = ansible_module.params.get("domainlevel")
+    options._http_ca_cert = ansible_module.params.get("_http_ca_cert")
     if options._http_ca_cert:
         options._http_ca_cert = decode_certificate(options._http_ca_cert)
 
@@ -275,22 +278,31 @@ def main():
     # Repeat from ca.install_check
     # ca.external_cert_file and ca.external_ca_file need to be set
     if options.external_cert_files:
-        ca.external_cert_file, ca.external_ca_file = \
-            installutils.load_external_cert(
-                options.external_cert_files, options._ca_subject)
+        ca.external_cert_file, ca.external_ca_file = installutils.load_external_cert(
+            options.external_cert_files, options._ca_subject
+        )
 
     fstore = sysrestore.FileStore(paths.SYSRESTORE)
 
     api_Backend_ldap2(options.host_name, options.setup_ca, connect=True)
 
-    ds = ds_init_info(ansible_log, fstore,
-                      options.domainlevel, options.dirsrv_config_file,
-                      options.realm_name, options.host_name,
-                      options.domain_name, options.dm_password,
-                      options.idstart, options.idmax,
-                      options.subject_base, options.ca_subject,
-                      options.no_hbac_allow, options._dirsrv_pkcs12_info,
-                      options.no_pkinit)
+    ds = ds_init_info(
+        ansible_log,
+        fstore,
+        options.domainlevel,
+        options.dirsrv_config_file,
+        options.realm_name,
+        options.host_name,
+        options.domain_name,
+        options.dm_password,
+        options.idstart,
+        options.idmax,
+        options.subject_base,
+        options.ca_subject,
+        options.no_hbac_allow,
+        options._dirsrv_pkcs12_info,
+        options.no_pkinit,
+    )
 
     # setup CA ##############################################################
 
@@ -307,8 +319,11 @@ def main():
     if options.setup_ca:
         if not options.external_cert_files and options.external_ca:
             # stage 1 of external CA installation
-            cache_vars = {n: options.__dict__[n] for o, n in options.knobs()
-                          if n in options.__dict__}
+            cache_vars = {
+                n: options.__dict__[n]
+                for o, n in options.knobs()
+                if n in options.__dict__
+            }
             write_cache(cache_vars)
 
         try:
@@ -318,18 +333,16 @@ def main():
                 else:
                     ca.install_step_0(False, None, options)
         except SystemExit:
-            ansible_module.exit_json(changed=True,
-                                     csr_generated=True)
+            ansible_module.exit_json(changed=True, csr_generated=True)
     else:
         # Put the CA cert where other instances expect it
         x509.write_certificate(options._http_ca_cert, paths.IPA_CA_CRT)
         os.chmod(paths.IPA_CA_CRT, 0o444)
 
         if not options.no_pkinit:
-            x509.write_certificate(options._http_ca_cert,
-                                   paths.KDC_CA_BUNDLE_PEM)
+            x509.write_certificate(options._http_ca_cert, paths.KDC_CA_BUNDLE_PEM)
         else:
-            with open(paths.KDC_CA_BUNDLE_PEM, 'w'):
+            with open(paths.KDC_CA_BUNDLE_PEM, "w"):
                 pass
         os.chmod(paths.KDC_CA_BUNDLE_PEM, 0o444)
 
@@ -347,9 +360,8 @@ def main():
             else:
                 ca.install_step_1(False, None, options)
 
-    ansible_module.exit_json(changed=True,
-                             csr_generated=False)
+    ansible_module.exit_json(changed=True, csr_generated=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

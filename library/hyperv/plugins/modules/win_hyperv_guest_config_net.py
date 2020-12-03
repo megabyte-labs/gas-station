@@ -19,7 +19,7 @@
 # this is a windows documentation stub. actual code lives in the .ps1
 # file of the same name
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: win_hyperv_config_net
 version_added: "2.4"
@@ -31,7 +31,7 @@ options:
     description:
       - Name of VM
     required: true
-  ip: 
+  ip:
     description:
       - IP Address
     required: false
@@ -46,7 +46,7 @@ options:
       - Gateway
     required: false
     default: null
-  dns: 
+  dns:
     description:
       - DNS
     required: false
@@ -57,14 +57,14 @@ options:
     required: true
     default: dhcp
 
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 
-'''
+"""
 
 ANSIBLE_METADATA = {
-    'status': ['preview'],
-    'supported_by': 'community',
-    'metadata_version': '1.1'
+    "status": ["preview"],
+    "supported_by": "community",
+    "metadata_version": "1.1",
 }

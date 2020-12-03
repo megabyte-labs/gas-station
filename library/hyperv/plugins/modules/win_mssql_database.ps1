@@ -41,4 +41,3 @@ ElseIf($db -and $state -eq "absent") {
 }
 
 return $result | ConvertTo-Json -Depth 99
-

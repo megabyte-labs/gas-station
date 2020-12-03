@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_setup_krb
 short description: Setup KRB
@@ -68,22 +68,32 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 import inspect
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, DN, paths, sysrestore,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_ReplicaConfig, api, redirect_stdout, install_krb
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    DN,
+    paths,
+    sysrestore,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_ReplicaConfig,
+    api,
+    redirect_stdout,
+    install_krb,
 )
 
 
@@ -91,15 +101,15 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # server
-            setup_ca=dict(required=False, type='bool'),
-            setup_kra=dict(required=False, type='bool'),
-            no_pkinit=dict(required=False, type='bool'),
+            setup_ca=dict(required=False, type="bool"),
+            setup_kra=dict(required=False, type="bool"),
+            no_pkinit=dict(required=False, type="bool"),
             # certificate system
             subject_base=dict(required=True),
             # additional
             config_master_host_name=dict(required=True),
             ccache=dict(required=True),
-            _pkinit_pkcs12_info=dict(required=False, type='list'),
+            _pkinit_pkcs12_info=dict(required=False, type="list"),
             _top_dir=dict(required=True),
             dirman_password=dict(required=True, no_log=True),
         ),
@@ -114,23 +124,21 @@ def main():
 
     options = installer
     # server
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    options.no_pkinit = ansible_module.params.get('no_pkinit')
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    options.no_pkinit = ansible_module.params.get("no_pkinit")
     # certificate system
-    options.subject_base = ansible_module.params.get('subject_base')
+    options.subject_base = ansible_module.params.get("subject_base")
     if options.subject_base is not None:
         options.subject_base = DN(options.subject_base)
     # additional
-    config_master_host_name = ansible_module.params.get(
-        'config_master_host_name')
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
-    installer._pkinit_pkcs12_info = ansible_module.params.get(
-        '_pkinit_pkcs12_info')
+    config_master_host_name = ansible_module.params.get("config_master_host_name")
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
+    installer._pkinit_pkcs12_info = ansible_module.params.get("_pkinit_pkcs12_info")
 
-    options._top_dir = ansible_module.params.get('_top_dir')
-    dirman_password = ansible_module.params.get('dirman_password')
+    options._top_dir = ansible_module.params.get("_top_dir")
+    dirman_password = ansible_module.params.get("dirman_password")
 
     # init #
 
@@ -142,8 +150,7 @@ def main():
     promote = installer.promote
     pkinit_pkcs12_info = installer._pkinit_pkcs12_info
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     config = gen_ReplicaConfig()
     config.dirman_password = dirman_password
@@ -151,7 +158,7 @@ def main():
     config.subject_base = options.subject_base
     config.setup_ca = options.setup_ca
 
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     # There is a api.Backend.ldap2.connect call somewhere in ca, ds, dns or
     # ntpinstance
@@ -166,25 +173,29 @@ def main():
                 config,
                 setup_pkinit=not options.no_pkinit,
                 pkcs12_info=pkinit_pkcs12_info,
-                promote=promote)
+                promote=promote,
+            )
         else:
             if "fstore" not in argspec.args:
                 install_krb(
                     config,
                     setup_pkinit=not options.no_pkinit,
-                    pkcs12_info=pkinit_pkcs12_info)
+                    pkcs12_info=pkinit_pkcs12_info,
+                )
             else:
                 install_krb(
                     config,
                     setup_pkinit=not options.no_pkinit,
                     pkcs12_info=pkinit_pkcs12_info,
-                    fstore=fstore)
+                    fstore=fstore,
+                )
 
     # done #
 
-    ansible_module.exit_json(changed=True,
-                             config_master_host_name=config.master_host_name)
+    ansible_module.exit_json(
+        changed=True, config_master_host_name=config.master_host_name
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

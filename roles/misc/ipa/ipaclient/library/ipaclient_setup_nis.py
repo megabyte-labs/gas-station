@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_setup_nis
 short description: Setup NIS for IPA client
@@ -43,22 +43,26 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: Setup NIS for IPA client
   ipaclient_setup_nis:
     domain: example.com
-'''
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import inspect
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
-    setup_logging, options, sysrestore, paths, configure_nisdomain
+    setup_logging,
+    options,
+    sysrestore,
+    paths,
+    configure_nisdomain,
 )
 
 
@@ -74,8 +78,8 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    domain = module.params.get('domain')
-    options.nisdomain = module.params.get('nisdomain')
+    domain = module.params.get("domain")
+    options.nisdomain = module.params.get("nisdomain")
 
     statestore = sysrestore.StateFile(paths.IPA_CLIENT_SYSRESTORE)
 
@@ -84,11 +88,10 @@ def main():
         # NUM_VERSION < 40500:
         configure_nisdomain(options=options, domain=domain)
     else:
-        configure_nisdomain(options=options, domain=domain,
-                            statestore=statestore)
+        configure_nisdomain(options=options, domain=domain, statestore=statestore)
 
     module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

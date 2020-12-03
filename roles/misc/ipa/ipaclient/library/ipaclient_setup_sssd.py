@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_setup_ssd
 short description: Setup sssd for IPA client
@@ -84,9 +84,9 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: Configure SSSD
   ipaclient_setup_sssd:
     servers: ["server1.example.com","server2.example.com"]
@@ -94,35 +94,39 @@ EXAMPLES = '''
     realm: EXAMPLE.COM
     hostname: client1.example.com
     no_krb5_offline_passwords: true
-'''
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
-    setup_logging, options, sysrestore, paths, configure_sssd_conf, logger
+    setup_logging,
+    options,
+    sysrestore,
+    paths,
+    configure_sssd_conf,
+    logger,
 )
 
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            servers=dict(required=True, type='list'),
+            servers=dict(required=True, type="list"),
             domain=dict(required=True),
             realm=dict(required=True),
             hostname=dict(required=True),
-            on_master=dict(required=False, type='bool'),
-            no_ssh=dict(required=False, type='bool'),
-            no_sshd=dict(required=False, type='bool'),
-            no_sudo=dict(required=False, type='bool'),
-            all_ip_addresses=dict(required=False, type='bool'),
-
-            fixed_primary=dict(required=False, type='bool'),
-            permit=dict(required=False, type='bool'),
-            enable_dns_updates=dict(required=False, type='bool'),
-            preserve_sssd=dict(required=False, type='bool'),
-            no_krb5_offline_passwords=dict(required=False, type='bool'),
+            on_master=dict(required=False, type="bool"),
+            no_ssh=dict(required=False, type="bool"),
+            no_sshd=dict(required=False, type="bool"),
+            no_sudo=dict(required=False, type="bool"),
+            all_ip_addresses=dict(required=False, type="bool"),
+            fixed_primary=dict(required=False, type="bool"),
+            permit=dict(required=False, type="bool"),
+            enable_dns_updates=dict(required=False, type="bool"),
+            preserve_sssd=dict(required=False, type="bool"),
+            no_krb5_offline_passwords=dict(required=False, type="bool"),
         ),
         supports_check_mode=True,
     )
@@ -132,39 +136,39 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    cli_server = module.params.get('servers')
-    cli_domain = module.params.get('domain')
-    cli_realm = module.params.get('realm')
-    hostname = module.params.get('hostname')
-    options.on_master = module.params.get('on_master')
+    cli_server = module.params.get("servers")
+    cli_domain = module.params.get("domain")
+    cli_realm = module.params.get("realm")
+    hostname = module.params.get("hostname")
+    options.on_master = module.params.get("on_master")
 
-    options.no_ssh = module.params.get('no_ssh')
+    options.no_ssh = module.params.get("no_ssh")
     options.conf_ssh = not options.no_ssh
-    options.no_sshd = module.params.get('no_sshd')
+    options.no_sshd = module.params.get("no_sshd")
     options.conf_sshd = not options.no_sshd
-    options.no_sudo = module.params.get('no_sudo')
+    options.no_sudo = module.params.get("no_sudo")
     options.conf_sudo = not options.no_sudo
-    options.all_ip_addresses = module.params.get('all_ip_addresses')
+    options.all_ip_addresses = module.params.get("all_ip_addresses")
 
-    options.primary = module.params.get('fixed_primary')
-    options.permit = module.params.get('permit')
-    options.dns_updates = module.params.get('enable_dns_updates')
-    options.preserve_sssd = module.params.get('preserve_sssd')
+    options.primary = module.params.get("fixed_primary")
+    options.permit = module.params.get("permit")
+    options.dns_updates = module.params.get("enable_dns_updates")
+    options.preserve_sssd = module.params.get("preserve_sssd")
 
-    options.no_krb5_offline_passwords = module.params.get(
-        'no_krb5_offline_passwords')
+    options.no_krb5_offline_passwords = module.params.get("no_krb5_offline_passwords")
     options.krb5_offline_passwords = not options.no_krb5_offline_passwords
 
     fstore = sysrestore.FileStore(paths.IPA_CLIENT_SYSRESTORE)
-    client_domain = hostname[hostname.find(".")+1:]
+    client_domain = hostname[hostname.find(".") + 1 :]
 
-    if configure_sssd_conf(fstore, cli_realm, cli_domain, cli_server,
-                           options, client_domain, hostname):
+    if configure_sssd_conf(
+        fstore, cli_realm, cli_domain, cli_server, options, client_domain, hostname
+    ):
         module.fail_json("configure_sssd_conf failed")
     logger.info("Configured /etc/sssd/sssd.conf")
 
     module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

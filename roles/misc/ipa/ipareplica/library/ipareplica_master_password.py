@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_master_password
 short description: Generate kerberos master password if not given
@@ -40,20 +40,21 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
+RETURN = """
 password:
   description: The master password
   returned: always
-'''
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    setup_logging, ipa_generate_password
+    setup_logging,
+    ipa_generate_password,
 )
 
 
@@ -69,14 +70,13 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    master_password = module.params.get('master_password')
+    master_password = module.params.get("master_password")
 
     if not master_password:
         master_password = ipa_generate_password()
 
-    module.exit_json(changed=True,
-                     password=master_password)
+    module.exit_json(changed=True, password=master_password)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

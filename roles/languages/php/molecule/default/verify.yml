@@ -4,43 +4,40 @@
   gather_facts: true
 
   tasks:
+    - name: Checking Non-Windows targets
+      block:
+        - name: Check php version (non-Windows)
+          command: php --version
+          register: php_version
+          changed_when: false
+          failed_when: false
 
-  - name: Checking Non-Windows targets
-    block:
-      - name: Check php version (non-Windows)
-        shell: php --version
-        register: php_version
-        changed_when: false
-        failed_when: false
+        - name: Check php-fpm version (non-Windows)
+          command: php-fpm --version
+          register: php-fpm_version
+          changed_when: false
+          failed_when: false
+      when: ansible_os_family != 'Windows'
 
-      - name: Check php-fpm version (non-Windows)
-        shell: php-fpm --version
-        register: php-fpm_version
-        changed_when: false
-        failed_when: false
-    when:
-      - ansible_os_family != 'Windows'
+    - name: Checking Windows targets
+      block:
+        - name: Check php version (Windows)
+          win_command: php --version
+          register: php_version
+          changed_when: false
+          failed_when: false
 
-  - name: Checking Windows targets
-    block:
-      - name: Check php version (Windows)
-        win_shell: php --version
-        register: php_version
-        changed_when: false
-        failed_when: false
+        - name: Check php-fpm version (Windows)
+          win_command: php-fpm --version
+          register: php-fpm_version
+          changed_when: false
+          failed_when: false
+      when: ansible_os_family == 'Windows'
 
-      - name: Check php-fpm version (Windows)
-        win_shell: php-fpm --version
-        register: php-fpm_version
-        changed_when: false
-        failed_when: false
-    when:
-      - ansible_os_family == 'Windows'
+    - name: Assertion to verify PHP
+      assert:
+        that: '"(cli) (built: " in php_version.stdout'
 
-  - name: Assertion to verify PHP
-    assert:
-      that: '"(cli) (built: " in php_version.stdout'
-
-  - name: Assertion to verify php-fpm
-    assert:
-      that: '"(fpm-fcgi) (built: " in php-fpm_version.stdout'
+    - name: Assertion to verify php-fpm
+      assert:
+        that: '"(fpm-fcgi) (built: " in php-fpm_version.stdout'

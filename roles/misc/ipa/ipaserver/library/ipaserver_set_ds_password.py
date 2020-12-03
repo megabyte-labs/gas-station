@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_set_ds_password
 short description: Set DS password
@@ -96,18 +96,25 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    MAX_DOMAIN_LEVEL, AnsibleModuleLog, options, sysrestore, paths,
-    api_Backend_ldap2, ds_init_info, redirect_stdout, setup_logging
+    MAX_DOMAIN_LEVEL,
+    AnsibleModuleLog,
+    options,
+    sysrestore,
+    paths,
+    api_Backend_ldap2,
+    ds_init_info,
+    redirect_stdout,
+    setup_logging,
 )
 
 
@@ -121,22 +128,21 @@ def main():
             realm=dict(required=True),
             hostname=dict(required=True),
             # server
-            setup_ca=dict(required=True, type='bool'),
-            idstart=dict(required=True, type='int'),
-            idmax=dict(required=True, type='int'),
-            no_hbac_allow=dict(required=False, type='bool', default=False),
-            no_pkinit=dict(required=False, type='bool', default=False),
+            setup_ca=dict(required=True, type="bool"),
+            idstart=dict(required=True, type="int"),
+            idmax=dict(required=True, type="int"),
+            no_hbac_allow=dict(required=False, type="bool", default=False),
+            no_pkinit=dict(required=False, type="bool", default=False),
             dirsrv_config_file=dict(required=False),
-            _dirsrv_pkcs12_info=dict(required=False, type='list'),
+            _dirsrv_pkcs12_info=dict(required=False, type="list"),
             # ssl certificate
-            dirsrv_cert_files=dict(required=False, type='list', default=[]),
+            dirsrv_cert_files=dict(required=False, type="list", default=[]),
             subject_base=dict(required=False),
             ca_subject=dict(required=False),
             # certificate system
-            external_cert_files=dict(required=False, type='list', default=[]),
+            external_cert_files=dict(required=False, type="list", default=[]),
             # additional
-            domainlevel=dict(required=False, type='int',
-                             default=MAX_DOMAIN_LEVEL),
+            domainlevel=dict(required=False, type="int", default=MAX_DOMAIN_LEVEL),
         ),
     )
 
@@ -147,30 +153,27 @@ def main():
     # set values ####################################################
 
     # basic
-    options.dm_password = ansible_module.params.get('dm_password')
-    options.admin_password = ansible_module.params.get('password')
-    options.domain_name = ansible_module.params.get('domain')
-    options.realm_name = ansible_module.params.get('realm')
-    options.host_name = ansible_module.params.get('hostname')
+    options.dm_password = ansible_module.params.get("dm_password")
+    options.admin_password = ansible_module.params.get("password")
+    options.domain_name = ansible_module.params.get("domain")
+    options.realm_name = ansible_module.params.get("realm")
+    options.host_name = ansible_module.params.get("hostname")
     # server
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    options.idstart = ansible_module.params.get('idstart')
-    options.idmax = ansible_module.params.get('idmax')
-    options.no_hbac_allow = ansible_module.params.get('no_hbac_allow')
-    options.no_pkinit = ansible_module.params.get('no_pkinit')
-    options.dirsrv_config_file = ansible_module.params.get(
-        'dirsrv_config_file')
-    options._dirsrv_pkcs12_info = ansible_module.params.get(
-        '_dirsrv_pkcs12_info')
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    options.idstart = ansible_module.params.get("idstart")
+    options.idmax = ansible_module.params.get("idmax")
+    options.no_hbac_allow = ansible_module.params.get("no_hbac_allow")
+    options.no_pkinit = ansible_module.params.get("no_pkinit")
+    options.dirsrv_config_file = ansible_module.params.get("dirsrv_config_file")
+    options._dirsrv_pkcs12_info = ansible_module.params.get("_dirsrv_pkcs12_info")
     # ssl certificate
-    options.dirsrv_cert_files = ansible_module.params.get('dirsrv_cert_files')
-    options.subject_base = ansible_module.params.get('subject_base')
-    options.ca_subject = ansible_module.params.get('ca_subject')
+    options.dirsrv_cert_files = ansible_module.params.get("dirsrv_cert_files")
+    options.subject_base = ansible_module.params.get("subject_base")
+    options.ca_subject = ansible_module.params.get("ca_subject")
     # certificate system
-    options.external_cert_files = ansible_module.params.get(
-        'external_cert_files')
+    options.external_cert_files = ansible_module.params.get("external_cert_files")
     # additional
-    options.domainlevel = ansible_module.params.get('domainlevel')
+    options.domainlevel = ansible_module.params.get("domainlevel")
     options.domain_level = options.domainlevel
 
     # init ##########################################################
@@ -179,14 +182,23 @@ def main():
 
     api_Backend_ldap2(options.host_name, options.setup_ca, connect=True)
 
-    ds = ds_init_info(ansible_log, fstore,
-                      options.domainlevel, options.dirsrv_config_file,
-                      options.realm_name, options.host_name,
-                      options.domain_name, options.dm_password,
-                      options.idstart, options.idmax,
-                      options.subject_base, options.ca_subject,
-                      options.no_hbac_allow, options._dirsrv_pkcs12_info,
-                      options.no_pkinit)
+    ds = ds_init_info(
+        ansible_log,
+        fstore,
+        options.domainlevel,
+        options.dirsrv_config_file,
+        options.realm_name,
+        options.host_name,
+        options.domain_name,
+        options.dm_password,
+        options.idstart,
+        options.idmax,
+        options.subject_base,
+        options.ca_subject,
+        options.no_hbac_allow,
+        options._dirsrv_pkcs12_info,
+        options.no_pkinit,
+    )
 
     # set ds password ###############################################
 
@@ -198,5 +210,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

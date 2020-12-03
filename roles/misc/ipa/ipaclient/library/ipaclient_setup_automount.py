@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaclient_setup_automount
 short description: Setup automount for IPA client
@@ -46,29 +46,31 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: IPA extras configurations
   ipaclient_setup_automount:
     servers: ["server1.example.com","server2.example.com"]
-'''
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_client import (
-    setup_logging, options, configure_automount
+    setup_logging,
+    options,
+    configure_automount,
 )
 
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            servers=dict(required=True, type='list'),
-            sssd=dict(required=False, type='bool', default='yes'),
+            servers=dict(required=True, type="list"),
+            sssd=dict(required=False, type="bool", default="yes"),
             automount_location=dict(required=False, default=None),
         ),
         supports_check_mode=True,
@@ -79,10 +81,10 @@ def main():
     module._ansible_debug = True
     setup_logging()
 
-    options.servers = module.params.get('servers')
+    options.servers = module.params.get("servers")
     options.server = options.servers
-    options.sssd = module.params.get('sssd')
-    options.automount_location = module.params.get('automount_location')
+    options.sssd = module.params.get("sssd")
+    options.automount_location = module.params.get("automount_location")
     options.location = options.automount_location
 
     if options.automount_location:
@@ -91,5 +93,5 @@ def main():
     module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

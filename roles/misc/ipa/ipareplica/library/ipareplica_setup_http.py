@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_setup_http
 short description: Setup HTTP
@@ -80,23 +80,34 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 import inspect
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, DN, paths, sysrestore,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_ReplicaConfig, gen_remote_api, api, redirect_stdout, create_ipa_conf,
-    install_http
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    DN,
+    paths,
+    sysrestore,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_ReplicaConfig,
+    gen_remote_api,
+    api,
+    redirect_stdout,
+    create_ipa_conf,
+    install_http,
 )
 
 
@@ -104,18 +115,18 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # server
-            setup_ca=dict(required=False, type='bool'),
-            setup_kra=dict(required=False, type='bool'),
-            no_pkinit=dict(required=False, type='bool'),
-            no_ui_redirect=dict(required=False, type='bool'),
+            setup_ca=dict(required=False, type="bool"),
+            setup_kra=dict(required=False, type="bool"),
+            no_pkinit=dict(required=False, type="bool"),
+            no_ui_redirect=dict(required=False, type="bool"),
             # certificate system
             subject_base=dict(required=True),
             config_master_host_name=dict(required=True),
             config_ca_host_name=dict(required=True),
             ccache=dict(required=True),
-            _ca_enabled=dict(required=False, type='bool'),
+            _ca_enabled=dict(required=False, type="bool"),
             _ca_file=dict(required=False),
-            _http_pkcs12_info=dict(required=False, type='list'),
+            _http_pkcs12_info=dict(required=False, type="list"),
             _top_dir=dict(required=True),
             dirman_password=dict(required=True, no_log=True),
         ),
@@ -129,25 +140,25 @@ def main():
     # get parameters #
 
     options = installer
-    options.setup_ca = ansible_module.params.get('setup_ca')
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    options.no_pkinit = ansible_module.params.get('no_pkinit')
-    options.no_ui_redirect = ansible_module.params.get('no_ui_redirect')
+    options.setup_ca = ansible_module.params.get("setup_ca")
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    options.no_pkinit = ansible_module.params.get("no_pkinit")
+    options.no_ui_redirect = ansible_module.params.get("no_ui_redirect")
     # certificate system
-    options.subject_base = ansible_module.params.get('subject_base')
+    options.subject_base = ansible_module.params.get("subject_base")
     if options.subject_base is not None:
         options.subject_base = DN(options.subject_base)
     # additional
-    master_host_name = ansible_module.params.get('config_master_host_name')
-    ca_host_name = ansible_module.params.get('config_master_host_name')
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
+    master_host_name = ansible_module.params.get("config_master_host_name")
+    ca_host_name = ansible_module.params.get("config_master_host_name")
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
     # os.environ['KRB5CCNAME'] = ansible_module.params.get('installer_ccache')
     # installer._ccache = ansible_module.params.get('installer_ccache')
-    ca_enabled = ansible_module.params.get('_ca_enabled')
-    http_pkcs12_info = ansible_module.params.get('_http_pkcs12_info')
-    options._top_dir = ansible_module.params.get('_top_dir')
-    dirman_password = ansible_module.params.get('dirman_password')
+    ca_enabled = ansible_module.params.get("_ca_enabled")
+    http_pkcs12_info = ansible_module.params.get("_http_pkcs12_info")
+    options._top_dir = ansible_module.params.get("_top_dir")
+    dirman_password = ansible_module.params.get("dirman_password")
 
     # init #
 
@@ -157,8 +168,7 @@ def main():
 
     promote = installer.promote
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     config = gen_ReplicaConfig()
     config.subject_base = options.subject_base
@@ -172,7 +182,7 @@ def main():
     # installer._remote_api = remote_api
 
     conn = remote_api.Backend.ldap2
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     # There is a api.Backend.ldap2.connect call somewhere in ca, ds, dns or
     # ntpinstance
@@ -198,8 +208,7 @@ def main():
         # may lead to a replication conflict.
         # This is why we need to force the use of the same master by
         # setting xmlrpc_uri
-        create_ipa_conf(fstore, config, ca_enabled,
-                        master=config.master_host_name)
+        create_ipa_conf(fstore, config, ca_enabled, master=config.master_host_name)
 
         argspec = inspect.getargspec(install_http)
         if "promote" in argspec.args:
@@ -209,7 +218,8 @@ def main():
                 promote=promote,
                 pkcs12_info=http_pkcs12_info,
                 ca_is_configured=ca_enabled,
-                ca_file=cafile)
+                ca_file=cafile,
+            )
         else:
             if "fstore" not in argspec.args:
                 install_http(
@@ -217,7 +227,8 @@ def main():
                     auto_redirect=not options.no_ui_redirect,
                     pkcs12_info=http_pkcs12_info,
                     ca_is_configured=ca_enabled,
-                    ca_file=cafile)
+                    ca_file=cafile,
+                )
             else:
                 install_http(
                     config,
@@ -225,7 +236,8 @@ def main():
                     pkcs12_info=http_pkcs12_info,
                     ca_is_configured=ca_enabled,
                     ca_file=cafile,
-                    fstore=fstore)
+                    fstore=fstore,
+                )
 
         # Need to point back to ourself after the cert for HTTP is obtained
         create_ipa_conf(fstore, config, ca_enabled)
@@ -235,5 +247,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

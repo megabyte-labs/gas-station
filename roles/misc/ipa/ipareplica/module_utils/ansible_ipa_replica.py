@@ -22,28 +22,77 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ["contextlib", "dnsexception", "dnsresolver", "dnsreversename",
-           "parse_version", "IPAChangeConf",
-           "certstore", "sysrestore", "ipa_generate_password", "kinit_keytab",
-           "IPA_CA_TRUST_FLAGS", "EXTERNAL_CA_TRUST_FLAGS", "DN",
-           "ScriptError", "services", "tasks", "constants", "errors", "rpc",
-           "x509", "validate_domain_name",
-           "no_matching_interface_for_ip_address_warning",
-           "configure_krb5_conf", "purge_host_keytab", "adtrust",
-           "bindinstance", "ca", "certs", "dns", "httpinstance", "kra",
-           "otpdinstance", "custodiainstance", "service", "upgradeinstance",
-           "find_providing_servers", "find_providing_server", "load_pkcs12",
-           "is_ipa_configured", "ReplicationManager", "replica_conn_check",
-           "install_replica_ds", "install_krb", "install_ca_cert",
-           "install_http", "install_dns_records", "create_ipa_conf",
-           "check_dirsrv", "check_dns_resolution", "configure_certmonger",
-           "remove_replica_info_dir", "preserve_enrollment_state",
-           "uninstall_client", "promote_sssd", "promote_openldap_conf",
-           "rpc_client", "check_remote_fips_mode", "check_remote_version",
-           "common_check", "current_domain_level",
-           "check_domain_level_is_supported", "promotion_check_ipa_domain",
-           "SSSDConfig", "CalledProcessError", "timeconf", "ntpinstance",
-           "dnsname", "kernel_keyring", "krbinstance"]
+__all__ = [
+    "contextlib",
+    "dnsexception",
+    "dnsresolver",
+    "dnsreversename",
+    "parse_version",
+    "IPAChangeConf",
+    "certstore",
+    "sysrestore",
+    "ipa_generate_password",
+    "kinit_keytab",
+    "IPA_CA_TRUST_FLAGS",
+    "EXTERNAL_CA_TRUST_FLAGS",
+    "DN",
+    "ScriptError",
+    "services",
+    "tasks",
+    "constants",
+    "errors",
+    "rpc",
+    "x509",
+    "validate_domain_name",
+    "no_matching_interface_for_ip_address_warning",
+    "configure_krb5_conf",
+    "purge_host_keytab",
+    "adtrust",
+    "bindinstance",
+    "ca",
+    "certs",
+    "dns",
+    "httpinstance",
+    "kra",
+    "otpdinstance",
+    "custodiainstance",
+    "service",
+    "upgradeinstance",
+    "find_providing_servers",
+    "find_providing_server",
+    "load_pkcs12",
+    "is_ipa_configured",
+    "ReplicationManager",
+    "replica_conn_check",
+    "install_replica_ds",
+    "install_krb",
+    "install_ca_cert",
+    "install_http",
+    "install_dns_records",
+    "create_ipa_conf",
+    "check_dirsrv",
+    "check_dns_resolution",
+    "configure_certmonger",
+    "remove_replica_info_dir",
+    "preserve_enrollment_state",
+    "uninstall_client",
+    "promote_sssd",
+    "promote_openldap_conf",
+    "rpc_client",
+    "check_remote_fips_mode",
+    "check_remote_version",
+    "common_check",
+    "current_domain_level",
+    "check_domain_level_is_supported",
+    "promotion_check_ipa_domain",
+    "SSSDConfig",
+    "CalledProcessError",
+    "timeconf",
+    "ntpinstance",
+    "dnsname",
+    "kernel_keyring",
+    "krbinstance",
+]
 
 import sys
 import logging
@@ -55,7 +104,7 @@ from ipapython.version import NUM_VERSION, VERSION
 if NUM_VERSION < 30201:
     # See ipapython/version.py
     IPA_MAJOR, IPA_MINOR, IPA_RELEASE = [int(x) for x in VERSION.split(".", 2)]
-    IPA_PYTHON_VERSION = IPA_MAJOR*10000 + IPA_MINOR*100 + IPA_RELEASE
+    IPA_PYTHON_VERSION = IPA_MAJOR * 10000 + IPA_MINOR * 100 + IPA_RELEASE
 else:
     IPA_PYTHON_VERSION = NUM_VERSION
 
@@ -88,44 +137,73 @@ if NUM_VERSION >= 40600:
     from ipalib.config import Env
     from ipalib.util import (
         validate_domain_name,
-        no_matching_interface_for_ip_address_warning)
+        no_matching_interface_for_ip_address_warning,
+    )
     from ipaclient.install.client import configure_krb5_conf, purge_host_keytab
     from ipaserver.install import (
-        adtrust, bindinstance, ca, certs, dns, dsinstance, httpinstance,
-        installutils, kra, krbinstance,
-        otpdinstance, custodiainstance, service, upgradeinstance)
+        adtrust,
+        bindinstance,
+        ca,
+        certs,
+        dns,
+        dsinstance,
+        httpinstance,
+        installutils,
+        kra,
+        krbinstance,
+        otpdinstance,
+        custodiainstance,
+        service,
+        upgradeinstance,
+    )
+
     try:
-        from ipaserver.masters import (
-            find_providing_servers, find_providing_server)
+        from ipaserver.masters import find_providing_servers, find_providing_server
     except ImportError:
         from ipaserver.install.service import (
-            find_providing_servers, find_providing_server)
-    from ipaserver.install.installutils import (
-        ReplicaConfig, load_pkcs12)
+            find_providing_servers,
+            find_providing_server,
+        )
+    from ipaserver.install.installutils import ReplicaConfig, load_pkcs12
+
     try:
         from ipalib.facts import is_ipa_configured
     except ImportError:
         from ipaserver.install.installutils import is_ipa_configured
-    from ipaserver.install.replication import (
-        ReplicationManager, replica_conn_check)
+    from ipaserver.install.replication import ReplicationManager, replica_conn_check
     from ipaserver.install.server.replicainstall import (
-        make_pkcs12_info, install_replica_ds, install_krb, install_ca_cert,
-        install_http, install_dns_records, create_ipa_conf, check_dirsrv,
-        check_dns_resolution, configure_certmonger, remove_replica_info_dir,
+        make_pkcs12_info,
+        install_replica_ds,
+        install_krb,
+        install_ca_cert,
+        install_http,
+        install_dns_records,
+        create_ipa_conf,
+        check_dirsrv,
+        check_dns_resolution,
+        configure_certmonger,
+        remove_replica_info_dir,
         # common_cleanup,
-        preserve_enrollment_state, uninstall_client,
-        promote_sssd, promote_openldap_conf, rpc_client,
-        check_remote_fips_mode, check_remote_version, common_check,
-        current_domain_level, check_domain_level_is_supported,
+        preserve_enrollment_state,
+        uninstall_client,
+        promote_sssd,
+        promote_openldap_conf,
+        rpc_client,
+        check_remote_fips_mode,
+        check_remote_version,
+        common_check,
+        current_domain_level,
+        check_domain_level_is_supported,
         # enroll_dl0_replica,
         # ensure_enrolled,
-        promotion_check_ipa_domain
+        promotion_check_ipa_domain,
     )
     import SSSDConfig
     from subprocess import CalledProcessError
 
     try:
         from ipaclient.install import timeconf
+
         time_service = "chronyd"
         ntpinstance = None
     except ImportError:
@@ -134,6 +212,7 @@ if NUM_VERSION >= 40600:
         except ImportError:
             from ipaclient import ntpconf as timeconf
         from ipaserver.install import ntpinstance
+
         time_service = "ntpd"
 
 
@@ -149,8 +228,12 @@ logger = logging.getLogger("ipa-server-install")
 def setup_logging():
     # logger.setLevel(logging.DEBUG)
     standard_logging_setup(
-        paths.IPAREPLICA_INSTALL_LOG, verbose=False, debug=False,
-        filemode='a', console_format='%(message)s')
+        paths.IPAREPLICA_INSTALL_LOG,
+        verbose=False,
+        debug=False,
+        filemode="a",
+        console_format="%(message)s",
+    )
 
 
 @contextlib_contextmanager
@@ -162,7 +245,7 @@ def redirect_stdout(f):
         sys.stdout = sys.__stdout__
 
 
-class AnsibleModuleLog():
+class AnsibleModuleLog:
     def __init__(self, module):
         self.module = module
         _ansible_module_log = self
@@ -273,19 +356,21 @@ def gen_env_boostrap_finalize_core(etc_ipa, default_config):
     env = Env()
     # env._bootstrap(context='installer', confdir=paths.ETC_IPA, log=None)
     # env._finalize_core(**dict(constants.DEFAULT_CONFIG))
-    env._bootstrap(context='installer', confdir=etc_ipa, log=None)
+    env._bootstrap(context="installer", confdir=etc_ipa, log=None)
     env._finalize_core(**dict(default_config))
     return env
 
 
 def api_bootstrap_finalize(env):
     # pylint: disable=no-member
-    xmlrpc_uri = 'https://{}/ipa/xml'.format(ipautil.format_netloc(env.host))
-    api.bootstrap(in_server=True,
-                  context='installer',
-                  confdir=paths.ETC_IPA,
-                  ldap_uri=installutils.realm_to_ldapi_uri(env.realm),
-                  xmlrpc_uri=xmlrpc_uri)
+    xmlrpc_uri = "https://{}/ipa/xml".format(ipautil.format_netloc(env.host))
+    api.bootstrap(
+        in_server=True,
+        context="installer",
+        confdir=paths.ETC_IPA,
+        ldap_uri=installutils.realm_to_ldapi_uri(env.realm),
+        xmlrpc_uri=xmlrpc_uri,
+    )
     # pylint: enable=no-member
     api.finalize()
 
@@ -333,10 +418,17 @@ def gen_ReplicaConfig():
     return config
 
 
-def replica_ds_init_info(ansible_log,
-                         config, options, ca_is_configured, remote_api,
-                         ds_ca_subject, ca_file,
-                         promote=False, pkcs12_info=None):
+def replica_ds_init_info(
+    ansible_log,
+    config,
+    options,
+    ca_is_configured,
+    remote_api,
+    ds_ca_subject,
+    ca_file,
+    promote=False,
+    pkcs12_info=None,
+):
 
     dsinstance.check_ports()
 
@@ -344,8 +436,7 @@ def replica_ds_init_info(ansible_log,
     # that. Otherwise the ds setup will create the CA
     # cert
     if pkcs12_info is None:
-        pkcs12_info = make_pkcs12_info(config.dir, "dscert.p12",
-                                       "dirsrv_pin.txt")
+        pkcs12_info = make_pkcs12_info(config.dir, "dscert.p12", "dirsrv_pin.txt")
 
     # during replica install, this gets invoked before local DS is
     # available, so use the remote api.
@@ -355,8 +446,7 @@ def replica_ds_init_info(ansible_log,
     #     ca_subject = installutils.default_ca_subject_dn(config.subject_base)
     ca_subject = ds_ca_subject
 
-    ds = dsinstance.DsInstance(
-        config_ldif=options.dirsrv_config_file)
+    ds = dsinstance.DsInstance(config_ldif=options.dirsrv_config_file)
     ds.set_output(ansible_log)
 
     # Source: ipaserver/install/dsinstance.py
@@ -391,15 +481,14 @@ def replica_ds_init_info(ansible_log,
     # from __setup_replica
 
     # Always connect to ds over ldapi
-    ldap_uri = ipaldap.get_ldap_uri(protocol='ldapi', realm=ds.realm)
+    ldap_uri = ipaldap.get_ldap_uri(protocol="ldapi", realm=ds.realm)
     conn = ipaldap.LDAPClient(ldap_uri)
     conn.external_bind()
 
     return ds
 
 
-def ansible_module_get_parsed_ip_addresses(ansible_module,
-                                           param='ip_addresses'):
+def ansible_module_get_parsed_ip_addresses(ansible_module, param="ip_addresses"):
     ip_addrs = []
     for ip in ansible_module.params.get(param):
         try:
@@ -411,14 +500,15 @@ def ansible_module_get_parsed_ip_addresses(ansible_module,
 
 
 def gen_remote_api(master_host_name, etc_ipa):
-    ldapuri = 'ldaps://%s' % ipautil.format_netloc(master_host_name)
-    xmlrpc_uri = 'https://{}/ipa/xml'.format(
-        ipautil.format_netloc(master_host_name))
+    ldapuri = "ldaps://%s" % ipautil.format_netloc(master_host_name)
+    xmlrpc_uri = "https://{}/ipa/xml".format(ipautil.format_netloc(master_host_name))
     remote_api = create_api(mode=None)
-    remote_api.bootstrap(in_server=True,
-                         context='installer',
-                         confdir=etc_ipa,
-                         ldap_uri=ldapuri,
-                         xmlrpc_uri=xmlrpc_uri)
+    remote_api.bootstrap(
+        in_server=True,
+        context="installer",
+        confdir=etc_ipa,
+        ldap_uri=ldapuri,
+        xmlrpc_uri=xmlrpc_uri,
+    )
     remote_api.finalize()
     return remote_api

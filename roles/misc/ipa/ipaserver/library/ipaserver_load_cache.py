@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_load_cache
 short description: Load cache file
@@ -41,19 +41,22 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    setup_logging, options, paths, read_cache
+    setup_logging,
+    options,
+    paths,
+    read_cache,
 )
 
 
@@ -71,7 +74,7 @@ def main():
     # set values ############################################################
 
     # basic
-    options.dm_password = ansible_module.params.get('dm_password')
+    options.dm_password = ansible_module.params.get("dm_password")
 
     # restore cache #########################################################
 
@@ -81,12 +84,11 @@ def main():
         try:
             cache_vars = read_cache(options.dm_password)
             options.__dict__.update(cache_vars)
-            if cache_vars.get('external_ca', False):
+            if cache_vars.get("external_ca", False):
                 options.external_ca = False
                 options.interactive = False
         except Exception as e:
-            ansible_module.fail_json(
-                msg="Cannot process the cache file: %s" % str(e))
+            ansible_module.fail_json(msg="Cannot process the cache file: %s" % str(e))
 
         kwargs = {"changed": True}
         for name in options.__dict__:
@@ -98,5 +100,5 @@ def main():
     ansible_module.exit_json(changed=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

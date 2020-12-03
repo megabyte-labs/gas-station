@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_setup_dns
 short description: Setup DNS
@@ -74,19 +74,26 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    AnsibleModuleLog, setup_logging, options, paths, dns,
-    ansible_module_get_parsed_ip_addresses, sysrestore, api_Backend_ldap2,
-    redirect_stdout, bindinstance
+    AnsibleModuleLog,
+    setup_logging,
+    options,
+    paths,
+    dns,
+    ansible_module_get_parsed_ip_addresses,
+    sysrestore,
+    api_Backend_ldap2,
+    redirect_stdout,
+    bindinstance,
 )
 
 
@@ -94,22 +101,21 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # basic
-            ip_addresses=dict(required=False, type='list', default=[]),
+            ip_addresses=dict(required=False, type="list", default=[]),
             domain=dict(required=True),
             realm=dict(required=True),
             hostname=dict(required=True),
             # server
-            setup_dns=dict(required=True, type='bool'),
-            setup_ca=dict(required=True, type='bool'),
+            setup_dns=dict(required=True, type="bool"),
+            setup_ca=dict(required=True, type="bool"),
             # dns
             zonemgr=dict(required=False),
-            forwarders=dict(required=True, type='list'),
-            forward_policy=dict(default='first', choices=['first', 'only']),
-            no_dnssec_validation=dict(required=False, type='bool',
-                                      default=False),
+            forwarders=dict(required=True, type="list"),
+            forward_policy=dict(default="first", choices=["first", "only"]),
+            no_dnssec_validation=dict(required=False, type="bool", default=False),
             # additional
-            dns_ip_addresses=dict(required=True, type='list'),
-            dns_reverse_zones=dict(required=True, type='list'),
+            dns_ip_addresses=dict(required=True, type="list"),
+            dns_reverse_zones=dict(required=True, type="list"),
         ),
     )
 
@@ -120,24 +126,23 @@ def main():
     # set values ############################################################
 
     # basic
-    options.ip_addresses = ansible_module_get_parsed_ip_addresses(
-        ansible_module)
-    options.domain_name = ansible_module.params.get('domain')
-    options.realm_name = ansible_module.params.get('realm')
-    options.host_name = ansible_module.params.get('hostname')
+    options.ip_addresses = ansible_module_get_parsed_ip_addresses(ansible_module)
+    options.domain_name = ansible_module.params.get("domain")
+    options.realm_name = ansible_module.params.get("realm")
+    options.host_name = ansible_module.params.get("hostname")
     # server
-    options.setup_dns = ansible_module.params.get('setup_dns')
-    options.setup_ca = ansible_module.params.get('setup_ca')
+    options.setup_dns = ansible_module.params.get("setup_dns")
+    options.setup_ca = ansible_module.params.get("setup_ca")
     # dns
-    options.zonemgr = ansible_module.params.get('zonemgr')
-    options.forwarders = ansible_module.params.get('forwarders')
-    options.forward_policy = ansible_module.params.get('forward_policy')
-    options.no_dnssec_validation = ansible_module.params.get(
-        'no_dnssec_validation')
+    options.zonemgr = ansible_module.params.get("zonemgr")
+    options.forwarders = ansible_module.params.get("forwarders")
+    options.forward_policy = ansible_module.params.get("forward_policy")
+    options.no_dnssec_validation = ansible_module.params.get("no_dnssec_validation")
     # additional
     dns.ip_addresses = ansible_module_get_parsed_ip_addresses(
-        ansible_module, 'dns_ip_addresses')
-    dns.reverse_zones = ansible_module.params.get('dns_reverse_zones')
+        ansible_module, "dns_ip_addresses"
+    )
+    dns.reverse_zones = ansible_module.params.get("dns_reverse_zones")
 
     # init ##################################################################
 
@@ -154,11 +159,17 @@ def main():
             # Create a BIND instance
             bind = bindinstance.BindInstance(fstore)
             bind.set_output(ansible_log)
-            bind.setup(options.host_name, options.ip_addresses,
-                       options.realm_name,
-                       options.domain_name, (), 'first', (),
-                       zonemgr=options.zonemgr,
-                       no_dnssec_validation=options.no_dnssec_validation)
+            bind.setup(
+                options.host_name,
+                options.ip_addresses,
+                options.realm_name,
+                options.domain_name,
+                (),
+                "first",
+                (),
+                zonemgr=options.zonemgr,
+                no_dnssec_validation=options.no_dnssec_validation,
+            )
             bind.create_file_with_system_records()
 
     # done ##################################################################
@@ -166,5 +177,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

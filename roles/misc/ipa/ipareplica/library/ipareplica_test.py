@@ -23,12 +23,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_test
 short description: IPA replica deployment tests
@@ -118,24 +118,34 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 import inspect
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, options, installer, paths, sysrestore,
-    ansible_module_get_parsed_ip_addresses, service,
-    redirect_stdout, create_ipa_conf, ipautil,
-    x509, validate_domain_name, common_check,
-    IPA_PYTHON_VERSION
+    AnsibleModuleLog,
+    setup_logging,
+    options,
+    installer,
+    paths,
+    sysrestore,
+    ansible_module_get_parsed_ip_addresses,
+    service,
+    redirect_stdout,
+    create_ipa_conf,
+    ipautil,
+    x509,
+    validate_domain_name,
+    common_check,
+    IPA_PYTHON_VERSION,
 )
 
 
@@ -145,36 +155,35 @@ def main():
             # basic
             # dm_password=dict(required=False, no_log=True),
             # password=dict(required=False, no_log=True),
-            ip_addresses=dict(required=False, type='list', default=[]),
+            ip_addresses=dict(required=False, type="list", default=[]),
             domain=dict(required=False),
-            servers=dict(required=False, type='list', default=[]),
+            servers=dict(required=False, type="list", default=[]),
             realm=dict(required=False),
             hostname=dict(required=False),
-            ca_cert_files=dict(required=False, type='list', default=[]),
-            hidden_replica=dict(required=False, type='bool', default=False),
+            ca_cert_files=dict(required=False, type="list", default=[]),
+            hidden_replica=dict(required=False, type="bool", default=False),
             # server
-            setup_adtrust=dict(required=False, type='bool', default=False),
-            setup_kra=dict(required=False, type='bool', default=False),
-            setup_dns=dict(required=False, type='bool', default=False),
-            no_pkinit=dict(required=False, type='bool', default=False),
+            setup_adtrust=dict(required=False, type="bool", default=False),
+            setup_kra=dict(required=False, type="bool", default=False),
+            setup_dns=dict(required=False, type="bool", default=False),
+            no_pkinit=dict(required=False, type="bool", default=False),
             dirsrv_config_file=dict(required=False),
             # ssl certificate
-            dirsrv_cert_files=dict(required=False, type='list', default=[]),
-            http_cert_files=dict(required=False, type='list', default=[]),
-            pkinit_cert_files=dict(required=False, type='list', default=[]),
+            dirsrv_cert_files=dict(required=False, type="list", default=[]),
+            http_cert_files=dict(required=False, type="list", default=[]),
+            pkinit_cert_files=dict(required=False, type="list", default=[]),
             # client
-            no_ntp=dict(required=False, type='bool', default=False),
-            ntp_servers=dict(required=False, type='list', default=[]),
+            no_ntp=dict(required=False, type="bool", default=False),
+            ntp_servers=dict(required=False, type="list", default=[]),
             ntp_pool=dict(required=False),
             # dns
-            no_reverse=dict(required=False, type='bool', default=False),
-            auto_reverse=dict(required=False, type='bool', default=False),
-            forwarders=dict(required=False, type='list', default=[]),
-            no_forwarders=dict(required=False, type='bool', default=False),
-            auto_forwarders=dict(required=False, type='bool', default=False),
-            forward_policy=dict(default=None, choices=['first', 'only']),
-            no_dnssec_validation=dict(required=False, type='bool',
-                                      default=False),
+            no_reverse=dict(required=False, type="bool", default=False),
+            auto_reverse=dict(required=False, type="bool", default=False),
+            forwarders=dict(required=False, type="list", default=[]),
+            no_forwarders=dict(required=False, type="bool", default=False),
+            auto_forwarders=dict(required=False, type="bool", default=False),
+            forward_policy=dict(default=None, choices=["first", "only"]),
+            no_dnssec_validation=dict(required=False, type="bool", default=False),
         ),
     )
 
@@ -188,38 +197,35 @@ def main():
     # options.dm_password = ansible_module.params.get('dm_password')
     # # options.password = ansible_module.params.get('password')
     # options.password = options.dm_password
-    options.ip_addresses = ansible_module_get_parsed_ip_addresses(
-        ansible_module)
-    options.domain_name = ansible_module.params.get('domain')
-    options.servers = ansible_module.params.get('servers')
-    options.realm_name = ansible_module.params.get('realm')
-    options.host_name = ansible_module.params.get('hostname')
-    options.ca_cert_files = ansible_module.params.get('ca_cert_files')
-    options.hidden_replica = ansible_module.params.get('hidden_replica')
+    options.ip_addresses = ansible_module_get_parsed_ip_addresses(ansible_module)
+    options.domain_name = ansible_module.params.get("domain")
+    options.servers = ansible_module.params.get("servers")
+    options.realm_name = ansible_module.params.get("realm")
+    options.host_name = ansible_module.params.get("hostname")
+    options.ca_cert_files = ansible_module.params.get("ca_cert_files")
+    options.hidden_replica = ansible_module.params.get("hidden_replica")
     # server
-    options.setup_adtrust = ansible_module.params.get('setup_adtrust')
-    options.setup_kra = ansible_module.params.get('setup_kra')
-    options.setup_dns = ansible_module.params.get('setup_dns')
-    options.no_pkinit = ansible_module.params.get('no_pkinit')
-    options.dirsrv_config_file = ansible_module.params.get(
-        'dirsrv_config_file')
+    options.setup_adtrust = ansible_module.params.get("setup_adtrust")
+    options.setup_kra = ansible_module.params.get("setup_kra")
+    options.setup_dns = ansible_module.params.get("setup_dns")
+    options.no_pkinit = ansible_module.params.get("no_pkinit")
+    options.dirsrv_config_file = ansible_module.params.get("dirsrv_config_file")
     # ssl certificate
-    options.dirsrv_cert_files = ansible_module.params.get('dirsrv_cert_files')
-    options.http_cert_files = ansible_module.params.get('http_cert_files')
-    options.pkinit_cert_files = ansible_module.params.get('pkinit_cert_files')
+    options.dirsrv_cert_files = ansible_module.params.get("dirsrv_cert_files")
+    options.http_cert_files = ansible_module.params.get("http_cert_files")
+    options.pkinit_cert_files = ansible_module.params.get("pkinit_cert_files")
     # client
-    options.no_ntp = ansible_module.params.get('no_ntp')
-    options.ntp_servers = ansible_module.params.get('ntp_servers')
-    options.ntp_pool = ansible_module.params.get('ntp_pool')
+    options.no_ntp = ansible_module.params.get("no_ntp")
+    options.ntp_servers = ansible_module.params.get("ntp_servers")
+    options.ntp_pool = ansible_module.params.get("ntp_pool")
     # dns
-    options.no_reverse = ansible_module.params.get('no_reverse')
-    options.auto_reverse = ansible_module.params.get('auto_reverse')
-    options.forwarders = ansible_module.params.get('forwarders')
-    options.no_forwarders = ansible_module.params.get('no_forwarders')
-    options.auto_forwarders = ansible_module.params.get('auto_forwarders')
-    options.forward_policy = ansible_module.params.get('forward_policy')
-    options.no_dnssec_validation = ansible_module.params.get(
-        'no_dnssec_validation')
+    options.no_reverse = ansible_module.params.get("no_reverse")
+    options.auto_reverse = ansible_module.params.get("auto_reverse")
+    options.forwarders = ansible_module.params.get("forwarders")
+    options.no_forwarders = ansible_module.params.get("no_forwarders")
+    options.auto_forwarders = ansible_module.params.get("auto_forwarders")
+    options.forward_policy = ansible_module.params.get("forward_policy")
+    options.no_dnssec_validation = ansible_module.params.get("no_dnssec_validation")
 
     ##########################################################################
     # replica init ###########################################################
@@ -239,7 +245,7 @@ def main():
 
     # If not defined, set domain from server name
     if installer.domain_name is None and installer.server is not None:
-        installer.domain_name = installer.server[installer.server.find(".")+1:]
+        installer.domain_name = installer.server[installer.server.find(".") + 1 :]
     # If not defined, set realm from domain name
     if installer.realm_name is None and installer.domain_name is not None:
         installer.realm_name = installer.domain_name.upper()
@@ -265,8 +271,7 @@ def main():
     #    #  ansible_module.warn(msg="kra is not supported, disabling")
 
     if options.hidden_replica and not hasattr(service, "hide_services"):
-        ansible_module.fail_json(
-            msg="Hidden replica is not supported in this version.")
+        ansible_module.fail_json(msg="Hidden replica is not supported in this version.")
 
     # We need to point to the master in ipa default conf when certmonger
     # asks for HTTP certificate in newer ipa versions. In these versions
@@ -281,7 +286,8 @@ def main():
     # pkinit is not supported on DL0, don't allow related options
     if installer.replica_file is not None:
         ansible_module.fail_json(
-            msg="Replica installation using a replica file is not supported")
+            msg="Replica installation using a replica file is not supported"
+        )
 
     # If any of the key file options are selected, all are required.
     cert_file_req = (installer.dirsrv_cert_files, installer.http_cert_files)
@@ -290,100 +296,120 @@ def main():
         cert_file_req += cert_file_opt
     if installer.no_pkinit and installer.pkinit_cert_files:
         ansible_module.fail_json(
-            msg="--no-pkinit and --pkinit-cert-file cannot be specified "
-            "together")
+            msg="--no-pkinit and --pkinit-cert-file cannot be specified " "together"
+        )
     if any(cert_file_req + cert_file_opt) and not all(cert_file_req):
         ansible_module.fail_json(
             msg="--dirsrv-cert-file, --http-cert-file, and --pkinit-cert-file "
-            "or --no-pkinit are required if any key file options are used.")
+            "or --no-pkinit are required if any key file options are used."
+        )
 
     if not installer.setup_dns:
         if installer.forwarders:
             ansible_module.fail_json(
                 msg="You cannot specify a --forwarder option without the "
-                "--setup-dns option")
+                "--setup-dns option"
+            )
         if installer.auto_forwarders:
             ansible_module.fail_json(
                 msg="You cannot specify a --auto-forwarders option without "
-                "the --setup-dns option")
+                "the --setup-dns option"
+            )
         if installer.no_forwarders:
             ansible_module.fail_json(
                 msg="You cannot specify a --no-forwarders option without the "
-                "--setup-dns option")
+                "--setup-dns option"
+            )
         if installer.forward_policy:
             ansible_module.fail_json(
                 msg="You cannot specify a --forward-policy option without the "
-                "--setup-dns option")
+                "--setup-dns option"
+            )
         if installer.reverse_zones:
             ansible_module.fail_json(
                 msg="You cannot specify a --reverse-zone option without the "
-                "--setup-dns option")
+                "--setup-dns option"
+            )
         if installer.auto_reverse:
             ansible_module.fail_json(
                 msg="You cannot specify a --auto-reverse option without the "
-                "--setup-dns option")
+                "--setup-dns option"
+            )
         if installer.no_reverse:
             ansible_module.fail_json(
                 msg="You cannot specify a --no-reverse option without the "
-                "--setup-dns option")
+                "--setup-dns option"
+            )
         if installer.no_dnssec_validation:
             ansible_module.fail_json(
                 msg="You cannot specify a --no-dnssec-validation option "
-                "without the --setup-dns option")
+                "without the --setup-dns option"
+            )
     elif installer.forwarders and installer.no_forwarders:
         ansible_module.fail_json(
             msg="You cannot specify a --forwarder option together with "
-            "--no-forwarders")
+            "--no-forwarders"
+        )
     elif installer.auto_forwarders and installer.no_forwarders:
         ansible_module.fail_json(
             msg="You cannot specify a --auto-forwarders option together with "
-            "--no-forwarders")
+            "--no-forwarders"
+        )
     elif installer.reverse_zones and installer.no_reverse:
         ansible_module.fail_json(
             msg="You cannot specify a --reverse-zone option together with "
-            "--no-reverse")
+            "--no-reverse"
+        )
     elif installer.auto_reverse and installer.no_reverse:
         ansible_module.fail_json(
             msg="You cannot specify a --auto-reverse option together with "
-            "--no-reverse")
+            "--no-reverse"
+        )
 
     # replica installers
     if installer.servers and not installer.domain_name:
         ansible_module.fail_json(
             msg="The --server option cannot be used without providing "
-            "domain via the --domain option")
+            "domain via the --domain option"
+        )
 
     if installer.setup_dns:
-        if (not installer.forwarders and
-                not installer.no_forwarders and
-                not installer.auto_forwarders):
+        if (
+            not installer.forwarders
+            and not installer.no_forwarders
+            and not installer.auto_forwarders
+        ):
             ansible_module.fail_json(
                 msg="You must specify at least one of --forwarder, "
-                "--auto-forwarders, or --no-forwarders options")
+                "--auto-forwarders, or --no-forwarders options"
+            )
 
-    if installer.dirsrv_config_file is not None and \
-       not os.path.exists(installer.dirsrv_config_file):
+    if installer.dirsrv_config_file is not None and not os.path.exists(
+        installer.dirsrv_config_file
+    ):
         ansible_module.fail_json(
-            msg="File %s does not exist." % installer.dirsrv_config_file)
+            msg="File %s does not exist." % installer.dirsrv_config_file
+        )
 
     if installer.ca_cert_files is not None:
         if not isinstance(installer.ca_cert_files, list):
             ansible_module.fail_json(
-                msg="Expected list, got {!r}".format(installer.ca_cert_files))
+                msg="Expected list, got {!r}".format(installer.ca_cert_files)
+            )
         for cert in installer.ca_cert_files:
             if not os.path.exists(cert):
                 ansible_module.fail_json(msg="'%s' does not exist" % cert)
             if not os.path.isfile(cert):
                 ansible_module.fail_json(msg="'%s' is not a file" % cert)
             if not os.path.isabs(cert):
-                ansible_module.fail_json(
-                    msg="'%s' is not an absolute file path" % cert)
+                ansible_module.fail_json(msg="'%s' is not an absolute file path" % cert)
 
             try:
                 x509.load_certificate_from_file(cert)
             except Exception:
                 ansible_module.fail_json(
-                    msg="'%s' is not a valid certificate file" % cert)
+                    msg="'%s' is not a valid certificate file" % cert
+                )
 
     if installer.ip_addresses is not None:
         for value in installer.ip_addresses:
@@ -391,8 +417,8 @@ def main():
                 ipautil.CheckedIPAddress(value)
             except Exception as e:
                 ansible_module.fail_json(
-                    msg="invalid IP address {0}: {1}".format(
-                        value, e))
+                    msg="invalid IP address {0}: {1}".format(value, e)
+                )
 
     if installer.domain_name is not None:
         validate_domain_name(installer.domain_name)
@@ -408,8 +434,7 @@ def main():
     except Exception as msg:  # ScriptError as msg:
         _msg = str(msg)
         if "server is already configured" in _msg:
-            ansible_module.exit_json(changed=False,
-                                     server_already_configured=True)
+            ansible_module.exit_json(changed=False, server_already_configured=True)
         else:
             ansible_module.fail_json(msg=_msg)
 
@@ -431,7 +456,8 @@ def main():
         # The NTP configuration can not be touched on pre-installed client:
         if options.no_ntp or options.ntp_servers or options.ntp_pool:
             ansible_module.fail_json(
-                msg="NTP configuration cannot be updated during promotion")
+                msg="NTP configuration cannot be updated during promotion"
+            )
 
     # done #
 
@@ -452,5 +478,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

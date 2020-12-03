@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipaserver_setup_custodia
 short description: Setup custodia
@@ -47,19 +47,22 @@ options:
     required: true
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_server import (
-    setup_logging, AnsibleModuleLog, options,
+    setup_logging,
+    AnsibleModuleLog,
+    options,
     api_Backend_ldap2,
-    custodiainstance, redirect_stdout
+    custodiainstance,
+    redirect_stdout,
 )
 
 
@@ -69,7 +72,7 @@ def main():
             # basic
             realm=dict(required=True),
             hostname=dict(required=False),
-            setup_ca=dict(required=False, type='bool', default=False),
+            setup_ca=dict(required=False, type="bool", default=False),
         ),
     )
 
@@ -79,9 +82,9 @@ def main():
 
     # set values ############################################################
 
-    options.realm_name = ansible_module.params.get('realm')
-    options.host_name = ansible_module.params.get('hostname')
-    options.setup_ca = ansible_module.params.get('setup_ca')
+    options.realm_name = ansible_module.params.get("realm")
+    options.host_name = ansible_module.params.get("hostname")
+    options.setup_ca = ansible_module.params.get("setup_ca")
     options.promote = False
 
     # init ##################################################################
@@ -97,8 +100,9 @@ def main():
             mode = custodiainstance.CustodiaModes.MASTER_PEER
         custodia = custodiainstance.get_custodia_instance(options, mode)
     else:
-        custodia = custodiainstance.CustodiaInstance(options.host_name,
-                                                     options.realm_name)
+        custodia = custodiainstance.CustodiaInstance(
+            options.host_name, options.realm_name
+        )
     custodia.set_output(ansible_log)
     with redirect_stdout(ansible_log):
         custodia.create_instance()
@@ -108,5 +112,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

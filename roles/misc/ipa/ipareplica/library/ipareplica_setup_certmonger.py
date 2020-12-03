@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_setup_certmonger
 short description: Setup certmonger
@@ -39,24 +39,26 @@ description:
 options:
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, redirect_stdout, configure_certmonger
+    AnsibleModuleLog,
+    setup_logging,
+    redirect_stdout,
+    configure_certmonger,
 )
 
 
 def main():
     ansible_module = AnsibleModule(
-        argument_spec=dict(
-        ),
+        argument_spec=dict(),
         supports_check_mode=True,
     )
 
@@ -77,5 +79,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

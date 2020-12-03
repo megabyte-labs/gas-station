@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_promote_sssd
 short description: Promote sssd
@@ -59,21 +59,30 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, DN, paths,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_ReplicaConfig, gen_remote_api, redirect_stdout, promote_sssd
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    DN,
+    paths,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_ReplicaConfig,
+    gen_remote_api,
+    redirect_stdout,
+    promote_sssd,
 )
 
 
@@ -81,13 +90,13 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # server
-            setup_kra=dict(required=False, type='bool'),
+            setup_kra=dict(required=False, type="bool"),
             # certificate system
             subject_base=dict(required=True),
             # additional
             ccache=dict(required=True),
             _top_dir=dict(required=True),
-            config_setup_ca=dict(required=True, type='bool'),
+            config_setup_ca=dict(required=True, type="bool"),
             config_master_host_name=dict(required=True),
         ),
         supports_check_mode=True,
@@ -101,26 +110,24 @@ def main():
 
     options = installer
     # server
-    options.setup_kra = ansible_module.params.get('setup_kra')
+    options.setup_kra = ansible_module.params.get("setup_kra")
     # certificate system
-    options.subject_base = ansible_module.params.get('subject_base')
+    options.subject_base = ansible_module.params.get("subject_base")
     if options.subject_base is not None:
         options.subject_base = DN(options.subject_base)
     # additional
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
-    options._top_dir = ansible_module.params.get('_top_dir')
-    config_setup_ca = ansible_module.params.get('config_setup_ca')
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
+    options._top_dir = ansible_module.params.get("_top_dir")
+    config_setup_ca = ansible_module.params.get("config_setup_ca")
     installer.setup_ca = config_setup_ca
-    config_master_host_name = ansible_module.params.get(
-        'config_master_host_name')
+    config_master_host_name = ansible_module.params.get("config_master_host_name")
 
     # init #
 
     ansible_log.debug("== INSTALL ==")
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     config = gen_ReplicaConfig()
     config.subject_base = options.subject_base
@@ -130,7 +137,7 @@ def main():
     remote_api = gen_remote_api(config.master_host_name, paths.ETC_IPA)
     installer._remote_api = remote_api
 
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     with redirect_stdout(ansible_log):
         ansible_log.debug("-- PROMOTE SSSD --")
@@ -142,5 +149,5 @@ def main():
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -25,12 +25,12 @@
 from __future__ import print_function
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.0',
-    'supported_by': 'community',
-    'status': ['preview'],
+    "metadata_version": "1.0",
+    "supported_by": "community",
+    "status": ["preview"],
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: ipareplica_add_to_ipaservers
 short description: Add to ipaservers
@@ -54,22 +54,28 @@ options:
     required: false
 author:
     - Thomas Woerner
-'''
+"""
 
-EXAMPLES = '''
-'''
+EXAMPLES = """
+"""
 
-RETURN = '''
-'''
+RETURN = """
+"""
 
 import os
 import six
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ansible_ipa_replica import (
-    AnsibleModuleLog, setup_logging, installer, paths,
-    gen_env_boostrap_finalize_core, constants, api_bootstrap_finalize,
-    gen_remote_api, api
+    AnsibleModuleLog,
+    setup_logging,
+    installer,
+    paths,
+    gen_env_boostrap_finalize_core,
+    constants,
+    api_bootstrap_finalize,
+    gen_remote_api,
+    api,
 )
 
 if six.PY3:
@@ -80,7 +86,7 @@ def main():
     ansible_module = AnsibleModule(
         argument_spec=dict(
             # server
-            setup_kra=dict(required=True, type='bool'),
+            setup_kra=dict(required=True, type="bool"),
             # additional
             config_master_host_name=dict(required=True),
             ccache=dict(required=True),
@@ -98,15 +104,14 @@ def main():
 
     options = installer
     # server
-    options.setup_kra = ansible_module.params.get('setup_kra')
+    options.setup_kra = ansible_module.params.get("setup_kra")
     # additional
-    config_master_host_name = ansible_module.params.get(
-        'config_master_host_name')
-    ccache = ansible_module.params.get('ccache')
-    os.environ['KRB5CCNAME'] = ccache
-    options._ccache = ansible_module.params.get('installer_ccache')
+    config_master_host_name = ansible_module.params.get("config_master_host_name")
+    ccache = ansible_module.params.get("ccache")
+    os.environ["KRB5CCNAME"] = ccache
+    options._ccache = ansible_module.params.get("installer_ccache")
     # os.environ['KRB5CCNAME'] = ansible_module.params.get('installer_ccache')
-    options._top_dir = ansible_module.params.get('_top_dir')
+    options._top_dir = ansible_module.params.get("_top_dir")
 
     # init #
 
@@ -114,8 +119,7 @@ def main():
 
     options = installer
 
-    env = gen_env_boostrap_finalize_core(paths.ETC_IPA,
-                                         constants.DEFAULT_CONFIG)
+    env = gen_env_boostrap_finalize_core(paths.ETC_IPA, constants.DEFAULT_CONFIG)
     api_bootstrap_finalize(env)
     # config = gen_ReplicaConfig()
 
@@ -123,26 +127,26 @@ def main():
     # installer._remote_api = remote_api
 
     conn = remote_api.Backend.ldap2
-    ccache = os.environ['KRB5CCNAME']
+    ccache = os.environ["KRB5CCNAME"]
 
     ansible_log.debug("-- HOSTGROUP_ADD_MEMBER --")
     try:
         ansible_log.debug("-- CONNECT --")
         conn.connect(ccache=installer._ccache)
-        remote_api.Command['hostgroup_add_member'](
-            u'ipaservers',
+        remote_api.Command["hostgroup_add_member"](
+            u"ipaservers",
             host=[unicode(api.env.host)],
         )
     finally:
         if conn.isconnected():
             ansible_log.debug("-- DISCONNECT --")
             conn.disconnect()
-        os.environ['KRB5CCNAME'] = ccache
+        os.environ["KRB5CCNAME"] = ccache
 
     # done #
 
     ansible_module.exit_json(changed=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

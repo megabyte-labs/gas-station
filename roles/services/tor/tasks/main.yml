@@ -8,10 +8,9 @@
     - include_tasks: "install-{{ ansible_os_family }}.yml"
 
 - name: Check if GNOME is installed
-  shell: ps -A | egrep -i "gnome-shell"
-  ignore_errors: true
-  changed_when: false
-  register: gnome_grep
+  stat:
+    path: "{{ gnome_shell_path }}"
+  register: gnome_shell
   when: ansible_system == 'Linux'
 
 - name: Add GNOME settings
@@ -21,5 +20,5 @@
     label: "{{ user.username }}"
     loop_var: user
   when:
-    - gnome_grep.stdout | length
     - ansible_system == 'Linux'
+    - gnome_shell.stat.exists

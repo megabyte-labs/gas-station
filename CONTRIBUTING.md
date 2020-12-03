@@ -1,5 +1,16 @@
 # Contributing
 
+## Getting Started
+
+The following has been tested on Ubuntu 20.04. Using these commands will help you get set up as quickly as possible. In the project root, run the following commands:
+
+```
+sudo apt-get install python3 python3-netaddr python3-pip
+pip3 install -r requirements.txt
+ansible-galaxy install -r requirements.yml
+pre-commit install
+```
+
 ## Supported Operating Systems
 
 All of the roles should support the following operating systems:

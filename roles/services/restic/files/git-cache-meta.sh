@@ -10,11 +10,11 @@
 # 2012-03-05 - added filetime, andris9
 # 2020-10-17 - Added while loop to catch files with spaces
 
-: ${GIT_CACHE_META_FILE=.git_cache_meta}
+: "${GIT_CACHE_META_FILE=.git_cache_meta}"
 case $@ in
     --store|--stdout)
     case $1 in --store) exec > $GIT_CACHE_META_FILE; esac
-    git ls-files | while read files
+    git ls-files | while read -r files
     do
         find "$files"\
             \( -printf 'chown %U %p\n' \) \

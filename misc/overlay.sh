@@ -10,9 +10,9 @@ fi
 
 if [[ -d "$git_repository_dir/roles" ]]; then
 	# added "not path" part to avoid copying files into .git directory and other hidden directories
-	find "$git_repository_dir" -mindepth 3 -maxdepth 3 -type d -not -path '*/\.*' | while read gitrepo
+	find "$git_repository_dir/roles" -mindepth 2 -maxdepth 2 -type d -not -path '*/\.*' | while read -r gitrepo
 	do
-		ls -A "$import_files" | while read skriven
+		find "$import_files" -maxdepth 1 -mindepth 1 -printf "%f\n" | while read -r skriven
                 do
                         cp -Rf "$import_files/$skriven" "$gitrepo"
                 done

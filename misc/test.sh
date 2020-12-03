@@ -8,7 +8,7 @@ do
     rm -rf common
     rm ./molecule/default/playbook.yml
     cp -rT /home/hawkwood/Playbooks/misc/common .
-    CURRENT=`pwd`
-    BASENAME=`basename "$CURRENT"`
+    CURRENT=$(pwd)
+    BASENAME=$(basename "$CURRENT")
     sed -i "s/{{ role_name }}/$BASENAME/" ./molecule/default/converge.yml
 done

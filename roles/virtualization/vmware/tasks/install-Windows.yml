@@ -1,2 +1,68 @@
 ---
-[] # TODO
+- name: Create temporary directory
+  ansible.windows.win_file:
+    path: "{{ workstation_tempdir }}"
+    state: directory
+
+- name: Check for pre-downloaded binary
+  ansible.windows.win_stat:
+    path: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
+  register: file_stats
+
+- name: Download workstation
+  ansible.windows.win_get_url:
+    url: "{{ workstation_download_url }}"
+    dest: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
+  when: not file_stats.stat.exists
+
+- name: Run installer
+  become: true
+  ansible.windows.win_package:
+    path: "{{ workstation_tempdir }}\tryworkstation-win-64.exe"
+    arguments:
+      - /s
+      - "/v\"/qn EULAS_AGREED=1 {{ 'SERIALNUMBER=' + workstation_license if workstation_license is defined else '' }} AUTOSOFTWAREUPDATE=1\""
+
+- name: Fetch the releases page of Unlocker to find the latest version
+  ansible.builtin.uri:
+    url: "{{ unlocker_github_url }}/releases"
+    return_content: true
+  register: unlocker_releases
+
+- name: Create the regex to filter out versions found in the releases page
+  ansible.builtin.set_fact:
+    version_regex: "{{ '\/' + unlocker_github_url.split('/')[4] + '\/tree\/\\S[^\"]*' }}"
+
+- name: Set the version of Unlocker to a variable
+  ansible.builtin.set_fact:
+    unlocker_version: "{{ unlocker_releases.content | regex_search(version_regex) | regex_search('v\\d(.\\d)*') }}"
+
+- name: Check if Unlocker archive is present
+  ansible.builtin.stat:
+    path: "{{ workstation_tempdir }}\unlocker-{{ unlocker_version }}.zip"
+  register: unlocker_stat
+
+- name: Download and install Unlocker if not already installed
+  block:
+    - name: Construct the URL to download Unlocker archive
+      ansible.builtin.set_fact:
+        latest_release_url: "{{ unlocker_github_url + '/releases/download/' + unlocker_version + '/Unlocker.zip' }}"
+
+    - name: Download Unlocker archive (for running Mac OS X on VMWare)
+      ansible.windows.win_get_url:
+        url: "{{ latest_release_url }}"
+        dest: "{{ workstation_tempdir }}\unlocker-{{ unlocker_version }}.zip"
+
+    - name: Extract the Unlocker archive
+      community.windows.win_unzip:
+        src: "{{ workstation_tempdir }}\unlocker-{{ unlocker_version }}.zip"
+        dest: "{{ workstation_tempdir }}\unlocker"
+
+    - name: Patch VMWare for Mac OS X
+      become: true
+      become_method: runas
+      ansible.windows.win_command: cmd.exe /c win-install.cmd
+      args:
+        chdir: "{{ workstation_tempdir }}\unlocker"
+        creates: "{{ workstation_tempdir }}\unlocker\backup"
+  when: not unlocker_stat.stat.exists

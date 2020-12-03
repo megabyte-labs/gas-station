@@ -1,6 +1,6 @@
 #!/bin/bash
 # Directory where files for import are located (need to point to root directory of ansible role)
-import_files="/home/hawkwood/Playbooks/scripts/shared"
+import_files="/home/hawkwood/Playbooks/misc/common"
 # Directory where gitlab repository is located (need to point to directory where roles directory is)
 git_repository_dir="/home/hawkwood/Playbooks"
 

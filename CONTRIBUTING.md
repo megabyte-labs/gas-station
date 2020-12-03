@@ -4,13 +4,13 @@
 
 All of the roles should support the following operating systems:
 
-* Archlinux (Latest)
-* CentOS 8
-* Debian 10 (buster)
-* Ubuntu 20.04 (focal)
-* Fedora 33
-* Mac OS X/Darwin (Latest)
-* Windows (Latest)
+- Archlinux (Latest)
+- CentOS 8
+- Debian 10 (buster)
+- Ubuntu 20.04 (focal)
+- Fedora 33
+- Mac OS X/Darwin (Latest)
+- Windows (Latest)
 
 ## Linting
 

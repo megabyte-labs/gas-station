@@ -1,0 +1,32 @@
+---
+- name: Ensure that the dependencies are installed
+  community.general.pacman:
+    name: "{{ pkg_dependencies }}"
+    update_cache: true
+    state: present
+
+- name: Check if git-secret is installed
+  ansible.builtin.stat:
+    path: /usr/bin/git-secret
+  register: gitsecret_stat
+
+- name: Install git-secret if not already installed
+  block:
+    - name: Ensure that git-secret repo is cloned
+      become: false
+      ansible.builtin.git:
+        repo: "{{ gitsecret_aur_repo_url }}"
+        dest: "{{ temp_directory }}"
+        clone: true
+    - name: Ensure git-secret is installed
+      become: false
+      command: makepkg -sic --noconfirm
+      args:
+        chdir: "{{ temp_directory }}"
+        creates: /usr/bin/git-secret
+  when: not gitsecret_stat.stat.exists
+  always:
+    - name: Ensure to remove the temporary directory created for git-secret source files
+      ansible.builtin.file:
+        path: "{{ temp_directory }}"
+        state: absent

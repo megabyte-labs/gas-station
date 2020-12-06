@@ -1,0 +1,23 @@
+---
+- name: Ensure VirtualBox apt key is added
+  apt_key:
+    state: present
+    url: "{{ virtualbox_apt_key }}"
+
+- name: Ensure VirtualBox repository is added
+  apt_repository:
+    filename: virtualbox
+    repo: "{{ virtualbox_apt_repository }}"
+    state: present
+    update_cache: true
+
+- name: Modify debconf selection for unattended installation of the VirtualBox Extension Pack
+  command: echo virtualbox-ext-pack virtualbox-ext-pack/license select true | debconf-set-selections
+  changed_when: false
+
+- name: Ensure VirtualBox is installed # TODO: Figure out how to install the latest version
+  apt:
+    name:
+      - virtualbox-6.1 # TODO: Figure out what extra packages are useful
+      - virtualbox-ext-pack
+    state: present

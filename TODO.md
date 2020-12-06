@@ -40,13 +40,13 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
   - [shellcheck](https://github.com/koalaman/shellcheck)
   - [shfmt](https://github.com/mvdan/sh)
 - Add commit message prompt for git master
-- Figure out Node.js PATH problem
 - FTP client
 - [ffsend](https://github.com/timvisee/ffsend#windows)
 - [ngrok](https://ngrok.com/download)
 - URL shortener
 - garbage file .wget-hsts
 - Add kompose for Linux distros to the roles/virtualization/kubernetes (use [the Go method here](https://github.com/kubernetes/kompose/blob/master/docs/installation.md#go))
+- Prettier remove feature that strips white space from aligned comments
 
 ## pfSense TODOs
 

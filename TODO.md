@@ -47,6 +47,8 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - garbage file .wget-hsts
 - Add kompose for Linux distros to the roles/virtualization/kubernetes (use [the Go method here](https://github.com/kubernetes/kompose/blob/master/docs/installation.md#go))
 - Prettier remove feature that strips white space from aligned comments
+- Fix permissions in /usr/share/applications
+- Refactor applications/androidstudio to applications/plex
 
 ## pfSense TODOs
 

@@ -1,31 +1,20 @@
 ---
-- name: Ensure Postman directory is empty # TODO: Better way of doing this because this changes the state
-  file:
-    path: "{{ postman_dir }}"
-    state: "{{ item }}"
-    owner: root
-    group: root
-    mode: 0755
-  loop:
-    - absent
-    - directory
-
-- name: Install Postman
+- name: "Acquire {{ app_name }} source files"
   unarchive:
     src: https://dl.pstmn.io/download/latest/linux
-    dest: "{{ postman_parent_dir }}"
+    dest: /usr/local/src
     owner: root
     group: root
     remote_src: true
 
-- name: Add Postman to /usr/local/bin
+- name: "Add {{ app_name }} symlink to /usr/local/bin"
   file:
-    src: "{{ postman_dir }}/Postman"
+    src: /usr/local/src/Postman/Postman # TODO: Is this the proper place to store the src files or should it be in /opt?
     dest: /usr/local/bin/postman
     state: link
 
-- name: Add Postman desktop shortcut
+- name: "Add {{ app_name }} desktop shortcut"
   copy:
     src: files/postman.desktop
     dest: "{{ postman_desktop_link_dir }}/postman.desktop"
-    mode: preserve
+    mode: 0644

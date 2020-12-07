@@ -1,25 +1,29 @@
 ---
-- name: Install xrdp
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+
+- name: Ensure xrdp is installed
   apt:
     name: xrdp
-    state: present
+    state: "{{ app_state | default('present') }}"
   when: install_xrdp
 
 - name: Make xrdp load on startup if it is installed
   systemd:
     enabled: true
     name: xrdp
-    state: restarted
+    state: started
   when: install_xrdp
 
-- name: Install GNOME Boxes # TODO: Add condition to only install it on GNOME systems
+- name: Determine whether or not GNOME is installed
+  stat:
+    path: /usr/bin/gnome-shell
+  register: gnome_shell
+
+- name: Ensure GNOME Boxes is installed
   apt:
     name: gnome-boxes
-    state: present
-  when: install_gnome_boxes
-
-- name: Install Remmina
-  community.general.snap:
-    name: remmina
-    state: present
-  when: install_remmina
+    state: "{{ app_state | default('present') }}"
+  when:
+    - install_gnome_boxes
+    - gnome_shell.stat.exists

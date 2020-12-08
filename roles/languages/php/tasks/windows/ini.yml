@@ -1,21 +1,17 @@
 ---
 - name: Ensure configuration directories exist
-  file:
+  ansible.windows.win_file:
     path: "{{ item }}"
     state: directory
-    follow: true
-    mode: 0755
   with_flattened:
     - "{{ php_conf_paths }}"
     - "{{ php_extension_conf_paths }}"
 
-- name: Place PHP configuration file in place
+- name: Place PHP configuration file in place # noqa 208
   template:
     src: php.ini.j2
     dest: "{{ item }}/php.ini"
-    owner: root
-    group: "{{ 'wheel' if ansible_system == 'Darwin' | default('root') }}"
-    mode: 0644
+    backup: true
   loop: "{{ php_conf_paths }}"
-  notify: restart webserver
+  notify: restart nginx windows
   when: php_use_managed_ini

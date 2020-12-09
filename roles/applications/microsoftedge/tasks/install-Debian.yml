@@ -1,24 +1,24 @@
 ---
-- name: Add the Microsoft Edge GPG signing key
+- name: "Add {{ app_name }}'s apt key"
   apt_key:
     state: present
-    url: "{{ edge_keyring_url }}"
+    url: "{{ microsoft_edge_apt_key_url }}"
 
-- name: Add Microsoft Edge repository
+- name: "Add {{ app_name }}'s apt repository"
   apt_repository:
-    filename: microsoft-edge
-    repo: "{{ edge_apt_repository }}"
+    filename: "{{ app_name | lower | replace(' ', '') }}"
+    repo: "{{ microsoft_edge_apt_repository }}"
     state: present
     update_cache: true
 
-- name: Install Microsoft Edge
+- name: "Ensure {{ app_name }} is installed"
   apt:
     name: microsoft-edge-dev
-    state: present
+    state: "{{ app_state | default('present') }}"
 
-- name: Set Microsoft Edge as the default browser
-  include_role:
-    name: helpers/defaultbrowser
+- name: "Set {{ app_name }} as the default browser"
   vars:
     default_browser_chosen: "{{ default_browser }}"
+  include_role:
+    name: helpers/defaultbrowser
   when: default_browser == 'edge'

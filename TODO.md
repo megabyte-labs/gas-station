@@ -49,6 +49,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Prettier remove feature that strips white space from aligned comments
 - Fix permissions in /usr/share/applications
 - Refactor applications/androidstudio to applications/plex
+- Run once for homebrew, snap
 
 ## pfSense TODOs
 

@@ -1,2 +1,33 @@
 ---
-[] # TODO
+- name: Ensure that the dependencies are installed
+  community.general.pacman:
+    name: "{{ pkg_dependencies }}"
+    update_cache: true
+    state: present
+
+- name: Ensure that VirtualBox is installed
+  community.general.pacman:
+    name: virtualbox
+    state: present
+  register: install_result
+
+- name: Ensure that VirtualBox Extension pack is installed
+  block:
+    - name: Ensure that VirtualBox Extension pack repo is cloned
+      become: false
+      ansible.builtin.git:
+        repo: "{{ vbox_ext_pack_aur_repo_url }}"
+        dest: "{{ temp_directory }}"
+        clone: true
+    - name: Ensure that VirtualBox Extension pack is installed
+      become: false
+      command: makepkg -sic --noconfirm
+      args:
+        chdir: "{{ temp_directory }}"
+        creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
+  when: install_result.changed
+  always:
+    - name: Ensure to remove the temporary directory created for VirtualBox Extension pack source files
+      ansible.builtin.file:
+        path: "{{ temp_directory }}"
+        state: absent

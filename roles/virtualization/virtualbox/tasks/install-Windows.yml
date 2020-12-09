@@ -1,2 +1,34 @@
 ---
-[] # TODO
+- name: Ensure that VirtualBox is installed
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  chocolatey.chocolatey.win_chocolatey:
+    name: virtualbox
+    state: present
+  register: vbox_installation
+
+- name: Setup VirtualBox Extension pack
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  block:
+    - name: Find the version of VirtualBox installed
+      chocolatey.chocolatey.win_chocolatey_facts:
+    - name: Save the version of Virtualbox to a variable
+      set_fact:
+        vbox_version: "{{ ansible_chocolatey.packages.virtualbox.version }}"
+    - name: Fetch the VirtualBox Extension pack installer
+      ansible.windows.win_get_url:
+        url: "{{ 'https://download.virtualbox.org/virtualbox/' + vbox_version + '/Oracle_VM_VirtualBox_Extension_Pack-' + vbox_version + '.vbox-extpack' }}"
+        dest: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.zip"
+    - name: Ensure that VirtualBox Extension pack is installed
+      community.windows.win_unzip:
+        src: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.zip"
+        dest: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+  when: vbox_installation.changed
+  always:
+    - name: Remove the VirtualBox Extension pack installer
+      become_method: runas
+      become_user: "{{ ansible_user }}"
+      ansible.windows.win_file:
+        path: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.zip"
+        state: absent

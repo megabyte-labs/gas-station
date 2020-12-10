@@ -1,15 +1,18 @@
 ---
-- name: Include variables based on the operating system
-  include_vars: "{{ ansible_os_family }}.yml"
+- name: "Add {{ app_name }}'s rpm key"
+  rpm_key:
+    key: "{{ teamviewer_key }}"
 
-- name: Include tasks based on the operating system
-  become: true
-  block:
-    - include_tasks: "install-{{ ansible_os_family }}.yml"
+- name: "Add {{ app_name }}'s yum repository"
+  yum_repository:
+    baseurl: "{{ teamviewer_baseurl }}"
+    description: "{{ app_name }}'s repository"
+    gpgcheck: true
+    gpgkey: "{{ teamviewer_key }}"
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+    repo_gpgcheck: true
 
-- name: Run user tasks (based on OS)
-  include_tasks: "user-{{ ansible_os_family }}.yml"
-  loop: "{{ user_configs }}"
-  loop_control:
-    label: "{{ user.username }}"
-    loop_var: user
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: teamviewer
+    state: "{{ app_state | default('present') }}"

@@ -1,12 +1,12 @@
 ---
-- name: Add the Brave Browser GPG signing key
+- name: "Add {{ app_name }}'s apt key"
   apt_key:
     state: present
-    url: "{{ brave_keyring_url }}"
+    url: "{{ brave_apt_key_url }}"
 
-- name: Add Brave Browser repository
+- name: "Add {{ app_name }}'s apt repository"
   apt_repository:
-    filename: brave-browser
+    filename: "{{ app_name | lower | replace(' ', '-') }}"
     repo: "{{ brave_apt_repository }}"
     state: present
     update_cache: true
@@ -14,11 +14,4 @@
 - name: "Ensure {{ app_name }} is installed"
   apt:
     name: brave-browser
-    state: present
-
-- name: "Set {{ app_name }} as the default browser"
-  vars:
-    default_browser_chosen: "{{ default_browser }}"
-  include_role:
-    name: helpers/defaultbrowser
-  when: default_browser == 'brave'
+    state: "{{ app_state | default('present') }}"

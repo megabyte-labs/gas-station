@@ -8,12 +8,12 @@
     - ~/.config
     - ~/.config/megabytelabs
 
-- name: Check if HyperJS has configuration stored in /root/.config/megabytelabs/hyper
+- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/hyper"
   stat:
     path: ~/.config/megabytelabs/hyper
   register: hyper_config
 
-- name: Detect previously installed Hyper version
+- name: "Detect previously installed {{ app_name }} version"
   command: cat hyper
   args:
     chdir: ~/.config/megabytelabs
@@ -21,25 +21,26 @@
   register: current_hyper_version
   when: hyper_config.stat.exists
 
-- name: Detect the latest HyperJS version # noqa 303 # TODO Convert this to use uri instead - see roles/virtualization/vagrant/tasks/main.yml for an example
+# TODO Convert this (below) to use uri instead - see roles/virtualization/vagrant/tasks/main.yml for an example
+- name: "Detect the latest {{ app_name }} version" # noqa 303
   shell: set -o pipefail && curl https://api.github.com/repos/vercel/hyper/releases/latest | grep tag_name | cut -d '"' -f4
   args:
     executable: /usr/bin/bash
   changed_when: false
   register: hyper_latest_release_tag
 
-- name: Determine whether or not the latest version of HyperJS's AppImage is already installed
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
   set_fact:
     install_hyper: "{{ (current_hyper_version.skipped) or \
       ((not current_hyper_version.skipped) and (current_hyper_version.stdout != hyper_latest_release_tag.stdout)) }}"
 
-- name: Acquire the latest HyperJS AppImage
+- name: "Acquire the latest {{ app_name }} AppImage"
   get_url:
     url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.stdout }}/hyper-{{ hyper_latest_release_tag.stdout }}-x86_64.AppImage"
-    dest: "{{ hyper_tmp_path }}"
+    dest: "{{ hyper_src_path }}"
   when: install_hyper
 
-- name: Ensure the Hyper AppImage is available in all non-system user's Applications folders
+- name: "Ensure the {{ app_name }} AppImage is available in all non-system user's Applications folders"
   include_tasks: install-AppImage.yml
   loop: "{{ user_configs }}"
   loop_control:
@@ -49,15 +50,10 @@
     - install_hyper
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
 
-- name: Save meta information about the version of HyperJS that was installed
+- name: "Save meta information about the version of {{ app_name }} that was installed"
   copy:
     dest: ~/.config/megabytelabs/hyper
     mode: 0600
     content: |
       {{ hyper_latest_release_tag.stdout }}
   when: install_hyper
-
-- name: Ensure HyperJS is removed from its' temporary location
-  file:
-    path: "{{ hyper_tmp_path }}"
-    state: absent

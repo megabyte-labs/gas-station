@@ -1,36 +1,30 @@
 ---
-- name: Ensure that the dependencies are installed
+- name: "Ensure {{ app_name }}'s dependencies are installed"
   community.general.pacman:
-    name: "{{ pkg_dependencies }}"
+    name: "{{ autokey_dependencies }}"
+    state: "{{ app_state | default('present') }}"
     update_cache: true
-    state: present
 
-- name: Check if Autokey is installed
-  ansible.builtin.stat:
+- name: "Ensure {{ app_name }}'s source directory is present"
+  ansible.builtin.file:
+    mode: 0755
+    path: "{{ autokey_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  ansible.builtin.git:
+    dest: "{{ autokey_src_dir }}"
+    repo: "{{ autokey_aur_git_repository }}"
+  register: autokey_git
+
+- name: "Remove /usr/sbin/autokey-gtk if the source files have changed" # noqa 503
+  file:
     path: /usr/sbin/autokey-gtk
-  register: autokey_stat
+    state: absent
+  when: autokey_git.changed
 
-- name: Install Autokey if not already installed
-  block:
-    - name: Ensure to create a temporary directory for Autokey source files
-      ansible.builtin.file:
-        path: "{{ temp_directory }}"
-        state: directory
-        mode: "0770"
-    - name: Ensure that Autokey repo is cloned
-      ansible.builtin.git:
-        repo: "{{ autokey_aur_repo_url }}"
-        dest: "{{ temp_directory }}"
-        clone: true
-    - name: Ensure Autokey is installed
-      command: makepkg -sic --noconfirm
-      args:
-        chdir: "{{ temp_directory }}"
-        creates: /usr/sbin/autokey-gtk
-  when:
-    - not autokey_stat.stat.exists
-  always:
-    - name: Ensure to remove the temporary directory created for Autokey source files
-      ansible.builtin.file:
-        path: "{{ temp_directory }}"
-        state: absent
+- name: "Ensure {{ app_name }} is installed"
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ autokey_src_dir }}"
+    creates: /usr/sbin/autokey-gtk

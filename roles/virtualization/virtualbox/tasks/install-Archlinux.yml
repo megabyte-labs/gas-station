@@ -1,33 +1,32 @@
 ---
-- name: Ensure that the dependencies are installed
+- name: "Ensure {{ app_name }}'s dependencies are installed"
   community.general.pacman:
     name: "{{ pkg_dependencies }}"
     update_cache: true
     state: present
 
-- name: Ensure that VirtualBox is installed
+- name: "Ensure {{ app_name }} is installed"
   community.general.pacman:
     name: virtualbox
     state: present
   register: install_result
 
-- name: Ensure that VirtualBox Extension pack is installed
+- name: "Ensure {{ app_name }} Extension pack is installed"
   block:
-    - name: Ensure that VirtualBox Extension pack repo is cloned
+    - name: "Remove {{ app_name }} Extension pack if the source files have changed" # noqa 503
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+        state: absent
+    - name: "Ensure {{ app_name }} Extension pack source is cloned and up-to-date" # noqa 401
       become: false
-      ansible.builtin.git:
+      git:
         repo: "{{ vbox_ext_pack_aur_repo_url }}"
         dest: "{{ temp_directory }}"
         clone: true
-    - name: Ensure that VirtualBox Extension pack is installed
+    - name: "Ensure {{ app_name }} Extension pack is installed"
       become: false
       command: makepkg -sic --noconfirm
       args:
         chdir: "{{ temp_directory }}"
         creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
   when: install_result.changed
-  always:
-    - name: Ensure to remove the temporary directory created for VirtualBox Extension pack source files
-      ansible.builtin.file:
-        path: "{{ temp_directory }}"
-        state: absent

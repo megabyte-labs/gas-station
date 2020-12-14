@@ -2,6 +2,18 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+- name: Fetch the {{ app_name }}'s Downloads page to find the latest version
+  uri:
+    url: https://www.virtualbox.org/wiki/Linux_Downloads
+    return_content: true
+  register: this
+  when: ansible_system == "Linux"
+
+- name: Find the package name to install {{ app_name }} in Linux OSes
+  set_fact:
+    vbox_package_name: "{{ this.content | regex_search('tt\\>virtualbox-\\d\\.\\d') | replace ('tt>','') }}"
+  when: ansible_system == "Linux"
+
 - name: Include tasks based on the operating system
   become: true
   block:

@@ -1,58 +1,58 @@
 ---
-- name: Install Vagrant via Chocolatey
+- name: "Ensure {{ app_name }} is installed"
   chocolatey.chocolatey.win_chocolatey:
     name: vagrant
-    state: latest
+    state: "{{ app_state | default('present') }}"
 
-- name: Check if Vagrant installation is in default location
+- name: "Check if {{ app_name }} installation is in the default location"
   win_stat:
     path: "{{ vagrant_default_dir }}"
   register: hashicorp_default_location
 
-- name: Move the Vagrant installation to Program Files
+- name: "Move {{ app_name }} installation to Program Files"
   win_command: 'Move-Item {{ vagrant_default_dir }} "{{ vagrant_destination_dir }}"'
   when:
     - hashicorp_default_location.stat.exists is defined
     - hashicorp_default_location.stat.exists
 
-- name: Delete original Vagrant directory
+- name: "Delete original {{ app_name }} directory"
   win_file:
     path: "{{ vagrant_default_parent_dir }}"
     state: absent
 
-- name: Remove original Vagrant PATH
+- name: "Remove original {{ app_name }} PATH"
   win_path:
     elements: "{{ vagrant_default_dir }}\\bin"
     state: absent
 
-- name: Add new Vagrant PATH
+- name: "Add new {{ app_name }} PATH"
   win_path:
     elements: "{{ vagrant_destination_dir }}\\bin"
     state: present
 
-- name: Install the Vagrant VMWare desktop plugin
+- name: "Ensure {{ app_name }} VMWare desktop plugin is installed"
   win_chocolatey:
     name: vagrant-vmware-utility
-    state: present
+    state: "{{ app_state | default('present') }}"
   when: vagrant_vmware_support
 
-- name: Check if the license file is available on the controller
+- name: "Check if the license file for {{ app_name }} VMWare desktop plugin is available on the controller"
   stat:
     path: "{{ vmware_license_local_path }}"
   register: license_local_file
   delegate_to: localhost
 
-- name: Install the Vagrant VMWare desktop plugin and add a license
+- name: "Ensure to add a license for {{ app_name }} VMWare desktop plugin"
   block:
-    - name: Copy the license file to the target
+    - name: "Copy the license file for {{ app_name }} VMWare desktop plugin to the target"
       win_copy:
         src: "{{ vmware_license_local_path }}"
         dest: "{{ vmware_license_remote_path_win }}"
 
-    - name: Install the license for Vagrant VMWare desktop plugin
+    - name: "Ensure to add a license for {{ app_name }} VMWare desktop plugin"
       command: "vagrant plugin license vagrant-vmware-desktop {{ vmware_license_remote_path_win }}"
   always:
-    - name: Remove the license file from target
+    - name: "Remove the license file for {{ app_name }} VMWare desktop plugin from the target"
       file:
         path: "{{ vmware_license_remote_path_win }}"
         state: absent

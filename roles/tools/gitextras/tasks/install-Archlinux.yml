@@ -1,0 +1,31 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ gitextras_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  ansible.builtin.file:
+    mode: 0755
+    path: "{{ gitextras_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  ansible.builtin.git:
+    dest: "{{ gitextras_src_dir }}"
+    repo: "{{ gitextras_aur_git_repository }}"
+  register: gitextras_git
+
+- name: "Remove /usr/bin/git-extras if the source files have changed" # noqa 503
+  file:
+    path: /usr/bin/git-extras
+    state: absent
+  when: gitextras_git.changed
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ gitextras_src_dir }}"
+    creates: /usr/bin/git-extras
+  when: gitextras_git.changed

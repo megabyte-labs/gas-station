@@ -1,0 +1,33 @@
+---
+- name: "Ensure git is installed"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  chocolatey.chocolatey.win_chocolatey:
+    name: git
+    state: "{{ app_state | default('present') }}"
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  ansible.windows.win_file:
+    path: "{{ gitextras_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  ansible.windows.win_command: >
+    git clone https://github.com/tj/git-extras.git
+    git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+  args:
+    chdir: "{{ gitextras_src_dir }}"
+  register: gitextras_git
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  ansible.windows.win_command: install.cmd
+  args:
+    chdir: "{{ gitextras_src_dir }}"
+    creates: "C:/Program Files/Git/mingw64/bin/git-extras"
+  when: gitextras_git.changed

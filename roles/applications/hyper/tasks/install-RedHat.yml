@@ -3,3 +3,69 @@
   dnf:
     name: "{{ hyper_rpm_url }}"
     state: "{{ app_state | default('present') }}"
+
+- name: Ensure Fira Code font is installed
+  block:
+    - name: Ensure Fira Code font is installed using the package manager
+      dnf:
+        name: fira-code-fonts
+        state: "{{ app_state | default('present') }}"
+  when: install_fira_code
+  rescue:
+    - name: Ensure Megabyte Labs configuration directory exists
+      file:
+        mode: 0700
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - ~/.config
+        - ~/.config/megabytelabs
+
+    - name: "Check if Fira Code Font has configuration stored in /root/.config/megabytelabs/firacode"
+      stat:
+        path: ~/.config/megabytelabs/firacode
+      register: firacode_config
+
+    - name: "Detect previously installed Fira Code Font version"
+      command: cat firacode
+      args:
+        chdir: ~/.config/megabytelabs
+      changed_when: false
+      register: current_firacode_version
+      when: firacode_config.stat.exists
+
+    - name: "Detect the latest Fira Code Font version"
+      uri:
+        url: https://api.github.com/repos/tonsky/FiraCode/releases/latest
+      register: firacode_latest_release_tag
+
+    - name: "Determine whether or not the latest version of Fira Code Font is already installed"
+      set_fact:
+        update_firacode: "{{ (current_firacode_version.skipped) or \
+          ((not current_firacode_version.skipped) and (current_firacode_version.stdout != firacode_latest_release_tag.json.tag_name)) }}"
+
+    - name: Ensure Fira Code font is installed using the manual method
+      shell: |
+        fonts_dir="/usr/share/fonts/TTF"
+        if [ ! -d "${fonts_dir}" ]; then
+            mkdir -p "${fonts_dir}"
+        fi
+        for type in Bold Light Medium Regular Retina; do
+            file_path="${fonts_dir}/FiraCode-${type}.ttf"
+            file_url="https://github.com/tonsky/FiraCode/blob/master/distr/ttf/FiraCode-${type}.ttf?raw=true"
+            if [ ! -e "${file_path}" ]; then
+                wget -O "${file_path}" "${file_url}"
+            fi;
+        done
+        fc-cache -f
+      when:
+        - install_fira_code
+        - update_firacode
+
+    - name: "Save meta information about the version of Fira Code Font that was installed"
+      copy:
+        dest: ~/.config/megabytelabs/firacode
+        mode: 0600
+        content: |
+          {{ firacode_latest_release_tag.json.tag_name }}
+      when: install_fira_code

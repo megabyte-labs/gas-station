@@ -21,22 +21,20 @@
   register: current_hyper_version
   when: hyper_config.stat.exists
 
-# TODO Convert this (below) to use uri instead - see roles/virtualization/vagrant/tasks/main.yml for an example
-- name: "Detect the latest {{ app_name }} version" # noqa 303
-  shell: set -o pipefail && curl https://api.github.com/repos/vercel/hyper/releases/latest | grep tag_name | cut -d '"' -f4
-  args:
-    executable: /usr/bin/bash
-  changed_when: false
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/vercel/hyper/releases/latest
   register: hyper_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
   set_fact:
     install_hyper: "{{ (current_hyper_version.skipped) or \
-      ((not current_hyper_version.skipped) and (current_hyper_version.stdout != hyper_latest_release_tag.stdout)) }}"
+      ((not current_hyper_version.skipped) and (current_hyper_version.stdout != hyper_latest_release_tag.json.tag_name)) }}"
 
 - name: "Acquire the latest {{ app_name }} AppImage"
   get_url:
-    url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.stdout }}/hyper-{{ hyper_latest_release_tag.stdout }}-x86_64.AppImage"
+    url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.json.tag_name }}/\
+      hyper-{{ hyper_latest_release_tag.json.tag_name }}-x86_64.AppImage"
     dest: "{{ hyper_src_path }}"
   when: install_hyper
 
@@ -55,5 +53,11 @@
     dest: ~/.config/megabytelabs/hyper
     mode: 0600
     content: |
-      {{ hyper_latest_release_tag.stdout }}
+      {{ hyper_latest_release_tag.json.tag_name }}
   when: install_hyper
+
+- name: Ensure Fira Code font is installed
+  community.general.pacman:
+    name: ttf-fira-code
+    state: "{{ app_state | default('present') }}"
+  when: install_fira_code

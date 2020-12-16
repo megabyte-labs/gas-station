@@ -39,7 +39,7 @@ pip3 install -r requirements.txt
 After you have Python and yamllint installed, you can start linting:
 
 1. Go to the root of the project
-2. Run the command `yamllint .`
+1. Run the command `yamllint .`
 
 You should see any linting errors that were found. After you fix some of the errors, commit your changes to the `yamllint` branch. This will allow multiple developers to fix errors at the same time (and prevent double work) since your working directory will be linked to the same repository. In general, you can fix all of the errors except for the _line too long_ error - suggestions on addressing this error are welcome.
 

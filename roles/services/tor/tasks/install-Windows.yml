@@ -1,2 +1,46 @@
 ---
-[] # TODO
+- name: "Ensure privoxy is installed"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  chocolatey.chocolatey.win_chocolatey:
+    name: privoxy
+    state: "{{ app_state | default('present') }}"
+  register: privoxy_installation_result
+
+- name: "Ensure {{ app_name }} is installed"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  chocolatey.chocolatey.win_chocolatey:
+    name: tor
+    state: "{{ app_state | default('present') }}"
+  register: tor_installation_result
+
+- name: "Ensure to copy Tor to {{ tor_install_path }}" # noqa 503
+  ansible.windows.win_copy:
+    src: "{{ item }}"
+    dest: "{{ tor_install_path }}"
+    remote_src: true
+  with_items:
+    - C:/ProgramData/chocolatey/bin/tor.exe
+    - C:/ProgramData/chocolatey/bin/tor-gencert.exe
+  when: tor_installation_result.changed
+
+- name: "Create Tor service" # noqa 503
+  ansible.windows.win_command: "{{ tor_install_path }}/tor.exe -service install"
+  when: tor_installation_result.changed
+
+- name: "Forward proxy connections to Tor"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  community.windows.win_lineinfile:
+    path: "{{ privoxy_config_path }}"
+    regex: "forward-socks5t / localhost"
+    line: forward-socks5t / localhost:9050 .
+
+- name: "Enforce using USA exit node with Tor connections"
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  ansible.windows.win_template:
+    src: torrc.j2
+    dest: "{{ torrc_path }}"
+  notify: restart tor windows

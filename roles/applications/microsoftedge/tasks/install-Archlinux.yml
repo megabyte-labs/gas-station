@@ -1,2 +1,30 @@
 ---
-[] # TODO - Note: Microsoft Edge might not be available for Archlinux yet
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ msedge_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  ansible.builtin.file:
+    mode: 0755
+    path: "{{ msedge_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  ansible.builtin.git:
+    dest: "{{ msedge_src_dir }}"
+    repo: "{{ msedge_aur_git_repository }}"
+  register: msedge_git
+
+- name: "Remove /usr/bin/microsoft-edge-dev if the source files have changed" # noqa 503
+  file:
+    path: /usr/bin/microsoft-edge-dev
+    state: absent
+  when: msedge_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ msedge_src_dir }}"
+    creates: /usr/bin/microsoft-edge-dev

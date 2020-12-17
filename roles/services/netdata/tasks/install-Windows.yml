@@ -1,33 +1,33 @@
 ---
-- name: Install pip3
-  apt:
-    name: python3-pip
+- name: "Ensure python and pip are installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name:
+      - python
+      - pip
     state: present
 
-- name: Install docker pip package
+- name: "Ensure docker pip package is installed"
   pip:
     name: docker
     state: present
 
-- name: Pull netdata image
-  docker_image:
+- name: "Ensure {{ app_name }} container image is pulled"
+  community.general.docker_image:
     name: netdata/netdata
     source: pull
 
-- name: Create required volumes
-  docker_volume:
+- name: "Ensure required volumes are created"
+  community.general.docker_volume:
     name: "{{ item }}"
   loop: "{{ docker_volume_list }}"
 
-- name: Run netdata docker container
-  docker_container:
+- name: "Ensure {{ app_name }} docker container is running"
+  community.general.docker_container:
     name: netdata
     image: netdata/netdata
     restart_policy: unless-stopped
     capabilities:
       - SYS_PTRACE
-    security_opts:
-      - "apparmor:unconfined"
     ports:
       - 19999:19999
     volumes:

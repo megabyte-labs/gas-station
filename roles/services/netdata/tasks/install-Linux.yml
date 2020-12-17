@@ -1,5 +1,5 @@
 ---
-- name: Ensure Megabyte Labs configuration directory exists
+- name: "Ensure Megabyte Labs configuration directory exists"
   file:
     mode: 0700
     path: "{{ item }}"
@@ -8,44 +8,41 @@
     - ~/.config
     - ~/.config/megabytelabs
 
-- name: Download the netdata kickstart.sh file
+- name: "Download the netdata kickstart.sh file"
   get_url:
     url: https://my-netdata.io/kickstart.sh
     dest: ~/.config/megabytelabs/netdata-kickstart.sh
   register: kickstart_file
 
-- debug:
-    msg: "{{ kickstart_file }}"
-
-- name: Ensure netdata is installed and up-to-date # noqa 301 503
+- name: "Ensure {{ app_name }} is installed and up-to-date" # noqa 301 503
   command: bash ~/.config/megabytelabs/netdata-kickstart.sh --dont-wait --stable-channel --disable-telemetry
   register: netdata_install
   when: kickstart_file.changed
 
-- name: Determine whether or not to add kernel optimizations for netdata
+- name: "Determine whether or not to add kernel optimizations for netdata"
   set_fact:
     kernel_deduper: "{{ (not netdata_install.skipped) and ('You have a kernel memory de-duper' in netdata_install.stdout) }}"
 
-- name: Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/run)
+- name: "Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/run)"
   command: echo 1 >/sys/kernel/mm/ksm/run
   when: kernel_deduper
 
-- name: Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/sleep_millisecs)
+- name: "Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/sleep_millisecs)"
   command: echo 1000 >/sys/kernel/mm/ksm/sleep_millisecs
   when: kernel_deduper
 
-- name: Restart netdata
+- name: "Restart netdata"
   service:
     name: netdata
     state: restarted
   when: kernel_deduper
 
-- name: Check if netdata instance was claimed by netdata.cloud
+- name: "Check if netdata instance was claimed by netdata.cloud"
   stat:
     path: ~/.config/megabytelabs/netdata-claimed
   register: netdata_claim
 
-- name: Wait for netdata to stabilize
+- name: "Wait for netdata to stabilize"
   wait_for:
     timeout: 3
   when:
@@ -53,7 +50,7 @@
     - netdata_room is defined
     - netdata_token is defined
 
-- name: Add instance to netdata cloud
+- name: "Add instance to netdata cloud"
   command: "netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
   args:
     creates: ~/.config/megabytelabs/netdata-claimed
@@ -64,7 +61,7 @@
     - netdata_room is defined
     - netdata_token is defined
 
-- name: Create configuration if the netdata claim was successful
+- name: "Create configuration if the netdata claim was successful"
   file:
     mode: 0600
     path: ~/config/megabytelabs/netdata-claimed

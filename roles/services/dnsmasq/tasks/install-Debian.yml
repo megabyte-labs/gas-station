@@ -1,10 +1,10 @@
 ---
-- name: Ensure dnsmasq is installed
+- name: "Ensure {{ app_name }} is installed"
   apt:
     name: dnsmasq
     state: present
 
-- name: Prevent systemd-resolved from binding to DNS port 53
+- name: "Prevent systemd-resolved from binding to DNS port 53"
   lineinfile:
     path: "{{ systemd_resolved_conf_path }}"
     regex: "DNSStubListener="
@@ -15,21 +15,21 @@
   register: disable_resolved_stub
   when: use_dnsmasq_for_dns
 
-- name: Prevent dnsmasq from forwarding non-domain queries upstream
+- name: "Prevent {{ app_name }} from forwarding non-domain queries upstream"
   lineinfile:
     path: "{{ dnsmasq_conf_path }}"
     regexp: "#domain-needed"
     line: "domain-needed"
   notify: restart dnsmasq
 
-- name: Prevent dnsmasq from forwarding reverse-lookup queries upstream
+- name: "Prevent {{ app_name }} from forwarding reverse-lookup queries upstream"
   lineinfile:
     path: "{{ dnsmasq_conf_path }}"
     regexp: "#bogus-priv"
     line: "bogus-priv"
   notify: restart dnsmasq
 
-- name: Configure dnsmasq's DHCP server if a dnsmasq_dhcp_interface is defined
+- name: "Configure {{ app_name }}'s DHCP server if a dnsmasq_dhcp_interface is defined"
   blockinfile:
     path: "{{ dnsmasq_conf_path }}"
     marker: "# {mark} ANSIBLE MANAGED CONFIGURATION BLOCK FOR DHCP"

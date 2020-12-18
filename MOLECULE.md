@@ -2,7 +2,7 @@
 
 All Molecule tests should include tests for the following environments:
 
-**Supported Operating Systems**
+## Supported Operating Systems
 
 - CentOS 8
 - Debian 10 (buster)
@@ -10,7 +10,7 @@ All Molecule tests should include tests for the following environments:
 - Fedora 33
 - Latest Archlinux
 
-**Test-Only Operating Systems**
+## Test-Only Operating Systems
 
 _The following operating systems should be included in Molecule tests at the latest version but are not officially supported:_
 

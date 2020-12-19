@@ -1,2 +1,29 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }} and privoxy are installed"
+  become_user: "{{ ansible_user }}"
+  community.general.homebrew:
+    name:
+      - privoxy
+      - tor
+    state: "{{ app_state | default('present') }}"
+
+- name: "Forward proxy connections to Tor"
+  lineinfile:
+    path: "{{ privoxy_config_path }}"
+    regex: "forward-socks5t / localhost"
+    line: forward-socks5t / localhost:9050 .
+  notify: restart privoxy darwin
+
+- name: "Ensure torrc file exists"
+  copy:
+    src: /usr/local/etc/tor/torrc.sample
+    dest: "{{ torrc_path }}"
+    mode: preserve
+    remote_src: true
+
+- name: "Enforce using USA exit node with Tor connections"
+  blockinfile:
+    path: "{{ torrc_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR TOR SETTINGS"
+    block: "{{ tor_settings }}"
+  notify: restart tor darwin

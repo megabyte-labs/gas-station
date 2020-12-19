@@ -1,2 +1,40 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }} is installed"
+  community.general.homebrew:
+    name: dnsmasq
+    state: present
+
+#- name: "Ensure that mDNSResponder is unloaded"
+#  shell: |
+#    sudo launchctl unload /System/Library/LaunchDaemons/com.apple.mDNSResponder.plist
+#    sudo launchctl unload /System/Library/LaunchDaemons/com.apple.mDNSResponderHelper.plist
+#  when: use_dnsmasq_for_dns
+
+- name: "Prevent {{ app_name }} from forwarding non-domain queries upstream"
+  lineinfile:
+    path: "{{ dnsmasq_conf_path }}"
+    regexp: "#domain-needed"
+    line: "domain-needed"
+  notify: restart dnsmasq darwin
+
+- name: "Prevent {{ app_name }} from forwarding reverse-lookup queries upstream"
+  lineinfile:
+    path: "{{ dnsmasq_conf_path }}"
+    regexp: "#bogus-priv"
+    line: "bogus-priv"
+  notify: restart dnsmasq darwin
+
+- name: "Configure {{ app_name }}'s DHCP server if a dnsmasq_dhcp_interface is defined"
+  blockinfile:
+    path: "{{ dnsmasq_conf_path }}"
+    marker: "# {mark} ANSIBLE MANAGED CONFIGURATION BLOCK FOR DHCP"
+    block: |
+      dhcp-range={{ dhcp_interface }},192.168.168.50,192.168.168.150,12h
+      dhcp-option=option:router,192.168.168.1
+      dhcp-option=6,192.168.168.1
+      log-facility=/var/log/dnsmasq.log # Log file path
+      log-async
+      log-queries       # Log queries
+      log-dhcp          # Log DHCP related messages
+  when: dhcp_interface is defined
+  notify: restart dnsmasq darwin

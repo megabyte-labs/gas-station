@@ -1,31 +1,63 @@
 ---
-- name: Check if swap file already exists
-  stat:
-    path: /swapfile
-  register: swapfile
+- name: Create Swap volume (when ZFS is used for the root partition)
+  block:
+    - name: Find the PAGESIZE
+      command: getconf PAGESIZE
+      register: pagesize_value
+      changed_when: false
+    - name: Create rpool/swapfile volume
+      community.general.zfs:
+        name: rpool/swapfile
+        state: present
+        extra_zfs_properties:
+          volsize: "{{ swap_space }}"
+          volblocksize: "{{ pagesize_value.stdout | int }}"
+          compression: zle
+          logbias: throughput
+          sync: always
+          primarycache: metadata
+          secondarycache: none
+          com.sun:auto-snapshot: false
+      register: zfs_swap
+    - name: Format /swapfile
+      command: mkswap -f /dev/zvol/rpool/swapfile
+      when: zfs_swap.changed
+    - name: Turn on swap
+      command: swapon /dev/zvol/rpool/swapfile
+      when: zfs_swap.changed
+    - name: Ensure swap loads on boot
+      lineinfile:
+        dest: /etc/fstab
+        regexp: /swapfile
+        line: "/dev/zvol/rpool/swapfile none swap discard 0 0"
+      when: zfs_swap.changed
+  when: "'ZFS' in ansible_facts.cmdline.root"
 
-- name: Create /swapfile
-  command: "fallocate -l {{ swap_space }} /swapfile"
-  when: not swapfile.stat.exists
-
-- name: Set permissions on /swapfile
-  file:
-    path: /swapfile
-    mode: 0600
-
-- name: Format /swapfile
-  command: mkswap /swapfile
-  when: not swapfile.stat.exists
-
-- name: Turn on swap
-  command: swapon /swapfile
-  when: not swapfile.stat.exists
-
-- name: Ensure swap loads on boot
-  lineinfile:
-    dest: /etc/fstab
-    regexp: /swapfile
-    line: "/swapfile none swap sw 0 0"
+- name: Create Swap file
+  block:
+    - name: Check if swap file already exists
+      stat:
+        path: /swapfile
+      register: swapfile
+    - name: Create /swapfile
+      command: "fallocate -l {{ swap_space }} /swapfile"
+      when: not swapfile.stat.exists
+    - name: Set permissions on /swapfile
+      file:
+        path: /swapfile
+        mode: 0600
+    - name: Format /swapfile
+      command: mkswap /swapfile
+      when: not swapfile.stat.exists
+    - name: Turn on swap
+      command: swapon /swapfile
+      when: not swapfile.stat.exists
+    - name: Ensure swap loads on boot
+      lineinfile:
+        dest: /etc/fstab
+        regexp: /swapfile
+        line: "/swapfile none swap sw 0 0"
+  when: "'ZFS' not in ansible_facts.cmdline.root"
 
 - name: Set swappiness
   sysctl:

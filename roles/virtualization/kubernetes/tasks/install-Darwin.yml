@@ -1,5 +1,5 @@
 ---
-- name: Ensure kubectl is installed
+- name: "Ensure {{ app_name }} tools are installed"
   community.general.homebrew:
     name: "{{ item }}"
     state: present
@@ -8,4 +8,13 @@
     - hyperkit
     - kompose
     - kubectl
-# Run minikube config set driver {{ kubernetes_mac_driver }}
+
+- name: "Ensure Minikube is installed"
+  community.general.homebrew:
+    name: minikube
+    state: present
+  register: minikube_install
+
+- name: "Ensure Minikube driver is configured" # noqa 503
+  command: "minikube config set driver {{ kubernetes_mac_driver }}"
+  when: minikube_install.changed

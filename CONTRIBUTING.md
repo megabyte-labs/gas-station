@@ -67,3 +67,20 @@ This error will go away if you tell Ansible what files the command creates or de
 #### [305] Use shell only when shell functionality is required
 
 We should only be using Ansible's shell feature when absolutely necessary. First, test whether or not the role works by replacing shell: with command:. If it works, then change it to command. If it does not, then add a comment at the end of the line that says `# noqa 305`.
+
+## Style
+
+#### When only one parameter is required, inline it.
+
+**BAD:**
+
+```
+when: 
+    - install_minikube
+```
+
+**GOOD:**
+
+```
+when: install_minikube
+```

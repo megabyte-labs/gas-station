@@ -52,6 +52,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Run once for homebrew, snap
 - Make unifi.home.megabyte.space accessible
 - Fix docker-compose WireGuard tunnel issue
+- Guacamole role
 
 ## pfSense TODOs
 

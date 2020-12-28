@@ -84,3 +84,37 @@ when:
 ```
 when: install_minikube
 ```
+
+#### All roles `main.yml` file should be roughly the same
+
+The format in the majority of the `tasks/main.yml` files inside of roles should be the same. The format is:
+
+```
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+```
+
+However, when the role is complete, if the variable files are all unused, then you can delete all of the OS-specific variable files as well as the first task in the snippet above. The `tasks/main.yml` file would then look like this:
+
+```
+---
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+```
+
+#### Where possible, use the DRY principle
+
+DRY stands for Do NOT Repeat Yourself. Whenever there is code that is duplicated across multiple task files, you should seperate it into a different file and then include it like this:
+
+```
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+```

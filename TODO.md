@@ -50,6 +50,8 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Fix permissions in /usr/share/applications
 - Refactor applications/androidstudio to applications/plex
 - Run once for homebrew, snap
+- Make unifi.home.megabyte.space accessible
+- Fix docker-compose WireGuard tunnel issue
 
 ## pfSense TODOs
 

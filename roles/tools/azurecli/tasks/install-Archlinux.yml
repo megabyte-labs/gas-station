@@ -1,0 +1,25 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ azurecli_dependencies }}"
+    state: present
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  git:
+    dest: "{{ azurecli_src_directory }}"
+    repo: "{{ azurecli_aur_repo_url }}"
+  register: azurecli_git
+
+- name: "Remove /opt/azure-cli/bin/az if the source files have changed" # noqa 503
+  file:
+    path: /opt/azure-cli/bin/az
+    state: absent
+  when: azurecli_git.changed
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ azurecli_src_dir }}"
+    creates: /opt/azure-cli/bin/az
+  when: azurecli_git.changed

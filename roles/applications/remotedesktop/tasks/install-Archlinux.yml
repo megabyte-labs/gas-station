@@ -1,3 +1,44 @@
 ---
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
+
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ xrdp_dependencies }}"
+    state: present
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  ansible.builtin.git:
+    dest: "{{ xrdp_src_dir }}"
+    repo: "{{ xrdp_aur_git_repository }}"
+  register: xrdp_src
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ xrdp_src_dir }}"
+  when: xrdp_src.changed
+
+- name: "Ensure {{ app_name }} is started on boot"
+  systemd:
+    enabled: true
+    name: "{{ item }}"
+    state: started
+  when: install_xrdp
+  with_items:
+    - xrdp
+    - xrdp-sesman
+
+- name: "Determine whether or not GNOME is installed"
+  stat:
+    path: /usr/bin/gnome-shell
+  register: gnome_shell
+
+- name: "Ensure GNOME Boxes is installed"
+  community.general.pacman:
+    name: gnome-boxes
+    state: "{{ app_state | default('present') }}"
+  when:
+    - install_gnome_boxes
+    - gnome_shell.stat.exists

@@ -1,13 +1,20 @@
 ---
-- name: "Ensure python and pip are installed"
-  chocolatey.chocolatey.win_chocolatey:
-    name:
-      - python
-      - pip
+- name: "Ensure pip is installed"
+  community.general.homebrew:
+    name: "{{ python_package }}"
     state: present
+  when: ansible_system == 'Darwin'
+
+- name: "Ensure pip is installed"
+  package:
+    name: "{{ pip_package }}"
+    state: present
+  when: ansible_system == 'Linux'
 
 - name: "Ensure docker pip package is installed"
-  ansible.windows.win_command: pip install -U docker
+  pip:
+    name: docker
+    state: present
 
 - name: "Ensure {{ app_name }} container image is pulled"
   community.general.docker_image:
@@ -26,6 +33,7 @@
     restart_policy: unless-stopped
     capabilities:
       - SYS_PTRACE
+    security_opts: "{{ security_opts | deault('omit') }}"
     ports:
       - 19999:19999
     volumes:
@@ -40,12 +48,18 @@
   loop: "{{ bind_volumes }}"
 
 - name: "Ensure Megabyte Labs configuration directory exists"
-  ansible.windows.win_file:
+  file:
+    mode: 0700
     path: "{{ item }}"
     state: directory
   loop:
-    - '%USERPROFILE%\.config'
-    - '%USERPROFILE%\.config\megabytelabs'
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if netdata instance was claimed by netdata.cloud"
+  stat:
+    path: ~/.config/megabytelabs/netdata-claimed
+  register: netdata_claim
 
 - name: "Wait for netdata to stabilize"
   wait_for:
@@ -56,9 +70,9 @@
     - netdata_token is defined
 
 - name: "Add instance to netdata cloud"
-  ansible.windows.win_command: "docker exec -t netdata netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
+  command: "docker exec -t netdata netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
   args:
-    creates: '%USERPROFILE%\.config\megabytelabs\netdata-claimed'
+    creates: ~/.config/megabytelabs/netdata-claimed
   ignore_errors: true
   register: netdata_claimed_status
   when:
@@ -67,8 +81,9 @@
     - netdata_token is defined
 
 - name: "Create configuration if the netdata claim was successful"
-  ansible.windows.win_file:
-    path: '%USERPROFILE%\.config\megabytelabs\netdata-claimed'
+  file:
+    mode: 0600
+    path: ~/.config/megabytelabs/netdata-claimed
     state: touch
   when:
     - not (netdata_claimed_status.failed | default(false))

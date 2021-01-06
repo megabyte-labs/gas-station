@@ -1,0 +1,42 @@
+---
+- name: "Ensure Composer directory exists"
+  become_user: "{{ composer_home_owner }}"
+  file:
+    path: "{{ composer_home_path }}"
+    owner: "{{ composer_home_owner }}"
+    group: "{{ composer_home_group }}"
+    state: directory
+    mode: 0755
+
+- name: "Ensure GitHub OAuth token for Composer is added"
+  become_user: "{{ composer_home_owner }}"
+  template:
+    src: "auth.json.j2"
+    dest: "{{ composer_home_path }}/auth.json"
+    owner: "{{ composer_home_owner }}"
+    group: "{{ composer_home_group }}"
+    mode: 0644
+  when: composer_github_oauth_token | length > 0
+
+- name: "Ensure configured globally-required packages are installed"
+  become_user: "{{ composer_home_owner }}"
+  command: >
+    {{ composer_path }} global require {{ item.name }}:{{ item.release | default('@stable') }} --no-progress --no-interaction
+  args:
+    creates: "{{ composer_home_path }}/vendor/{{ item.name }}"
+  loop: "{{ composer_global_packages }}"
+  when: composer_global_packages | length > 0
+
+- name: "Ensure composer_home_path bin directory is added to global $PATH"
+  template:
+    src: composer.sh.j2
+    dest: /etc/profile.d/composer.sh
+    mode: 0644
+  when: composer_add_to_path | bool
+
+- name: "Ensure composer_project_path bin directory is added to global $PATH"
+  template:
+    src: composer-project.sh.j2
+    dest: /etc/profile.d/composer-project.sh
+    mode: 0644
+  when: composer_add_project_to_path | bool

@@ -1,0 +1,26 @@
+---
+- name: "Register MAS installed apps"
+  command: mas list
+  register: mas_list
+  changed_when: false
+
+- name: "Ensure {{ app_name }} is installed"
+  command: "mas install '{{ wireguard_mas_id }}'"
+  args:
+    creates: "/Applications/WireGuard.app"
+  when: (wireguard_mas_id | string) not in mas_list.stdout
+
+- name: "Ensure {{ app_name }}'s configuration directory exists"
+  file:
+    path: "{{ wireguard_conf_dir }}"
+    state: directory
+    mode: 0600
+
+- name: "Copy WireGuard connection file"
+  copy:
+    src: "files/vpn/{{ vpn_connection.file }}"
+    dest: "{{ system_connections_path }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
+    owner: root
+    group: root
+    mode: 0600
+  when: '"nmconnection" in vpn_connection.file'

@@ -1,48 +1,8 @@
 ---
-- name: Install VPN dependencies
+- name: "Ensure VPN dependencies are installed"
   apt:
     name: "{{ vpn_dependencies }}"
     state: present
 
-- name: Remove NetworkManager's system-connections if configured to do so
-  file:
-    path: "{{ system_connections_path }}/"
-    state: absent
-  when: remove_vpn_connections | bool
-  notify: restart networkmanager
-
-- name: Check if WireGuard NetworkManager VPN plugin exists
-  stat:
-    path: /usr/lib/NetworkManager/nm-wireguard-service
-  register: nm_wireguard
-
-- name: Run WireGuard plugin installation, if plugin is not present
-  include_tasks: wireguard-Debian.yml
-  when: not nm_wireguard.stat.exists
-
-- name: Ensure temporary directory for OpenVPN files exists # TODO: Only create this if there are profiles that have not been imported
-  file:
-    mode: 0600
-    path: "{{ openvpn_tmp_dir }}"
-    state: directory
-  when: vpn_connections | length
-
-- name: Acquire a list the current VPN connections
-  command: nmcli -t connection
-  changed_when: false
-  register: nmcli_connections
-  when: vpn_connections | length
-
-- name: Install VPN configuration files
-  include_tasks: "profile-{{ ansible_os_family }}.yml"
-  loop: "{{ vpn_connections | default([]) }}"
-  loop_control:
-    label: "{{ vpn_connection.file }}"
-    loop_var: vpn_connection
-
-# TODO Being marked as changed
-- name: Remove temporary directory for OpenVPN files
-  file:
-    path: "{{ openvpn_tmp_dir }}"
-    state: absent
-  when: vpn_connections | length
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml

@@ -4,6 +4,13 @@
   register: mas_list
   changed_when: false
 
+- name: "Ensure VPN connections are removed if configured to do so"
+  copy:
+    src: "{{ system_connections_path }}"
+    dest: "{{ system_connections_path }}.old"
+    mode: preserve
+  when: remove_vpn_connections | bool
+
 - name: "Ensure {{ app_name }} is installed"
   command: "mas install '{{ wireguard_mas_id }}'"
   args:
@@ -19,7 +26,7 @@
 - name: "Copy WireGuard connection file"
   copy:
     src: "files/vpn/{{ vpn_connection.file }}"
-    dest: "{{ system_connections_path }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
+    dest: "{{ wireguard_conf_dir }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
     owner: root
     group: root
     mode: 0600

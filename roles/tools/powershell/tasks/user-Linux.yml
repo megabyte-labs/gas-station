@@ -1,19 +1,25 @@
 ---
-- name: Ensure the PowerShell config directory exists # TODO: Figure out the minimum permission for this to work
+- name: Ensure the PowerShell config directory exists
   file:
     path: "{{ item }}"
     state: directory
     owner: "{{ user.username }}"
     group: "{{ user.group | default(user.username) }}"
-    mode: 0755
+    mode: 0660
   loop:
     - ~/.config
     - ~/.config/powershell
 
-- name: Copy the PowerShell profile # TODO: Figure out the minimum permission for this to work
+- name: Fetch the initialization command # noqa 503
+  command: /snap/bin/starship init powershell
+  register: starship_out
+  when: install_result.changed
+
+- name: Create the Initialization script for powershell # noqa 503
   copy:
-    src: Microsoft.PowerShell_profile.ps1
-    dest: ~/.config/powershell/Microsoft.PowerShell_profile.ps1
+    dest: "~/.config/powershell/Microsoft.PowerShell_profile.ps1"
+    content: "{{ starship_out.stdout }}"
     owner: "{{ user.username }}"
     group: "{{ user.group | default(user.username) }}"
-    mode: 0700
+    mode: 0660
+  when: install_result.changed

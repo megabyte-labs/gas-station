@@ -1,24 +1,31 @@
 ---
-- name: "Ensure Composer directory exists"
-  become_user: "{{ composer_home_owner }}"
-  file:
-    path: "{{ composer_home_path }}"
-    owner: "{{ composer_home_owner }}"
-    group: "{{ composer_home_group }}"
-    state: directory
-    mode: 0755
+- name: Setup user specific configuration
+  block:
+    - name: Ensure Composer directory exists
+      become_user: "{{ user.username }}"
+      file:
+        path: "~/.composer"
+        owner: "{{ user.username }}"
+        group: "{{ user.group }}"
+        state: directory
+        mode: 0755
 
-- name: "Ensure GitHub OAuth token for Composer is added"
-  become_user: "{{ composer_home_owner }}"
-  template:
-    src: "auth.json.j2"
-    dest: "{{ composer_home_path }}/auth.json"
-    owner: "{{ composer_home_owner }}"
-    group: "{{ composer_home_group }}"
-    mode: 0644
-  when: composer_github_oauth_token | length > 0
+    - name: Ensure GitHub OAuth token for Composer is added
+      become_user: "{{ user.username }}"
+      template:
+        src: "auth.json.j2"
+        dest: "~/.composer/auth.json"
+        owner: "{{ user.username }}"
+        group: "{{ user.group }}"
+        mode: 0644
+      when: composer_github_oauth_token | length > 0
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+  loop: "{{ user_configs | default([]) }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
 
-- name: "Ensure configured globally-required packages are installed"
+- name: Ensure configured globally-required packages are installed
   become_user: "{{ composer_home_owner }}"
   command: >
     {{ composer_path }} global require {{ item.name }}:{{ item.release | default('@stable') }} --no-progress --no-interaction
@@ -27,14 +34,14 @@
   loop: "{{ composer_global_packages }}"
   when: composer_global_packages | length > 0
 
-- name: "Ensure composer_home_path bin directory is added to global $PATH"
+- name: Ensure composer_home_path bin directory is added to global $PATH
   template:
     src: composer.sh.j2
     dest: /etc/profile.d/composer.sh
     mode: 0644
   when: composer_add_to_path | bool
 
-- name: "Ensure composer_project_path bin directory is added to global $PATH"
+- name: Ensure composer_project_path bin directory is added to global $PATH
   template:
     src: composer-project.sh.j2
     dest: /etc/profile.d/composer-project.sh

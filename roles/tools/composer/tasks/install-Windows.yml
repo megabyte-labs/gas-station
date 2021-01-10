@@ -8,22 +8,29 @@
     package_params:
       - /Dev:{{ composer_path }}
 
-- name: "Ensure Composer directory exists"
-  become_method: runas
-  become_user: "{{ composer_home_owner }}"
-  ansible.windows.win_file:
-    path: "{{ composer_home_path }}"
-    state: directory
+- name: Setup user specific configuration
+  block:
+    - name: Ensure Composer directory exists
+      become_method: runas
+      become_user: "{{ user.username }}"
+      ansible.windows.win_file:
+        path: "{{ composer_home_path }}"
+        state: directory
 
-- name: "Ensure GitHub OAuth token for Composer is added"
-  become_method: runas
-  become_user: "{{ composer_home_owner }}"
-  ansible.windows.win_template:
-    src: "auth.json.j2"
-    dest: "{{ composer_home_path }}\\auth.json"
-  when: composer_github_oauth_token | length > 0
+    - name: Ensure GitHub OAuth token for Composer is added
+      become_method: runas
+      become_user: "{{ user.username }}"
+      ansible.windows.win_template:
+        src: "auth.json.j2"
+        dest: "{{ composer_home_path }}\\auth.json"
+      when: composer_github_oauth_token | length > 0
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+  loop: "{{ user_configs | default([]) }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
 
-- name: "Ensure configured globally-required packages are installed"
+- name: Ensure configured globally-required packages are installed
   become_method: runas
   become_user: "{{ composer_home_owner }}"
   command: >
@@ -33,7 +40,7 @@
   loop: "{{ composer_global_packages }}"
   when: composer_global_packages | length > 0
 
-- name: "Ensure composer_home_path bin directory is added to global $PATH"
+- name: Ensure composer_home_path bin directory is added to global $PATH
   become_method: runas
   become_user: "{{ composer_home_owner }}"
   ansible.windows.win_path:
@@ -41,7 +48,7 @@
     state: present
   when: composer_add_to_path | bool
 
-- name: "Ensure composer_project_path bin directory is added to global $PATH"
+- name: Ensure composer_project_path bin directory is added to global $PATH
   become_method: runas
   become_user: "{{ composer_home_owner }}"
   ansible.windows.win_path:

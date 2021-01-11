@@ -1,0 +1,20 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  community.general.npm:
+    name: google-font-installer
+    global: true
+    state: "{{ app_state | default('present') }}"
+
+- name: Cycle through the list of fonts to install
+  block:
+    - name: "Ensure {{ fonts_dir + '/' + font }} directory exists"
+      file:
+        path: "{{ fonts_dir + '/' + font }}"
+        state: directory
+        mode: 0655
+    - name: "Ensure {{ font }} is installed" # noqa 501
+      command: "gfi download -d {{ fonts_dir + '/' + font }} {{ font }} && fc-cache -f"
+  loop: "{{ fonts }}"
+  loop_control:
+    label: "{{ font }}"
+    loop_var: font

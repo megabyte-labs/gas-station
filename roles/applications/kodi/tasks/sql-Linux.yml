@@ -1,0 +1,17 @@
+---
+- name: Secure mariadb installation # noqa 301 # TODO: Test this step
+  command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - UPDATE mysql.user SET Password=PASSWORD('{{ mysql_root_password }}') WHERE User='root';
+    - DELETE FROM mysql.user WHERE User='';
+    - DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1', '{{ kodi_mysql_server }}');
+    - DROP DATABASE IF EXISTS test;
+    - DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+    - FLUSH PRIVILEGES;
+
+- name: Setup DB for Kodi # noqa 301 # TODO: Test this step
+  command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - CREATE USER '{{ kodi_mysql_user }}' IDENTIFIED BY '{{ kodi_mysql_pass }}';
+    - GRANT ALL ON *.* TO '{{ kodi_mysql_user }}';
+    - FLUSH PRIVILEGES;

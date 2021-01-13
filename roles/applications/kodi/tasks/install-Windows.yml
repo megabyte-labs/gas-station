@@ -8,3 +8,42 @@
   chocolatey.chocolatey.win_chocolatey:
     name: mariadb
     state: present
+
+- name: Firewall rule to allow MySQL TCP port 3306
+  community.windows.win_firewall_rule:
+    name: MySQL
+    localport: 3306
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+
+- name: Setup DB for Kodi # noqa 301 # TODO: Test this step
+  ansible.windows.win_command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - CREATE USER '{{ kodi_mysql_user }}' IDENTIFIED BY '{{ kodi_mysql_pass }}';
+    - GRANT ALL ON *.* TO '{{ kodi_mysql_user }}';
+    - FLUSH PRIVILEGES;
+
+- name: Ensure '%APPDATA%\Kodi\userdata\' directory exists
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.username }}"
+    mode: 0755
+  with_items:
+    - "{{ kodi_conf_dir }}"
+    - "{{ kodi_conf_dir }}\\userdata\\"
+
+- name: Create configuration files
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: "{{ item }}.j2"
+    dest: "{{ kodi_conf_dir }}\\userdata\\{{ item }}"
+    owner: "{{ user.username }}"
+    mode: 0755
+  with_items:
+    - sources.xml
+    - advancedsettings.xml

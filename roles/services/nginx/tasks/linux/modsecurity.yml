@@ -1,16 +1,22 @@
 ---
 - name: Install Modsecurity dependencies
-  apt:
+  package:
     name: "{{ linux_modsec_dependencies }}"
     state: present
 
 - name: Obtain Modsecurity source code from git repository
   git:
     depth: "1"
-    dest: ~/ModSecurity
+    dest: "{{ modsec_src_directory }}"
     force: true
     repo: "{{ modsec_git_repository }}"
     version: "{{ modsec_git_version }}"
+  register: clone_modsec
+
+- name: Remove older version of ModSecrity # noqa 503
+  file:
+    path: /usr/local/modsecurity/lib/libmodsecurity.so
+  when: clone_modsec.changed
 
 - name: Configure, build, make install
   command: |
@@ -19,37 +25,41 @@
     make
     make install
   args:
-    chdir: ~/ModSecurity
+    chdir: "{{ modsec_src_directory }}"
     creates: /usr/local/modsecurity/lib/libmodsecurity.so
 
 - name: Obtain Modsecurity-nginx source code
   git:
     depth: "1"
-    dest: ~/ModSecurity-nginx
+    dest: "{{ modsecnginx_src_directory }}"
     force: true
     repo: "{{ modsec_nginx_git_repository }}"
     version: "{{ modsec_nginx_git_version }}"
+  register: clone_modsec_nginx
 
 - name: "Download and unarchive NGINX source code of version {{ nginx_version }}"
   unarchive:
-    dest: ~/
-    remote_src: true
     src: "https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
+    dest: "{{ nginx_src_directory }}"
+    remote_src: true
+  register: nginx_archive
 
-- name: Configure and make ModSecurity NGNINX module
+- name: Configure and make ModSecurity NGINX module # noqa 503
   command: |
-    ./configure --with-compat --add-dynamic-module=../ModSecurity-nginx
+    ./configure --with-compat --add-dynamic-module={{ modsecnginx_src_directory }}
     make modules
   args:
-    chdir: "~/nginx-{{ nginx_version }}"
+    chdir: "{{ nginx_src_directory + '/nginx-' + nginx_version }}"
     creates: ~/mods.so
+  when: clone_modsec_nginx.changed or nginx_archive.changed
 
-- name: Copy Modsecurity-nginx module to NGINX modules folder
+- name: Copy Modsecurity-nginx module to NGINX modules folder # noqa 503
   copy:
-    dest: "{{ nginx_module_path }}/ngx_http_modsecurity_module.so"
+    dest: "{{ nginx_module_link }}/ngx_http_modsecurity_module.so"
     mode: preserve
     remote_src: true
-    src: "~/nginx-{{ nginx_version }}/objs/ngx_http_modsecurity_module.so"
+    src: "{{ nginx_src_directory + '/nginx-' + nginx_version + '/objs/ngx_http_modsecurity_module.so' }}"
+  when: clone_modsec_nginx.changed or nginx_archive.changed
 
 - name: Obtain OWASP Modsecurity Rules
   git:
@@ -57,19 +67,12 @@
     force: true
     repo: "{{ modsec_rules_git_repository }}"
     version: "{{ modsec_rules_git_version }}"
+  register: clone_modsec_rules
 
-- name: Copy crs-setup.conf.example to crs-setup.conf
+- name: Copy crs-setup.conf.example to crs-setup.conf # noqa 503
   copy:
     dest: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
     mode: 0600
     remote_src: true
     src: "{{ modsec_waf_conf_directory }}/crs-setup.conf.example"
-
-- name: Clean up source directories
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "~/nginx-{{ nginx_version }}"
-    - ~/ModSecurity
-    - ~/ModSecurity-nginx
+  when: clone_modsec_rules.changed

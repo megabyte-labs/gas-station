@@ -3,6 +3,7 @@
   package:
     name: "{{ nginx_dependencies }}"
     state: present
+  when: ansible_os_family != 'Darwin'
 
 - name: Update nginx module link
   include_tasks: linux/update-module-link.yml
@@ -27,7 +28,9 @@
     owner: root
     group: root
     mode: 0644
-  when: ansible_distribution is defined and nginx_service_path is defined and nginx_service_path[ansible_distribution] is defined
+  when:
+    - ansible_distribution is defined and nginx_service_path is defined and nginx_service_path[ansible_distribution] is defined
+    - ansible_os_family != 'Darwin'
 
 - name: Compile Brotli modules
   include_tasks: linux/brotli.yml
@@ -42,7 +45,7 @@
   when:
     - nginx_amplify_api_key is defined
     - enable_nginx_amplify
-    - ansible_os_family == 'RedHat' or ansible_os_family == 'Debian'
+    - ansible_os_family != 'Darwin'
 
 - name: Register the file status of the ModSecurity WAF module configuration file
   stat:
@@ -88,3 +91,4 @@
     name: nginx
     state: restarted
   tags: nginx_configuration
+  when: ansible_os_family != 'Darwin'

@@ -1,0 +1,22 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: nginx
+    state: "{{ app_state | default('present') }}"
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+
+- name: Deploy NGINX job definition
+  template:
+    src: nginx.plist.j2
+    dest: /System/Library/LaunchDaemons/nginx.plist
+    owner: root
+    group: wheel
+    mode: 0644
+
+- name: Run NGINX
+  community.general.launchd:
+    name: nginx
+    state: started

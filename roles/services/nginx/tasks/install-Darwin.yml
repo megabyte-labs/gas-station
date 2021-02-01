@@ -5,13 +5,31 @@
     name: nginx
     state: "{{ app_state | default('present') }}"
 
+- name: Ensure cmake is installed
+  become: false
+  community.general.homebrew:
+    name: cmake
+    state: present
+
+- name: Ensure Brotli's dependencies are installed
+  become: false
+  community.general.homebrew_cask:
+    name: "{{ brotli_dependencies }}"
+    state: present
+
+- name: Ensure ModSecurity's dependencies are installed
+  become: false
+  community.general.homebrew_cask:
+    name: "{{ modsec_dependencies }}"
+    state: present
+
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
 
 - name: Deploy NGINX job definition
   template:
     src: nginx.plist.j2
-    dest: /System/Library/LaunchDaemons/nginx.plist
+    dest: "{{ nginx_service_path }}"
     owner: root
     group: wheel
     mode: 0644

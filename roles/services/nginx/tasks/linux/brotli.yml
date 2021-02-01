@@ -3,6 +3,7 @@
   package:
     name: "{{ brotli_dependencies }}"
     state: present
+  when: ansible_os_family != 'Darwin'
 
 - name: "Download and unarchive NGINX source code of version {{ nginx_version }}"
   unarchive:
@@ -30,7 +31,7 @@
     target: modules
   when: clone_brotli.changed or nginx_archive.changed
 
-- name: Copy compiled Brotli module to /usr/share/nginx/modules # noqa 503
+- name: "Copy compiled Brotli module to {{ nginx_module_link }}" # noqa 503
   copy:
     remote_src: true
     src: "{{ item.src }}"
@@ -40,7 +41,7 @@
     mode: 0644
   loop:
     - src: "{{ nginx_src_directory + '/nginx-' + nginx_version + '/objs/ngx_http_brotli_filter_module.so' }}"
-      dest: "/usr/share/nginx/modules"
+      dest: "{{ nginx_module_link }}"
     - src: "{{ nginx_src_directory + '/nginx-' + nginx_version + '/objs/ngx_http_brotli_static_module.so' }}"
-      dest: "/usr/share/nginx/modules"
+      dest: "{{ nginx_module_link }}"
   when: clone_brotli.changed or nginx_archive.changed

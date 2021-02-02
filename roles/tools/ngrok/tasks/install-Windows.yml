@@ -12,11 +12,23 @@
     dest: '%PROGRAMFILES\ngrok\'
   when: ngrok_download.changed
 
-- name: "Ensure authtoken is added to the configuration file"
-  community.windows.win_lineinfile:
-    path: "C:/Users/{{ ngrok_user }}/.ngrok2/ngrok.yml"
-    regex: "^authtoken"
-    line: "authtoken: {{ ngrok_token }}"
+- name: Ensure authtoken is added to the configuration file
+  become_user: "{{ user.username }}"
+  block:
+    - name: Ensure .ngrok2 folder exists
+      ansible.windows.win_file:
+        path: "C:/Users/{{ user.username }}/.ngrok2"
+        state: directory
+    - name: Ensure authtoken is added to the configuration file
+      community.windows.win_lineinfile:
+        path: "C:/Users/{{ user.username }}/.ngrok2/ngrok.yml"
+        regex: "^authtoken"
+        line: "authtoken: {{ user.ngrok_token }}"
   when:
-    - ngrok_token is defined
     - ngrok_download.changed
+    - user.ngrok_token is defined
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

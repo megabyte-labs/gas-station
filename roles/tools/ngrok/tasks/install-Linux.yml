@@ -9,13 +9,24 @@
     extra_opts:
       - --strip-components=1
 
-- name: "Ensure authtoken is added to the configuration file"
+- name: Ensure authtoken is added to the configuration file
   become_user: "{{ user.username }}"
-  lineinfile:
-    path: "/home/{{ ngrok_user }}/.ngrok2/ngrok.yml"
-    regex: "^authtoken"
-    line: "authtoken: {{ user.ngrok_token }}"
-  when: user.ngrok_token is defined
+  block:
+    - name: Ensure .ngrok2 folder exists
+      file:
+        path: "/home/{{ user.username }}/.ngrok2"
+        state: directory
+        mode: 0750
+        owner: "{{ user.username }}"
+        group: "{{ user.group }}"
+    - name: Ensure authtoken is added to the configuration file
+      lineinfile:
+        path: "/home/{{ user.username }}/.ngrok2/ngrok.yml"
+        regex: "^authtoken"
+        line: "authtoken: {{ user.ngrok_token }}"
+  when:
+    - user.ngrok_token is defined
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"

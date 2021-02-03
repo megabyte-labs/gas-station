@@ -5,7 +5,6 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 ## Playbook TODOs
 
 - Test PiHole role
-- Add static VPN routes so that the user can access the LAN while connected to a VPN
 - Add useful functions to AutoKey/AutoHotkey
 - Test AWX role
   - Implement with Docker if it possible
@@ -14,41 +13,18 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
   - Integrate LDAP with Authelia
 - Add Keycloak role
   - Configure Keycloak to work with FreeIPA
-- Add Resilio Sync role
-- Make Docker role not require a system restart
-- Add role that installs snapd on any Linux system
-- Add obfuscation to docker-compose-backup
-- Add SSH config for GitLab
-- Create machine NGINX profile with the following apps:
-  - Adminer
-  - Cockpit
-  - Duplicacy ([Theme](https://github.com/gilbN/theme.park/wiki/Duplicacy))
-  - File Browser ([Theme](https://github.com/gilbN/theme.park))
-  - Homer homepage
-  - Netdata ([Theme](https://github.com/gilbN/theme.park/wiki/Netdata))
-- Figure out if it is possible to install [Windows Admin Center](https://www.microsoft.com/en-us/windows-server/windows-admin-center) on Windows 10 Enterprise
+  
 - Switch to Docker secrets
   - Figure out if it is better to use HashiCorp Vault instead of Docker secrets
-- Add Netdata as Docker service to Windows
 - Create configurations necessary for unattended installations
 - Fix StatPing
-- Make HTPC Docker Compose use bundled WireGuard VPN
 - Symlink NextCloud to include all files
-- Module/plugin for determining what files were created/deleted
 - Add Shellcheck to pre-commit
 - Get Docker container that can do all pre-commit stuff
   - [shellcheck](https://github.com/koalaman/shellcheck)
   - [shfmt](https://github.com/mvdan/sh)
-- Add commit message prompt for git master
-- FTP client
-- [ffsend](https://github.com/timvisee/ffsend#windows)
-- [ngrok](https://ngrok.com/download)
 - URL shortener
-- garbage file .wget-hsts
-- Add kompose for Linux distros to the roles/virtualization/kubernetes (use [the Go method here](https://github.com/kubernetes/kompose/blob/master/docs/installation.md#go))
-- Prettier remove feature that strips white space from aligned comments
 - Fix permissions in /usr/share/applications
-- Refactor applications/androidstudio to applications/plex
 - Run once for homebrew, snap
 - Make unifi.home.megabyte.space accessible
 - Fix docker-compose WireGuard tunnel issue
@@ -80,14 +56,13 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - [Teleport](https://github.com/gravitational/teleport)
 - Rundeck (LDAP)
 - SecurityOnion
-- NGINX Optimized Dockerized
 - Kubernetes
 - [Sentry](https://sentry.io/welcome/) on Kubernetes
 - [Rancher](https://rancher.com/)
 - Kubernetes
 - Minio
 - Home Assistant
-
+- Resilio Sync
 ## Windows TODOs
 
 - Look into IIS-WinidowsAuthentication optional feature

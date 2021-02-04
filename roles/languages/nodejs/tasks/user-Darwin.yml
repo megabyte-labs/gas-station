@@ -1,0 +1,18 @@
+---
+- name: Ensure .bash_profile exists
+  become: "{{ user.username }}"
+  file:
+    path: ~/.bash_profile
+    owner: "{{ user.username }}"
+    state: touch
+    mode: 0700
+
+- name: "Ensure npm_config_prefix bin is added to $PATH"
+  become: "{{ user.username }}"
+  blockinfile:
+    path: ~/.bash_profile
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for NODEJS"
+    block: |
+      export PATH=$PATH:{{ npm_config_prefix }}/bin
+      export NPM_CONFIG_PREFIX={{ npm_config_prefix }}
+      export NODE_PATH=$NODE_PATH:{{ npm_config_prefix }}/lib/node_modules

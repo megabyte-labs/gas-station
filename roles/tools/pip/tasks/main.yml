@@ -1,15 +1,11 @@
 ---
-- name: Ensure Python is installed
-  become: true
-  package:
-    name: "{{ python_package }}"
-    state: present
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Ensure Pip is installed # TODO: Add repo-epel if on RedHat (only if necessary)
+- name: Include tasks based on the operating system
   become: true
-  package:
-    name: "{{ pip_package }}"
-    state: present
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
 
 - name: Ensure pip_install_packages are installed
   pip:
@@ -19,3 +15,8 @@
     state: "{{ item.state | default(omit) }}"
     executable: "{{ pip_executable }}"
   loop: "{{ pip_packages }}"
+
+- name: "Ensure PIP Packages are installed"
+  become: true
+  block:
+    - include_tasks: pip-users.yml

@@ -1,0 +1,60 @@
+---
+- name: "Ensure Megabyte Labs configuration directory exists"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/vault"
+  stat:
+    path: "~/.config/megabytelabs/vault"
+  register: vault_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat vault
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_vault_version
+  when: vault_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://releases.hashicorp.com/vault/
+    return_content: true
+  register: vault_releases
+
+- name: "Save the latest version of {{ app_name }} to a variable"
+  set_fact:
+    vault_latest_release_version: "{{ vault_releases.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_vault: "{{ (current_vault_version.skipped) or \
+      ((not current_vault_version.skipped) and (current_vault_version.stdout != vault_latest_release_version)) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/vault
+    state: absent
+  when: install_vault
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ 'https://releases.hashicorp.com/vault/' + vault_latest_release_version + '/vault_' + vault_latest_release_version + '_linux_amd64.zip' }}"
+    dest: /usr/local/bin
+    remote_src: yes
+    extra_opts:
+      - --strip-components=1
+  when: install_vault
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/vault
+    mode: 0600
+    content: |
+      {{ vault_latest_release_version }}
+  when: install_vault

@@ -21,7 +21,8 @@
 
 - name: "Determine whether or not to add kernel optimizations for netdata"
   set_fact:
-    kernel_deduper: "{{ (not netdata_install.skipped) and ('You have a kernel memory de-duper' in netdata_install.stdout) }}"
+    kernel_deduper: "{{ (netdata_install is defined) and (netdata_install.stdout is defined) \
+      and ('You have a kernel memory de-duper' in netdata_install.stdout) }}"
 
 - name: "Add optimization for kernel memory de-duper (/sys/kernel/mm/ksm/run)"
   command: echo 1 >/sys/kernel/mm/ksm/run
@@ -64,7 +65,7 @@
 - name: "Create configuration if the netdata claim was successful"
   file:
     mode: 0600
-    path: ~/config/megabytelabs/netdata-claimed
+    path: ~/.config/megabytelabs/netdata-claimed
     state: touch
   when:
     - not (netdata_claimed_status.failed | default(false))

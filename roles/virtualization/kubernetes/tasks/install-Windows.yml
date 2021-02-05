@@ -1,5 +1,5 @@
 ---
-- name: Install Kubernetes tools
+- name: "Ensure {{ app_name }} tools are installed"
   chocolatey.chocolatey.win_chocolatey:
     name: "{{ item }}"
     state: present
@@ -7,4 +7,13 @@
     - kubernetes-cli
     - kubernetes-helm
     - kubernetes-kompose
-# Install minikube and set appropriate driver
+
+- name: "Ensure Minikube is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: minikube
+    state: present
+  register: minikube_install
+
+- name: "Ensure Minikube driver is configured" # noqa 503
+  ansible.windows.win_command: "minikube config set driver {{ kubernetes_mac_driver }}"
+  when: minikube_install.changed

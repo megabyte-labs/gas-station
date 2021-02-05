@@ -29,13 +29,26 @@
 - name: "Generate NGINX configuration file for {{ app_id }}"
   template:
     src: site-available.conf.j2
-    dest: "/etc/nginx/sites-available/{{ app_id }}.conf"
+    dest: "{{ sites_available_path + '/' + app_id + '.conf' }}"
     owner: root
     group: root
     mode: 0644
   when:
+    - ansible_system != 'Windows'
     - app_fqdn is defined
     - http_hosts is defined
     - proxy_pass_port is defined
     - proxy_pass_url is defined
-    - app_id != host_id # TODO: Add homepage logic
+    - app_id != host_id
+
+- name: "Generate NGINX configuration file for {{ app_id }}"
+  ansible.windows.win_template:
+    src: site-available.conf.j2
+    dest: "{{ sites_available_path + '/' + app_id + '.conf' }}"
+  when:
+    - ansible_system == 'Windows'
+    - app_fqdn is defined
+    - http_hosts is defined
+    - proxy_pass_port is defined
+    - proxy_pass_url is defined
+    - app_id != host_id

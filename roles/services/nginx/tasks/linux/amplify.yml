@@ -1,55 +1,45 @@
 ---
-- name: Add APT NGINX signing key
+- name: "Add {{ app_name }}'s apt key"
   apt_key:
-    url: "{{ amplify_apt_key_url }}"
-
-- name: Install NGINX Amplify dependencies
-  apt:
-    name: "{{ amplify_dependencies }}"
     state: present
+    url: "{{ amplify_apt_key_url }}"
+  when: ansible_os_family == 'Debian'
 
-- name: Add NGINX Amplify agent repository (AMD 64-bit Non-Focal)
-  vars:
-    ansible_python_interpreter: "{{ amplify_python_interpreter }}"
+- name: Add NGINX Amplify Agent apt repository
   apt_repository:
-    filename: nginx-amplify
-    repo:
-      "deb [arch=amd64] {{ https_repository_prefix }}packages.amplify.nginx.com/{{ ansible_distribution | lower }}/ \
-      {{ ansible_distribution_release | lower }} amplify-agent"
-  when:
-    - ansible_distribution_release != 'focal'
+    filename: "nginx-amplify"
+    repo: "{{ amplify_apt_repository }}"
+    state: present
+  when: ansible_os_family == 'Debian'
 
-- name: Add NGINX Amplify agent repository (AMD 64-bit Focal)
-  vars:
-    ansible_python_interpreter: "{{ amplify_python_interpreter }}"
-  apt_repository:
-    filename: nginx-amplify
-    repo: "deb [arch=amd64] {{ https_repository_prefix }}packages.amplify.nginx.com/py3/ubuntu/ focal amplify-agent"
-  when:
-    - ansible_distribution_release == 'focal'
-    - ansible_architecture == 'x86_64'
+- name: "Add {{ app_name }}'s rpm key"
+  rpm_key:
+    key: "{{ amplify_rpm_key }}"
+  when: ansible_os_family == 'RedHat'
 
-- name: Add NGINX Amplify agent repository (Raspberry Pi/Other)
-  vars:
-    ansible_python_interpreter: "{{ amplify_python_interpreter }}"
-  apt_repository:
-    filename: nginx-amplify
-    repo: "deb {{ https_repository_prefix }}packages.amplify.nginx.com/ubuntu/ focal amplify-agent"
-  when:
-    - ansible_distribution_release == 'focal'
-    - ansible_architecture != 'x86_64'
+- name: Add NGINX Amplify Agent yum repository
+  yum_repository:
+    baseurl: "{{ amplify_baseurl }}"
+    description: "NGINX Amplify Agent's repository"
+    gpgcheck: true
+    gpgkey: "{{ amplify_rpm_key }}"
+    name: "nginx-amplify"
+    repo_gpgcheck: true
+  when: ansible_os_family == 'RedHat'
 
-- name: Install the NGINX Amplify agent
-  apt:
+- name: Ensure NGINX Amplify Agent is installed
+  package:
     name: nginx-amplify-agent
     state: present
+    update_cache: true
+  when: ansible_os_family != 'Darwin'
 
 - name: Copy NGINX Amplify agent configuration
   copy:
+    src: /etc/amplify-agent/agent.conf.default
     dest: /etc/amplify-agent/agent.conf
     mode: preserve
     remote_src: true
-    src: /etc/amplify-agent/agent.conf.default
 
 - name: Inject the NGINX Amplify agent API key into the configuration
   lineinfile:
@@ -61,3 +51,4 @@
   service:
     name: amplify-agent
     state: started
+  when: ansible_os_family != 'Darwin'

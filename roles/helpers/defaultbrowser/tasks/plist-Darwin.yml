@@ -1,0 +1,15 @@
+---
+- name: Convert plist file to XML # noqa 301
+  become_user: "{{ user.username }}"
+  command: plutil -convert xml1 ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+
+- name: Set the default browser
+  become_user: "{{ user.username }}"
+  xml:
+    path: ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+    xpath: '/plist/dict/array/dict/string[contains(.,"com") or contains(.,"org")]'
+    value: "{{ browser_dict[default_browser_chosen] | default('com.apple.Safari') }}"
+
+- name: Convert plist file to binary # noqa 301
+  become_user: "{{ user.username }}"
+  command: plutil -convert binary1 ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist

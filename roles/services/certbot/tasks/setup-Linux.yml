@@ -44,6 +44,7 @@
     - src: "templates/letsencryptcli.ini.j2"
       dest: "/etc/letsencrypt/cli.ini"
   notify: restart certbot
+  when: cloudflare_api_token is defined
 
 - name: Generate Let's Encrypt certificates
   include_tasks: certificate-Linux.yml
@@ -53,6 +54,7 @@
   when:
     - certbot_create_if_missing
     - certbot_create_method == 'standalone'
+    - cloudflare_api_token is defined
 
 - name: Add cron job for certbot renewal (if configured)
   cron:
@@ -61,4 +63,6 @@
     minute: "{{ certbot_auto_renew_minute }}"
     hour: "{{ certbot_auto_renew_hour }}"
     user: "{{ certbot_auto_renew_user }}"
-  when: certbot_auto_renew
+  when:
+    - certbot_auto_renew
+    - cloudflare_api_token is defined

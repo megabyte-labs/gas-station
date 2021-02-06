@@ -22,15 +22,6 @@
   with_items: "{{ vpn_connections }}"
   register: profile_file_list
 
-- name: Ensure temporary directory for OpenVPN files exists
-  file:
-    mode: 0600
-    path: "{{ openvpn_tmp_dir }}"
-    state: directory
-  when:
-    - vpn_connections | length
-    - "profile_file_list | string | regex_search('matched.:.0')"
-
 - name: Acquire a list the current VPN connections
   command: nmcli -t connection
   changed_when: false
@@ -43,9 +34,3 @@
   loop_control:
     label: "{{ vpn_connection.file }}"
     loop_var: vpn_connection
-
-- name: Ensure temporary directory for OpenVPN files are removed
-  file:
-    path: "{{ openvpn_tmp_dir }}"
-    state: absent
-  when: vpn_connections | length

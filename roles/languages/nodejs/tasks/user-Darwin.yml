@@ -1,14 +1,24 @@
 ---
-- name: Ensure .bash_profile exists
-  become: "{{ user.username }}"
+- name: "Check to see if .bash_profile exists (User: {{ user.username }})"
+  become: true
+  become_user: "{{ user.username }}"
+  ansible.builtin.stat:
+    path: ~/.bash_profile
+  register: bash_profile_stat
+
+- name: "Ensure .bash_profile exists (User: {{ user.username }})"
+  become: true
+  become_user: "{{ user.username }}"
   file:
     path: ~/.bash_profile
     owner: "{{ user.username }}"
     state: touch
     mode: 0700
+  when: not bash_profile_stat.stat.exists
 
-- name: "Ensure npm_config_prefix bin is added to $PATH"
-  become: "{{ user.username }}"
+- name: "Ensure npm_config_prefix bin is added to $PATH (User: {{ user.username }})"
+  become: true
+  become_user: "{{ user.username }}"
   blockinfile:
     path: ~/.bash_profile
     marker: "# {mark} ANSIBLE MANAGED BLOCK for NODEJS"

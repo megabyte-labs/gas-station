@@ -1,3 +1,30 @@
 ---
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
+
+- name: "Ensure {{ app_name }} is installed"
+  yum:
+    name: xrdp
+    state: "{{ app_state | default('present') }}"
+    enable_repo: epel
+  when: install_xrdp
+
+- name: "Ensure {{ app_name }} is started on boot"
+  systemd:
+    enabled: true
+    name: xrdp
+    state: started
+  when: install_xrdp
+
+- name: "Determine whether or not GNOME is installed"
+  stat:
+    path: /usr/bin/gnome-shell
+  register: gnome_shell
+
+- name: "Ensure GNOME Boxes is installed"
+  yum:
+    name: gnome-boxes
+    state: "{{ app_state | default('present') }}"
+  when:
+    - install_gnome_boxes
+    - gnome_shell.stat.exists

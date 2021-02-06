@@ -1,32 +1,37 @@
 ---
-- name: Install Brotli apt dependencies
-  apt:
+- name: Install Brotli dependencies
+  package:
     name: "{{ brotli_dependencies }}"
     state: present
+  when: ansible_os_family != 'Darwin'
 
 - name: "Download and unarchive NGINX source code of version {{ nginx_version }}"
   unarchive:
     src: "https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
-    dest: ~/
+    dest: "{{ nginx_src_directory }}"
     remote_src: true
+  register: nginx_archive
 
-- name: Git clone Brotli module (google/ngx_brotli)
+- name: Ensure Brotli module source is cloned and updated
   git:
-    dest: ~/ngx_brotli
+    dest: "{{ brotli_src_directory }}"
     repo: "{{ brotli_git_repository }}"
     version: master
+  register: clone_brotli
 
-- name: Configure Brotli module # noqa 301
-  command:
-    chdir: "~/nginx-{{ nginx_version }}"
-    cmd: ./configure --with-compat --add-dynamic-module=../ngx_brotli
+- name: Configure Brotli module # noqa 503
+  command: ./configure --with-compat --add-dynamic-module={{ brotli_src_directory }}
+  args:
+    chdir: "{{ nginx_src_directory + '/nginx-' + nginx_version }}"
+  when: clone_brotli.changed or nginx_archive.changed
 
-- name: Make Brotli modules
-  make:
-    chdir: "~/nginx-{{ nginx_version }}"
+- name: Make Brotli modules # noqa 503
+  community.general.make:
+    chdir: "{{ nginx_src_directory + '/nginx-' + nginx_version }}"
     target: modules
+  when: clone_brotli.changed or nginx_archive.changed
 
-- name: Copy compiled Brotli module to /usr/share/nginx/modules
+- name: "Copy compiled Brotli module to {{ nginx_module_link }}" # noqa 503
   copy:
     remote_src: true
     src: "{{ item.src }}"
@@ -35,15 +40,8 @@
     group: root
     mode: 0644
   loop:
-    - src: "~/nginx-{{ nginx_version }}/objs/ngx_http_brotli_filter_module.so"
-      dest: "/usr/share/nginx/modules"
-    - src: "~/nginx-{{ nginx_version }}/objs/ngx_http_brotli_static_module.so"
-      dest: "/usr/share/nginx/modules"
-
-- name: Delete unnecessary directories
-  file:
-    state: absent
-    path: "{{ item }}"
-  loop:
-    - ~/ngx_brotli
-    - "~/nginx-{{ nginx_version }}"
+    - src: "{{ nginx_src_directory + '/nginx-' + nginx_version + '/objs/ngx_http_brotli_filter_module.so' }}"
+      dest: "{{ nginx_module_link }}"
+    - src: "{{ nginx_src_directory + '/nginx-' + nginx_version + '/objs/ngx_http_brotli_static_module.so' }}"
+      dest: "{{ nginx_module_link }}"
+  when: clone_brotli.changed or nginx_archive.changed

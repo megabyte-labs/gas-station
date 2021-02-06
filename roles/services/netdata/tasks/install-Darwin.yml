@@ -13,6 +13,25 @@
     name: netdata
     state: "{{ app_state | default('present') }}"
 
+- name: Ensure JOBS section is enabled in the config file
+  lineinfile:
+    path: /etc/netdata/go.d/wmi.conf
+    regex: "^ [JOBS]"
+    line: " [JOBS]"
+  when: monitor_windows
+
+- name: Configure WMI to add Windows servers to monitoring
+  blockinfile:
+    path: ./wmi.conf
+    insertafter: "^ [ JOBS ]"
+    block: |
+      jobs:
+      {% for item in netdata_win_setting %}
+        - name: {{ item.name }}
+          url: http://{{ item.ip }}:9182/metrics"
+      {% endfor %}
+  when: monitor_windows
+
 - name: "Check if netdata instance was claimed by netdata.cloud"
   stat:
     path: ~/.config/megabytelabs/netdata-claimed

@@ -1,12 +1,12 @@
 ---
-- name: Convert plist file to XML # noqa 301
-  command: plutil -convert xml1 ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+- name: Install lxml library
+  pip:
+    name: lxml
+    executable: /usr/local/bin/pip3
 
-- name: Set the default browser
-  xml:
-    path: ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
-    xpath: '/plist/dict/array/dict/string[contains(.,"com") or contains(.,"org")]'
-    value: "{{ browser_dict[default_browser_chosen] | default('com.apple.Safari') }}"
-
-- name: Convert plist file to binary # noqa 301
-  command: plutil -convert binary1 ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+- name: Update the Default Browser setting
+  include_tasks: plist-Darwin.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

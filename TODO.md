@@ -66,7 +66,8 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Home Assistant
 - Resilio Sync
 - nmap
-- watch (Source: https://osxdaily.com/2010/08/22/install-watch-command-on-os-x/)
+- [watch](https://osxdaily.com/2010/08/22/install-watch-command-on-os-x/)
+
 ## Windows TODOs
 
 - Look into IIS-WinidowsAuthentication optional feature
@@ -77,8 +78,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Ubuntu NetworkManager VPN plugin for WireGuard (currently compiling it from source)
 - WireGuard for pfSense
 
-
-## ERRORS:
+## ERRORS
 
 Wireshark already installed on Mac OS X:
 

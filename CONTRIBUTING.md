@@ -70,12 +70,12 @@ We should only be using Ansible's shell feature when absolutely necessary. First
 
 ## Style
 
-#### When only one parameter is required, inline it.
+### When only one parameter is required, inline it
 
 **BAD:**
 
 ```
-when: 
+when:
     - install_minikube
 ```
 

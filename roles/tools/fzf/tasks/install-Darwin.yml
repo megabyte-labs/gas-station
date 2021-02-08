@@ -5,5 +5,13 @@
     name: fzf
     state: "{{ app_state | default('present') }}"
 
-- name: "Ensure key bindings and fuzzy completion is enabled" # noqa 301
-  command: $(brew --prefix)/opt/fzf/install # TODO Figure out what file this creates and add args -> creates: filename and remove noqa 301
+- name: "Ensure key bindings and fuzzy completion is enabled"
+  become_user: "{{ user.username }}"
+  shell: |
+    set -o pipefail && echo 'y\ny' | $(/usr/local/bin/brew --prefix)/opt/fzf/install
+  args:
+    creates: ~/.fzf.bash
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

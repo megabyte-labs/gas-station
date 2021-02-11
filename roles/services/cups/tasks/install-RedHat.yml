@@ -1,2 +1,28 @@
 ---
-[] # TODO
+- name: Install CUPS and avahi-daemon
+  yum:
+    name:
+      - avahi-daemon
+      - cups
+    state: present
+
+- name: Copy CUPS configuration
+  copy:
+    src: cupsd.conf
+    dest: "{{ cups_conf_path }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - enable and restart cups
+    - enable and restart avahi
+
+- name: Gather package facts
+  package_facts:
+    manager: auto
+
+- name: Restart Samba (if installed)
+  service:
+    name: smbd
+    state: restarted
+  when: ('smbd' in ansible_facts.packages)

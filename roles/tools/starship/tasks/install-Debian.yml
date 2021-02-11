@@ -1,18 +1,13 @@
 ---
-- name: Install Starship
+- name: "Ensure {{ app_name }} is installed"
   community.general.snap:
     name: starship
     state: present
   register: install_result
 
-- name: Fetch the initialization command # noqa 503
-  command: /snap/bin/starship init powershell
-  register: starship_out
-  when: install_result.changed
-
-- name: Create the Initialization script for powershell # noqa 503
-  copy:
-    dest: "~/.config/powershell/Microsoft.PowerShell_profile.ps1"
-    content: "{{ starship_out.stdout }}"
-    mode: "0660"
-  when: install_result.changed
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

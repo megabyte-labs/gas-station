@@ -1,0 +1,14 @@
+---
+- name: Fetch the initialization command # noqa 503
+  become_user: "{{ user.username }}"
+  command: /snap/bin/starship init powershell
+  register: starship_out
+  when: install_result.changed
+
+- name: Create the Initialization script for powershell # noqa 503
+  become_user: "{{ user.username }}"
+  copy:
+    dest: "~/.config/powershell/Microsoft.PowerShell_profile.ps1"
+    content: "{{ starship_out.stdout }}"
+    mode: "0660"
+  when: install_result.changed

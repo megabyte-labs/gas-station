@@ -1,2 +1,14 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }}'s setup is downloaded"
+  unarchive:
+    src: "{{ elastic_agent_64_mac_url }}"
+    dest: "{{ elastic_src }}"
+    remote_src: true
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }} is installed"
+  command: "./elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}"
+    creates: /usr/bin/elastic-agent
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'

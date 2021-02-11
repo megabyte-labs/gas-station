@@ -1,2 +1,32 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }}'s setup is downloaded (64-bit client)"
+  unarchive:
+    src: "{{ elastic_agent_64_linux_url }}"
+    dest: "{{ elastic_src }}/64bit"
+    remote_src: true
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }} is installed (64-bit client)"
+  command: "./elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}/64bit"
+    creates: /usr/bin/elastic-agent
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }}'s setup  is downloaded (32-bit client)"
+  unarchive:
+    src: "{{ elastic_agent_32_linux_url }}"
+    dest: "{{ elastic_src }}/32bit"
+    remote_src: true
+  when:
+    - ansible_architecture != 'x86_64'
+    - ansible_architecture != 'aarch64'
+
+- name: "Ensure {{ app_name }} is installed (32-bit client)"
+  command: "./elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}/32bit"
+    creates: /usr/bin/elastic-agent
+  when:
+    - ansible_architecture != 'x86_64'
+    - ansible_architecture != 'aarch64'

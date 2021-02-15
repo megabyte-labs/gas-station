@@ -6,21 +6,23 @@
     src: clamd-freshclam.service.j2
   notify: reload clamav daemon
 
-- name: Add EPEL repository
-  yum_repository:
-    baseurl: "{{ epel_repo_url }}"
-    description: EPEL Repo
-    gpgcheck: true
-    gpgkey: "{{ epel_repo_gpg_key_url }}"
-    name: EPEL Repo
-
 - name: Ensure rkhunter package is installed
   yum:
     name: rkhunter
     state: present
+    enablerepo: epel
 
-- name: Deploy rkhunter sysconfig
+- name: Ensure rkhunter config is deployed
   template:
-    src: rkhunter-{{ ansible_facts['os_family'] }}.j2
+    src: rkhunter-{{ ansible_os_family }}.j2
     dest: /etc/sysconfig/rkhunter
     mode: 0640
+
+- name: Ensure rkhunter cron config is copied
+  copy:
+    src: rkhuntercron
+    dest: /etc/cron.daily/rkhunter
+    mode: 0755
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml

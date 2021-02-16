@@ -1,18 +1,16 @@
 ---
-- name: Install Scoop # TODO Run this block only if Scoop is not already installed
-  block:
-    - name: Install Scoop
-      win_command: Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-    - name: Update Scoop
-      win_command: scoop update
-  rescue:
-    - name: Remove scoop folder from user directory
-      ansible.windows.win_file:
-        path: "%USERPROFILE%\\scoop"
-        state: absent
-  when: false
-
-- name: Install Starship
+- name: "Ensure {{ app_name }} is installed"
   community.windows.win_scoop:
     name: starship
-    state: present
+    state: "{{ app_state | default('present') }}"
+
+- name: Setup Initialization script for powershell
+  become_user: "{{ user.username }}"
+  community.windows.win_lineinfile:
+    path: '~\Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
+    regex: "Invoke-Expression (&starship init powershell)"
+    line: "Invoke-Expression (&starship init powershell)"
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

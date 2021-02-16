@@ -1,2 +1,71 @@
 ---
-[] # TODO
+- name: "Ensure Megabyte Labs configuration directory exists"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Ensure {{ app_name }} is installed"
+  community.general.homebrew:
+    name: netdata
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure JOBS section is enabled in the config file
+  lineinfile:
+    path: /etc/netdata/go.d/wmi.conf
+    regex: "^ [JOBS]"
+    line: " [JOBS]"
+  when: monitor_windows
+
+- name: Configure WMI to add Windows servers to monitoring
+  blockinfile:
+    path: ./wmi.conf
+    insertafter: "^ [ JOBS ]"
+    block: |
+      jobs:
+      {% for item in netdata_win_setting %}
+        - name: {{ item.name }}
+          url: http://{{ item.ip }}:9182/metrics"
+      {% endfor %}
+  when: monitor_windows
+
+- name: "Check if netdata instance was claimed by netdata.cloud"
+  stat:
+    path: ~/.config/megabytelabs/netdata-claimed
+  register: netdata_claim
+
+- name: "Wait for netdata to stabilize"
+  wait_for:
+    timeout: 3
+  when:
+    - not netdata_claim.stat.exists
+    - netdata_room is defined
+    - netdata_token is defined
+
+- name: "Add instance to netdata cloud"
+  command: "netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
+  args:
+    chdir: /usr/local/netdata/usr/sbin
+    creates: ~/.config/megabytelabs/netdata-claimed
+  ignore_errors: true
+  register: netdata_claimed_status
+  when:
+    - not netdata_claim.stat.exists
+    - netdata_room is defined
+    - netdata_token is defined
+
+- name: "Create configuration if the netdata claim was successful"
+  file:
+    mode: 0600
+    path: ~/.config/megabytelabs/netdata-claimed
+    state: touch
+  when:
+    - not (netdata_claimed_status.failed | default(false))
+    - not (netdata_claimed_status.skipped | default(false))
+
+- name: "Ensure {{ app_name }} is installed via Docker"
+  include_tasks: docker-Linux.yml
+  when: netdata_install_via_docker

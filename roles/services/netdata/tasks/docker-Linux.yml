@@ -1,0 +1,81 @@
+---
+- name: "Ensure pip is installed"
+  community.general.homebrew:
+    name: "{{ python_package }}"
+    state: present
+  when: ansible_system == 'Darwin'
+
+- name: "Ensure pip is installed"
+  package:
+    name: "{{ pip_package }}"
+    state: present
+  when: ansible_system == 'Linux'
+
+- name: Ensure docker pip package is installed
+  pip:
+    name: docker
+    state: present
+
+- name: "Ensure {{ app_name }} container image is pulled"
+  community.general.docker_image:
+    name: netdata/netdata
+    source: pull
+
+- name: Ensure directory to save the docker-compose.yml file exists
+  file:
+    path: /opt/netdata
+    state: directory
+    mode: 0755
+
+- name: Copy the docker-compose.yml file
+  copy:
+    src: files/docker-compose.yml
+    dest: /opt/netdata
+    mode: 0755
+
+- name: "Ensure {{ app_name }} docker container is running"
+  community.general.docker_compose:
+    project_src: /opt/netdata
+    state: present
+
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: Check if netdata instance was claimed by netdata.cloud
+  stat:
+    path: ~/.config/megabytelabs/netdata-claimed
+  register: netdata_claim
+
+- name: Wait for netdata to stabilize
+  wait_for:
+    timeout: 3
+  when:
+    - not netdata_claim.stat.exists
+    - netdata_room is defined
+    - netdata_token is defined
+
+- name: Add instance to netdata cloud
+  command: "docker exec -t netdata netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
+  args:
+    creates: ~/.config/megabytelabs/netdata-claimed
+  ignore_errors: true
+  register: netdata_claimed_status
+  when:
+    - not netdata_claim.stat.exists
+    - netdata_room is defined
+    - netdata_token is defined
+
+- name: Create configuration if the netdata claim was successful
+  file:
+    mode: 0600
+    path: ~/.config/megabytelabs/netdata-claimed
+    state: touch
+  when:
+    - not (netdata_claimed_status.failed | default(false))
+    - not (netdata_claimed_status.skipped | default(false))

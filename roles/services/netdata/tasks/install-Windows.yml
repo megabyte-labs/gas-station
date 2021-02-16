@@ -1,42 +1,5 @@
 ---
-- name: "Ensure python and pip are installed"
+- name: "Ensure Prometheus windows-exporter is installed"
   chocolatey.chocolatey.win_chocolatey:
-    name:
-      - python
-      - pip
-    state: present
-
-- name: "Ensure docker pip package is installed"
-  pip:
-    name: docker
-    state: present
-
-- name: "Ensure {{ app_name }} container image is pulled"
-  community.general.docker_image:
-    name: netdata/netdata
-    source: pull
-
-- name: "Ensure required volumes are created"
-  community.general.docker_volume:
-    name: "{{ item }}"
-  loop: "{{ docker_volume_list }}"
-
-- name: "Ensure {{ app_name }} docker container is running"
-  community.general.docker_container:
-    name: netdata
-    image: netdata/netdata
-    restart_policy: unless-stopped
-    capabilities:
-      - SYS_PTRACE
-    ports:
-      - 19999:19999
-    volumes:
-      - netdataconfig:/etc/netdata
-      - netdatalib:/var/lib/netdata
-      - netdatacache:/var/cache/netdata
-    mounts:
-      - source: "{{ item.host_path }}"
-        target: "{{ item.container_path }}"
-        type: bind
-        read_only: true
-  loop: "{{ bind_volumes }}"
+    name: prometheus-windows-exporter.install
+    state: "{{ app_state | default('present') }}"

@@ -1,0 +1,65 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/filezilla"
+  stat:
+    path: "~/.config/megabytelabs/filezilla"
+  register: filezilla_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat filezilla
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_filezilla_version
+  when: filezilla_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: "https://filezilla-project.org/download.php?show_all=1"
+    return_content: true
+  register: filezilla_release_page
+
+- name: "Fetch the version"
+  set_fact:
+    filezilla_version: "{{ filezilla_release_page.content | regex_search('_(((\\d)*\\.)*\\d*_)') | replace ('_','') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_filezilla: "{{ (current_filezilla_version.skipped) or \
+      ((not current_filezilla_version.skipped) and (current_filezilla_version.stdout != filezilla_version }}"
+
+- name: "Fetch the URL"
+  set_fact:
+    filezilla_url: "{{ filezilla_release_page.content | \
+      regex_search('https:\\/\\/([\\w_]+(?:(?:\\.[\\w_-]+)+))\\/client\\/(FileZilla_(\\d*.\\d)*_macosx-[\\w@?^=%&\\/~+#-_]*)') }}"
+  when: install_filezilla
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /Applications/FileZilla.app
+    state: absent
+  when: install_filezilla
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ filezilla_url }}"
+    dest: /Applications/FileZilla.app
+    remote_src: true
+    mode: 0755
+  when: install_filezilla
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/filezilla
+    mode: 0600
+    content: |
+      {{ filezilla_version }}
+  when: install_filezilla

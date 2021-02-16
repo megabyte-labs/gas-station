@@ -1,5 +1,74 @@
 ---
-- name: Install Wazuh Agent
-  chocolatey.chocolatey.win_chocolatey:
-    name: wazuh-agent # TODO: Force specific version
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/wazuh'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\wazuh'
+  register: wazuh_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type wazuh
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_wazuh_version
+  when: wazuh_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: "{{ wazuh_package_page }}"
+  register: wazuh_release_page
+  when: wazuh_version is undefined
+
+- name: Find the latest version
+  set_fact:
+    wazuh_version: "{{ wazuh_release_page.content | regex_search('-(?:\\d\\.)*\\d(?:-\\d)*.pkg') | replace ('.pkg','') | trim('-') }}"
+  when: wazuh_version is undefined
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s is already installed"
+  set_fact:
+    install_wazuh: "{{ (current_wazuh_version.skipped) or \
+      ((not current_wazuh_version.skipped) and (current_wazuh_version.stdout != wazuh_version)) }}"
+
+- name: "Ensure {{ app_name }}'s installer directory is present"
+  ansible.windows.win_file:
+    path: "{{ wazuh_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s installer downloaded"
+  ansible.windows.win_get_url:
+    url: "{{ wazuh_base_url }}wazuh-agent-{{ wazuh_version }}.msi"
+    dest: "{{ wazuh_src_dir + '\\wazuh-agent-' + wazuh_version + '.msi' }}"
+  when: install_wazuh
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_package:
+    path: "{{ wazuh_src_dir + '\\wazuh-agent-' + wazuh_version + '.msi' }}"
     state: present
+  when: install_wazuh
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\wazuh'
+    content: |
+      {{ wazuh_version }}
+  when: install_wazuh
+
+- name: Register the agent with Wazuh manager # TODO see how to detect if agent is already added and if it creates any files
+  ansible.windows.win_command: agent-auth.exe -m {{ wazuh_manager_ip }}
+  args:
+    chdir: "{{ wazuh_src_dir }}"
+  when: wazuh_manager_ip
+
+- name: Enable communication with Wazuh manager
+  community.windows.win_lineinfile:
+    path: "{{ wazuh_conf_file }}"
+    regex: "\\<address\\>"
+    line: "      <address>{{ wazuh_manager_ip }}</address>"
+  when: wazuh_manager_ip

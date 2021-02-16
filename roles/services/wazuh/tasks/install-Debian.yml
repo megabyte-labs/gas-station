@@ -1,25 +1,28 @@
 ---
-- name: Ensure Wazuh dependencies are met
+- name: "Ensure {{ app_name }}'s dependencies are installed"
   apt:
     name:
       - apt-transport-https
       - curl
       - lsb-release
 
-- name: Add Wazuh apt key
+- name: "Add {{ app_name }}'s apt key"
   apt_key:
     url: "{{ wazuh_apt_key_url }}"
     state: present
-  register: add_repository_key
 
-- name: Add Wazuh repository
+- name: "Add {{ app_name }}'s apt repository"
   apt_repository:
-    filename: wazuh
-    repo: "{{ wazuh_repository }}"
+    filename: "{{ app_name | lower | replace(' ', '-') }}"
+    repo: "{{ wazuh_apt_repository }}"
     state: present
     update_cache: true
 
-- name: Install Wazuh agent # TODO: Force Wazuh to use specific version
+- name: "Ensure {{ app_name }} is installed"
   apt:
-    name: wazuh-agent
-    state: present
+    name: "{% if wazuh_version %}{{ 'wazuh-agent=' + wazuh_version }}{% else %}wazuh-agent{% endif %}"
+    state: "{{ app_state | default('present') }}"
+
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml
+  when: wazuh_manager_ip

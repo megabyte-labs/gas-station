@@ -1,2 +1,22 @@
 ---
-[] # TODO
+- name: "Add {{ app_name }}'s rpm key"
+  rpm_key:
+    key: "{{ wazuh_key }}"
+
+- name: "Add {{ app_name }}'s yum repository"
+  yum_repository:
+    baseurl: "{{ wazuh_baseurl }}"
+    description: "{{ app_name }}'s repository"
+    gpgcheck: true
+    gpgkey: "{{ wazuh_key }}"
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+    repo_gpgcheck: true
+
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: "{% if wazuh_version %}{{ 'wazuh-agent-' + wazuh_version }}{% else %}wazuh-agent{% endif %}"
+    state: "{{ app_state | default('present') }}"
+
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml
+  when: wazuh_manager_ip

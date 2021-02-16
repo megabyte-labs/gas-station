@@ -1,0 +1,18 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: windows-admin-center
+    state: "{{ app_state | default('present') }}"
+
+- name: Import connections from CSV
+  ansible.windows.win_shell: |
+    Import-Module "$env:ProgramFiles\windows admin center\PowerShell\Modules\ConnectionTools"
+    Import-Connection "{{ gateway_url }}" -fileName "{{ csv_path }}"
+  when: import_connections
+
+- name: Import Extensions
+  ansible.windows.win_shell: |
+    Import-Module "$env:ProgramFiles\windows admin center\PowerShell\Modules\ExtensionTools"
+    Install-Extension -GatewayEndpoint "{{ gateway_url }}" "{{ item }}" -Feed "{{ feed_url }}"
+  when: import_extensions
+  loop: "{{ wac_extensions }}"

@@ -1,0 +1,28 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name: kodi
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure add-ons are installed
+  apt:
+    name: "{{ kodi_addons }}"
+    state: present
+  when: kodi_addons is defined
+
+- name: Ensure MariaDB is installed
+  apt:
+    name: mariadb-server
+    state: present
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: sql-Linux.yml
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

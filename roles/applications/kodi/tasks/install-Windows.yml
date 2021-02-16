@@ -1,0 +1,96 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: kodi
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure MariaDB is installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: mariadb
+    state: present
+  when:
+    - kodi_mysql_ishost
+    - not kodi_mysql_docker
+
+- name: "Firewall rule to allow MySQL TCP port {{ kodi_mysql_port }}"
+  community.windows.win_firewall_rule:
+    name: MySQL
+    localport: "{{ kodi_mysql_port }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+  when: kodi_mysql_ishost
+
+- name: Setup DB for Kodi # noqa 301 # TODO: Test this step
+  ansible.windows.win_command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - CREATE USER '{{ kodi_mysql_user }}' IDENTIFIED BY '{{ kodi_mysql_pass }}';
+    - GRANT ALL ON *.* TO '{{ kodi_mysql_user }}';
+    - FLUSH PRIVILEGES;
+  when:
+    - kodi_mysql_ishost
+    - not kodi_mysql_docker
+
+- name: Update MariaDB port
+  replace:
+    path: '%MYSQL_HOME%\my.cnf'
+    backup: true
+    regexp: "^port = \\d*"
+    replace: "port = {{ kodi_mysql_port }}"
+  when:
+    - kodi_mysql_ishost
+    - not kodi_mysql_docker
+
+- name: Ensure '%APPDATA%\Kodi\userdata\' directory exists
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.username }}"
+    mode: 0755
+  with_items:
+    - "{{ kodi_conf_dir }}"
+    - "{{ kodi_conf_dir }}\\userdata\\"
+
+- name: Create configuration files
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: "{{ item }}.j2"
+    dest: "{{ kodi_conf_dir }}\\userdata\\{{ item }}"
+    owner: "{{ user.username }}"
+    mode: 0755
+  with_items:
+    - sources.xml
+    - advancedsettings.xml
+
+- name: Download Texture Cache Maintenance Utility
+  ansible.windows.win_get_url:
+    url: https://raw.github.com/MilhouseVH/texturecache.py/master/texturecache.py
+    dest: "{{ kodi_conf_dir }}\texturecache.py"
+    force: false
+
+- name: Execute Texture Cache Maintenance Utility
+  ansible.windows.win_command: ./texturecache.py c
+  args:
+    chdir: "{{ kodi_conf_dir }}"
+  when: refresh_texture_cache
+
+- name: Ensure directory to save the docker-compose.yml file exists
+  ansible.windows.win_file:
+    path: 'C:\Program Files\kodi'
+    state: directory
+  when: kodi_mysql_docker
+
+- name: Copy the docker-compose.yml file
+  ansible.windows.win_template:
+    src: docker-compose.yml.j2
+    dest: 'C:\Program Files\kodi\docker-compose.yml'
+  when: kodi_mysql_docker
+
+- name: Ensure MariaDB docker container is running
+  community.general.docker_compose:
+    project_src: 'C:\Program Files\kodi'
+    state: present
+  when: kodi_mysql_docker

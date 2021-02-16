@@ -1,0 +1,46 @@
+---
+- name: Add EPEL repository
+  yum_repository:
+    baseurl: "{{ epel_repo_url }}"
+    description: EPEL Repo
+    gpgcheck: true
+    gpgkey: "{{ epel_repo_gpg_key_url }}"
+    name: epel
+    repo_gpgcheck: true
+
+- name: Add RPM Fusion Free repository
+  yum_repository:
+    baseurl: "{{ rpmfusion_repo_url }}"
+    description: RPM Fusion Free Repository
+    gpgcheck: true
+    gpgkey: "{{ rpmfusion_repo_gpg_key_url }}"
+    name: rpmfusionfree
+    repo_gpgcheck: true
+
+- name: "Ensure {{ app_name }} is installed"
+  yum:
+    name: kodi
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure add-ons are installed
+  yum:
+    name: "{{ kodi_addons }}"
+    state: present
+  when: kodi_addons is defined
+
+- name: Ensure MariaDB is installed
+  yum:
+    name: mariadb-server
+    state: present
+  when: kodi_mysql_ishost
+
+- name: Run SQL tasks
+  include_tasks: sql-Linux.yml
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

@@ -1,2 +1,50 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }}'s setup is downloaded (64-bit client)"
+  ansible.windows.win_get_url:
+    url: "{{ elastic_agent_64_windows_url }}"
+    dest: "{{ elastic_src }}"
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Extract {{ app_name }}'s archive"
+  community.windows.win_unzip:
+    src: "{{ elastic_src }}/elastic-agent-{{ elastic_agent_version }}-windows-x86_64.zip"
+    dest: "{{ elastic_src }}/64bit"
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }} is installed (64-bit client)"
+  become: true
+  become_method: runas
+  ansible.windows.win_command: ".\\elastic-agent.exe install -f --kibana-url={{ kibana_url }} \
+    --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}/64bit"
+    creates: '%PROGRAMFILES%\Elastic\Agent\'
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }}'s setup is downloaded (32-bit client)"
+  ansible.windows.win_get_url:
+    url: "{{ elastic_agent_32_windows_url }}"
+    dest: "{{ elastic_src }}"
+  when:
+    - ansible_architecture != 'x86_64'
+    - ansible_architecture != 'aarch64'
+
+- name: "Extract {{ app_name }}'s archive"
+  community.windows.win_unzip:
+    src: "{{ elastic_src }}/elastic-agent-{{ elastic_agent_version }}-windows-x86.zip"
+    dest: "{{ elastic_src }}/32bit"
+  when:
+    - ansible_architecture != 'x86_64'
+    - ansible_architecture != 'aarch64'
+
+- name: "Ensure {{ app_name }} is installed (32-bit client)"
+  become: true
+  become_method: runas
+  ansible.windows.win_command: ".\\elastic-agent.exe install -f --kibana-url={{ kibana_url }} \
+    --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}/32bit"
+    creates: '%PROGRAMFILES%\Elastic\Agent\'
+  when:
+    - ansible_architecture != 'x86_64'
+    - ansible_architecture != 'aarch64'

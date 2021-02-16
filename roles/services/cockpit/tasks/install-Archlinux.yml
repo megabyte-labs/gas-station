@@ -1,2 +1,36 @@
 ---
-[] # TODO
+- name: Install Cockpit
+  community.general.pacman:
+    name:
+      - cockpit
+      - cockpit-machines
+      - libvirt-dbus
+    state: present
+
+- name: Enable the Cockpit service
+  systemd:
+    enabled: true
+    name: cockpit.socket
+    state: started
+
+- name: Add Cockpit machine profiles
+  template:
+    src: cockpit-machine.json.j2
+    dest: "{{ cockpit_machines_path }}/{{ item.name }}.json"
+    owner: root
+    group: root
+    mode: 0644
+  loop: "{{ cockpit_instances }}"
+  when: cockpit_instances is defined
+
+- name: Add libvirt user to libvirtdbus group
+  user:
+    append: true
+    comment: Required by Cockpit
+    create_home: false
+    groups:
+      - libvirtdbus
+    name: libvirt
+    state: present
+    system: true
+  notify: reboot system

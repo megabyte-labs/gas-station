@@ -1,2 +1,45 @@
 ---
-[] # TODO
+- name: Install Cockpit
+  yum:
+    name:
+      - cockpit
+      - cockpit-machines
+      - libvirt-dbus
+      - cockpit-docker
+    state: present
+
+- name: Enable the Cockpit service
+  systemd:
+    enabled: true
+    name: cockpit
+    state: started
+
+- name: Install Cockpit 389 DS
+  apt:
+    name:
+      - 389-ds
+      - cockpit-389-ds
+    state: present
+  when: cockpit_install_389_ds
+
+- name: Add Cockpit machine profiles
+  template:
+    src: cockpit-machine.json.j2
+    dest: "{{ cockpit_machines_path }}/{{ item.name }}.json"
+    owner: root
+    group: root
+    mode: 0644
+  loop: "{{ cockpit_instances }}"
+  when: cockpit_instances is defined
+
+- name: Add libvirt user to libvirtdbus group
+  user:
+    append: true
+    comment: Required by Cockpit
+    create_home: false
+    groups:
+      - libvirtdbus
+    name: libvirt
+    state: present
+    system: true
+  notify: reboot system

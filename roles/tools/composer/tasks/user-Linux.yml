@@ -1,0 +1,39 @@
+---
+- name: Ensure Composer directory exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "~/.composer"
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    state: directory
+    mode: 0755
+
+- name: Ensure GitHub OAuth token for Composer is added
+  become_user: "{{ user.username }}"
+  template:
+    src: "auth.json.j2"
+    dest: "~/.composer/auth.json"
+    owner: "{{ user.username }}"
+    group: "{{ user.group }}"
+    mode: 0644
+  when: composer_github_oauth_token | length > 0
+
+- name: Ensure composer_home_path bin directory is added to $PATH
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.bash_profile
+    regex: "export PATH=$PATH:{{ composer_home_path }}/vendor/bin"
+    line: "export PATH=$PATH:{{ composer_home_path }}/vendor/bin"
+  when:
+    - composer_add_to_path | bool
+    - ansible_system == 'Darwin'
+
+- name: Ensure composer_project_path bin directory is added to $PATH
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.bash_profile
+    regex: "export PATH={{ composer_project_path }}:$PATH"
+    line: "export PATH={{ composer_project_path }}:$PATH"
+  when:
+    - composer_add_project_to_path | bool
+    - ansible_system == 'Darwin'

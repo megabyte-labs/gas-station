@@ -1,24 +1,6 @@
 ---
 - name: Setup user specific configuration
-  block:
-    - name: Ensure Composer directory exists
-      become_user: "{{ user.username }}"
-      file:
-        path: "~/.composer"
-        owner: "{{ user.username }}"
-        group: "{{ user.group }}"
-        state: directory
-        mode: 0755
-
-    - name: Ensure GitHub OAuth token for Composer is added
-      become_user: "{{ user.username }}"
-      template:
-        src: "auth.json.j2"
-        dest: "~/.composer/auth.json"
-        owner: "{{ user.username }}"
-        group: "{{ user.group }}"
-        mode: 0644
-      when: composer_github_oauth_token | length > 0
+  include_tasks: user-Linux.yml
   when: (user.system is not defined) or ((user.system is defined) and (not user.system))
   loop: "{{ user_configs | default([]) }}"
   loop_control:
@@ -39,11 +21,15 @@
     src: composer.sh.j2
     dest: /etc/profile.d/composer.sh
     mode: 0644
-  when: composer_add_to_path | bool
+  when:
+    - composer_add_to_path | bool
+    - ansible_system == 'Linux'
 
 - name: Ensure composer_project_path bin directory is added to global $PATH
   template:
     src: composer-project.sh.j2
     dest: /etc/profile.d/composer-project.sh
     mode: 0644
-  when: composer_add_project_to_path | bool
+  when:
+    - composer_add_project_to_path | bool
+    - ansible_system == 'Linux'

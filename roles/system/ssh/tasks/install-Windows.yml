@@ -1,2 +1,29 @@
 ---
-# TODO: Ensure Windows software required for SSHing is installed in this file
+- name: Ensure openssh-server is installed
+  ansible.windows.win_feature:
+    name:
+      - OpenSSH.Server~~~~0.0.1.0
+      - OpenSSH.Client~~~~0.0.1.0
+    state: present
+
+- name: Ensure Windows Firewall allows SSH
+  community.windows.win_firewall_rule:
+    name: SSH
+    localport: 22
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+
+- name: Ensure SSH daemon is running and that it will start on boot
+  ansible.windows.win_service:
+    name: sshd
+    state: started
+    start_mode: auto
+
+- name: Generate and copy over sshd_config
+  ansible.windows.win_template:
+    src: sshd_config.j2
+    dest: "{{ sshd_config_path }}"
+  notify: restart sshd win

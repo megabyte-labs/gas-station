@@ -13,12 +13,16 @@
     name: fail2ban
     state: started
     enabled: true
-  when: install_fail2ban
+  when:
+    - install_fail2ban
+    - ansible_system == 'Linux'
 
-- name: Ensure SSH daemon is running
+- name: Ensure SSH daemon is running and that it will start on boot
   service:
     name: "{{ sshd_service_name }}"
     state: started
+    enabled: true
+  when: ansible_system == 'Linux'
 
 - name: Generate and copy over sshd_config
   template:
@@ -27,4 +31,4 @@
     owner: root
     group: root
     mode: 0644
-  notify: restart sshd
+  notify: "{{ 'restart sshd' if ansible_system == 'Linux' else 'restart sshd darwin' }}"

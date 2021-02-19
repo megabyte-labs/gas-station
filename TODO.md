@@ -31,6 +31,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Guacamole role
 - IntelliJ role names IntelliJ IDEA as IntelliJ IDEA CE - should be named IntelliJ IDEA
 - When installing TeamViewer on Mac OS X, a dialog pops up that asks "How do you want to use TeamViewer?".. should be automated
+- vagrant plugin install vagrant-libvirt when libvirt system
 
 ## pfSense TODOs
 

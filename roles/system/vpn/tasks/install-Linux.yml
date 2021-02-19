@@ -1,0 +1,36 @@
+---
+- name: Ensure NetworkManager's system-connections are removed if configured to do so
+  file:
+    path: "{{ system_connections_path }}/"
+    state: absent
+  when: remove_vpn_connections | bool
+  notify: restart networkmanager
+
+- name: Check if WireGuard NetworkManager VPN plugin exists
+  stat:
+    path: /usr/lib/NetworkManager/nm-wireguard-service
+  register: nm_wireguard
+
+- name: Ensure WireGuard plugin is installed
+  include_tasks: nmplugin-Linux.yml
+  when: not nm_wireguard.stat.exists
+
+- name: Create list of profile files that exist
+  find:
+    paths: "{{ system_connections_path }}"
+    patterns: "{{ item.file }}"
+  with_items: "{{ vpn_connections }}"
+  register: profile_file_list
+
+- name: Acquire a list the current VPN connections
+  command: nmcli -t connection
+  changed_when: false
+  register: nmcli_connections
+  when: vpn_connections | length
+
+- name: Ensure VPN configuration files are installed
+  include_tasks: "profile-Linux.yml"
+  loop: "{{ vpn_connections | default([]) }}"
+  loop_control:
+    label: "{{ vpn_connection.file }}"
+    loop_var: vpn_connection

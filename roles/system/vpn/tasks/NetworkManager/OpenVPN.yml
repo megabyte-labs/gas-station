@@ -1,5 +1,14 @@
 ---
-- name: Copy OpenVPN file into temporary directory
+- name: Ensure temporary directory for OpenVPN files exists
+  file:
+    mode: 0600
+    path: "{{ openvpn_tmp_dir }}"
+    state: directory
+  when:
+    - vpn_connections | length
+    - profile_file_list | string | regex_search('matched.:.0')
+
+- name: Ensure OpenVPN files are copied into temporary directory
   copy:
     mode: 0600
     src: "files/vpn/{{ vpn_connection.file }}"
@@ -15,3 +24,9 @@
     chdir: "{{ openvpn_tmp_dir }}"
     creates: "{{ system_connections_path }}/{{ ovpn_name }}.nmconnection"
   notify: restart networkmanager
+
+- name: Ensure temporary directory for OpenVPN files are removed
+  file:
+    path: "{{ openvpn_tmp_dir }}"
+    state: absent
+  when: vpn_connections | length

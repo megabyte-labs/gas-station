@@ -1,30 +1,30 @@
 ---
-- name: Install Wireguard NetworkManager VPN plugin dependencies
+- name: "Ensure Wireguard NetworkManager VPN plugin's dependencies are installed"
   apt:
     name: "{{ wireguard_dependencies }}"
 
-- name: Clone the Wireguard NetworkManager VPN plugin git
+- name: "Ensure Wireguard NetworkManager VPN plugin's source is cloned and up-to-date"
   git:
     repo: "{{ wireguard_plugin_repo }}"
     dest: "{{ wireguard_tmp_dir }}"
     depth: "1"
     version: master
 
-- name: Run ./autogen.sh # noqa 301
+- name: "Run ./autogen.sh"
   command: |
     ./autogen.sh --without-libnm-glib
   args:
     chdir: "{{ wireguard_tmp_dir }}"
-  changed_when: false # TODO: Does this command really not impact the system?
+    creates: "{{ wireguard_tmp_dir }}/configure"
 
-- name: Run ./configure # noqa 301
+- name: "Run ./configure"
   command: "./configure --without-libnm-glib --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/x86_64-linux-gnu \
     --libexecdir=/usr/lib/NetworkManager --localstatedir=/var"
   args:
     chdir: "{{ wireguard_tmp_dir }}"
-  changed_when: false # TODO: Does this command really not impact the system?
+    creates: "{{ wireguard_tmp_dir }}/config.log"
 
-- name: Run "make" and "make install" # noqa 301
+- name: "Run 'make' and 'make install'"
   shell: |
     make
     make install
@@ -33,8 +33,7 @@
     creates: /usr/bin/wg
   notify: restart networkmanager
 
-# TODO Being marked as changed
-- name: Remove the Wireguard temporary directory
+- name: "Ensure temporary directory for Wireguard files are removed"
   file:
     path: "{{ wireguard_tmp_dir }}"
     state: absent

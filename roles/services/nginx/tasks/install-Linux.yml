@@ -12,10 +12,23 @@
 - name: Gather the package facts
   package_facts:
     manager: auto
+  when: ansible_system == 'Linux'
 
 - name: Set a variable equal to the NGINX version
   set_fact:
     nginx_version: "{{ ansible_facts.packages['nginx'][0].version | regex_search('^[0-9.]*') }}"
+  when: ansible_system == 'Linux'
+
+- name: Gather the package facts # noqa 301
+  become: false
+  command: "/usr/local/bin/brew list --versions"
+  register: package_versions
+  when: ansible_system == 'Darwin'
+
+- name: Set a variable equal to the NGINX version
+  set_fact:
+    nginx_version: "{{ package_versions.stdout_lines | join(',') | regex_search('nginx (\\d*\\.)*\\d*') | regex_replace('nginx ','') }}"
+  when: ansible_system == 'Darwin'
 
 - name: Add styled status code response pages from Git repository
   include_tasks: linux/status-pages.yml

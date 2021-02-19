@@ -1,2 +1,30 @@
 ---
-[] # TODO
+- name: Ensure autoupdate's dependencies are installed
+  community.general.pacman:
+    name: "{{ autoupdate_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: Ensure autoupdate's source directory is present
+  ansible.builtin.file:
+    mode: 0755
+    path: "{{ autoupdate_src_dir }}"
+    state: directory
+
+- name: Ensure autoupdate's source is cloned and up-to-date
+  ansible.builtin.git:
+    dest: "{{ autoupdate_src_dir }}"
+    repo: "{{ autoupdate_aur_git_repository }}"
+  register: autoupdate_git
+
+- name: Remove /usr/lib/systemd/system/autoupdate.service if the source files have changed # noqa 503
+  file:
+    path: /usr/lib/systemd/system/autoupdate.service
+    state: absent
+  when: autoupdate_git.changed
+
+- name: Ensure autoupdate is installed
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ autoupdate_src_dir }}"
+    creates: /usr/lib/systemd/system/autoupdate.service

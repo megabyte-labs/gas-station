@@ -1,25 +1,27 @@
 ---
 - name: Ensure necessary packages are installed
-  package:
-    name: "{{ item }}"
+  community.general.pacman:
+    name:
+      - s-nail
+      - cronie
     state: present
-  loop:
-    - s-nail
-    - cronie
 
-- name: Enable cronie servier
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+
+- name: Enable cronie service
   systemd:
     name: cronie
     enabled: true
     state: started
 
-- name: Deploy rkhunter config
+- name: Ensure rkhunter config is deployed
   template:
-    src: rkhunter-{{ ansible_facts['os_family'] }}.j2
+    src: rkhunter-{{ ansible_os_family }}.j2
     dest: /etc/rkhunter.conf
     mode: 0600
 
-- name: Copy rkhunter cron config
+- name: Ensure rkhunter cron config is copied
   copy:
     src: rkhuntercron
     dest: /etc/cron.daily/rkhunter

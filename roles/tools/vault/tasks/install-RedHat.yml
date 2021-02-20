@@ -6,9 +6,28 @@
     gpgcheck: true
     gpgkey: "{{ vault_gpgkey_url }}"
     name: HashiCorp
+  when: ansible_distribution != 'Fedora'
 
 - name: "Ensure {{ app_name }} is installed"
   yum:
     name: vault
     state: present
     update_cache: true
+  when: ansible_distribution != 'Fedora'
+
+- name: "Ensure installation of dnf-config-manager"
+  dnf:
+    name: dnf-plugins-core
+    state: present
+  when: ansible_distribution == 'Fedora'
+
+- name: "Ensure {{ app_name }}'s yum repository is added (Fedora)"
+  become: true
+  command: dnf config-manager --add-repo "{{ vault_dnf_repo }}"
+  when: ansible_distribution == 'Fedora'
+
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: vault
+    state: present
+  when: ansible_distribution == 'Fedora'

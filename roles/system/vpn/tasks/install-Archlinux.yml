@@ -1,2 +1,26 @@
 ---
-[] # TODO
+- name: Ensure VPN dependencies are installed
+  community.general.pacman:
+    name: "{{ vpn_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure dh-autoreconf's dependencies are installed
+  community.general.pacman:
+    name: "{{ dhautoreconf_dependencies }}"
+    state: present
+    update_cache: true
+
+- name: Ensure the latest dh-autoreconf repository is cloned and up-to-date
+  ansible.builtin.git:
+    dest: "{{ dhautoreconf_src_dir }}"
+    repo: "{{ dhautoreconf_repo }}"
+  register: dhautoreconf_src
+
+- name: Ensure dh-autoreconf is installed with latest code # noqa 503
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ dhautoreconf_src_dir }}"
+  when: dhautoreconf_src.changed
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml

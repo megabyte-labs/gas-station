@@ -1,2 +1,15 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: wireguard
+    state: "{{ app_state | default('present') }}"
+
+- name: "Ensure VPN connections are removed if configured to do so"
+  ansible.windows.win_command: "Get-VpnConnection | Remove-VpnConnection -Force -Confirm:$false"
+  when: remove_vpn_connections | bool
+
+- name: "Copy WireGuard connection file"
+  ansible.windows.win_copy:
+    src: "files/vpn/{{ vpn_connection.file }}"
+    dest: "{{ wireguard_conf_dir }}\\{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
+  when: '"nmconnection" in vpn_connection.file'

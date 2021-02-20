@@ -1,0 +1,22 @@
+---
+- name: Ensure plugins are configured
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.zshrc
+    insertafter: '^plugins=\('
+    block: |
+      plugins=(
+      {% for item in omz_plugins %}
+        {{ item }}
+      {% endfor %}
+      )
+    backup: true
+
+- name: Ensure Theme is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshrc
+    marker: "#{mark} ANSIBLE MANAGED BLOCK for ohmyzsh"
+    regexp: "^ZSH_THEME="
+    line: "{{ 'ZSH_THEME=\"' + omz_theme + '\"' }}"
+    backup: true

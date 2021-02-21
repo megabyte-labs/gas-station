@@ -15,7 +15,16 @@ if [[ -d "$git_repository_dir/roles" ]]; then
     echo $import_files
 		gfind "$import_files" -maxdepth 1 -mindepth 1 -printf "%f\n" | while read -r skriven
                 do
-                        cp -Rf "$import_files/$skriven" "$gitrepo"
+                  cp -Rf "$import_files/$skriven" "$gitrepo"
+                  cd $gitrepo
+                  ROLE_FOLDER=$(basename "$PWD")
+                  sed -i .bak "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" tests/test.yml
+                  rm tests/test.yml.bak
+                  sed -i .bak "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" molecule/virtualbox/converge.yml
+                  rm molecule/virtualbox/converge.yml.bak
+                  sed -i .bak "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" molecule/default/converge.yml
+                  rm molecule/default/converge.yml.bak
+                        #cp -Rf "$import_files/$skriven" "$gitrepo"
                 done
 	done
 else

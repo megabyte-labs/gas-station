@@ -3,15 +3,17 @@ dependency:
   name: galaxy
   options:
     role-file: requirements.yml
+    requirements-file: requirements.yml
 driver:
   name: docker
 lint: |
   yamllint .
   ansible-lint
+  flake8
 platforms:
   - name: CentOS-7
     image: professormanhattan/ansible-molecule-centos7:latest
-    command: ""
+    command: /sbin/init
     tmpfs:
       - /run
       - /tmp
@@ -21,7 +23,7 @@ platforms:
     pre_build_image: true
   - name: CentOS-8
     image: professormanhattan/ansible-molecule-centos8:latest
-    command: ""
+    command: /sbin/init
     tmpfs:
       - /run
       - /tmp
@@ -31,7 +33,7 @@ platforms:
     pre_build_image: true
   - name: Debian-10
     image: professormanhattan/ansible-molecule-debian10:latest
-    command: ""
+    command: /sbin/init
     tmpfs:
       - /run
       - /tmp
@@ -41,7 +43,7 @@ platforms:
     pre_build_image: true
   - name: Fedora-33
     image: professormanhattan/ansible-molecule-fedora33:latest
-    command: ""
+    command: /sbin/init
     tmpfs:
       - /run
       - /tmp
@@ -50,8 +52,8 @@ platforms:
     privileged: true
     pre_build_image: true
   - name: Ubuntu-20.04
-    image: professormanhattan/ansible-molecule-ubuntu2004:latest
-    command: ""
+    image: testtest:latest
+    command: /sbin/init
     tmpfs:
       - /run
       - /tmp
@@ -61,14 +63,18 @@ platforms:
     pre_build_image: true
 provisioner:
   name: ansible
+  connection_options:
+    ansible_connection: docker
+    ansible_password: ansible
+    ansible_ssh_user: ansible
   inventory:
     group_vars:
       all:
-        ansible_connection: docker
+        molecule_test: true
+  options:
+    vvv: true
   playbooks:
     converge: converge.yml
-    create: create.yml
-    destroy: destroy.yml
 verifier:
   name: ansible
 scenario:

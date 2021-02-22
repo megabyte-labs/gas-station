@@ -1,4 +1,5 @@
-<h1 align="center">Ansible Role: Snap</h1>
+# Ansible Role: Snap
+
 <div align="center">
   <h4>
     <a href="{{ main_playbook_url }}">Main Playbook</a>
@@ -51,9 +52,11 @@ None.
 
 All you have to do is add the role to your main playbook. The role handles the `become` behavior, so you can simply add the role to your playbook without worry:
 
-    - hosts: all
-      roles:
-         - professormanhattan.snapd
+```lang-yml
+- hosts: all
+  roles:
+    - professormanhattan.snapd
+```
 
 ## Other Roles
 
@@ -79,7 +82,7 @@ Give a ⭐️ if this project helped you!
 
 **Brian Zalewski** (ProfessorManhattan)
 
-- Website: https://megabyte.space
+- Website: [Megabyte Labs Homepage](https://megabyte.space)
 - Twitter: [@PrfssrManhattan](https://twitter.com/PrfssrManhattan)
 - Github: [@ProfessorManhattan](https://github.com/ProfessorManhattan)
 - LinkedIn: [@blzalewski](https://linkedin.com/in/blzalewski)

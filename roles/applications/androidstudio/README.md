@@ -35,9 +35,9 @@ None.
 
 The following chart shows the operating systems that have been tested as working. This role might still work for operating systems that are not listed.
 
-| Operating System | Supported Versions |
-| ---------------- | --------------- |
-| Ubuntu | focal, thing, two, four |
+| Operating System | Supported Versions      |
+| ---------------- | ----------------------- |
+| Ubuntu           | focal, thing, two, four |
 
 ## Role Variables
 
@@ -49,8 +49,8 @@ This playbook requires snap to be installed on Linux distributions. Java is also
 
 By default, the following roles will install at the beginning of the play:
 
-* [professormanhattan.java](https://gitlab.com/megabyte-space/ansible-roles/java) - Installs and configures Java
-* [professormanhattan.snapd](https://gitlab.com/megabyte-space/ansible-roles/snapd) - Installs snap on Linux distributions
+- [professormanhattan.java](https://gitlab.com/megabyte-space/ansible-roles/java) - Installs and configures Java
+- [professormanhattan.snapd](https://gitlab.com/megabyte-space/ansible-roles/snapd) - Installs snap on Linux distributions
 
 If you are handling the installation of these dependencies with another role, you can bypass the installation of these dependencies by setting the `install_role_dependencies` variable to `false`.
 
@@ -64,17 +64,19 @@ ansible-galaxy install -r requirements.yml
 
 With the requirements installed, all you have to do is add the role to your main playbook. The role handles the `become` behavior, so you can simply add the role to your playbook without worry:
 
-    - hosts: all
-      roles:
-         - professormanhattan.androidstudio
+```lang-yml
+- hosts: all
+  roles:
+    - professormanhattan.androidstudio
+```
 
 ## Other Roles
 
 This role is part of the main playbook. The playbook includes a bunch of other nifty roles that you may want to consider using. You can browse through the roles below:
 
-| Role Name | Role Description |
-| ---------------- | --------------- |
-| Ubuntu | focal, thing, two, four |
+| Role Name | Role Description        |
+| --------- | ----------------------- |
+| Ubuntu    | focal, thing, two, four |
 
 ## Contributing
 
@@ -92,10 +94,10 @@ Give a ⭐️ if this project helped you!
 
 **Brian Zalewski** (ProfessorManhattan)
 
-* Website: https://megabyte.space
-* Twitter: [@PrfssrManhattan](https://twitter.com/PrfssrManhattan)
-* Github: [@ProfessorManhattan](https://github.com/ProfessorManhattan)
-* LinkedIn: [@blzalewski](https://linkedin.com/in/blzalewski)
+- Website: [Megabyte Labs Homepage](https://megabyte.space)
+- Twitter: [@PrfssrManhattan](https://twitter.com/PrfssrManhattan)
+- Github: [@ProfessorManhattan](https://github.com/ProfessorManhattan)
+- LinkedIn: [@blzalewski](https://linkedin.com/in/blzalewski)
 
 ## License
 

@@ -1,0 +1,24 @@
+---
+- name: Ensure Stubby is installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: stubby
+    state: present
+
+- name: Update DNS settings
+  ansible.windows.win_template:
+    src: stubby.yml.j2
+    dest: "{{ stubby_config_path }}"
+    backup: yes
+
+- name: Update DNS setting
+  ansible.windows.win_command: "%PROGRAMFILES%/Stubby/stubby_setdns_windows.ps1"
+
+- name: Setup Scheduled job to start Stubby on boot
+  community.windows.win_scheduled_task:
+    name: Stubby
+    path: "%PROGRAMFILES%/Stubby/stubby.bat"
+    actions:
+      - path: cmd.exe
+    triggers:
+      - type: boot
+    username: SYSTEM

@@ -23,6 +23,45 @@ All of the roles should support the following operating systems:
 - Mac OS X/Darwin (Latest)
 - Windows (Latest)
 
+## Testing
+
+### Testing Linux Environments with Docker
+
+To test a role on the Linux distributions, run the following command in the role's root directory:
+
+```
+molecule test
+```
+
+The command `molecule test` will spin up Docker instances for all the Linux distributions we support and install the role. It does some other tests too. Namely, it tests for idempotence. Basically, a role that runs twice in a row should not report any changes the second time around. 
+
+If you would like to shell into the container for debugging, you can do that by running:
+
+```
+molecule converge
+molecule login
+```
+
+### Testing Full Desktop Environments
+
+Some of our roles include applications like Android Studio. You can not fully test Android Studio from a Docker CLI. In cases like this, you should use the automated VirtualBox testing scenario. Molecule can use Vagrant along with VirtualBox to create a VM and install a role. After you do this, it is important to open the VM and verify that, for example, Android Studio opens when you click on the shortcut in the quick launch menu. You can run this type of test by running the following command in the role's root directory:
+
+```
+molecule converge -s virtualbox
+```
+
+Molecule will install the role on a VM and leave the VM intact. You should then open the VM with VirtualBox and inspect the installation. **When you are doing this, try asking yourself, "How can this be improved?"** Maybe the role works and Android Studio is installed. If it is, that is great. However, when you are testing, try to imagine how we can automate more. For example:
+
+* *The software is installed but is asking for a license key* - In this case, we should ensure that our playbook has an option for automatically installing the license key
+* *The software supports plugins* - We should provide an option for specifying the plugins that can be automatically installed.
+* *The software (in this case Android Studio) does not install SDKs automatically* - If this is the case, we should offer the ability to automatically install user-specified SDKs.
+* *The software has configuration files with commonly tweaked settings* - We should provide the ability to change these settings from the playbook.
+* *The software has the capability to integrate with another piece of software in the playbook* - The integration should be done.
+
+And so on...
+
+It is best if you choose to use the software provided by the playbook in your daily routine. If something is missing from the playbook that you consider essential, create an unassigned issue for it on the [GitLab issue board](https://gitlab.com/ProfessorManhattan/Playbooks/-/issues).
+
 ## Linting
 
 There are primarily two different linting tools used in this playbook. They are **ansible-lint** and **yamllint**. ansible-lint lint offers code suggestions related to Ansible best practices and yamllint offers generic code suggestions for .yml files.

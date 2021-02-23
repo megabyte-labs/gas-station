@@ -16,7 +16,7 @@ if [[ -d "$git_repository_dir/roles" ]]; then
 		gfind "$import_files" -maxdepth 1 -mindepth 1 -printf "%f\n" | while read -r skriven
                 do
                   cp -Rf "$import_files/$skriven" "$gitrepo"
-                  cd $gitrepo
+                  cd "$gitrepo" || exit
                   ROLE_FOLDER=$(basename "$PWD")
                   sed -i .bak "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" tests/test.yml
                   rm tests/test.yml.bak

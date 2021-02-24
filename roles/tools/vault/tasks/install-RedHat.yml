@@ -8,15 +8,13 @@
     name: HashiCorp
   when: ansible_distribution != 'Fedora'
 
-- name: "Ensure {{ app_name }}'s dependencies are installed (Fedora)"
-  dnf:
-    name: "{{ package_dependencies_fedora }}"
-    state: present
-  when: ansible_distribution == 'Fedora'
-
 - name: "Ensure {{ app_name }}'s yum repository is added (Fedora)"
-  become: true
-  command: dnf config-manager --add-repo "{{ vault_dnf_repo }}"
+  yum_repository:
+    baseurl: "{{ vault_dnf_repo }}"
+    description: HashiCorp repository
+    gpgcheck: true
+    gpgkey: "{{ vault_gpgkey_url }}"
+    name: HashiCorp
   when: ansible_distribution == 'Fedora'
 
 - name: "Ensure {{ app_name }} is installed"

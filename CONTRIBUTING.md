@@ -33,7 +33,7 @@ To test a role on the Linux distributions, run the following command in the role
 molecule test
 ```
 
-The command `molecule test` will spin up Docker instances for all the Linux distributions we support and install the role. It does some other tests too. Namely, it tests for idempotence. Basically, a role that runs twice in a row should not report any changes the second time around. 
+The command `molecule test` will spin up Docker instances for all the Linux distributions we support and install the role. It does some other tests too. Namely, it tests for idempotence. Basically, a role that runs twice in a row should not report any changes the second time around.
 
 If you would like to shell into the container for debugging, you can do that by running:
 
@@ -52,11 +52,11 @@ molecule converge -s virtualbox
 
 Molecule will install the role on a VM and leave the VM intact. You should then open the VM with VirtualBox and inspect the installation. **When you are doing this, try asking yourself, "How can this be improved?"** Maybe the role works and Android Studio is installed. If it is, that is great. However, when you are testing, try to imagine how we can automate more. For example:
 
-* *The software is installed but is asking for a license key* - In this case, we should ensure that our playbook has an option for automatically installing the license key
-* *The software supports plugins* - We should provide an option for specifying the plugins that can be automatically installed.
-* *The software (in this case Android Studio) does not install SDKs automatically* - If this is the case, we should offer the ability to automatically install user-specified SDKs.
-* *The software has configuration files with commonly tweaked settings* - We should provide the ability to change these settings from the playbook.
-* *The software has the capability to integrate with another piece of software in the playbook* - The integration should be done.
+- *The software is installed but is asking for a license key* - In this case, we should ensure that our playbook has an option for automatically installing the license key
+- *The software supports plugins* - We should provide an option for specifying the plugins that can be automatically installed.
+- *The software (in this case Android Studio) does not install SDKs automatically* - If this is the case, we should offer the ability to automatically install user-specified SDKs.
+- *The software has configuration files with commonly tweaked settings* - We should provide the ability to change these settings from the playbook.
+- *The software has the capability to integrate with another piece of software in the playbook* - The integration should be done.
 
 And so on...
 
@@ -156,4 +156,39 @@ DRY stands for Do NOT Repeat Yourself. Whenever there is code that is duplicated
 ```
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
+```
+
+#### Handling dependencies
+
+Some software components need dependencies to be satisfied before they can be installed. A good example of such a case is installing packages from Archlinux's AUR repository. The package information page lists the dependencies. These packages need to be added to the _Archlinux.yml_ variable file as `<package>_dependencies` (replace `<package>` with the name of the package, e.g: `autokey_dependencies`), and install these in the Playbook. The format of this task is shown below:
+
+```
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ <package>_dependencies }}"
+    state: present
+```
+
+If there are dependencies that are specific to a certain distribution in a OS family, then list the dependencies in the corresponding variable file. For example, to add dependencies for Fedora, add the variable `<package>_dependencies_fedora` to the _RedHat.yml_ variable file. Install these packages in the Playbook, using the below format:
+
+```
+- name: "Ensure {{ app_name }}'s dependencies are installed (Fedora)"
+  dnf:
+    name: "{{ <package>_dependencies_fedora }}"
+    state: present
+  when: ansible_distribution == 'Fedora'
+```
+
+#### Ordering lists
+
+Anywhere a list is used, ensure to order the list. An example is given below:
+
+```
+autokey_dependencies:
+  - binutils
+  - fakeroot
+  - gcc
+  - git
+  - make
+  - pkg-config
 ```

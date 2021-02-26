@@ -1,4 +1,35 @@
 ---
+- name: Determine whether or not a Desktop Environment is installed
+  stat:
+    path: "{{ item }}"
+  with_items:
+    - /usr/bin/gnome-session
+    - /usr/bin/xfce4-session
+    - /usr/bin/lxsession
+    - /usr/bin/kded5
+    - /usr/bin/icewm-session
+    - /usr/bin/mate-session
+    - /usr/bin/cinnamon
+  register: session_files
+
+- name: Set results of checking for Desktop Environment to a variable
+  set_fact:
+    desktop_env_results: "{{ session_files | community.general.json_query('results[*].stat.exists') }}"
+
+- name: Calculate Swap size based on RAM size
+  set_fact:
+    swap_space: "{% set ram = (ansible_memtotal_mb / 1024) | round %}
+      {% if(ram <= 8) %}
+      {{ (ram * 2) | round | int }}G
+      {% elif(ram > 8 and ram <= 32) %}
+      {{ ((ram / 4) + ram) | round | int }}G
+      {% elif(ram > 32 and ram <= 64) %}
+      {{ ((ram / 8) + ram) | round | int }}G
+      {% elif(ram > 64) %}
+      {{ ((ram / 10) + ram) | round | int }}G
+      {% endif %}"
+  when: "true in desktop_env_results"
+
 - name: Create Swap volume (when ZFS is used for the root partition)
   block:
     - name: Check if the ZFS rpool/swapfile volume exists

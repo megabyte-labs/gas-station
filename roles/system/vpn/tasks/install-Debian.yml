@@ -6,3 +6,19 @@
 
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
+
+- name: Ensure scripts to manage static routes are added
+  template:
+    src: "{{ item.name + '.j2' }}"
+    dest: "{{ '/etc/network/' + item.folder + '/' }}"
+    owner: root
+    group: root
+    mode: 0744
+  with_items:
+    - name: routeadd
+      folder: if-up.d
+    - name: routedel
+      folder: if-post-down.d
+  when:
+    - ansible_distribution == 'Ubuntu'
+    - static_route_subnets

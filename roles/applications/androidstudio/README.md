@@ -25,7 +25,7 @@
   </a>
 </p>
 <p align="center">
-  <b>This repository contains an Ansible role that will install Android Studio on nearly any OS. Android Studio is the official integrated development environment for Google's Android operating system, built on JetBrains' IntelliJ IDEA software and designed specifically for Android development.</b></br>
+  <b>An Ansible role that installs Android Studio on nearly any OS</b></br>
   <sub><sub>
 </p>
 
@@ -44,7 +44,7 @@
 
 ## ➤ Overview
 
-This is an Ansible role that will install Android Studio on nearly any OS.
+This repository contains an Ansible role that will install Android Studio on nearly any OS. Android Studio is the official integrated development environment for Google's Android operating system, built on JetBrains' IntelliJ IDEA software and designed specifically for Android development.
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#supported-operating-systems)
 
@@ -53,10 +53,10 @@ This is an Ansible role that will install Android Studio on nearly any OS.
 The following chart shows the operating systems that have been tested as working. This chart is automatically generated using the Ansible Molecule tests you can view in the `molecule/` folder. If your operating system is not listed in the compatibility matrix then we cannot guarantee that the role will work on your target operating system.
 
 
-| OS Family | OS Version | Status |
-|-----------|------------|--------|
-| Fedora    | 33         | ❌      |
-| Ubuntu    | focal      | ✅      |
+| OS Family | OS Version | Status | Idempotent |
+|-----------|------------|--------|------------|
+| Fedora    | 33         | ❌      | ❌          |
+| Ubuntu    | focal      | ✅      | ❌          |
 
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#dependencies)
@@ -106,7 +106,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 <blockquote>
 I create open source projects out of love. Although I have a job, shelter, and as much fast food as I can handle, it would still be pretty cool to be appreciated by the community for something I have spent a lot of time and money on. Please consider sponsoring me! Maybe I'll be able to quit my job and publish open source full time.
 
-*Sincerely,*
+Sincerely,
 
 ***Brian Zalewski***
 </blockquote>
@@ -116,6 +116,7 @@ I create open source projects out of love. Although I have a job, shelter, and a
 </a>
 
 </details>
+
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#license)
 

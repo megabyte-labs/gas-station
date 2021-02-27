@@ -11,9 +11,24 @@ driver:
 lint: |
   yamllint .
   ansible-lint
+  flake8
 platforms:
-  - name: Ubuntu-20.04
-    box: ProfessorManhattan/Ubuntu-2004-Desktop
+  - name: Archlinux-Latest
+    box: ProfessorManhattan/Base-Archlinux-Desktop
+    memory: 4096
+    cpus: 2
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.3
+        guest: 80
+        host: 8081
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-Latest
+    box: ProfessorManhattan/Base-Ubuntu-Desktop
     memory: 4096
     cpus: 2
     interfaces:
@@ -28,6 +43,14 @@ platforms:
       ssh.remote_user: "'vagrant'"
 provisioner:
   name: ansible
+  inventory:
+    group_vars:
+      all:
+        virtualbox_test: true
+  options:
+    vvv: true
+  playbooks:
+    converge: converge.yml
 verifier:
   name: ansible
 scenario:

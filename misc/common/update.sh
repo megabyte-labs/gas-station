@@ -3,6 +3,8 @@
 # This script performs maintenance on this repository. It ensures git submodules are
 # installed and then copies over base files from the modules.
 
+set -e
+
 if [ ! -d "./modules" ]; then
   mkdir modules
 fi
@@ -36,14 +38,13 @@ else
   git pull origin master
   cd ../..
 fi
+cp -rf ./modules/shared/.github .
+cp -rf ./modules/shared/.gitlab .
+cp -rf ./modules/shared/.vscode .
 cp ./modules/shared/.editorconfig .editorconfig
 cp ./modules/shared/.flake8 .flake8
-cp -rf ./modules/shared/.github .
-cp ./modules/shared/.gitignore .gitignore
-cp -rf ./modules/shared/.gitlab .
 cp ./modules/shared/.mdlrc .mdlrc
 cp ./modules/shared/.prettierrc .prettierrc
-cp -rf ./modules/shared/.vscode .
 cp ./modules/shared/.yamllint .yamllint
 cp ./modules/shared/CODE_OF_CONDUCT.md CODE_OF_CONDUCT.md
 ROLE_FOLDER=$(basename "$PWD")
@@ -58,9 +59,5 @@ cd modules/ansible
 git reset --hard HEAD
 cd ../..
 mv gitlab-ci.yml .gitlab-ci.yml
-cp ./modules/docs/blueprint-contributing.md blueprint.md
-npx @appnest/readme generate --extend ./modules/docs/common.json
-mv README.md CONTRIBUTING.md
-cp ./modules/docs/blueprint-readme.md blueprint.md
-npx @appnest/readme generate --extend ./modules/docs/common.json
-rm blueprint.md
+npx @appnest/readme generate --extend ./modules/docs/common.json --input ./modules/docs/blueprint-contributing.md --output CONTRIBUTING.md
+npx @appnest/readme generate --extend ./modules/docs/common.json --input ./modules/docs/blueprint-readme.md

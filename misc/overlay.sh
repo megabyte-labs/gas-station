@@ -1,6 +1,6 @@
 #!/bin/bash
 # Directory where files for import are located (need to point to root directory of ansible role)
-import_files="/Users/bzalewski/Playbooks/misc/common"
+import_files="/Users/bzalewski/Code/playbooks/misc/common"
 # Directory where gitlab repository is located (need to point to directory where roles directory is)
 git_repository_dir="/Users/bzalewski/Code/playbooks"
 
@@ -14,14 +14,13 @@ if [[ -d "$git_repository_dir/roles" ]]; then
 	do
 		gfind "$import_files" -maxdepth 1 -mindepth 1 -printf "%f\n" | while read -r skriven
                 do
-                  echo "---"
-                  echo "$import_files"
-                  echo "$skriven"
+                  echo "********************"
                   echo "$gitrepo"
+                  echo "********************"
                   cp -Rf "$import_files/$skriven" "$gitrepo"
                   cd "$gitrepo" || exit
-                  ROLE_FOLDER=$(basename "$PWD")
-                  echo "HERE"
+                  sleep 1
+                  bash update.sh
                         #cp -Rf "$import_files/$skriven" "$gitrepo"
                 done
 	done

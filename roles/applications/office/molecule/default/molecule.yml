@@ -5,72 +5,132 @@ dependency:
     role-file: requirements.yml
     requirements-file: requirements.yml
 driver:
-  name: docker
+  name: vagrant
+  provider:
+    name: virtualbox
 lint: |
   yamllint .
   ansible-lint
   flake8
 platforms:
   - name: CentOS-7
-    image: professormanhattan/ansible-molecule-centos7:latest
-    command: /sbin/init
-    tmpfs:
-      - /run
-      - /tmp
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    pre_build_image: true
+    box: bento/centos-7
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.2
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
   - name: CentOS-8
-    image: professormanhattan/ansible-molecule-centos8:latest
-    command: /sbin/init
-    tmpfs:
-      - /run
-      - /tmp
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    pre_build_image: true
+    box: bento/centos-8
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.3
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Debian-9
+    box: bento/debian-9
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.4
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
   - name: Debian-10
-    image: professormanhattan/ansible-molecule-debian10:latest
-    command: /sbin/init
-    tmpfs:
-      - /run
-      - /tmp
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    pre_build_image: true
+    box: bento/debian-10
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.5
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
   - name: Fedora-33
-    image: professormanhattan/ansible-molecule-fedora33:latest
-    command: /sbin/init
-    tmpfs:
-      - /run
-      - /tmp
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    pre_build_image: true
+    box: bento/fedora-33
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.6
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-16.04
+    box: bento/ubuntu-16.04
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.7
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-18.04
+    box: bento/ubuntu-18.04
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.8
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
   - name: Ubuntu-20.04
-    image: professormanhattan/ansible-molecule-ubuntu2004
-    command: /sbin/init
-    tmpfs:
-      - /run
-      - /tmp
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    pre_build_image: true
+    box: bento/ubuntu-20.04
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.9
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
 provisioner:
   name: ansible
-  connection_options:
-    ansible_connection: docker
-    ansible_password: ansible
-    ansible_ssh_user: ansible
   inventory:
     group_vars:
       all:
-        molecule_test: true
+        molecule_virtualbox_test: true
   options:
     vvv: true
   playbooks:

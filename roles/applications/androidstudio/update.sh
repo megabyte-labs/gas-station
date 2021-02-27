@@ -3,6 +3,8 @@
 # This script performs maintenance on this repository. It ensures git submodules are
 # installed and then copies over base files from the modules.
 
+set -e
+
 if [ ! -d "./modules" ]; then
   mkdir modules
 fi
@@ -36,11 +38,13 @@ else
   git pull origin master
   cd ../..
 fi
+cp -rf ./modules/shared/.github .
+cp -rf ./modules/shared/.gitlab .
 cp ./modules/shared/.editorconfig .editorconfig
 cp ./modules/shared/.flake8 .flake8
-cp -rf ./modules/shared/.github .
+
 cp ./modules/shared/.gitignore .gitignore
-cp -rf ./modules/shared/.gitlab .
+
 cp ./modules/shared/.mdlrc .mdlrc
 cp ./modules/shared/.prettierrc .prettierrc
 cp -rf ./modules/shared/.vscode .

@@ -54,6 +54,9 @@ else
   grep -rl 'MEGABYTE_ROLE_PLACEHOLDER' ./modules/ansible | xargs sed -i "s/MEGABYTE_ROLE_PLACEHOLDER/${ROLE_FOLDER}/g"
 fi
 cp -rf ./modules/ansible/* .
+cd modules/ansible
+git reset --hard HEAD
+cd ../..
 mv gitlab-ci.yml .gitlab-ci.yml
 cp ./modules/docs/blueprint-contributing.md blueprint.md
 npx @appnest/readme generate --extend ./modules/docs/common.json

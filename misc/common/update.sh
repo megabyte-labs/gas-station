@@ -54,10 +54,12 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   grep -rl 'MEGABYTE_ROLE_PLACEHOLDER' ./modules/ansible | xargs sed -i "s/MEGABYTE_ROLE_PLACEHOLDER/${ROLE_FOLDER}/g"
 fi
-cp -rf ./modules/ansible/* .
+rsync -avr --exclude='./modules/ansible/.git' --exclude '*.git' ./modules/ansible/ .
 cd modules/ansible
 git reset --hard HEAD
 cd ../..
 mv gitlab-ci.yml .gitlab-ci.yml
-npx @appnest/readme generate --extend ./modules/docs/common.json --input ./modules/docs/blueprint-contributing.md --output CONTRIBUTING.md
-npx @appnest/readme generate --extend ./modules/docs/common.json --input ./modules/docs/blueprint-readme.md
+jq -s '.[0] * .[1]' blueprint.json ./modules/docs/common.json > __bp.json || true
+npx @appnest/readme generate --config __bp.json --input ./modules/docs/blueprint-contributing.md --output CONTRIBUTING.md || true
+npx @appnest/readme generate --config __bp.json --input ./modules/docs/blueprint-readme.md || true
+rm __bp.json

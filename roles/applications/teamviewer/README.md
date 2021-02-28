@@ -1,27 +1,27 @@
-<!-- ⚠️ This README has been generated from the file(s) "blueprint.md" ⚠️--><h1 align="center">Ansible Role: Android Studio</h1>
+<!-- ⚠️ This README has been generated from the file(s) "./modules/docs/blueprint-readme.md" ⚠️--><h1 align="center">Ansible Role: Android Studio</h1>
 <div align="center">
   <h4>
-    <a href="repository.playbooks">Main Playbook</a>
+    <a href="https://gitlab.com/ProfessorManhattan/Playbooks">Main Playbook</a>
     <span> | </span>
-    <a href="profile.galaxy/androidstudio">Galaxy</a>
+    <a href="https://galaxy.ansible.com/professormanhattan/androidstudio">Galaxy</a>
     <span> | </span>
-    <a href="repository.group.ansible_roles/androidstudio/-/blob/master/CONTRIBUTING.md">Contributing</a>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/androidstudio/-/blob/master/CONTRIBUTING.md">Contributing</a>
     <span> | </span>
-    <a href="chat_url">Chat</a>
+    <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/">Chat</a>
     <span> | </span>
-    <a href="website.homepage">Website</a>
+    <a href="https://megabyte.space">Website</a>
   </h4>
 </div>
 <p style="text-align:center;">
   <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
-  <a href="website.documentation/androidstudio" target="_blank">
+  <a href="https://megabyte.space/docs/androidstudio" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
   </a>
   <a href="repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE" target="_blank">
-    <img alt="License: license" src="https://img.shields.io/badge/License-license-yellow.svg" />
+    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
-  <a href="https://twitter.com/profile.twitter" target="_blank">
-    <img alt="Twitter: profile.twitter" src="https://img.shields.io/twitter/follow/profile.twitter.svg?style=social" />
+  <a href="https://twitter.com/PrfssrManhattan" target="_blank">
+    <img alt="Twitter: PrfssrManhattan" src="https://img.shields.io/twitter/follow/PrfssrManhattan.svg?style=social" />
   </a>
 </p>
 <p align="center">
@@ -29,7 +29,7 @@
   <sub><sub>
 </p>
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#table-of-contents)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
 
 ## ➤ Table of Contents
 
@@ -40,13 +40,13 @@
 * [➤ Contributing](#-contributing)
 * [➤ License](#-license)
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#overview)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#overview)
 
 ## ➤ Overview
 
 This repository contains an Ansible role that will install Android Studio on nearly any OS. Android Studio is the official integrated development environment for Google's Android operating system, built on JetBrains' IntelliJ IDEA software and designed specifically for Android development.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#supported-operating-systems)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
 ## ➤ Supported Operating Systems
 
@@ -59,7 +59,7 @@ The following chart shows the operating systems that have been tested as working
 | Ubuntu    | focal      | ✅      | ❌          |
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#dependencies)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#dependencies)
 
 ## ➤ Dependencies
 
@@ -81,7 +81,7 @@ ansible-galaxy install -r requirements.yml
 ```
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#example-playbook)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#example-playbook)
 
 ## ➤ Example Playbook
 
@@ -94,7 +94,7 @@ With the dependencies installed, all you have to do is add the role to your main
 ```
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#contributing)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#contributing)
 
 ## ➤ Contributing
 
@@ -118,8 +118,8 @@ Sincerely,
 </details>
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#license)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#license)
 
 ## ➤ License
 
-Copyright © 2021 [Megabyte LLC](website.homepage). This project is [license](repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE) licensed.
+Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE) licensed.

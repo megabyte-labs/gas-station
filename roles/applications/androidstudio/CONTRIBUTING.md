@@ -1,11 +1,11 @@
-<!-- ⚠️ This README has been generated from the file(s) "blueprint.md" ⚠️-->
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#contributing)
+<!-- ⚠️ This README has been generated from the file(s) "./modules/docs/blueprint-contributing.md" ⚠️-->
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#contributing)
 
 # ➤ Contributing
 
 First of all, thanks for visiting this page 😊❤️! We are totally ecstatic that you may be considering contributing to this project. You should read this guide if you are considering creating a pull request.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#table-of-contents)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
 
 ## ➤ Table of Contents
 
@@ -13,6 +13,8 @@ First of all, thanks for visiting this page 😊❤️! We are totally ecstatic 
 	* [➤ Code of Conduct](#-code-of-conduct)
 	* [➤ Philosophy](#-philosophy)
 	* [➤ Supported Operating Systems](#-supported-operating-systems)
+		* [Other Operating Systems](#other-operating-systems)
+		* [Styling for Platform-Specific Roles](#styling-for-platform-specific-roles)
 * [➤ tasks/main.yml in the Visual Studio role](#-tasksmainyml-in-the-visual-studio-role)
 	* [➤ Setting Up Development Environment](#-setting-up-development-environment)
 		* [Requirements](#requirements)
@@ -35,13 +37,13 @@ First of all, thanks for visiting this page 😊❤️! We are totally ecstatic 
 			* [[301] Command should not change things if nothing needs doing](#301-command-should-not-change-things-if-nothing-needs-doing)
 			* [[305] Use shell only when shell functionality is required](#305-use-shell-only-when-shell-functionality-is-required)
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#code-of-conduct)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#code-of-conduct)
 
 ## ➤ Code of Conduct
 
 This project and everyone participating in it is governed by the [Atom Code of Conduct](https://github.com/atom/atom/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [help@megabyte.space](mailto:help@megabyte.space).
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#philosophy)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#philosophy)
 
 ## ➤ Philosophy
 
@@ -51,11 +53,11 @@ When you are working with a role, try asking yourself, "How can this be improved
 * **The software supports plugins** - We should provide an option for specifying the plugins that can be automatically installed.
 * **In the case of Android Studio, many users have to install SDKs before using the software.** - We should offer the capability to automatically install user-specified SDKs.
 * **The software has configuration files with commonly tweaked settings.** - We should provide the ability to change these settings from the playbook.
-* **The software has the capability to integrate with another piece of software in the [main playbook](repository.playbooks)**. - This integration should be automated.
+* **The software has the capability to integrate with another piece of software in the [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks)**. - This integration should be automated.
 
-Ideally, you should use the software that the role installs. This is really the only way of testing whether or not it was installed properly and has all the common settings automated. The software installed by the [main playbook](repository.playbooks) is all widely-acclaimed, cross-platform software (for the most part) that many people find useful.
+Ideally, you should use the software that the role installs. This is really the only way of testing whether or not it was installed properly and has all the common settings automated. The software installed by the [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks) is all widely-acclaimed, cross-platform software (for the most part) that many people find useful.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#supported-operating-systems)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
 ## ➤ Supported Operating Systems
 
@@ -69,11 +71,25 @@ All of our roles should run without error on the following operating systems:
 * Mac OS X (Latest)
 * Windows 10 (Latest)
 
+### Other Operating Systems
+
+We are considering adding support for the following operating systems. At your convienience, please also test the roles on:
+
+* **Qubes**
+* Elementary OS
+* Zorin
+* OpenSUSE
+* Manjaro
+* FreeBSD
+* Mint
+
+### Styling for Platform-Specific Roles
+
 If you have a role that only installs software made for Windows 10 then ensure that the tasks are only run when the system is a Windows system by using `when:` in the `tasks/main.yml` file. For example, the following `main.yml` does this:
 
-```
+```yaml
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#tasksmainyml-in-the-visual-studio-role)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#tasksmainyml-in-the-visual-studio-role)
 
 # ➤ tasks/main.yml in the Visual Studio role
 ---
@@ -88,7 +104,7 @@ If you have a role that only installs software made for Windows 10 then ensure t
   when: ansible_os_family == 'Windows'
 ```
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#setting-up-development-environment)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#setting-up-development-environment)
 
 ## ➤ Setting Up Development Environment
 
@@ -98,32 +114,38 @@ Before contributing to this project, you will have to make sure you have the too
 
 * **Ansible** >=2.10
 * **Python 3**, along with the `python3-netaddr` and `python3-pip` libraries (i.e. `sudo apt-get install python3 python3-netaddr python3-pip`)
-* **Docker** - Used for running the Docker tests (this is not fully working, see [this issue](repository.playbooks/-/issues/183))
+* **Docker** - Used for running the Docker tests (this is not fully working, see [this issue](https://gitlab.com/ProfessorManhattan/Playbooks/-/issues/183))
 * **VirtualBox** - Used for running the molecule tests
 
 ### Dependencies
 
 With all the requirements installed, navigate to the root directory and run the following commands to install the Python dependencies and Ansible Galaxy dependencies:
 
-```
+```terminal
 pip3 install -r requirements.txt
 ansible-galaxy install -r requirements.yml
 pre-commit install
 git submodule update --init --recursive
 ```
 
+If you are experiencing issues with the Python modules, you can make use of `venv` by running the following before running the above commands:
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#pull-requests)
+```terminal
+python3 -m venv venv
+source venv/bin/activate
+```
+
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#pull-requests)
 
 ## ➤ Pull Requests
 
-All pull requests should be associated with issues. You can find the [issues board on GitLab](repository.playbooks). The pull requests should be made to [the GitLab repository](repository.group.ansible_roles/androidstudio) instead of the [GitHub repository](profile.github/ansible-androidstudio). This is because we use GitLab as our primary repository and mirror the changes to GitHub for the community.
+All pull requests should be associated with issues. You can find the [issues board on GitLab](https://gitlab.com/ProfessorManhattan/Playbooks). The pull requests should be made to [the GitLab repository](https://gitlab.com/megabyte-space/ansible-roles/androidstudio) instead of the [GitHub repository](https://github.com/ProfessorManhattan/ansible-androidstudio). This is because we use GitLab as our primary repository and mirror the changes to GitHub for the community.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#code-style)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#code-style)
 
 ## ➤ Code Style
 
-We try to follow the same code style across all our Ansible repositories. If something is done one way somewhere, then it should be done the same way elsewhere. It is up to you to [browse through our roles](repository.playbooks/-/tree/master/roles) to get a feel for how everything should be styled. You should clone [the main Playbooks repository](repository.playbooks), initialize all the submodules, and search through the code base to see how we are *styling* different task types. Below are some examples:
+We try to follow the same code style across all our Ansible repositories. If something is done one way somewhere, then it should be done the same way elsewhere. It is up to you to [browse through our roles](https://gitlab.com/ProfessorManhattan/Playbooks/-/tree/master/roles) to get a feel for how everything should be styled. You should clone [the main Playbooks repository](https://gitlab.com/ProfessorManhattan/Playbooks), initialize all the submodules, and search through the code base to see how we are *styling* different task types. Below are some examples:
 
 ### Arrays
 
@@ -131,7 +153,7 @@ When there is only one parameter, then you should inline it.
 
 **BAD**
 
-```
+```yaml
 when:
   - install_minikube
 ...
@@ -142,7 +164,7 @@ when:
 
 **GOOD**
 
-```
+```yaml
 when: install_minikube
 ...
 when:
@@ -156,7 +178,7 @@ Anywhere an array/list is used, the list should be ordered alphabetically (if po
 
 **BAD**
 
-```
+```yaml
 autokey_dependencies:
   - pkg-config
   - make
@@ -165,7 +187,7 @@ autokey_dependencies:
 
 **GOOD**
 
-```
+```yaml
 autokey_dependencies:
   - git
   - make
@@ -178,7 +200,7 @@ The format in `tasks/main.yml` of each role should follow roughly the same forma
 
 **GOOD**
 
-```
+```yaml
 ---
 - name: Include variables based on the operating system
   include_vars: "ansible_os_family.yml"
@@ -197,7 +219,7 @@ For example, say the application being installed is Android Studio. The dependen
 
 **BAD**
 
-```
+```yaml
 - name: "Ensure app_name's dependencies are installed"
   community.general.pacman:
     name: "android_studio_deps"
@@ -206,7 +228,7 @@ For example, say the application being installed is Android Studio. The dependen
 
 **GOOD**
 
-```
+```yaml
 - name: "Ensure app_name's dependencies are installed"
   community.general.pacman:
     name: "androidstudio_dependencies"
@@ -215,7 +237,7 @@ For example, say the application being installed is Android Studio. The dependen
 
 If there are dependencies that are specific to a certain OS, then the dependency variable should be titled `androidstudio_dependencies_os_family`. For Android Studio, a Fedora-specific dependency list should be named `androidstudio_dependencies_fedora`. In practice, this would look like:
 
-```
+```yaml
 - name: "Ensure app_name's dependencies are installed (Fedora)"
   dnf:
     name: "androidstudio_dependencies_fedora"
@@ -229,24 +251,24 @@ DRY stands for "Don't Repeat Yourself." Whenever there is code that is duplicate
 
 **GOOD**
 
-```
+```yaml
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
 ```
 
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#testing)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#testing)
 
 ## ➤ Testing
 
 You can test all of the operating systems we support by running the following command in the root of the project:
 
-```
+```shell
 molecule test
 ```
 
-The command `molecule test` will spin up VirtualBox VMs for all the OSes we support and run the role(s). *Do this before committing code.* If you are committing code for only one OS and can not create the fix/feature for the other operating systems then please [file a seperate issue](repository.playbooks/-/issues/new) to track the unworking OSes.
+The command `molecule test` will spin up VirtualBox VMs for all the OSes we support and run the role(s). *Do this before committing code.* If you are committing code for only one OS and can not create the fix/feature for the other operating systems then please [file a seperate issue](https://gitlab.com/ProfessorManhattan/Playbooks/-/issues/new) to track the unworking OSes.
 
 ### Idempotence
 
@@ -256,7 +278,7 @@ It is important to note that `molecule test` tests for idempotence. This means t
 
 If you would like to shell into a container for debugging, you can do that by running:
 
-```
+```shell
 molecule converge
 molecule login
 ```
@@ -275,7 +297,7 @@ Some of our roles include applications like Android Studio. You can not fully te
 
 You can specify which scenario you want to test by passing the -s flag with the name of the scenario you want to run. For instance, if you wanted to test on Ubuntu Desktop, you would run the following command:
 
-```
+```shell
 molecule test -s ubuntu-desktop
 ```
 
@@ -286,13 +308,13 @@ This would run the Molecule test on Ubuntu Desktop. By default, the `molecule te
 
 You can obtain a list of all possible scenarios by looking in the `molecule/` folder. The `molecule/default/` folder is run when you do not pass a scenario and all the other scenarios/folders can be run by manually specifying the scenario as documented above.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#linting)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#linting)
 
 ## ➤ Linting
 
 The process of running linters is mostly automated. Molecule is configured to lint so you will see linting errors when you run `molecule test` (if your code has any). There are a few gaps that are filled in by [pre-commit](https://pre-commit.com/). If you followed the [Setting Up Development Environment](), you should have noticed that one of the lines you need to execute to set up the project is:
 
-```
+```shell
 pre-commit install
 ```
 
@@ -302,7 +324,7 @@ After installing pre-commit, your code will be automatically be sent through sev
 
 You can manually run ansible-lint by executing the following command in the project's root:
 
-```
+```shell
 pip3 install -r requirements
 ansible-lint
 ```
@@ -319,7 +341,7 @@ This error can be solved by telling Ansible what files the command creates or de
 
 Here is a quick example that will remove the error:
 
-```
+```yaml
 - name: Run command if /path/to/database does not exist (with 'args' keyword)
   command: /usr/bin/make_database.sh db_user db_name
   args:

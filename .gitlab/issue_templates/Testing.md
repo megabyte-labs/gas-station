@@ -1,7 +1,3 @@
-### Role
-
-<!-- Name the role that needs testing - include a path to the role relative to the root of the project -->
-
 ### Why
 
 <!-- Detail why the role needs testing -->

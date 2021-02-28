@@ -1,123 +1,128 @@
-# ProfessorManhattan's Playbook
+<!-- ⚠️ This README has been generated from the file(s) "./modules/docs/blueprint-readme-playbooks.md" ⚠️--><h1 align="center">Ansible Role: Android Studio</h1>
+<div align="center">
+  <h4>
+    <a href="https://gitlab.com/ProfessorManhattan/Playbooks">Main Playbook</a>
+    <span> | </span>
+    <a href="https://galaxy.ansible.com/professormanhattan/androidstudio">Galaxy</a>
+    <span> | </span>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/androidstudio/-/blob/master/CONTRIBUTING.md">Contributing</a>
+    <span> | </span>
+    <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/">Chat</a>
+    <span> | </span>
+    <a href="https://megabyte.space">Website</a>
+  </h4>
+</div>
+<p style="text-align:center;">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+  <a href="https://megabyte.space/docs/androidstudio" target="_blank">
+    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
+  </a>
+  <a href="repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE" target="_blank">
+    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+  </a>
+  <a href="https://twitter.com/PrfssrManhattan" target="_blank">
+    <img alt="Twitter: PrfssrManhattan" src="https://img.shields.io/twitter/follow/PrfssrManhattan.svg?style=social" />
+  </a>
+</p>
+This repository contains Ansible playbooks that provision both desktop development environments and servers. Almost all the roles included by this playbook are custom-made, cross-platform (i.e. Linux, Mac OS X, and Windows), and highly config-driven. All of the software included in this set of playbooks is the result of hours of researching what the best development software is (by comparing GitHub stars, "Top 10" blog articles, and looking through GitHub awesome lists). This set of playbooks is ideal for someone who uses several different operating systems or frequently switches between operating systems.
 
-This playbook is for paranoid developers - the kind of developer that reformats their computer every couple weeks. Its' primary purpose is to set up an array of computers with the _best_ software. After you reformat any of your computers, you can run this playbook which will automatically install and configure _dozens_ of useful programs, apps, and services that make development and power-using easier.
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
 
-- List of software/services/apps here (coming soon)
+## ➤ Table of Contents
 
-It is easiest to install this Playbook on **Ubuntu**. To run the playbook on Ubuntu, run the following command in your terminal:
+* [➤ Quick Start](#-quick-start)
+* [➤ Supported Operating Systems](#-supported-operating-systems)
+* [➤ Dependencies](#-dependencies)
+* [➤ Project Structure](#-project-structure)
+* [➤ Managing Environments](#-managing-environments)
+* [➤ Contributing](#-contributing)
+* [➤ License](#-license)
 
-```console
-bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/ubuntu/master-init.sh)
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#quick-start)
+
+## ➤ Quick Start
+
+The easiest way to run the `main.yml` playbook is to run the following command on Linux or Mac OS X:
+
+```shell
+bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/quickstart.sh)
 ```
 
-## Linting
+The above command will install the dependencies and run the `main.yml` playbook on a single machine. This is probably the best way to get your feet wet before you decide to give us a ⭐ and customize the playbook for your own needs. See the [Windows section[(#windows)] if you are looking to test this playbook out on Windows.
 
-There are two different linting tools used in this playbook. They are **ansible-lint** and **yamllint**. ansible-lint lint offers code suggestions related to Ansible best practices and yamllint offers generic code suggestions for .yml files.
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
-### yamllint Instructions
+## ➤ Supported Operating Systems
 
-First off, you need to install yamllint. This requires Python to be installed. Here's a sample set of commands that will get you set up on Ubuntu 20.04:
+The following chart shows the operating systems that have been tested as working. This chart is automatically generated using the Ansible Molecule tests you can view in the `molecule/` folder. If your operating system is not listed in the compatibility matrix then we cannot guarantee that the role will work on your target operating system.
 
-```
-sudo apt get python3 python3-pip
-pip3 install yamllint
-```
 
-After you have Python and yamllint installed, you can start linting:
+| OS Family | OS Version | Status | Idempotent |
+|-----------|------------|--------|------------|
+| Fedora    | 33         | ❌      | ❌          |
+| Ubuntu    | focal      | ✅      | ❌          |
 
-1. Go to the root of the project
-1. Run the command `yamllint .`
 
-You should see any linting errors that were found. After you fix some of the errors, commit your changes to the `yamllint` branch. This will allow multiple developers to fix errors at the same time (and prevent double work) since your working directory will be linked to the same repository. In general, you can fix all of the errors except for the _line too long_ error - suggestions on addressing this error are welcome.
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#dependencies)
 
-### ansible-lint Instructions
+## ➤ Dependencies
 
-First, install ansible-lint:
+ At the beginning of the play, the galaxy dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook]() DRY. A full list of the dependencies is below:
 
-```
-sudo apt get python3 python3-pip
-pip3 install ansible-base
-pip3 install ansible-lint
-```
+ 
+| Role Dependency                                  | Description                                |
+|--------------------------------------------------|--------------------------------------------|
+| <a href='https://google.com'>professormanhattan.java</a> | Installs Java on nearly any OS             |
+| <a href='https://bing.com'>professormanhattan.snapd</a> | Ensures Snap is installed on Linux systems |
 
-After ansible-lint is installed, you can see the ansible-lint errors by running `ansible-lint` in the root directory. Some of the errors are self-expanatory and simple to fix. Other errors might require testing and research. Tips on fixing the trickier errors are listed below.
 
-#### [208] File permissions unset or incorrect
+If you are handling the installation of these dependencies with another role, you can bypass the installation of the **galaxy dependencies** by setting the `install_role_dependencies` variable to `false`. The helper dependencies are still required.
 
-Do some research and figure out the minimum necessary permissions for the file. After you change the permission, test the role.
-
-#### [301] Commands should not change things if nothing needs doing
-
-This error will go away if you tell Ansible what files the command creates or deletes. Ansible will check if the command has already created or deleted a file and only run the command if the system appears to be in the desired state. You should look at the [documentation for command](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/command_module.html). Here's a quick example that will get rid of this lint error:
+Most of our roles rely on Ansible Galaxy collections. Before you run this role, you will need to install the dependencies and the collections by running:
 
 ```
-- name: Run command if /path/to/database does not exist (with 'args' keyword)
-  command: /usr/bin/make_database.sh db_user db_name
-  args:
-    creates: /path/to/database # If the command deletes something, then you can swap out creates with removes
+ansible-galaxy install -r requirements.yml
 ```
 
-#### [305] Use shell only when shell functionality is required
 
-We should only be using Ansible's shell feature when absolutely necessary. First, test whether or not the role works by replacing shell: with command:. If it works, then change it to command. If it does not, then add a comment at the end of the line that says `# noqa 305`.
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#project-structure)
 
-## Windows
+## ➤ Project Structure
 
-### Windows 10 Controller
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#managing-environments)
 
-The controller is responsible for running Ansible to provision other parts of
-the system. There only needs to be one controller. To provision a controller on Windows 10, run the following on a preferrably fresh install of a fully updated Windows 10 Enterprise:
+## ➤ Managing Environments
 
-```console
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleController'))"
-```
+We accomplish managing different environments through symlinking. In the `environments/` folder, you will see multiple options. In our case, `environments/dev/` contains sensible configurations for testing the playbook and its' roles. The production environment is a seperate git submodule that links to a private git repository that contains our Ansible-vaulted API keys and passwords. When you are ready to set up your production configurations, we recommend you follow this method as well. 
 
-Then, with Ubuntu installed, log into the Ubuntu WSL instance and finish the
-installation of Ansible:
+There are two shell scripts in the root of this repository called `setup-dev.sh` and `setup-prod.sh`. Those scripts show an example of symlinking your environment files.
 
-```console
-wsl --set-version 'Ubuntu' 2
-ubuntu
-wget https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.sh
-&& bash controller.sh && rm controller.sh
-```
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#contributing)
 
-The bit.ly links to [controller.ps1](https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/controller.ps1).
+## ➤ Contributing
 
-### Windows 10 Client
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://gitlab.com/megabyte-space/ansible-roles/androidstudio/-/issues). If you would like to contribute, please take a look at the [contributing guide](https://gitlab.com/megabyte-space/ansible-roles/androidstudio/-/raw/master/CONTRIBUTING.md).
 
-A client is a computer you wish to control with the controller. Windows needs to
-have Remote Execution (RE) enabled. Run the following command in an
-Administrator Powershell:
+<details>
+<summary>Sponsorship</summary>
+<br/>
+<blockquote>
+I create open source projects out of love. Although I have a job, shelter, and as much fast food as I can handle, it would still be pretty cool to be appreciated by the community for something I have spent a lot of time and money on. Please consider sponsoring me! Maybe I'll be able to quit my job and publish open source full time.
 
-```console
-powershell "(IEX(New-Object Net.WebClient).downloadString('https://bit.ly/AnsibleClient_'))"
-```
+Sincerely,
 
-The bit.ly links to [client.ps1](https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/client.ps1).
+***Brian Zalewski***
+</blockquote>
 
-### Windows Notes
+<a href="https://www.patreon.com/ProfessorManhattan">
+  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
+</a>
 
-On Windows 10 Enterprise with Ubuntu WSL 2, UFW does not work without error.
+</details>
 
-### Useful Windows Commands
 
-The following commands are PowerShell commands used for generating configurations.
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#license)
 
-- Export the start menu configuration:
-  - `Export-StartLayout -path file_name.xml`
-- Import start menu layout:
-  - `Import-StartLayout -LayoutPath C:\layout.xml -MountPath %systemdrive%`
-- List all of the installed apps AppIDs:
-  - `get-StartApps`
-- List all of the installed APPX files:
-  - `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
-- List all of the available optional features:
-  - `Get-WindowsOptionalFeature -Online`
+## ➤ License
 
-## Mac OS X
-
-### Mac OS X Notes
-
-On Mac OS X, run `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running
-an ansible-playbook when connecting to Parallels Windows.
+Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE) licensed.

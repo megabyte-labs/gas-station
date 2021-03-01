@@ -2,7 +2,7 @@
 # Directory where files for import are located (need to point to root directory of ansible role)
 import_files="/Users/bzalewski/Code/playbooks/misc/common"
 # Directory where gitlab repository is located (need to point to directory where roles directory is)
-git_repository_dir="/Users/bzalewski/Code/playbooks"
+git_repository_dir="/Users/bzalewski/playr"
 
 if [[ -z "$import_files" || -z "$git_repository_dir" ]]; then
 	echo "You have not filled variables!"
@@ -17,10 +17,11 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   echo "********************"
                   echo "$gitrepo"
                   echo "********************"
-                  cp -Rf "$import_files/$skriven" "$gitrepo"
+                  git rm --cached "$gitrepo"/modules/ansible
+                  git rm --cached "$gitrepo"/modules/docs
+                  git rm --cached "$gitrepo"/modules/shared
                   cd "$gitrepo" || exit
-                  sleep 1
-                  bash update.sh
+
                         #cp -Rf "$import_files/$skriven" "$gitrepo"
                 done
 	done

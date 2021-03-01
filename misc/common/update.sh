@@ -5,6 +5,8 @@
 
 set -e
 
+git submodule update --init --recursive
+
 if [ ! -d "./modules" ]; then
   mkdir modules
 fi

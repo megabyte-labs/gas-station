@@ -1,6 +1,6 @@
 #!/bin/bash
 # Directory where files for import are located (need to point to root directory of ansible role)
-import_files="/Users/bzalewski/Code/playbooks/misc/common"
+import_files="/Users/bzalewski/playr/misc/common"
 # Directory where gitlab repository is located (need to point to directory where roles directory is)
 git_repository_dir="/Users/bzalewski/playr"
 
@@ -20,10 +20,9 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   cd "$gitrepo" || exit
 
                   cp -Rf "$import_files/$skriven" "$gitrepo"
-                  rm update.sh
-                  rm collections.yml
-                  rm .pre-commit-config.yaml
-                  rm .prettierrc
+                  rm -f blueprint.json | true
+                  rm -f update.sh | true
+                  rm -f .mdlrc | true
                 done
 	done
 else

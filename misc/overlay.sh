@@ -17,12 +17,13 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   echo "********************"
                   echo "$gitrepo"
                   echo "********************"
-                  git rm --cached "$gitrepo"/modules/ansible
-                  git rm --cached "$gitrepo"/modules/docs
-                  git rm --cached "$gitrepo"/modules/shared
                   cd "$gitrepo" || exit
 
-                        #cp -Rf "$import_files/$skriven" "$gitrepo"
+                  cp -Rf "$import_files/$skriven" "$gitrepo"
+                  rm update.sh
+                  rm collections.yml
+                  rm .pre-commit-config.yaml
+                  rm .prettierrc
                 done
 	done
 else

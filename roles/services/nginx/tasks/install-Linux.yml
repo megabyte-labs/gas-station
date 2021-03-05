@@ -1,13 +1,25 @@
 ---
+- name: Build the nginx image
+  community.general.docker_image:
+    name: nginx
+    build:
+      path: "{{ role_path }}/files/"
+    source: build
+  when: use_docker | bool
+
 - name: Install NGINX Optimized base dependencies
   package:
     name: "{{ nginx_dependencies }}"
     state: present
-  when: ansible_os_family != 'Darwin'
+  when:
+    - not use_docker
+    - ansible_os_family != 'Darwin'
 
 - name: Update nginx module link
   include_tasks: linux/update-module-link.yml
-  when: nginx_module_dir is defined and nginx_module_link is defined
+  when:
+    - nginx_module_dir is defined and nginx_module_link is defined
+    - not use_docker
 
 - name: Gather the package facts
   package_facts:
@@ -49,6 +61,7 @@
   include_tasks: linux/brotli.yml
   when:
     - enable_nginx_brotli
+    - not use_docker
 
 - name: Ensure dhparam.pem exists
   include_tasks: linux/dhparam.yml
@@ -59,6 +72,7 @@
     - nginx_amplify_api_key is defined
     - enable_nginx_amplify
     - ansible_os_family != 'Darwin'
+    - not use_docker
 
 - name: Register the file status of the ModSecurity WAF module configuration file
   stat:
@@ -70,6 +84,7 @@
   when:
     - enable_nginx_modsecurity_waf
     - not modsec_config.stat.exists
+    - not use_docker
 
 - name: Update the NGINX configuration files
   include_tasks: linux/nginx-configuration.yml
@@ -104,4 +119,6 @@
     name: nginx
     state: restarted
   tags: nginx_configuration
-  when: ansible_os_family != 'Darwin'
+  when:
+    - ansible_os_family != 'Darwin'
+    - not use_docker

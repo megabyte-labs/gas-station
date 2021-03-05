@@ -4,27 +4,34 @@
   community.general.homebrew:
     name: nginx
     state: "{{ app_state | default('present') }}"
+  when: not use_docker
 
 - name: Ensure cmake is installed
   become: false
   community.general.homebrew:
     name: cmake
     state: present
-  when: enable_nginx_brotli
+  when:
+    - enable_nginx_brotli
+    - not use_docker
 
 - name: Ensure Brotli's dependencies are installed
   become: false
   community.general.homebrew_cask:
     name: "{{ brotli_dependencies }}"
     state: present
-  when: enable_nginx_brotli
+  when:
+    - enable_nginx_brotli
+    - not use_docker
 
 - name: Ensure ModSecurity's dependencies are installed
   become: false
   community.general.homebrew_cask:
     name: "{{ modsec_dependencies }}"
     state: present
-  when: enable_nginx_modsecurity_waf
+  when:
+    - enable_nginx_modsecurity_waf
+    - not use_docker
 
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml
@@ -41,3 +48,4 @@
   command: brew services start nginx
   environment:
     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  when: not use_docker

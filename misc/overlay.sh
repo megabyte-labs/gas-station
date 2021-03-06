@@ -23,6 +23,7 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   rm -f blueprint.json | true
                   rm -f update.sh | true
                   rm -f .mdlrc | true
+                  rm -rf molecule/virtualbox | true
                 done
 	done
 else

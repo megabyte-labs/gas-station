@@ -1,4 +1,5 @@
-<!-- ⚠️ This README has been generated from the file(s) "./modules/docs/blueprint-readme-playbooks.md" ⚠️--><h1 align="center">Ansible Role: Android Studio</h1>
+<!-- ⚠️ This README has been generated from the file(s) "./.modules/docs/blueprint-readme-playbooks.md" ⚠️--><h1 align="center" style="text-align:center;">Ansible Role: Android Studio</h1>
+
 <div align="center">
   <h4>
     <a href="https://gitlab.com/ProfessorManhattan/Playbooks">Main Playbook</a>
@@ -13,7 +14,9 @@
   </h4>
 </div>
 <p style="text-align:center;">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+  <a href="https://gitlab.com/megabyte-space/ansible-roles/androidstudio">
+    <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+  </a>
   <a href="https://megabyte.space/docs/androidstudio" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
   </a>
@@ -24,6 +27,7 @@
     <img alt="Twitter: PrfssrManhattan" src="https://img.shields.io/twitter/follow/PrfssrManhattan.svg?style=social" />
   </a>
 </p>
+
 This repository contains Ansible playbooks that provision both desktop development environments and servers. Almost all the roles included by this playbook are custom-made, cross-platform (i.e. Linux, Mac OS X, and Windows), and highly config-driven. All of the software included in this set of playbooks is the result of hours of researching what the best development software is (by comparing GitHub stars, "Top 10" blog articles, and looking through GitHub awesome lists). This set of playbooks is ideal for someone who uses several different operating systems or frequently switches between operating systems.
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
@@ -33,6 +37,7 @@ This repository contains Ansible playbooks that provision both desktop developme
 * [➤ Quick Start](#-quick-start)
 * [➤ Supported Operating Systems](#-supported-operating-systems)
 * [➤ Dependencies](#-dependencies)
+	* [Galaxy Roles](#galaxy-roles)
 * [➤ Project Structure](#-project-structure)
 * [➤ Managing Environments](#-managing-environments)
 * [➤ Contributing](#-contributing)
@@ -48,13 +53,14 @@ The easiest way to run the `main.yml` playbook is to run the following command o
 bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/quickstart.sh)
 ```
 
-The above command will install the dependencies and run the `main.yml` playbook on a single machine. This is probably the best way to get your feet wet before you decide to give us a ⭐ and customize the playbook for your own needs. See the [Windows section[(#windows)] if you are looking to test this playbook out on Windows.
+The above command will install the dependencies and run the `main.yml` playbook on a single machine. This is probably the best way to get your feet wet before you decide to give us a ⭐ and customize the playbook for your own needs. See the [Windows section](#windows) if you are looking to test this playbook out on Windows.
+
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
 ## ➤ Supported Operating Systems
 
-The following chart shows the operating systems that have been tested as working. This chart is automatically generated using the Ansible Molecule tests you can view in the `molecule/` folder. If your operating system is not listed in the compatibility matrix then we cannot guarantee that the role will work on your target operating system.
+The following chart shows the operating systems that have been tested for compatibility. This chart is automatically generated using the Ansible Molecule tests you can view in the `molecule/default/` folder. We currently have logic in place to automatically handle the testing of Archlinux, CentOS, Debian, Fedora, Ubuntu, and Windows. If your operating system is not listed but is a variant of one of the systems we test then it might still work.
 
 
 | OS Family | OS Version | Status | Idempotent |
@@ -63,11 +69,20 @@ The following chart shows the operating systems that have been tested as working
 | Ubuntu    | focal      | ✅      | ❌          |
 
 
+
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#dependencies)
 
 ## ➤ Dependencies
 
- At the beginning of the play, the galaxy dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook]() DRY. A full list of the dependencies is below:
+Most of our roles rely on [Ansible Galaxy](https://galaxy.ansible.com/) collections. Some of our projects are also dependent on other roles and collections that are published on Ansible Galaxy. Before you run this role, you will need to install the collection and role dependencies by running:
+
+```
+ansible-galaxy install -r requirements.yml
+```
+
+### Galaxy Roles
+
+At the beginning of the play, the galaxy role dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks) DRY. A full list of the dependencies along with quick descriptions is below:
 
  
 | Role Dependency                                  | Description                                |
@@ -76,13 +91,6 @@ The following chart shows the operating systems that have been tested as working
 | <a href='https://bing.com'>professormanhattan.snapd</a> | Ensures Snap is installed on Linux systems |
 
 
-If you are handling the installation of these dependencies with another role, you can bypass the installation of the **galaxy dependencies** by setting the `install_role_dependencies` variable to `false`. The helper dependencies are still required.
-
-Most of our roles rely on Ansible Galaxy collections. Before you run this role, you will need to install the dependencies and the collections by running:
-
-```
-ansible-galaxy install -r requirements.yml
-```
 
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#project-structure)
@@ -107,14 +115,14 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 <summary>Sponsorship</summary>
 <br/>
 <blockquote>
-I create open source projects out of love. Although I have a job, shelter, and as much fast food as I can handle, it would still be pretty cool to be appreciated by the community for something I have spent a lot of time and money on. Please consider sponsoring me! Maybe I'll be able to quit my job and publish open source full time.
+<br/>
+I create open source projects out of love. Although I have a job, shelter, and as much fast food as I can handle, it would still be pretty cool to be appreciated by the community for something I have spent a lot of time and money on. Please consider sponsoring me! Who knows? Maybe I will be able to quit my job and publish open source full time.
+<br/><br/>Sincerely,<br/><br/>
 
-Sincerely,
-
-***Brian Zalewski***
+***Brian Zalewski***<br/><br/>
 </blockquote>
 
-<a href="https://www.patreon.com/ProfessorManhattan">
+<a href="profile.patreon">
   <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
 </a>
 
@@ -126,3 +134,4 @@ Sincerely,
 ## ➤ License
 
 Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE) licensed.
+

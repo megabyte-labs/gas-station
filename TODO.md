@@ -19,7 +19,6 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Create configurations necessary for unattended installations
 - Fix StatPing
 - Symlink NextCloud to include all files
-- Add Shellcheck to pre-commit
 - Get Docker container that can do all pre-commit stuff
   - [shellcheck](https://github.com/koalaman/shellcheck)
   - [shfmt](https://github.com/mvdan/sh)

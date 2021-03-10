@@ -1,0 +1,21 @@
+---
+- name: Ensure vim-plug is installed
+  become_user: "{{ user.username }}"
+  include_tasks: vimplug/install-Linux.yml
+
+- name: Ensure vimrc is setup
+  become_user: "{{ user.username }}"
+  template:
+    src: vimrc.j2
+    dest: "~/.vimrc"
+    mode: 0700
+
+- name: Ensure plugins are installed # noqa 301
+  become_user: "{{ user.username }}"
+  command: "vim +'PlugInstall --sync' +qa"
+
+- name: Ensure plugins are setup # noqa 503
+  become_user: "{{ user.username }}"
+  command: "{{ item.command }}"
+  loop: "{{ vim_plugins }}"
+  when: item.command is defined

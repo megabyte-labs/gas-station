@@ -29,6 +29,7 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Guacamole role
 - IntelliJ role names IntelliJ IDEA as IntelliJ IDEA CE - should be named IntelliJ IDEA
 - When installing TeamViewer on Mac OS X, a dialog pops up that asks "How do you want to use TeamViewer?".. should be automated
+- Explore switching to zsh as default
 
 ## pfSense TODOs
 
@@ -52,7 +53,6 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Kafka
 - Synergy keyboard/mouse sharing
 - NTP - Chrony or NTP?
-- Logrotate
 - [Teleport](https://github.com/gravitational/teleport)
 - Rundeck (LDAP)
 - SecurityOnion
@@ -63,7 +63,6 @@ You are welcome to add your ideas to the TODO list. In fact, you are encouraged.
 - Minio
 - Home Assistant
 - Resilio Sync
-- nmap
 - [watch](https://osxdaily.com/2010/08/22/install-watch-command-on-os-x/)
 
 ## Windows TODOs

@@ -1,0 +1,52 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/vimplug'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\vimplug'
+  register: vimplug_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type vimplug
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_vimplug_version
+  when: vimplug_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/junegunn/vim-plug/releases/latest
+  register: vimplug_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_vimplug: "{{ (current_vimplug_version.skipped) or \
+      ((not current_vimplug_version.skipped) and (current_vimplug_version.stdout != vimplug_latest_release_tag.json.tag_name)) }}"
+
+- name: Ensure ~/.vim/autoload directory exists
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\vim'
+    - '%USERPROFILE%\vim\autoload'
+
+- name: Acquire the latest release of plug.vim
+  ansible.windows.win_get_url:
+    url: "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+    dest: '%USERPROFILE%\vim\autoload\plug.vim'
+  when: install_vimplug
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\vimplug'
+    content: |
+      {{ vimplug_latest_release_tag.json.tag_name }}
+  when: install_vimplug

@@ -24,6 +24,7 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   rm -f update.sh | true
                   rm -f .mdlrc | true
                   rm -rf molecule/virtualbox | true
+                  rm -rf modules | true
                 done
 	done
 else

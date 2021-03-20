@@ -1,10 +1,12 @@
 ---
 - name: "Register MAS installed apps"
+  become: false
   command: mas list
   register: mas_list
   changed_when: false
 
 - name: "Ensure {{ app_name }} is installed"
+  become: false
   command: "mas install '{{ xcode_mas_id }}'"
   args:
     creates: "{{ xcode_build }}"
@@ -12,9 +14,11 @@
   when: (xcode_mas_id | string) not in mas_list.stdout
 
 - name: "Accept {{ app_name }}'s License Agreement" # noqa 503
+  become: false
   command: "{{ xcode_build }} -license accept"
   when: xcode_installation.changed
 
 - name: "Run {{ app_name }} first launch" # noqa 503
+  become: false
   command: "{{ xcode_build }} -runFirstLaunch"
   when: xcode_installation.changed

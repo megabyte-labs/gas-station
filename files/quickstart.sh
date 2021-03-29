@@ -20,7 +20,7 @@ elif [ -f "/etc/arch-release" ]; then
 fi
 
 # Run WSL-specific tasks
-if [ "$(grep Microsoft /proc/version)" ]; then
+if [ "$(grep -q Microsoft /proc/version)" ]; then
     # Bash is running on WSL
     # TODO: Add logic here for WSL
     exit
@@ -30,12 +30,12 @@ fi
 pip3 install ansible
 
 # Clone the repository
-cd ~
+cd ~ || exit
 if [ ! -d ~/Playbooks ] ; then
     git clone https://gitlab.com/ProfessorManhattan/Playbooks.git
 fi
 
 # Install the Ansible requirements and run the playbook
-cd ~/Playbooks
+cd ~/Playbooks || exit
 ansible-galaxy install -r requirements.yml
 ansible-playbook --ask-vault-pass -i inventories/workstation.yml --skip-tags "skip_on_init" playbooks/workstation.yml

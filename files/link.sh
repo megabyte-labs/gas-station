@@ -3,7 +3,7 @@
 # Running this file will point the symlinks (group_vars/, host_vars/, inventories/) to
 # this environment.
 
-SCRIPT_DIR=$(dirname "$BASH_SOURCE")
+SCRIPT_DIR=$(dirname "$BASH_SOURCE[0]")
 
 rm -f "$SCRIPT_DIR/../../group_vars"
 ln -s "$SCRIPT_DIR/group_vars" "$SCRIPT_DIR/../../group_vars"

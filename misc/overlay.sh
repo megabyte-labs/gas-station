@@ -20,11 +20,6 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   cd "$gitrepo" || exit
 
                   cp -Rf "$import_files/$skriven" "$gitrepo"
-                  rm -f blueprint.json | true
-                  rm -f update.sh | true
-                  rm -f .mdlrc | true
-                  rm -rf molecule/virtualbox | true
-                  rm -rf modules | true
                 done
 	done
 else

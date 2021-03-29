@@ -20,8 +20,10 @@ elif [ -f "/etc/arch-release" ]; then
 fi
 
 # Run WSL-specific tasks
-if [[ $(grep Microsoft /proc/version) ]]; then
+if [ "$(grep Microsoft /proc/version)" ]; then
     # Bash is running on WSL
+    # TODO: Add logic here for WSL
+    exit
 fi
 
 # Install Ansible

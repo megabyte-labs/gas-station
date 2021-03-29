@@ -11,10 +11,25 @@
 
 - name: Ensure plugins are installed # noqa 301
   become_user: "{{ user.username }}"
-  command: "vim +'PlugInstall --sync' +qa"
+  command: "vim +PlugUpdate +qa"
+  when: install_vimplug
 
-- name: Ensure plugins are setup # noqa 503
+- name: Ensure plugins are setup # noqa 503 303 301
   become_user: "{{ user.username }}"
-  command: "{{ item.command }}"
+  shell: "{{ item.command }}"
   loop: "{{ vim_plugins }}"
-  when: item.command is defined
+  when:
+    - item.command is defined
+    - install_vimplug
+
+- name: Ensure settings are added to ~/.vimrc where available
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: "~/.vimrc"
+    block: |
+      {{ item.settings }}
+    marker: "{mark}"
+    marker_begin: "\" Settings for plugin {{ item.source }}"
+    marker_end: ""
+  loop: "{{ vim_plugins }}"
+  when: item.settings is defined

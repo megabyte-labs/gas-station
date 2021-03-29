@@ -1,0 +1,28 @@
+---
+- name: Add .vault_pass file for automation purposes
+  become_user: "{{ ansible_user }}"
+  template:
+    src: vault_password.j2
+    dest: ~/.vault_pass
+    owner: "{{ ansible_user }}"
+    mode: 0600
+
+- name: Ensure ~/.config/autostart exists
+  become_user: "{{ ansible_user }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  loop:
+    - ~/.config
+    - ~/.config/autostart
+
+- name: Copy ansible-installer.desktop to ~/.config/autostart (for continuing the installation after reboot)
+  become_user: "{{ ansible_user }}"
+  copy:
+    src: ansible-installer.desktop
+    dest: ~/.config/autostart/ansible-installer.desktop
+    mode: 0700
+
+- name: Reboot # noqa 301
+  command: reboot

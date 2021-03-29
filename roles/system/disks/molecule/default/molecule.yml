@@ -1,0 +1,176 @@
+---
+dependency:
+  name: galaxy
+  options:
+    role-file: requirements.yml
+    requirements-file: requirements.yml
+driver:
+  name: vagrant
+  provider:
+    name: virtualbox
+lint: |
+  yamllint .
+  ansible-lint
+  flake8
+platforms:
+  - name: CentOS-7
+    box: bento/centos-7
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.2
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: CentOS-8
+    box: bento/centos-8
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.3
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Debian-9
+    box: bento/debian-9
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.4
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Debian-10
+    box: bento/debian-10
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.5
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Fedora-33
+    box: bento/fedora-33
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.6
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-16.04
+    box: bento/ubuntu-16.04
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.7
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-18.04
+    box: bento/ubuntu-18.04
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.8
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-20.04
+    box: bento/ubuntu-20.04
+    memory: 1024
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 172.24.24.9
+        guest: 80
+        host: 8080
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+    config_options:
+      ssh.keep_alive: true
+      ssh.remote_user: "'vagrant'"
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        molecule_virtualbox_test: true
+  options:
+    vvv: true
+  playbooks:
+    converge: converge.yml
+verifier:
+  name: ansible
+scenario:
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - lint
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy

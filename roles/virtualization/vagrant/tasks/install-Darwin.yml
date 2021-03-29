@@ -43,3 +43,27 @@
   when:
     - license_local_file.stat.exists
     - vagrant_vmware_support
+
+- name: Ensure plugin dependencies are installed
+  become: false
+  community.general.homebrew:
+    name: "{{ vagrant_plugin_dependencies }}"
+    state: present
+
+- name: Find installed plugins
+  become: false
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  command: vagrant plugin list
+  register: vagrant_plugins_installed
+  changed_when: false
+
+- name: "Ensure user-specified {{ app_name }} plugins are installed" # noqa 301
+  become: false
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  command: "vagrant plugin install {{ plugin }}"
+  loop: "{{ vagrant_plugins }}"
+  loop_control:
+    loop_var: plugin
+  when: plugin not in vagrant_plugins_installed.stdout

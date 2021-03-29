@@ -12,6 +12,7 @@ First of all, thanks for visiting this page 😊 ❤️ ! We are totally ecstati
 * [➤ Supported Operating Systems](#-supported-operating-systems)
 	* [Other Operating Systems](#other-operating-systems)
 	* [Code Style for Platform-Specific Roles](#code-style-for-platform-specific-roles)
+	* [Preferred Installation Method for Mac OS X](#preferred-installation-method-for-mac-os-x)
 * [➤ Setting Up Development Environment](#-setting-up-development-environment)
 	* [Requirements](#requirements)
 	* [Getting Started](#getting-started)
@@ -103,6 +104,10 @@ If you have a role that only installs software made for Windows 10 then ensure t
     - include_tasks: "install-ansible_os_family.yml"
   when: ansible_os_family == 'Windows'
 ```
+
+### Preferred Installation Method for Mac OS X
+
+We currently support installing applications with both homebrew casks and mas. Since mas does not allow automated logins to the App Store (and requires that the application was already installed by the account signed into the App Store GUI), we prefer the use of homebrew casks for installing applications.
 
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#setting-up-development-environment)

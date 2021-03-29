@@ -1,0 +1,27 @@
+---
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ zenbot_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  git:
+    dest: "{{ zenbot_src_dir }}"
+    repo: "{{ zenbot_aur_git_repository }}"
+  register: zenbot_git
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/zenbot
+    state: absent
+  when: zenbot_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  shell: |
+    npm install
+    npm link
+  args:
+    creates: /usr/local/bin/zenbot
+    chdir: "{{ zenbot_src_dir }}"
+  when: zenbot_git.changed

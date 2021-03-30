@@ -10,10 +10,7 @@ $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
 (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
 Write-Host "Running the Ansible management script" -ForegroundColor Black -BackgroundColor Cyan
 powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth
-#
-# TODO: The following should open Powershell and run a script after the user reboots and logs in but
-# it is not working.. Please open a PR if you know how to fix it
-#
+
 # Write-Host "Downloading/setting up a script that will continue the installation after reboot" -ForegroundColor Black -BackgroundColor Cyan
 # $nextRunUrl = "https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/files/windows/windows-ubuntu-setup.ps1"
 # $nextRunFile = "C:\professor-manhattan-windows-ubuntu-setup.ps1"

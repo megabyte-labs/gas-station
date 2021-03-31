@@ -376,11 +376,9 @@ DRY stands for "Don't Repeat Yourself." Whenever there is code that is duplicate
 
 We strive to make our roles easy to understand. Commenting is a major part of making our roles easier to grasp. Several types of comments are supported in such a way that they tie into our automated documentation generation system. This project uses [ansible-autodoc](https://github.com/AndresBott/ansible-autodoc) to scan through specially marked up comments and generate documentation out of them. The module also allows the use of markdown in comments so feel free to bold, italicize, and `code_block` as necessary. Although it is perfectly acceptable to use regular comments, in most cases, you should use one of the following types of *special* comments:
 
-* Variable comments
-* Action comments
-* TODO comments
-
-The comment types are described in detail below.
+* [Variable comments](#variable-comments)
+* [Action comments](#action-comments)
+* [TODO comments](#todo-comments)
 
 ### Variable Comments
 

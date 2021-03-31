@@ -19,12 +19,18 @@
         state: absent
   when: ansible_os_family not in ('Windows', 'Darwin')
 
+# @action Ensures Docker is installed
+# Installs Docker on the target machine and ensures that Docker opens on
+# system startup
 - name: Include tasks based on the operating system
   become: true
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
   when: not docker_snap_install
 
+# @action Allows installation via snap
+# If the target Docker host is a Linux machine and the `docker_snap_install` variable
+# is set to true, then Docker will be installed as a snap package.
 - name: Install Docker via snap
   become: true
   community.general.snap:
@@ -36,18 +42,30 @@
 - name: Ensure handlers are notified now to avoid firewall conflicts.
   meta: flush_handlers
 
+# @action Installs docker-compose
+# Installs docker-compose if the `docker_install_compose` variable is set to true.
+# docker-compose allows you to configure Docker containers in groups.
 - name: Install Docker Compose (based on OS)
   become: true
   block:
     - include_tasks: "compose-{{ ansible_os_family }}.yml"
   when: docker_install_compose | bool
 
+# @action Adds specified users to docker group
+# If the variable `docker_users` is set to an array of usernames then those users
+# will be added to the docker group which allows them access to Docker.
 - name: Add users to the "docker" group (based on OS)
   become: true
   block:
     - include_tasks: "users-{{ ansible_os_family }}.yml"
   when: docker_users | length > 0
 
+# @action Generates TLS certificates
+# Generates TLS/HTTPS certificates so that the Docker host can be controlled remotely.
+# This is useful if you are using a centralized method of controlling all of your
+# Docker hosts (like Portainer). This step only runs if the `docker_tls` variable is
+# set to true. The certificates required for connecting to the Docker host are copied to
+# Ansible host's `~/.docker` folder.
 - name: Determine whether TLS certificates need to be generated (non-Windows)
   become: true
   stat:

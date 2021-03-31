@@ -2,6 +2,26 @@
 
 Project description 
 
+## Actions:
+
+Actions performed by this role
+
+
+* this action does not have a section, only description 
+
+#### Generate tls certificates:
+* * this action describes the installation * Yodo modo * YoDoLayyy 
+#### Ensures docker is installed:
+* Installs Docker on the target machine and ensures that Docker opens on system startup 
+#### Allows installation via snap:
+* If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package. 
+#### Installs docker-compose:
+* Installs docker-compose if the `docker_install_compose` variable is set to true. docker-compose allows you to configure Docker containers in groups. 
+#### Adds specified users to docker group:
+* If the variable `docker_users` is set to an array of usernames then those users will be added to the docker group which allows them access to Docker. 
+#### Generates tls certificates:
+* Generates TLS/HTTPS certificates so that the Docker host can be controlled remotely. This is useful if you are using a centralized method of controlling all of your Docker hosts (like Portainer). This step only runs if the `docker_tls` variable is set to true. 
+
 ## Tags:
 ## Variables:
 
@@ -24,27 +44,27 @@ docker_edition:
 
 
 
-* `docker_install_compose`: `true` - Whether or not to install docker-compose
+* `docker_install_compose`: `true` - Whether or not to install `docker-compose`
 
 
 
-* `docker_compose_version`: `"1.26.0"` - The version of docker-compose that should be installed
+* `docker_compose_version`: `"1.26.0"` - The version of `docker-compose` that should be installed
 
 
 
-* `docker_compose_path`: `/usr/local/bin/docker-compose` - The target destination of the docker-compose binary that will be installed
+* `docker_compose_path`: `/usr/local/bin/docker-compose` - The target destination of the `docker-compose` binary that will be installed
 
 
 
-* `docker_apt_release_channel`: `stable` - The release channel to use on Debian/Ubuntu. You can set the value of this variable to either 'stable' or 'edge'.
+* `docker_apt_release_channel`: `stable` - The release channel to use on Debian/Ubuntu. You can set the value of this variable to either `stable` or `edge`.
 
 
 
-* `docker_apt_arch`: `amd64` - The processor architecture to use
+* `docker_apt_arch`: `amd64` - The processor architecture to use (Debian/Ubuntu only)
 
 
 
-* `https_repository_prefix`: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache. (Debian/Ubuntu only)
+* `https_repository_prefix`: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache which requires the URL to start with http://HTTPS/. (Debian/Ubuntu only)
 
 
 
@@ -84,7 +104,7 @@ docker_users:
 
 
 
-* `docker_tls`: `true` - When set to true, the role will configure Docker for TLS network connections and generate the required certificates. The certificates will be stored in /etc/ssl/docker on the client and in the ~/.docker folder on the host. To reiterate, after each client machine installs Docker and generates certificates, the certificates are copied to the Ansible host machine. You can then use these certificates to connect to Docker daemons remotely (with Portainer, for instance).
+* `docker_tls`: `true` - When set to true, the role will configure Docker for TLS network connections and generate the required certificates. The certificates will be stored in `/etc/ssl/docker` on the client and in the `~/.docker` folder on the host. To reiterate, after each client machine installs Docker and generates certificates, the certificates are copied to the Ansible host machine. You can then use these certificates to connect to Docker daemons remotely (with Portainer, for instance).
 
 
 

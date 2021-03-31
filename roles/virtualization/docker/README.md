@@ -44,11 +44,71 @@ docker_edition:
 
 
 
-* `https_repository_prefix`: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache.
+* `https_repository_prefix`: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache. (Debian/Ubuntu only)
 
 
 
-* `docker_apt_repository`: `*See defaults/main.yml*` - The apt repository to use
+* `docker_apt_repository`: `See defaults/main.yml` - The apt repository to use (Debian/Ubuntu only)
+
+
+
+* `docker_apt_ignore_key_error`: `true` - Whether or not to ignore errors when adding the apt repository's GPG key (Debian/Ubuntu only)
+
+
+
+* `docker_apt_gpg_key`: `"https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"` - The URL of the apt repository's GPG key (Debian/Ubuntu only)
+
+
+
+* `docker_yum_repo_url`: `See defaults/main.yml` - The yum repository URL to retrieve the installation packages (CentOS/Fedora/RedHat only)
+
+
+
+* `docker_yum_gpg_key`: `https://download.docker.com/linux/centos/gpg` - The URL of the GPG key to validate against when downloading from the specified yum repository
+
+
+
+* `docker_users`: `[]` - A list of users to add to the docker group
+
+example: 
+
+
+```yaml
+docker_users:
+  - "{{ ansible_user }}"
+  - secondaryuser
+  - serviceaccount
+```
+
+* `docker_snap_install`: `false` - Whether or not to use snap to install Docker - you can use this if there are issues with your configuration. Certificates (used by Portainer, for instance) will not be generated for a snap install. More information about the certificates is detailed below.
+
+
+
+* `docker_tls`: `true` - When set to true, the role will configure Docker for TLS network connections and generate the required certificates. The certificates will be stored in /etc/ssl/docker on the client and in the ~/.docker folder on the host. To reiterate, after each client machine installs Docker and generates certificates, the certificates are copied to the Ansible host machine. You can then use these certificates to connect to Docker daemons remotely (with Portainer, for instance).
+
+
+
+* `docker_tls_country`: `US` - The country to use when configuring TLS
+
+
+
+* `docker_tls_state`: `New Jersey` - The state to use when configuring TLS
+
+
+
+* `docker_tls_locality`: `The Hood` - The locality to use when configuring TLS
+
+
+
+* `docker_tls_organization`: `Megabyte LLC` - The organization to use when configuring TLS
+
+
+
+* `docker_tls_division`: `Megabyte Labs` - The division to use when configuring TLS
+
+
+
+* `docker_tls_fqdn`: `machine.example.com` - The FQDN to use when configuring TLS - this should be set to the FQDN of the Docker host that's being configured
 
 
 
@@ -56,25 +116,4 @@ docker_edition:
 This role:  was created by: Author name
 
 Documentation generated using: [Ansible-autodoc](https://github.com/AndresBott/ansible-autodoc)
-
-
---- CONVERT THE ABOVE TO THE FOLLOWING ---
-## Variables
-
-* **`docker_edition`**: `ce` - Edition can be either `ce` (Community Edition) or `ee` (Enterprise Edition).
-  * **Example:**
-  ```yaml
-  docker_edition:
-    - subitem: string
-    - subitem2: string
-  ```
-* **`docker_package`**: `docker-{{ docker_edition }}` - The name of the Docker package to install
-* **`docker_restart_handler_state`**: `restarted` - The state that the Docker service should assume when a restart event is triggered
-* **`docker_install_compose`**: `true` - Whether or not to install docker-compose
-* **`docker_compose_version`**: `"1.26.0"` - The version of docker-compose that should be installed
-* **`docker_compose_path`**: `/usr/local/bin/docker-compose` - The target destination of the docker-compose binary that will be installed
-* **`docker_apt_release_channel`**: `stable` - The release channel to use on Debian/Ubuntu. You can set the value of this variable to either 'stable' or 'edge'.
-* **`docker_apt_arch`**: `amd64` - The processor architecture to use
-* **`https_repository_prefix`**: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache.
-* **`docker_apt_repository`**: `See defaults/main.yml` - The apt repository to use
 

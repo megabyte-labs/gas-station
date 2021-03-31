@@ -12,7 +12,8 @@ Actions performed by this role
 #### Generate tls certificates:
 * * this action describes the installation * Yodo modo * YoDoLayyy 
 #### Ensures docker is installed:
-* Installs Docker on the target machine and ensures that Docker opens on system startup 
+* Installs Docker on the target machine. 
+* Ensures Docker is started on boot. 
 #### Allows installation via snap:
 * If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package. 
 #### Installs docker-compose:
@@ -21,6 +22,7 @@ Actions performed by this role
 * If the variable `docker_users` is set to an array of usernames then those users will be added to the docker group which allows them access to Docker. 
 #### Generates tls certificates:
 * Generates TLS/HTTPS certificates so that the Docker host can be controlled remotely. This is useful if you are using a centralized method of controlling all of your Docker hosts (like Portainer). This step only runs if the `docker_tls` variable is set to true. 
+* The certificates required for connecting to the Docker host are copied to the Ansible host's `~/.docker` folder. 
 
 ## Tags:
 ## Variables:

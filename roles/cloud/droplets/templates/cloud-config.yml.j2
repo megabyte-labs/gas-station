@@ -1,0 +1,18 @@
+---
+#cloud-config
+users:
+  - name: {{ admin_username }}
+    ssh-authorized-keys:
+      - {{ lookup('file', ssh_authorized_key_file) }}
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    groups: sudo
+    shell: /bin/bash
+packages:
+  - ufw
+runcmd:
+  - sed -i -e '/^#Port/s/^.*$/Port {{ ssh_port }}/' /etc/ssh/sshd_config
+  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i -e '$aAllowUsers {{ admin_username }}' /etc/ssh/sshd_config
+  - service ssh restart
+  - ufw allow {{ ssh_port }}
+  - ufw enable

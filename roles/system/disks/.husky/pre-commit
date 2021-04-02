@@ -1,0 +1,37 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+npx lint-staged
+echo "Ensuring Python requirements are installed"
+pip3 install -r requirements.txt
+echo "Checking for files that are too large.."
+check-added-large-files
+echo "Validating Python files.."
+check-ast
+echo "Checking for Python files that do not use literal syntax when initializing empty or zero Python builtin types.."
+check-builtin-literals
+echo "Checking for file names that could possibly cause issues on case-insensitive file systems.."
+check-case-conflict
+echo "Checking for files that place the docstring after code.."
+check-docstring-first
+echo "Checking for non-binary executables that do not have a proper shebang.."
+check-executables-have-shebangs
+echo "Checking for invalid JSON.."
+check-json
+echo "Checking for files with merge conflict strings.."
+check-merge-conflict
+echo "Checking for symlinks that point to nothing.."
+check-symlinks
+echo "Checking for invalid XML.."
+check-xml
+echo "Checking for invalid YML.."
+check-yaml
+echo "Checking for private keys.."
+detect-private-key
+echo "Ensuring requirements.txt is formatted properly"
+requirements-txt-fixer requirements.txt
+echo "Running 'npm run lint'"
+npm run lint
+echo "Checking for spelling errors"
+files=$(git diff --cached --name-only)
+npx cspell --no-summary --config ./.modules/shared/.cspell.json $files || echo "Review the list of possible misspelled words above and correct anything that needs changing."

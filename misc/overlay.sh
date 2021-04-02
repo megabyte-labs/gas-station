@@ -18,24 +18,7 @@ if [[ -d "$git_repository_dir/roles" ]]; then
                   echo "$gitrepo"
                   echo "********************"
                   cd "$gitrepo" || exit
-                  ROLE_DIR=$(echo $gitrepo | awk '{ print substr ($0, 28) }')
-                  echo "molecule_$(basename $gitrepo):" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "  stage: test" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "  image: docker:stable-dind" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "  services:" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    - docker:dind" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "  before_script:" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    - apk update && apk add --no-cache python3 python3-dev py3-pip gcc git curl build-base autoconf automake py3-cryptography linux-headers musl-dev libffi-dev openssl-dev openssh" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    - python3 -m pip install ansible molecule[docker]" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "  script:" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    - cd $ROLE_DIR" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    - molecule test -s docker" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "  only:" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    refs:" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "      - branches" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "    changes:" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "      - $ROLE_DIR/**/*.yml" >> /Users/bzalewski/Playbooks/misc/sample.txt
-                  echo "" >> /Users/bzalewski/Playbooks/misc/sample.txt
+                  bash .update.sh
                   #cp -Rf "$import_files/$skriven" "$gitrepo"
                 done
 	done

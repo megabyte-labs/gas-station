@@ -1,0 +1,36 @@
+---
+- name: "Ensure {{ app_name }} is setup"
+  become_user: "{{ user.username }}"
+  command: pod setup
+  args:
+    creates: ~/.cocoapods
+  register: pod_setup_result
+  ignore_errors: true
+
+- name: Check if ~./cocoapods directory is created
+  become_user: "{{ user.username }}"
+  stat:
+    path: ~/.cocoapods
+  register: check_cocoapods_dir
+
+- name: "Ensure {{ app_name }} is setup"
+  become_user: "{{ user.username }}"
+  block:
+    - name: Ensure ~/.cocoapods/repos folder exists
+      file:
+        path: "{{ item }}"
+        owner: "{{ user.username }}"
+        group: "{{ user.group | default('omit') }}"
+        mode: 0700
+        state: directory
+      loop:
+        - ~/.cocoapods
+        - ~/.cocoapods/repos
+    - name: "Ensure {{ app_name }} Specs repository is setup"
+      unarchive:
+        src: https://github.com/CocoaPods/Specs/archive/master.zip
+        dest: ~/.cocoapods/repos/Specs-master
+        remote_src: yes
+        extra_opts:
+          - -j
+  when: pod_setup_result.rc > 0 or check_cocoapods_dir.stat.exists == false

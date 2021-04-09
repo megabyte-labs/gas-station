@@ -1,0 +1,19 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name: gist
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure token is added
+  become_user: "{{ user.username }}"
+  copy:
+    content: "{{ github_gist_token }}"
+    dest: ~/.gist
+    mode: 0600
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.github_gist_token is defined

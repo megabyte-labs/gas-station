@@ -1,12 +1,14 @@
 ---
-- name: Install xdg-utils
+- name: Ensure xdg-utils is installed
   pacman:
     name: xdg-utils
     state: present
 
-# TODO: To avoid noqa 301, the xdg-settings should first get the default-web-browser
-# then set it to a new one, only if they are not equal. The get command should
-# use changed_when: false. The only reason to do this is so that Ansible
-# correctly reports changes that occurred.
-- name: Set the default browser # noqa 301
+- name: Get the default browser
+  command: "xdg-settings get default-web-browser"
+  changed_when: false
+  register: current_default_browser
+
+- name: Set the default browser # noqa 503
   command: "xdg-settings set default-web-browser {{ browser_dict[default_browser_chosen] | default('') }}"
+  when: current_default_browser.stdout != browser_dict[default_browser_chosen]

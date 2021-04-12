@@ -1,0 +1,20 @@
+---
+- name: "Ensure {{ app_name }}'s directory is created"
+  ansible.windows.win_file:
+    path: "{{ jenv_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_get_url:
+    url: https://raw.githubusercontent.com/FelixSelter/JEnv-for-Windows/main/jenv.bat
+    dest: "{{ jenv_dir }}/jenv.bat"
+    force: false
+
+- name: "Add new {{ app_name }} PATH"
+  ansible.windows.win_path:
+    elements: "{{ jenv_dir }}"
+    state: present
+
+- name: "Ensure {{ app_name }} is configured"
+  ansible.windows.win_command: "jenv add {{ item.name }} {{ item.path }}"
+  loop: "{{ jenv_config }}"

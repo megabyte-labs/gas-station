@@ -1,0 +1,58 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} Desktop has configuration stored in /root/.config/megabytelabs/appiumdesktop"
+  stat:
+    path: ~/.config/megabytelabs/appiumdesktop
+  register: appiumdesktop_config
+
+- name: "Detect previously installed {{ app_name }} Desktop version"
+  command: cat appiumdesktop
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_appiumdesktop_version
+  when: appiumdesktop_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} Desktop version"
+  uri:
+    url: https://api.github.com/repos/appium/appium-desktop/releases/latest
+  register: appiumdesktop_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} Desktop's AppImage is already installed"
+  set_fact:
+    install_appiumdesktop: "{{ (current_appiumdesktop_version.skipped) or \
+      ((not current_appiumdesktop_version.skipped) and \
+      (current_appiumdesktop_version.stdout != appiumdesktop_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Acquire the latest {{ app_name }} Desktop AppImage"
+  get_url:
+    url:
+      "https://github.com/appium/appium-desktop/releases/download/{{ appiumdesktop_latest_release_tag.json.tag_name }}/\
+      Appium-linux-{{ appiumdesktop_latest_release_tag.json.tag_name | replace('v','') }}.AppImage"
+    dest: "{{ appiumdesktop_src_path }}"
+    mode: 0755
+    owner: root
+    group: root
+  when: install_appiumdesktop
+
+- name: "Save meta information about the version of {{ app_name }} Desktop that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/appiumdesktop
+    mode: 0600
+    content: |
+      {{ appiumdesktop_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_appiumdesktop
+
+- name: "Ensure {{ app_name }} is installed"
+  community.general.npm:
+    name: appium
+    global: true
+    state: latest

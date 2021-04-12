@@ -1,0 +1,88 @@
+{
+  "name": "ansible-project",
+  "description": "Node files that support the development of Ansible roles",
+  "license": "MIT",
+  "author": "Brian Zalewski <brian@megabyte.space> (https://megabyte.space)",
+  "version": "1.0.0",
+  "scripts": {
+    "commit": "git-cz",
+    "fix": "run-s fix:*",
+    "fix:prettier": "prettier \"{**/*.yml,files/*.sh}\" --write && prettier-package-json --write",
+    "info": "npm-scripts-info",
+    "postinstall": "husky install && bash .update.sh",
+    "lint": "run-s lint:*",
+    "lint:ansible": "ansible-lint",
+    "lint:black": "black .",
+    "lint:flake8": "flake8 --verbose .",
+    "lint:prettier": "prettier \"{**/*.yml,files/*.sh}\" --list-different || echo 'Run \"npm run fix\" to automatically fix Prettier formatting errors'",
+    "lint:shellcheck": "find . -type d \\( -name .cache -o -name .git -o -name .husky -o -name .modules -o -name misc -o -name node_modules \\) -prune -false -o -name .update.sh -prune -o -type f -name \\*.sh -print0 | xargs -0 -r -n1 shellcheck",
+    "lint:yaml": "yamllint .",
+    "prepare-release": "run-s update lint test version",
+    "test": "molecule test",
+    "test:docker": "molecule test -s docker",
+    "test:local": "ansible-playbook --ask-sudo-pass --connection=local tests/test.yml",
+    "test:ubuntu": "molecule converge -s ubuntu-desktop",
+    "update": "bash .update.sh",
+    "version": "standard-version --no-verify"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "devDependencies": {
+    "@megabytelabs/prettier-config-ansible": "^1.0.0",
+    "cspell": "^5.3.3",
+    "cz-conventional-changelog": "^3.3.0",
+    "husky": "^5.1.1",
+    "lint-staged": "^10.5.4",
+    "npm-run-all": "^4.1.5",
+    "npm-scripts-info": "^0.3.9",
+    "prettier": "^2.1.1",
+    "prettier-package-json": "^2.1.3",
+    "prettier-plugin-sh": "^0.6.0",
+    "shellcheck": "^1.0.0",
+    "standard-version": "^9.0.0"
+  },
+  "funding": [
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/megabytelabs"
+    },
+    {
+      "type": "patreon",
+      "url": "https://www.patreon.com/ProfessorManhattan"
+    }
+  ],
+  "lint-staged": {
+    "{**/*.yml,*.json}": [
+      "prettier --write"
+    ],
+    "files/*.sh": [
+      "prettier --write",
+      "docker run -v \"$PWD:/mnt\" koalaman/shellcheck"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
+    ]
+  },
+  "prettier": "@megabytelabs/prettier-config-ansible",
+  "scripts-info": {
+    "commit": "IMPORTANT: Whenever committing code run 'git-cz' or 'npm run commit'",
+    "fix": "Automatically fix formatting errors",
+    "info": "Displays descriptions of all the npm tasks",
+    "lint": "Report linting errors",
+    "lint:ansible": "Runs ansible-lint which has rules specific to Ansible projects",
+    "lint:flake8": "Runs flake8 which lints Python files",
+    "lint:prettier": "Checks for presence of files that Prettier wants to format differently",
+    "lint:shellcheck": "Performs linting of shell scripts",
+    "lint:yaml": "Runs yamllint which is a general purpose linter for YAML files",
+    "prepare-release": "Prepares the repository for a release",
+    "test": "Runs molecule tests for all the supported operating systems using VirtualBox (this is RAM intensive)",
+    "test:docker": "Runs molecule tests using Docker",
+    "test:local": "Installs the role on your local machine",
+    "test:ubuntu": "Provisions a Ubuntu Desktop VirtualBox VM, installs the role(s), and does not delete the VM after testing",
+    "update": "Runs .update.sh to automatically update meta files and documentation",
+    "version": "Used by 'npm run prepare-release' to update the CHANGELOG"
+  }
+}

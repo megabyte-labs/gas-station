@@ -1,5 +1,5 @@
 #!/bin/bash
-GIT_DIFF_FILES=$(git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA)
+GIT_DIFF_FILES=$(git diff-tree --no-commit-id --name-only -r "$CI_COMMIT_SHA")
 MODIFIED_DIRS=()
 for i in "${GIT_DIFF_FILES[@]}"
 do

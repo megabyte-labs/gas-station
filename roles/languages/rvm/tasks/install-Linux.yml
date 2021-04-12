@@ -1,0 +1,77 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/rvm"
+  stat:
+    path: ~/.config/megabytelabs/rvm
+  register: rvm_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat rvm
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_rvm_version
+  when: rvm_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/rvm/rvm/releases/latest
+  register: rvm_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_rvm: "{{ (current_rvm_version.skipped | default(false)) or \
+      ((not current_rvm_version.skipped | default(false)) and (current_rvm_version.stdout != rvm_latest_release_tag.json.tag_name)) }}"
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  ansible.builtin.file:
+    mode: 0755
+    path: "{{ rvm_src_folder }}"
+    state: directory
+
+- name: Ensure GPG keys are imported # noqa 301
+  command: "gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    src: /usr/local/rvm/bin/rvm
+    state: absent
+  when: install_rvm
+
+- name: Ensure GPG keys are refreshed # noqa 301 503
+  command: "gpg --refresh-keys"
+  when: install_rvm
+
+- name: "Ensure latest {{ app_name }} installer is downloaded"
+  get_url:
+    url: https://raw.githubusercontent.com/rvm/rvm/master/binscripts/rvm-installer
+    dest: "{{ rvm_src_folder }}/rvm-installer.sh"
+    mode: 0755
+    force: true
+  when: install_rvm
+
+- name: "Ensure {{ app_name }} is installed"
+  command: "{{ rvm_src_folder }}/rvm-installer.sh stable"
+  when: install_rvm
+  args:
+    creates: /usr/local/rvm/bin/rvm
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/rvm
+    mode: 0600
+    content: |
+      {{ rvm_latest_release_tag.json.tag_name }}
+  when: install_rvm
+
+- name: Ensure rvm is configured # noqa 301 503
+  command: "/usr/local/rvm/bin/rvm autolibs enable"
+  when: install_rvm

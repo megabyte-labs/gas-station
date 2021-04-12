@@ -1,0 +1,31 @@
+---
+- name: Ensure Bash is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.bash_profile
+    regexp: "^{{ item }}"
+    line: '{{ item }}'
+    backup: true
+    create: true
+  loop:
+    - export PYENV_ROOT="{{ pyenv_src_folder }}/bin"
+    - export PATH="$PYENV_ROOT/bin:$PATH"
+    - eval "$(pyenv init -)"
+
+- name: Ensure Zsh is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshrc
+    regexp: "^{{ item }}"
+    line: '{{ item }}'
+    backup: true
+    create: true
+  loop:
+    - export PYENV_ROOT="{{ pyenv_src_folder }}/bin"
+    - export PATH="$PYENV_ROOT/bin:$PATH"
+    - eval "$(pyenv init -)"
+
+- name: Ensure python versions are installed # noqa 301 503
+  command: "pyenv install {{ item }}"
+  loop: "{{ python_versions }}"
+  when: python_versions is defined

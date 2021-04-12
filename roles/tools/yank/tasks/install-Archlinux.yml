@@ -1,0 +1,33 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ yank_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ yank_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ yank_src_dir }}"
+    repo: "{{ yank_aur_git_repository }}"
+  register: yank_git
+
+- name: "Remove /usr/sbin/yank if the source files have changed" # noqa 503
+  file:
+    path: /usr/sbin/yank
+    state: absent
+  when: yank_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ yank_src_dir }}"
+    creates: /usr/sbin/yank

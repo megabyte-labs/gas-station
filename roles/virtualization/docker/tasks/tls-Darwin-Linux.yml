@@ -1,17 +1,17 @@
 ---
-- name: Ensure ~/.docker/certs.d folder exists
+- name: Ensure /usr/local/share/.docker/certs.d folder exists
   file:
     mode: 0740
     path: "{{ item }}"
     state: directory
   loop:
-    - ~/.docker
-    - ~/.docker/certs.d
+    - /usr/local/share/.docker
+    - /usr/local/share/.docker/certs.d
 
 - name: Create a Docker password file for the TLS certificates
   copy:
     content: "{{ lookup('password', '/dev/null length=50 chars=ascii_letters') }}"
-    dest: ~/.docker/.pw
+    dest: /usr/local/share/.docker/.pw
     force: false
     mode: 0400
 
@@ -19,26 +19,26 @@
 - name: Generate Docker certificates
   shell: |
     export HOST={{ docker_tls_fqdn }}
-    openssl genrsa -aes256 -passout file:$HOME/.docker/.pw -out docker-ca-key.pem 4096
-    openssl req -new -passin file:$HOME/.docker/.pw -subj \
+    openssl genrsa -aes256 -passout file:/usr/local/share/.docker/.pw -out docker-ca-key.pem 4096
+    openssl req -new -passin file:/usr/local/share/.docker/.pw -subj \
       "/C={{ docker_tls_country }}/ST={{ docker_tls_state }}/L={{ docker_tls_locality }}/\
       O={{ docker_tls_organization }}/OU={{ docker_tls_division }}/CN=$HOST" -x509 -days \
       365 -key docker-ca-key.pem -sha256 -out ca.pem
     openssl genrsa -out docker-server-key.pem 4096
     openssl req -subj "/CN=$HOST" -sha256 -new -key docker-server-key.pem -out docker-server.csr
-    echo subjectAltName = DNS:$HOST,IP:{{ ip_address }},IP:127.0.0.1 >> extfile.cnf
+    echo subjectAltName = DNS:$HOST,IP:127.0.0.1 >> extfile.cnf
     echo extendedKeyUsage = serverAuth >> extfile.cnf
     openssl x509 -req -days 365 -sha256 -in docker-server.csr -CA ca.pem -CAkey \
-      docker-ca-key.pem -passin file:$HOME/.docker/.pw -CAcreateserial -out \
+      docker-ca-key.pem -passin file:/usr/local/share/.docker/.pw -CAcreateserial -out \
       docker-server-cert.pem -extfile extfile.cnf
     openssl genrsa -out key.pem 4096
     openssl req -subj '/CN=client' -new -key key.pem -out docker-client.csr
     echo extendedKeyUsage = clientAuth > extfile-client.cnf
     openssl x509 -req -days 365 -sha256 -in docker-client.csr -CA ca.pem -CAkey \
-      docker-ca-key.pem -passin file:$HOME/.docker/.pw -CAcreateserial -out cert.pem \
+      docker-ca-key.pem -passin file:/usr/local/share/.docker/.pw -CAcreateserial -out cert.pem \
       -extfile extfile-client.cnf
     rm -v docker-client.csr docker-server.csr extfile.cnf extfile-client.cnf
   args:
-    chdir: ~/.docker/certs.d
+    chdir: /usr/local/share/.docker/certs.d
     creates: "{{ lookup('env', 'HOME') }}/.docker/certs.d/ca.pem"
 # yamllint enable rule:line-length

@@ -22,7 +22,7 @@ do
     set -e
     molecule test -s docker
     EXIT_CODE=$?
-    EXIT_CODE_SUM=$(($EXIT_CODE_SUM + $EXIT_CODE))
+    EXIT_CODE_SUM=$($EXIT_CODE_SUM + $EXIT_CODE)
     set +e
     cd ../../.. || continue
 done

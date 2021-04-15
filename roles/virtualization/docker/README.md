@@ -1,129 +1,141 @@
-<!-- ⚠️ This README has been generated from the file(s) "./.modules/docs/blueprint-readme.md" ⚠️--><h1 align="center" style="text-align:center;">Ansible Role: Docker</h1>
+# Ansible Role: docker
 
-<div align="center">
-  <h4>
-    <a href="https://gitlab.com/ProfessorManhattan/Playbooks">Main Playbook</a>
-    <span> | </span>
-    <a href="https://galaxy.ansible.com/professormanhattan/docker">Galaxy</a>
-    <span> | </span>
-    <a href="https://gitlab.com/megabyte-space/ansible-roles/docker/-/blob/master/CONTRIBUTING.md">Contributing</a>
-    <span> | </span>
-    <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/">Chat</a>
-    <span> | </span>
-    <a href="https://megabyte.space">Website</a>
-  </h4>
-</div>
-<p style="text-align:center;">
-  <a href="https://gitlab.com/megabyte-space/ansible-roles/docker">
-    <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
-  </a>
-  <a href="https://megabyte.space/docs/docker" target="_blank">
-    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
-  </a>
-  <a href="repository.gitlab_ansible_roles_group/docker/-/raw/master/LICENSE" target="_blank">
-    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
-  </a>
-  <a href="https://twitter.com/PrfssrManhattan" target="_blank">
-    <img alt="Twitter: PrfssrManhattan" src="https://img.shields.io/twitter/follow/PrfssrManhattan.svg?style=social" />
-  </a>
-</p>
+Project description 
 
-<p align="center" style="text-align:center;">
-  <b>An Ansible role that installs Docker for Windows, Mac OS X, and Linux</b></br>
-</p>
+## Actions:
+
+Actions performed by this role
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
+#### Installs docker-compose:
+* Both Mac OS X and Windows install Docker Desktop which includes Docker Compose as well as Notary, Kubernetes, and Credential Helper. 
+* Installs docker-compose if the `docker_install_compose` variable is set to true. docker-compose allows you to configure Docker containers in groups. 
+#### Ensures docker is installed:
+* Installs Docker on the target machine. 
+* Ensures Docker is started on boot. 
+* If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package. 
+#### Adds specified users to docker group:
+* If the variable `docker_users` is set to an array of usernames then those users will be added to the docker group which allows them access to Docker. 
+#### Generates tls certificates:
+* Generates TLS/HTTPS certificates so that the Docker host can be controlled remotely. This is useful if you are using a centralized method of controlling all of your Docker hosts (like Portainer). This step only runs if the `docker_tls` variable is set to true. 
+* The certificates required for connecting to the Docker host are copied to the Ansible host's `~/.docker` folder. 
 
-## ➤ Table of Contents
+## Tags:
+## Variables:
 
-* [➤ Overview](#-overview)
-* [➤ Supported Operating Systems](#-supported-operating-systems)
-* [➤ Dependencies](#-dependencies)
-	* [Galaxy Roles](#galaxy-roles)
-* [➤ Example Playbook](#-example-playbook)
-* [➤ Contributing](#-contributing)
-* [➤ License](#-license)
+* `docker_edition`: `ce` - Edition can be either `ce` (Community Edition) or `ee` (Enterprise Edition).
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#overview)
-
-## ➤ Overview
-
-This repository contains an Ansible role that installs Docker for Windows, Mac OS X, and Linux. Docker is a set of platform as a service products that use OS-level virtualization to deliver software in packages called containers. Containers are isolated from one another and bundle their own software, libraries and configuration files; they can communicate with each other through well-defined channels. 
-
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
-
-## ➤ Supported Operating Systems
-
-The following chart shows the operating systems that have been tested for compatibility. This chart is automatically generated using the Ansible Molecule tests you can view in the `molecule/default/` folder. We currently have logic in place to automatically handle the testing of Archlinux, CentOS, Debian, Fedora, Ubuntu, and Windows. If your operating system is not listed but is a variant of one of the systems we test then it might still work.
+example: 
 
 
-| OS Family | OS Version | Status | Idempotent |
-|-----------|------------|--------|------------|
-| Fedora    | 33         | ❌      | ❌          |
-| Ubuntu    | focal      | ✅      | ❌          |
-
-
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#dependencies)
-
-## ➤ Dependencies
-
-Most of our roles rely on [Ansible Galaxy](https://galaxy.ansible.com/) collections. Some of our projects are also dependent on other roles and collections that are published on Ansible Galaxy. Before you run this role, you will need to install the collection and role dependencies by running:
-
-```
-ansible-galaxy install -r requirements.yml
+```yaml
+docker_edition:
+  - subitem: string
+  - subitem2: string
 ```
 
-### Galaxy Roles
-
-At the beginning of the play, the galaxy role dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks) DRY. A full list of the dependencies along with quick descriptions is below:
-
- role_dependencies
+* `docker_package`: `docker-{{ docker_edition }}` - The name of the Docker package to install
 
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#example-playbook)
+* `docker_restart_handler_state`: `restarted` - The state that the Docker service should assume when a restart event is triggered
 
-## ➤ Example Playbook
 
-With the dependencies installed, all you have to do is add the role to your main playbook. The role handles the `become` behavior so you can simply add the role to your playbook without having to worry about commands that should not be run as root:
 
-```lang-yml
-- hosts: all
-  roles:
-    - professormanhattan.docker
+* `docker_install_compose`: `true` - Whether or not to install `docker-compose`
+
+
+
+* `docker_compose_version`: `"1.26.0"` - The version of `docker-compose` that should be installed
+
+
+
+* `docker_compose_path`: `/usr/local/bin/docker-compose` - The target destination of the `docker-compose` binary that will be installed
+
+
+
+* `docker_apt_release_channel`: `stable` - The release channel to use on Debian/Ubuntu. You can set the value of this variable to either `stable` or `edge`.
+
+
+
+* `docker_apt_arch`: `amd64` - The processor architecture to use (Debian/Ubuntu only)
+
+
+
+* `https_repository_prefix`: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache which requires the URL to start with http://HTTPS/. (Debian/Ubuntu only)
+
+
+
+* `docker_apt_repository`: `See defaults/main.yml` - The apt repository to use (Debian/Ubuntu only)
+
+
+
+* `docker_apt_ignore_key_error`: `true` - Whether or not to ignore errors when adding the apt repository's GPG key (Debian/Ubuntu only)
+
+
+
+* `docker_apt_gpg_key`: `"https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"` - The URL of the apt repository's GPG key (Debian/Ubuntu only)
+
+
+
+* `docker_yum_repo_url`: `See defaults/main.yml` - The yum repository URL to retrieve the installation packages (CentOS/Fedora/RedHat only)
+
+
+
+* `docker_yum_gpg_key`: `https://download.docker.com/linux/centos/gpg` - The URL of the GPG key to validate against when downloading from the specified yum repository
+
+
+
+* `docker_users`: `[]` - A list of users to add to the docker group
+
+example: 
+
+
+```yaml
+docker_users:
+  - "{{ ansible_user }}"
+  - secondaryuser
+  - serviceaccount
 ```
 
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#contributing)
-
-## ➤ Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://gitlab.com/megabyte-space/ansible-roles/docker/-/issues). If you would like to contribute, please take a look at the [contributing guide](https://gitlab.com/megabyte-space/ansible-roles/docker/-/raw/master/CONTRIBUTING.md).
-
-<details>
-<summary>Sponsorship</summary>
-<br/>
-<blockquote>
-<br/>
-I create open source projects out of love. Although I have a job, shelter, and as much fast food as I can handle, it would still be pretty cool to be appreciated by the community for something I have spent a lot of time and money on. Please consider sponsoring me! Who knows? Maybe I will be able to quit my job and publish open source full time.
-<br/><br/>Sincerely,<br/><br/>
-
-***Brian Zalewski***<br/><br/>
-</blockquote>
-
-<a href="profile.patreon">
-  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
-</a>
-
-</details>
+* `docker_snap_install`: `false` - Whether or not to use snap to install Docker - you can use this if there are issues with your configuration. Certificates (used by Portainer, for instance) will not be generated for a snap install. More information about the certificates is detailed below.
 
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#license)
 
-## ➤ License
+* `docker_tls`: `true` - When set to true, the role will configure Docker for TLS network connections and generate the required certificates. The certificates will be stored in `/etc/ssl/docker` on the client and in the `~/.docker` folder on the host. To reiterate, after each client machine installs Docker and generates certificates, the certificates are copied to the Ansible host machine. You can then use these certificates to connect to Docker daemons remotely (with Portainer, for instance).
 
-Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/docker/-/raw/master/LICENSE) licensed.
+
+
+* `docker_tls_country`: `US` - The country to use when configuring TLS
+
+
+
+* `docker_tls_state`: `New Jersey` - The state to use when configuring TLS
+
+
+
+* `docker_tls_locality`: `The Hood` - The locality to use when configuring TLS
+
+
+
+* `docker_tls_organization`: `Megabyte LLC` - The organization to use when configuring TLS
+
+
+
+* `docker_tls_division`: `Megabyte Labs` - The division to use when configuring TLS
+
+
+
+* `docker_tls_fqdn`: `machine.example.com` - The FQDN to use when configuring TLS - this should be set to the FQDN of the Docker host that's being configured
+
+
+## TODO:
+
+#### Improvement:
+* Complete documentation -  
+
+## Author Information
+This role:  was created by: Author name
+
+Documentation generated using: [Ansible-autodoc](https://github.com/AndresBott/ansible-autodoc)
 

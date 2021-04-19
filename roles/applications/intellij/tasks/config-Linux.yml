@@ -1,0 +1,47 @@
+---
+- name: Ensure plugins are installed
+  include_tasks: plugin-Linux.yml
+  loop: "{{ user.intellij_plugins }}"
+    loop_var: plugin_url
+    label: plugin_url
+  when: user.intellij_plugins is defined
+
+- name: Ensure Preferences directory exists
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.java
+    - ~/.java/.userPrefs
+    - ~/.java/.userPrefs/jetbrains
+
+- name: Check if prefs.xml file is present
+  become_user: "{{ user.username }}"
+  stat:
+    path: ~/.java/.userPrefs/jetbrains/prefs.xml
+  register: prefs_file_stat
+
+- name: Ensure prefs.xml is updated
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.java/.userPrefs/jetbrains/prefs.xml
+    insertafter: '^<map '
+    line: '  <entry key="eua_accepted_version" value="1.1"/>'
+    backup: true
+  when: prefs_file_stat.stat.exists
+
+- name: Ensure prefs.xml is created (if not present)
+  become_user: "{{ user.username }}"
+  copy:
+    path: ~/.java/.userPrefs/jetbrains/prefs.xml
+    content: |
+      <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE map SYSTEM "http://java.sun.com/dtd/preferences.dtd">
+      <map MAP_XML_VERSION="1.0">
+        <entry key="eua_accepted_version" value="1.1"/>
+      </map>
+    create: true
+    mode: 0700
+  when: prefs_file_stat.stat.exists == false

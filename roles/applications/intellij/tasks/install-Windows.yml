@@ -3,3 +3,21 @@
   chocolatey.chocolatey.win_chocolatey:
     name: intellijidea-community
     state: "{{ app_state | default('present') }}"
+
+- name: Fetch the release information
+  uri:
+    url: "https://community.chocolatey.org/packages/intellijidea-community"
+    return_content: true
+  register: intellij_release
+
+- name: "Determine the Plugins folder path based on the version of {{ app_name }} installed"
+  set_fact:
+    plugins_folder: "{{ plugin_folder_prefix + intellij_release | regex_search('v (\\d*\\.\\d*)') | replace('v ','') + '\\plugins' }}"
+
+- name: Run generic tasks
+  include_tasks: config-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

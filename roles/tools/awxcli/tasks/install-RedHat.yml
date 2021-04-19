@@ -1,0 +1,31 @@
+---
+- name: "Add {{ app_name }}'s yum repository"
+  yum_repository:
+    baseurl: "{{ tower_cli_repo }}"
+    description: "{{ app_name }}'s repository"
+    gpgcheck: true
+    gpgkey: "{{ tower_cli_key }}"
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+  when: ansible_distribution != 'Fedora'
+
+- name: "Add {{ app_name }}'s dependencies yum repository"
+  yum_repository:
+    baseurl: "{{ tower_dependency_repo }}"
+    description: "{{ app_name }}'s dependencies repository"
+    gpgcheck: true
+    gpgkey: "{{ tower_cli_key }}"
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+  when: ansible_distribution != 'Fedora'
+
+- name: "Ensure {{ app_name }} is installed"
+  yum:
+    name: ansible-tower-cli
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+  when: ansible_distribution != 'Fedora'
+
+- name: "Ensure {{ app_name }} is installed"
+  pip:
+    name: ansible-tower-cli
+    state: "{{ app_state | default('present') }}"
+  when: ansible_distribution == 'Fedora'

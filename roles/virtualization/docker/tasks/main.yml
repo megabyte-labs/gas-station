@@ -73,7 +73,7 @@
 - name: Determine whether TLS certificates need to be generated (non-Windows)
   become: true
   stat:
-    path: /etc/ssl/private/docker-ca.pem
+    path: "{{ '/etc/ssl/private/docker-ca.pem' if ansible_system == 'Linux' else '/usr/local/share/docker/docker-ca.pem' }}"
   register: docker_ca_pem
   when:
     - ansible_os_family != 'Windows'
@@ -83,7 +83,7 @@
 - name: Determine whether TLS certificates need to be generated (Windows)
   become_method: runas
   become_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
-  win_stat:
+  ansible.windows.win_stat:
     path: C:\DockerSSLCARoot\ca.pem
   register: docker_ca_pem_win
   when:

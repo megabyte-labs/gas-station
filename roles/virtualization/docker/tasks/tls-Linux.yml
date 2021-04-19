@@ -1,14 +1,17 @@
 ---
 - name: Run common Darwin/Linux tasks
-  include_tasks: tls-Darwin-Linux.yml
+  become: true
+  block:
+    - include_tasks: tls-Darwin-Linux.yml
 
 - name: Move Docker server certificates to protected SSL folder
   become: true
   copy:
-    src: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/.docker/certs.d/{{ item.src | default(item) }}"
+    src: "/usr/local/share/.docker/certs.d/{{ item.src | default(item) }}"
     dest: "/etc/ssl/private/{{ item.dest | default(item) }}"
     owner: root
-    mode: 0400
+    group: docker
+    mode: 0440
     remote_src: true
   loop:
     - docker-server-cert.pem
@@ -17,18 +20,10 @@
     - src: ca.pem
       dest: docker-ca.pem
 
-- name: Remove server keys from ~/.docker
-  file:
-    path: "~/.docker/certs.d/{{ item }}"
-    state: absent
-  loop:
-    - docker-server-cert.pem
-    - docker-server-key.pem
-    - docker-ca-key.pem
-
 - name: Copy certificates to the ~/.docker folder on the machine running Ansible
+  become: true
   fetch:
-    src: "~/.docker/certs.d/{{ item }}"
+    src: "/usr/local/share/.docker/certs.d/{{ item }}"
     dest: "~/.docker/certs.d/{{ ansible_host | lower }}-{{ item }}"
     mode: 0400
     flat: true
@@ -38,6 +33,16 @@
     - key.pem
   when:
     - ansible_host != 'local'
+
+- name: Remove server keys from /usr/local/share/.docker
+  become: true
+  file:
+    path: "/usr/local/share/.docker/certs.d/{{ item }}"
+    state: absent
+  loop:
+    - docker-server-cert.pem
+    - docker-server-key.pem
+    - docker-ca-key.pem
 
 - name: Allow TCP connections to Docker
   become: true

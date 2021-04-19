@@ -1,0 +1,18 @@
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: "Find the latest version of {{ app_name }} from the release page"
+  uri:
+    url: https://releases.hashicorp.com/consul-template/
+    return_content: true
+  register: consultemplate_version
+
+- name: "Save the version of {{ app_name }} to a variable"
+  set_fact:
+    consultemplate_version: "{{ consultemplate_version.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"

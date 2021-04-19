@@ -1,0 +1,17 @@
+---
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  git:
+    dest: "{{ gvm_src_directory }}"
+    repo: "{{ gvm_src_repo }}"
+  register: gvm_clone
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_command: go install
+  args:
+    chdir: "{{ gvm_src_directory }}"
+  when: gvm_clone.changed
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: "{{ gvm_src_directory }}"
+    state: present

@@ -1,11 +1,11 @@
 ---
 - name: Find the Checksum of Vagrant VMware Utility installer
   set_fact:
-    vagrant_vmware_checksum: "{{ vagrant_vmware_checksum_file.content | regex_search('.*\\.rpm') | regex_search('\\w* ') | trim }}"
+    vagrant_vmware_checksum: "{{ vagrant_vmware_checksum_file.content | regex_search('.*64\\.rpm') | regex_search('\\w* ') | trim }}"
 
 - name: Find the Checksum of Vagrant installer
   set_fact:
-    vagrant_checksum: "{{ vagrant_checksum_file.content | regex_search('.*\\.rpm') | regex_search('\\w* ') | trim }}"
+    vagrant_checksum: "{{ vagrant_checksum_file.content | regex_search('.*64\\.rpm') | regex_search('\\w* ') | trim }}"
 
 - name: Ensure Vagrant Source Folder is created
   file:
@@ -41,12 +41,14 @@
   yum:
     name: "{{ vagrant_src_folder }}/vagrant_{{ vagrant_version }}_x86_64.rpm"
     state: "{{ app_state | default('present') }}"
+    disable_gpg_check: true
   when: vagrant_stat.stat.checksum == vagrant_checksum
 
 - name: "Ensure {{ app_name }} VMware Utility is installed"
   yum:
     name: "{{ vagrant_src_folder }}/vagrant-vmware-utility_{{ vagrant_vmware_version }}_x86_64.rpm"
     state: "{{ app_state | default('present') }}"
+    disable_gpg_check: true
   when:
     - vagrant_vmware_support
     - vagrant_vmware_utility_stat.stat.checksum == vagrant_vmware_checksum

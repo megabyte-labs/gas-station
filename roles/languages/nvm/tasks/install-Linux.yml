@@ -28,12 +28,12 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_nvm: "{{ (current_nvm_version.skipped) or \
-      ((not current_nvm_version.skipped) and (current_nvm_version.stdout != nvm_latest_release_tag.json.tag_name | replace('v','')) }}"
+    install_nvm: "{{ (current_nvm_version.skipped | default(false)) or \
+      ((not current_nvm_version.skipped | default(false)) and (current_nvm_version.stdout != nvm_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
-    path: "/home/{{ nvm_user }}/.nvm/nvm.sh"
+    path: "~/.nvm/nvm.sh"
     state: absent
   when: install_nvm
 
@@ -41,7 +41,7 @@
   shell: >
     set -o pipefail && curl -o- {{ 'https://raw.githubusercontent.com/nvm-sh/nvm/' + nvm_latest_release_tag.json.tag_name + '/install.sh' }} | bash
   args:
-    creates: "/home/{{ nvm_user }}/.nvm/nvm.sh"
+    creates: "~/.nvm/nvm.sh"
   when: install_nvm
 
 - name: "Make sure .bashrc imports {{ app_name }}"

@@ -29,12 +29,7 @@
     mode: 0644
     state: "{{ item.state | default('present') }}"
   loop: "{{ clamav_daemon_configuration_changes }}"
-
-- name: Ensure ClamAV daemon is running (if configured)
-  service:
-    enabled: "{{ clamav_daemon_enabled }}"
-    name: "{{ clamav_daemon }}"
-    state: "{{ clamav_daemon_state }}"
+  when: ansible_os_family != 'Debian'
 
 - name: Ensure ClamAV freshclam daemon is running (if configured)
   service:
@@ -42,5 +37,19 @@
     name: "{{ clamav_freshclam_daemon }}"
     state: "{{ clamav_freshclam_daemon_state }}"
 
-- name: Update rkhunter # noqa 301
-  command: rkhunter --update && rkhunter --propupd
+- name: Ensure configuration of rkhunter is updated
+  lineinfile:
+    path: /etc/rkhunter.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - regexp: "^MIRRORS_MODE"
+      line: MIRRORS_MODE=0
+    - regexp: "^WEB_CMD"
+      line: WEB_CMD=""
+  when: ansible_os_family == 'Debian'
+
+- name: Update rkhunter # noqa 301 303
+  shell: |
+    rkhunter --propupd
+    rkhunter --update

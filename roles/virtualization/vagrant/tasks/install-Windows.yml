@@ -71,8 +71,11 @@
   changed_when: false
 
 - name: "Ensure user-specified {{ app_name }} plugins are installed"
-  ansible.windows.win_command: "vagrant plugin install {{ plugin }}"
-  loop: "{{ vagrant_plugins }}"
+  ansible.windows.win_command: "vagrant plugin install {{ vagrant_plugins | difference(vagrant_plugins_installed.stdout) | join(' ')  }}"
+  loop: "{{ user_configs }}"
   loop_control:
-    loop_var: plugin
-  when: plugin not in vagrant_plugins_installed.stdout
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - (vagrant_plugins | difference(vagrant_plugins_installed.stdout))

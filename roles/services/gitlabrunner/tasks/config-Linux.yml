@@ -1,0 +1,32 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/gitlabrunner"
+  stat:
+    path: ~/.config/megabytelabs/gitlabrunner
+  register: gitlabrunner_config
+
+- name: "Ensure {{ app_name }} is registered" # noqa 503
+  command: gitlab-runner register \
+    --non-interactive \
+    --url "{{ gitlab_url }}" \
+    --registration-token "{{ gitlab_registration_token }}" \
+    --executor "{{ gitlab_runner_executor }}" \
+    --docker-image "{{ gitlab_runner_image }}" \
+    --description "{{ gitlab_runner_description }}" \
+    --tag-list "{{ gitlab_runner_tags }}"
+  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  file:
+    path: ~/.config/megabytelabs/gitlabrunner
+    mode: 0600
+    state: touch
+  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)

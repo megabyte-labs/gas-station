@@ -1,0 +1,55 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/dive'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\dive'
+  register: dive_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type dive
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_dive_version
+  when: dive_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/wagoodman/dive/releases/latest
+  register: dive_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_dive: "{{ (current_dive_version.skipped | default(false)) or \
+      ((not current_dive_version.skipped | default(false)) and (current_dive_version.stdout != dive_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure latest version of {{ app_name }} is downloaded"
+  ansible.windows.win_get_url:
+    url: "https://github.com/wagoodman/dive//releases/download/{{ dive_latest_release_tag.json.tag_name }}/\
+      dive_{{ dive_latest_release_tag.json.tag_name | replace('v','') }}_windows_amd64.zip"
+    dest: '%TEMP%\dive.zip'
+  when: install_dive
+
+- name: "Ensure latest version of {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: '%TEMP%\dive.zip'
+    dest: '%PROGRAMFILES%\dive'
+
+- name: "Add new {{ app_name }} PATH"
+  ansible.windows.win_path:
+    elements: '%PROGRAMFILES%\dive'
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\dive'
+    content: |
+      {{ dive_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_dive

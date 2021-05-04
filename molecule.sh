@@ -21,7 +21,12 @@ EXIT_CODE_SUM=0
 for j in "${MODIFIED_DIRS[@]}"
 do
     cd "$j" || continue
-    molecule test -s docker || EXIT_CODE=$?
+    SNAP_REFERENCES=$(grep -Ril "community.general.snap:" ./tasks)
+    if [ "$SNAP_REFERENCES" ]; then
+        molecule test -s docker-snap || EXIT_CODE=$?
+    else
+        molecule test -s docker || EXIT_CODE=$?
+    fi
     EXIT_CODE_SUM=$((EXIT_CODE_SUM + EXIT_CODE))
     cd ../../.. || continue
 done

@@ -37,18 +37,22 @@
     state: absent
   when: install_nvm
 
+- name: Ensure ~/.local/nvm directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.local
+    - ~/.local/nvm
+
 - name: "Ensure {{ app_name }} is installed"
   shell: >
-    set -o pipefail && curl -o- {{ 'https://raw.githubusercontent.com/nvm-sh/nvm/' + nvm_latest_release_tag.json.tag_name + '/install.sh' }} | bash
+    set -o pipefail && curl -o- {{ 'https://raw.githubusercontent.com/nvm-sh/nvm/' + nvm_latest_release_tag.json.tag_name + '/install.sh' }} | NVM_DIR="$HOME/.local/nvm" bash
   args:
     creates: "~/.nvm/nvm.sh"
+    executable: /bin/bash
   when: install_nvm
-
-- name: "Make sure .bashrc imports {{ app_name }}"
-  lineinfile:
-    path: ~/.bashrc
-    regex: \"\[\[ -r $NVM_DIR\/bash_completion \]\] && \\\. $NVM_DIR\/bash_completion\"
-    line: '[[ -r $NVM_DIR/bash_completion ]] && \. $NVM_DIR/bash_completion'
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
   copy:
@@ -57,3 +61,11 @@
     content: |
       {{ nvm_latest_release_tag.json.tag_name  | replace('v','') }}
   when: install_nvm
+
+- name: Configure the default global packages
+  template:
+    src: default-packages.j2
+    dest: ~/.local/nvm/default-packages
+    owner: root
+    mode: 0400
+  when: nodejs_npm_global_packages | default([]) | length

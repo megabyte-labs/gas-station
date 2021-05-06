@@ -33,7 +33,7 @@
       {% endif %}
       {{- tmp_cockpit_package | unique -}}
 
-- name: Add groovy-backports apt repository
+- name: Add groovy-backports apt repository (focal)
   apt_repository:
     filename: groovy-backports
     repo: "{{ groovy_backports_url }}"
@@ -43,9 +43,35 @@
     - ansible_distribution == 'Ubuntu'
     - ansible_distribution_release == 'focal'
 
+- name: Add Kubic's apt key (focal)
+  apt_key:
+    state: present
+    url: "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_{{ ansible_distribution_version }}/Release.key"
+  when:
+    - ansible_distribution == 'Ubuntu'
+    - ansible_distribution_release == 'focal'
+
+- name: Add Kubic's apt repository (focal)
+  apt_repository:
+    filename: "kubic:libcontainers"
+    repo: "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_{{ ansible_distribution_version }}/ /"
+    state: present
+    update_cache: true
+  when:
+    - ansible_distribution == 'Ubuntu'
+    - ansible_distribution_release == 'focal'
+
+- name: Ensure podman is installed (focal)
+  apt:
+    name: podman
+    state: present
+  when:
+    - ansible_distribution == 'Ubuntu'
+    - ansible_distribution_release == 'focal'
+
 - name: Install Cockpit Docker or Cockpit Podman
   apt:
-    name: "{{ cockpit_package }}"
+    name: "{{ cockpit_package | regex_replace('\\W*(cockpit-\\w*)\\W*','\\1') }}"
     state: present
   when: cockpit_package is defined
 

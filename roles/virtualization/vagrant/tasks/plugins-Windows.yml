@@ -1,0 +1,13 @@
+---
+- name: Find installed plugins
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: vagrant plugin list
+  register: vagrant_plugins_installed
+  changed_when: false
+
+- name: "Ensure user-specified {{ app_name }} plugins are installed"
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: "vagrant plugin install {{ vagrant_plugins | difference(vagrant_plugins_installed.stdout) | join(' ')  }}"
+  when: (vagrant_plugins | difference(vagrant_plugins_installed.stdout))

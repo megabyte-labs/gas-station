@@ -22,11 +22,15 @@
     path: "{{ wireguard_conf_dir }}"
     state: directory
     mode: 0600
-# TODO: Fix this and add it back in
-# - name: Copy WireGuard connection file
-#   copy:
-#     src: "files/vpn/{{ vpn_connection.file }}"
-#     dest: "{{ wireguard_conf_dir }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
-#     owner: root
-#     mode: 0600
-#   when: '"nmconnection" in vpn_connection.file'
+
+- name: Copy WireGuard connection file
+  copy:
+    src: "files/vpn/{{ vpn_connection.file }}"
+    dest: "{{ wireguard_conf_dir }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
+    owner: root
+    mode: 0600
+  loop: "{{ vpn_connections | default([]) }}"
+  loop_control:
+    label: "{{ vpn_connection.file }}"
+    loop_var: vpn_connection
+  when: '"nmconnection" in vpn_connection.file'

@@ -32,6 +32,12 @@
       ((not current_watchman_version.skipped | default(false)) and \
       (current_watchman_version.stdout != watchman_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
+- name: "Ensure {{ watchman_src_folder }} directory exists"
+  file:
+    path: "{{ watchman_src_folder }}"
+    state: directory
+    mode: 0700
+
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
     path: /usr/local/bin/watchman
@@ -40,14 +46,15 @@
 
 - name: "Ensure latest version of {{ app_name }} is downloaded"
   unarchive:
-    url: "{{ 'https://github.com/acebook/watchman/releases/download/' + watchman_latest_release_tag.json.tag_name + \
+    src: "{{ 'https://github.com/facebook/watchman/releases/download/' + watchman_latest_release_tag.json.tag_name + \
       '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux.zip' }}"
     dest: "{{ watchman_src_folder }}"
+    remote_src: true
   when: install_watchman
 
 - name: "Ensure {{ app_name }} is installed"
   copy:
-    src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/watchman' }}"
+    src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/bin/watchman' }}"
     dest: /usr/local/bin/watchman
     mode: 0755
     remote_src: true
@@ -58,6 +65,7 @@
     src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/lib/' }}"
     dest: /usr/local/lib/
     mode: 0755
+    remote_src: true
   when: install_watchman
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
@@ -74,9 +82,9 @@
     regex: "{{ item.regex }}"
     line: "{{ item.value }}"
   loop:
-    - regex: '^.*fs.inotify.max_user_instances.*'
+    - regex: "^.*fs.inotify.max_user_instances.*"
       value: fs.inotify.max_user_instances=8192
-    - regex: '^.*fs.inotify.max_user_watches.*'
+    - regex: "^.*fs.inotify.max_user_watches.*"
       value: fs.inotify.max_user_watches=524288
-    - regex: '^.*fs.inotify.max_queued_events.*'
+    - regex: "^.*fs.inotify.max_queued_events.*"
       value: fs.inotify.max_queued_events=16384

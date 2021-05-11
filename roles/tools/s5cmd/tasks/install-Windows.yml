@@ -25,17 +25,41 @@
     install_s5cmd: "{{ (current_s5cmd_version.skipped | default(false)) or \
       ((not current_s5cmd_version.skipped | default(false)) and (current_s5cmd_version.stdout != s5cmd_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
+- name: "Ensure {{ s5cmd_goroot }} directory exists"
+  ansible.windows.win_file:
+    path: "{{ s5cmd_goroot }}"
+    state: directory
+
+- name: "Ensure '%PROGRAMFILES%/go' directory exists"
+  ansible.windows.win_file:
+    path: "%PROGRAMFILES%/go"
+    state: directory
+
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   ansible.windows.win_file:
-    path: "{{ ansible_env.GOROOT }}/bin/s5cmd"
+    path: "{{ s5cmd_goroot }}/bin/s5cmd"
     state: absent
   when: install_s5cmd
 
-- name: "Ensure {{ app_name }} is installed"
+- name: "Ensure {{ app_name }} is built"
   ansible.windows.win_command: go get github.com/peak/s5cmd
   args:
-    creates: "{{ ansible_env.GOROOT }}/bin/s5cmd"
+    creates: "{{ s5cmd_goroot }}/bin/s5cmd"
+  environment:
+    GOPATH: "{{ s5cmd_goroot }}"
   when: install_s5cmd
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_copy:
+    src: "{{ s5cmd_goroot }}/bin/s5cmd"
+    dest: '%PROGRAMFILES%\go'
+    remote_src: true
+  when: install_s5cmd
+
+- name: Ensure s5cmd is added to PATH
+  ansible.windows.win_path:
+    elements:
+      - '%PROGRAMFILES%\go'
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
   ansible.windows.win_copy:

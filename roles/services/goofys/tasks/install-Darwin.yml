@@ -1,7 +1,4 @@
 ---
-- name: Ensure catfs is intalled
-  include_tasks: catfs-Linux.yml
-
 - name: Ensure osxfuse is installed
   become: false
   community.general.homebrew_cask:
@@ -9,6 +6,9 @@
     state: "{{ app_state | default('present') }}"
     sudo_password: "{{ ansible_password }}"
     accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: Ensure catfs is intalled
+  include_tasks: catfs-Linux.yml
 
 - name: Ensure goofys is installed
   become: false
@@ -18,5 +18,7 @@
 
 - name: Ensure S3 buckets are mounted # noqa 301
   command: "goofys {{ item.bucket }} {{ item.path }}"
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   when: s3_mounts is defined
   loop: "{{ s3_mounts }}"

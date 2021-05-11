@@ -30,19 +30,19 @@
   set_fact:
     install_catfs: "{{ (current_catfs_version.skipped | default(false)) or \
       ((not current_catfs_version.skipped | default(false)) and \
-        (current_catfs_version.stdout != catfs_latest_release_tag.json[0].tag_name | replace('v',''))) }}"
+      (current_catfs_version.stdout != catfs_latest_release_tag.json[0].tag_name | replace('v',''))) }}"
 
 - name: "Ensure older version of catfs is uninstalled"
   file:
     path: /usr/local/bin/catfs
     state: absent
+  when: install_catfs
 
 - name: "Ensure catfs is installed"
-  shell: |
-    rustup install stable
-    cargo install catfs --root /usr/local
-  args:
-    creates: /usr/local/bin/catfs
+  get_url:
+    url: "https://github.com/kahing/catfs/releases/download/{{ catfs_latest_release_tag.json[0].tag_name }}/catfs"
+    dest: /usr/local/bin/catfs
+    mode: 0755
   when: install_catfs
 
 - name: "Save meta information about the version of catfs that was installed"

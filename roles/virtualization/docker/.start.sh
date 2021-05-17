@@ -5,7 +5,7 @@
 # documentation.
 
 set -e
-REPO_TYPE=ansible
+export REPO_TYPE=ansible
 git submodule update --init --recursive
 if [ ! -f "./.modules/${REPO_TYPE}/update.sh" ]; then
   mkdir -p ./.modules

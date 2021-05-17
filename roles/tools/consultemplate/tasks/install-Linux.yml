@@ -21,15 +21,16 @@
   register: current_consultemplate_version
   when: consultemplate_config.stat.exists
 
-- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_consultemplate: "{{ (current_consultemplate_version.skipped | default(false)) or \
       ((not current_consultemplate_version.skipped | default(false)) and (current_consultemplate_version.stdout != consultemplate_version)) }}"
 
 - name: "Ensure {{ app_name }} is installed"
   unarchive:
-    url: "https://releases.hashicorp.com/consul-template/{{ consultemplate_version }}/consul-template_{{ consultemplate_version }}_linux_amd64.tgz"
+    src: "https://releases.hashicorp.com/consul-template/{{ consultemplate_version }}/consul-template_{{ consultemplate_version }}_linux_amd64.tgz"
     dest: "{{ consultemplate_path }}"
+    remote_src: true
   when: install_consultemplate
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"

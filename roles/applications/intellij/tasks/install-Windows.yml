@@ -1,16 +1,19 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
+  become_method: runas
   chocolatey.chocolatey.win_chocolatey:
     name: intellijidea-community
     state: "{{ app_state | default('present') }}"
 
 - name: Fetch the release information
-  uri:
+  become: false
+  ansible.windows.win_uri:
     url: "https://community.chocolatey.org/packages/intellijidea-community"
     return_content: true
   register: intellij_release
 
 - name: "Determine the Plugins folder path based on the version of {{ app_name }} installed"
+  become: false
   set_fact:
     plugins_folder: "{{ plugin_folder_prefix + intellij_release | regex_search('v (\\d*\\.\\d*)') | replace('v ','') + '\\plugins' }}"
 

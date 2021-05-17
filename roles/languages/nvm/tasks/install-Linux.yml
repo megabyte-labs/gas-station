@@ -1,67 +1,70 @@
 ---
-- name: Ensure Megabyte Labs configuration directory exists
-  file:
-    mode: 0700
-    path: "{{ item }}"
-    state: directory
-  loop:
-    - ~/.config
-    - ~/.config/megabytelabs
-
-- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/nvm"
-  stat:
-    path: "~/.config/megabytelabs/nvm"
-  register: nvm_config
-
-- name: "Detect previously installed {{ app_name }} version"
-  command: cat nvm
-  args:
-    chdir: ~/.config/megabytelabs
-  changed_when: false
-  register: current_nvm_version
-  when: nvm_config.stat.exists
-
-- name: "Detect the latest {{ app_name }} version"
-  uri:
-    url: https://api.github.com/repos/nvm-sh/nvm/releases/latest
-  register: nvm_latest_release_tag
-
-- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
-  set_fact:
-    install_nvm: "{{ (current_nvm_version.skipped | default(false)) or \
-      ((not current_nvm_version.skipped | default(false)) and (current_nvm_version.stdout != nvm_latest_release_tag.json.tag_name | replace('v',''))) }}"
-
-- name: "Ensure older version of {{ app_name }} is uninstalled"
-  file:
-    path: "~/.nvm/nvm.sh"
-    state: absent
-  when: install_nvm
-
-- name: Ensure ~/.local/nvm directory exists
-  file:
-    mode: 0700
-    path: "{{ item }}"
-    state: directory
-  loop:
-    - ~/.local
-    - ~/.local/nvm
-
 - name: "Ensure {{ app_name }} is installed"
-  shell: >
-    set -o pipefail && \
-    curl -o- {{ 'https://raw.githubusercontent.com/nvm-sh/nvm/' + nvm_latest_release_tag.json.tag_name + '/install.sh' }} | NVM_DIR="$HOME/.local/nvm" bash
-  args:
-    creates: "~/.nvm/nvm.sh"
-    executable: /bin/bash
-  when: install_nvm
+  block:
+    - name: Ensure Megabyte Labs configuration directory exists
+      file:
+        mode: 0700
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - ~/.config
+        - ~/.config/megabytelabs
 
-- name: "Save meta information about the version of {{ app_name }} that was installed"
-  copy:
-    dest: ~/.config/megabytelabs/nvm
-    mode: 0600
-    content: |
-      {{ nvm_latest_release_tag.json.tag_name  | replace('v','') }}
-  when: install_nvm
+    - name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/nvm"
+      stat:
+        path: "~/.config/megabytelabs/nvm"
+      register: nvm_config
+
+    - name: "Detect previously installed {{ app_name }} version"
+      command: cat nvm
+      args:
+        chdir: ~/.config/megabytelabs
+      changed_when: false
+      register: current_nvm_version
+      when: nvm_config.stat.exists
+
+    - name: "Detect the latest {{ app_name }} version"
+      uri:
+        url: https://api.github.com/repos/nvm-sh/nvm/releases/latest
+      register: nvm_latest_release_tag
+
+    - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+      set_fact:
+        install_nvm: "{{ (current_nvm_version.skipped | default(false)) or \
+          ((not current_nvm_version.skipped | default(false)) and (current_nvm_version.stdout != nvm_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+    - name: "Ensure older version of {{ app_name }} is uninstalled"
+      file:
+        path: "~/.nvm/nvm.sh"
+        state: absent
+      when: install_nvm
+
+    - name: Ensure ~/.local/nvm directory exists
+      file:
+        mode: 0700
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - ~/.local
+        - ~/.local/nvm
+
+    - name: "Ensure {{ app_name }} is installed"
+      shell: >
+        set -o pipefail && \
+        curl -o- {{ 'https://raw.githubusercontent.com/nvm-sh/nvm/' + nvm_latest_release_tag.json.tag_name + '/install.sh' }} | NVM_DIR="$HOME/.local/nvm" bash
+      args:
+        creates: "~/.nvm/nvm.sh"
+        executable: /bin/bash
+      when: install_nvm
+
+    - name: "Save meta information about the version of {{ app_name }} that was installed"
+      copy:
+        dest: ~/.config/megabytelabs/nvm
+        mode: 0600
+        content: |
+          {{ nvm_latest_release_tag.json.tag_name  | replace('v','') }}
+      when: install_nvm
+  when: ansible_system == 'Linux'
 
 - name: Configure the default global packages
   template:
@@ -72,6 +75,9 @@
   when: nodejs_npm_global_packages | default([]) | length
 
 - name: Install avn NPM global dependencies
+  become_user: root
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
   community.general.npm:
     name: "{{ item }}"
     version: latest
@@ -83,7 +89,11 @@
   when: add_avn_integration
 
 - name: Setup avn
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
   command: avn setup
   args:
     creates: ~/.avn
+  register: avn_setup
+  failed_when: (avn_setup.rc == 1 and ('profile setup complete' not in avn_setup.stdout))
   when: add_avn_integration

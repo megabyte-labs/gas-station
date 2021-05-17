@@ -4,18 +4,18 @@
     path: "{{ item }}"
     state: directory
   loop:
-    - "C:/Users/{{ ansible_user }}/.config"
-    - "C:/Users/{{ ansible_user }}/.config/megabytelabs"
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
 
-- name: "Check if {{ app_name }} has configuration stored in C:/Users/{{ ansible_user }}/.config/megabytelabs/{{ app_name }}"
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/ffsend'"
   ansible.windows.win_stat:
-    path: "C:/Users/{{ ansible_user }}/.config/megabytelabs/ffsend"
+    path: '%USERPROFILE%\.config\megabytelabs\ffsend'
   register: ffsend_config
 
 - name: "Detect previously installed {{ app_name }} version"
   ansible.windows.win_command: type ffsend
   args:
-    chdir: "C:/Users/{{ ansible_user }}/.config/megabytelabs"
+    chdir: '%USERPROFILE%\.config\megabytelabs'
   changed_when: false
   register: current_ffsend_version
   when: ffsend_config.stat.exists
@@ -27,13 +27,20 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_ffsend: "{{ (current_ffsend_version.skipped) or \
-      ((not current_ffsend_version.skipped) and (current_ffsend_version.stdout != ffsend_latest_release_tag.json.tag_name | replace('v','')) }}"
+    install_ffsend: "{{ (current_ffsend_version.skipped | default(false)) or \
+      ((not current_ffsend_version.skipped | default(false)) and \
+      (current_ffsend_version.stdout != ffsend_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ ffsend_path }} directory exists"
+  ansible.windows.win_file:
+    path: "{{ ffsend_path }}"
+    state: directory
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   ansible.windows.win_file:
     path: "{{ ffsend_path }}/ffsend.exe"
     state: absent
+  when: install_ffsend
 
 - name: "Ensure {{ app_name }} is installed"
   ansible.windows.win_get_url:
@@ -50,7 +57,7 @@
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
   ansible.windows.win_copy:
-    dest: "C:/Users/{{ ansible_user }}/.config/megabytelabs/ffsend"
+    dest: '%USERPROFILE%\.config\megabytelabs\ffsend'
     content: |
       {{ ffsend_latest_release_tag.json.tag_name  | replace('v','') }}
   when: install_ffsend

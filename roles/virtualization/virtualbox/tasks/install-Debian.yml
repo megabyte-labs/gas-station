@@ -19,24 +19,23 @@
 
 - name: "Ensure {{ app_name }} Extension pack is installed"
   block:
-    - name: "Ensure {{ app_name }} Extension pack directory exists"
-      file:
-        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
-        state: directory
-        mode: 0744
-        owner: root
-        group: root
     - name: "Ensure {{ app_name }} Extension pack installer is downloaded and up-to-date"
       get_url:
         url: "{{ 'https://download.virtualbox.org/virtualbox/' + vbox_version + '/Oracle_VM_VirtualBox_Extension_Pack-' + vbox_version + '.vbox-extpack' }}"
         dest: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
+      register: ext_pack_download_result
+    - name: "Ensure older version of {{ app_name }} Extension pack is removed"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+        state: absent
+      when: ext_pack_download_result.changed
     - name: "Ensure {{ app_name }} Extension pack is installed" # noqa 303
-      become: false
       shell: |
         set -o pipefail
-        echo 'y' | sudo VBoxManage extpack install --replace /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack
+        echo 'y' | VBoxManage extpack install --replace /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack
       args:
         creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
+        executable: /bin/bash
   when: install_result.changed
   always:
     - name: "Remove {{ app_name }} Extension pack installer"

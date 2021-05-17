@@ -50,24 +50,10 @@
     name: "{{ vagrant_plugin_dependencies }}"
     state: present
 
-- name: Find installed plugins
-  become: false
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: vagrant plugin list
-  register: vagrant_plugins_installed
-  changed_when: false
-
-- name: "Ensure user-specified {{ app_name }} plugins are installed" # noqa 301
-  become: true
-  become_user: "{{ user.username }}"
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: "vagrant plugin install {{ vagrant_plugins | difference(vagrant_plugins_installed.stdout) | join(' ') }}"
+- name: Run Plugin setup tasks
+  include_tasks: plugins-Linux.yml
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
-  when:
-    - (user.system is not defined) or ((user.system is defined) and (not user.system))
-    - (vagrant_plugins | difference(vagrant_plugins_installed.stdout))
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

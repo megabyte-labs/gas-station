@@ -7,11 +7,19 @@
     update: "{{ certbot_keep_updated | bool }}"
     version: "{{ certbot_version }}"
 
+- name: Ensure zope.interface pip is the required version
+  pip:
+    name: zope.interface>=5.4.0
+    state: present
+    executable: "{{ '/usr/local/bin/pip3' if ansible_system == 'Darwin' else '/usr/bin/pip3' }}"
+
 - name: Install certbot
   command: python3 setup.py install
   args:
     chdir: "{{ certbot_dir }}/certbot"
     creates: "{{ certbot_path }}"
+  environment:
+    PATH: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin"
 
 - name: Ensure letsencrypt folder exists
   file:
@@ -23,13 +31,15 @@
   pip:
     name: cryptography
     state: present
-    executable: pip3
+    executable: "{{ '/usr/local/bin/pip3' if ansible_system == 'Darwin' else '/usr/bin/pip3' }}"
 
 - name: Install certbot-dns-cloudflare
   command: python3 setup.py install
   args:
     chdir: "{{ certbot_dir }}/certbot-dns-cloudflare"
     creates: /etc/letsencrypt/dnscloudflare.ini
+  environment:
+    PATH: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin"
 
 - name: Ensure certbot templates are available
   template:

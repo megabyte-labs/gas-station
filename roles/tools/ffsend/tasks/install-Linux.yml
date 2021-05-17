@@ -34,13 +34,15 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_ffsend: "{{ (current_ffsend_version.skipped) or \
-      ((not current_ffsend_version.skipped) and (current_ffsend_version.stdout != ffsend_latest_release_tag.json.tag_name | replace('v','')) }}"
+    install_ffsend: "{{ (current_ffsend_version.skipped | default(false)) or \
+      ((not current_ffsend_version.skipped | default(false)) and \
+      (current_ffsend_version.stdout != ffsend_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
     path: /usr/local/bin/ffsend
     state: absent
+  when: install_ffsend
 
 - name: "Ensure {{ app_name }} is installed"
   get_url:

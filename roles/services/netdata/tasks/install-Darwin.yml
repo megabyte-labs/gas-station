@@ -23,7 +23,7 @@
 
 - name: Configure WMI to add Windows servers to monitoring
   blockinfile:
-    path: ./wmi.conf
+    path: /etc/netdata/go.d/wmi.conf
     insertafter: "^ [ JOBS ]"
     block: |
       jobs:
@@ -45,27 +45,32 @@
     - not netdata_claim.stat.exists
     - netdata_room is defined
     - netdata_token is defined
+# TODO: Commenting this out due to https://github.com/netdata/netdata/issues/9061. Netdata Cloud claim does not work at this point.
+# - name: "Fetch {{ app_name }}'s version page"
+#   uri:
+#     url: https://formulae.brew.sh/api/formula/netdata.json
+#   register: netdata_json
 
-- name: "Add instance to netdata cloud"
-  command: "netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
-  args:
-    chdir: /usr/local/netdata/usr/sbin
-    creates: ~/.config/megabytelabs/netdata-claimed
-  ignore_errors: true
-  register: netdata_claimed_status
-  when:
-    - not netdata_claim.stat.exists
-    - netdata_room is defined
-    - netdata_token is defined
+# - name: "Add instance to netdata cloud"
+#   command: "./netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
+#   args:
+#     chdir: "/usr/local/Cellar/netdata/{{ netdata_json.json.versions.stable }}/sbin"
+#     creates: ~/.config/megabytelabs/netdata-claimed
+#   ignore_errors: true
+#   register: netdata_claimed_status
+#   when:
+#     - not netdata_claim.stat.exists
+#     - netdata_room is defined
+#     - netdata_token is defined
 
-- name: "Create configuration if the netdata claim was successful"
-  file:
-    mode: 0600
-    path: ~/.config/megabytelabs/netdata-claimed
-    state: touch
-  when:
-    - not (netdata_claimed_status.failed | default(false))
-    - not (netdata_claimed_status.skipped | default(false))
+# - name: "Create configuration if the netdata claim was successful"
+#   file:
+#     mode: 0600
+#     path: ~/.config/megabytelabs/netdata-claimed
+#     state: touch
+#   when:
+#     - not (netdata_claimed_status.failed | default(false))
+#     - not (netdata_claimed_status.skipped | default(false))
 
 - name: "Ensure {{ app_name }} is installed via Docker"
   include_tasks: docker-Linux.yml

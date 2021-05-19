@@ -28,8 +28,8 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_yq: "{{ (current_yq_version.skipped) or \
-      ((not current_yq_version.skipped) and (current_yq_version.stdout != yq_latest_release_tag.json.tag_name | replace('v','')) }}"
+    install_yq: "{{ (current_yq_version.skipped | default(false)) or \
+      ((not current_yq_version.skipped | default(false)) and (current_yq_version.stdout != yq_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
@@ -39,7 +39,7 @@
 
 - name: "Ensure {{ app_name }} is installed"
   get_url:
-    url: "{{ 'https://github.com/mikefarah/yq/releases/download/' + yq_latest_release_tag.json.tag_name + 'yq_linux_amd64' }}"
+    url: "{{ 'https://github.com/mikefarah/yq/releases/download/' + yq_latest_release_tag.json.tag_name + '/yq_linux_amd64' }}"
     dest: /usr/local/bin/yq
     mode: 0755
   when: install_yq

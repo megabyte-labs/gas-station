@@ -1,8 +1,46 @@
 ---
-- name: "Ensure python is installed"
+- name: "Ensure {{ app_name }}'s dependencies are installed"
   community.general.pacman:
-    name: python
-    state: present
+    name: "{{ googler_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
 
-- name: Run generic Linux tasks
-  include_tasks: install-Linux.yml
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ googler_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ googler_src_dir }}"
+    repo: "{{ googler_aur_git_repository }}"
+    version: master
+  register: googler_git
+
+- name: "Remove /usr/sbin/googler if the source files have changed" # noqa 503
+  file:
+    path: /usr/sbin/googler
+    state: absent
+  when: googler_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ googler_src_dir }}"
+    creates: /usr/sbin/googler
+
+- name: "Ensure bash completions are downloaded" # noqa 503
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.path }}"
+    mode: 0755
+  with_items:
+    - url: https://raw.githubusercontent.com/jarun/googler/master/auto-completion/bash/googler-completion.bash
+      path: /usr/local/src/googler/googler-completion.bash
+    - url: https://raw.githubusercontent.com/jarun/googler/master/auto-completion/googler_at/googler_at
+      path: /usr/local/src/googler/googler_at
+  when: googler_git.changed

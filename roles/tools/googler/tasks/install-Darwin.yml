@@ -4,3 +4,22 @@
   community.general.homebrew:
     name: googler
     state: "{{ app_state | default('present') }}"
+  register: googler_install
+
+- name: "Ensure completions directory exists"
+  file:
+    path: /usr/local/src/googler/
+    state: directory
+    mode: 0755
+
+- name: "Ensure bash completions are downloaded" # noqa 503
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.path }}"
+    mode: 0755
+  with_items:
+    - url: https://raw.githubusercontent.com/jarun/googler/master/auto-completion/bash/googler-completion.bash
+      path: /usr/local/src/googler/googler-completion.bash
+    - url: https://raw.githubusercontent.com/jarun/googler/master/auto-completion/googler_at/googler_at
+      path: /usr/local/src/googler/googler_at
+  when: googler_install.changed

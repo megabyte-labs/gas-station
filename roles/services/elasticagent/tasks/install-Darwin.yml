@@ -1,15 +1,30 @@
 ---
-# TODO: Finish this logic
-# - name: "Ensure {{ app_name }}'s setup is downloaded"
-#   unarchive:
-#     src: "{{ elastic_agent_64_mac_url }}"
-#     dest: "{{ elastic_src }}"
-#     remote_src: true
-#   when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+- name: "Ensure {{ app_name }}'s source directory is created"
+  file:
+    path: "{{ elastic_src }}"
+    state: directory
+    mode: 0700
 
-# - name: "Ensure {{ app_name }} is installed"
-#   command: "./elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
-#   args:
-#     chdir: "{{ elastic_src }}"
-#     creates: /usr/bin/elastic-agent
-#   when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+- name: "Ensure {{ app_name }}'s setup is downloaded"
+  get_url:
+    url: "{{ elastic_agent_64_mac_url }}"
+    dest: "{{ elastic_src }}"
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }} is installed" # noqa 303
+  command: tar -x -f elastic-agent-{{ elastic_agent_version }}-darwin-x86_64.tar.gz -C . --strip-components=1
+  args:
+    chdir: "{{ elastic_src }}"
+    creates: "{{ elastic_src }}/elastic-agent"
+
+- name: "Ensure {{ app_name }} is installed"
+  command: "./elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}"
+    creates: /usr/bin/elastic-agent
+  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+
+- name: "Ensure {{ app_name }}'s setup is deleted"
+  file:
+    path: "{{ elastic_src }}"
+    state: absent

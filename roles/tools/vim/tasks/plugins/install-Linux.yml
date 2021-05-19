@@ -9,13 +9,13 @@
     - ~/.config
     - ~/.config/megabytelabs
 
-- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/vimplug"
+- name: "Check if vimplug has configuration stored in /root/.config/megabytelabs/vimplug"
   become_user: "{{ user.username }}"
   stat:
     path: ~/.config/megabytelabs/vimplug
   register: vimplug_config
 
-- name: "Detect previously installed {{ app_name }} version"
+- name: Detect previously installed vimplug version
   become_user: "{{ user.username }}"
   command: cat vimplug
   args:
@@ -24,12 +24,12 @@
   register: current_vimplug_version
   when: vimplug_config.stat.exists
 
-- name: "Detect the latest {{ app_name }} version"
+- name: Detect the latest vimplug version
   uri:
     url: https://api.github.com/repos/junegunn/vim-plug/releases/latest
   register: vimplug_latest_release_tag
 
-- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+- name: Determine whether or not the latest version of vimplug is already installed
   set_fact:
     install_vimplug: "{{ (current_vimplug_version.skipped | default(false)) or \
       ((not current_vimplug_version.skipped | default(false)) and (current_vimplug_version.stdout != vimplug_latest_release_tag.json.tag_name)) }}"
@@ -51,7 +51,7 @@
     dest: ~/.vim/autoload/plug.vim
   when: install_vimplug
 
-- name: "Save meta information about the version of {{ app_name }} that was installed"
+- name: Save meta information about the version of vimplug that was installed
   become_user: "{{ user.username }}"
   copy:
     dest: ~/.config/megabytelabs/vimplug

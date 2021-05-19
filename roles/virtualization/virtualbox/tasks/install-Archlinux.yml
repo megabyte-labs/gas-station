@@ -20,16 +20,18 @@
         mode: 0744
         owner: root
         group: root
-    - name: "Remove {{ app_name }} Extension pack if the source files have changed" # noqa 503
-      file:
-        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
-        state: absent
     - name: "Ensure {{ app_name }} Extension pack source is cloned and up-to-date" # noqa 401
       become: false
       git:
         repo: "{{ vbox_ext_pack_aur_repo_url }}"
         dest: "{{ temp_directory }}"
         clone: true
+      register: ext_pack_download_result
+    - name: "Remove {{ app_name }} Extension pack if the source files have changed"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+        state: absent
+      when: ext_pack_download_result.changed
     - name: "Ensure {{ app_name }} Extension pack is installed"
       become: false
       command: makepkg -sic --noconfirm

@@ -1,0 +1,83 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ monero_src_dir }} directory exists"
+  file:
+    path: "{{ monero_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/monero-project/monero-gui/releases/latest
+  register: monero_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_monero: "{{ (ansible_local.monero is not defined) or \
+      ((ansible_local.monero is defined) and \
+      (ansible_local['monero']['settings']['version'] != monero_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  uri:
+    url: https://www.getmonero.org/downloads/hashes.txt
+    return_content: true
+  register: monero_checksum_file
+  when: install_monero
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    monero_checksum: "{{ monero_checksum_file.content | regex_search('.*monero-gui-linux-x64-v(\\d*.)*tar.bz2') | \
+      regex_replace('  monero-gui-linux-x64-v(\\d*\\.)*\\d*.tar.bz2','') }}"
+  when: install_monero
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://github.com/monero-project/monero-gui/releases/download/{{ monero_latest_release_tag.json.tag_name }}/\
+      monero-gui-linux-x64-{{ monero_latest_release_tag.json.tag_name }}.tar.bz2"
+    dest: "{{ monero_src_dir }}/monero-gui-linux-x64-{{ monero_latest_release_tag.json.tag_name }}.tar.bz2"
+    checksum: "sha256:{{ monero_checksum }}"
+  when: install_monero
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ monero_src_dir }}/monero-gui-linux-x64-{{ monero_latest_release_tag.json.tag_name }}.tar.bz2"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - monero-gui-wallet-guide.pdf
+      - LICENSE
+    extra_opts:
+      - --strip-components=1
+  when: install_monero
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_monero
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Ensure {{ app_name }}'s AppImage is removed from /usr/local/bin"
+  file:
+    path: /usr/local/bin/monero-wallet-gui.AppImage
+    state: absent
+  when: install_monero
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/monero.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ monero_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_monero

@@ -16,13 +16,13 @@
   command: mas upgrade
   when: mas_upgrade_all_apps
 
-- name: Ensure Termial size is configured # noqa 301 303
-  become_user: "{{ user.username }}"
-  shell: |
-    /usr/libexec/PlistBuddy -c "Delete :Window\ Settings:Basic:columnCount" ~/Library/Preferences/com.apple.Terminal.plist
-    /usr/libexec/PlistBuddy -c "Add :Window\ Settings:Basic:columnCount integer {{ mac_terminal_width }}" ~/Library/Preferences/com.apple.Terminal.plist
-    /usr/libexec/PlistBuddy -c "Delete :Window\ Settings:Basic:rowCount" ~/Library/Preferences/com.apple.Terminal.plist
-    /usr/libexec/PlistBuddy -c "Add :Window\ Settings:Basic:rowCount integer {{ mac_terminal_height }}" ~/Library/Preferences/com.apple.Terminal.plist
+- name: Ensure Terminal app is not running # noqa 301 303
+  shell: pgrep Terminal && killall Terminal || echo 'Terminal is not running'
+  register: kill_terminal
+  changed_when: "'Terminal is not running' not in kill_terminal.stdout"
+
+- name: Run user-specific tasks
+  include_tasks: user-Darwin.yml
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"

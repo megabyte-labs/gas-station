@@ -13,7 +13,7 @@
 </h4>
 <p>
   <a href="https://gitlab.com/ProfessorManhattan/Playbooks">
-    <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+    <img alt="Version" src="https://img.shields.io/badge/version-version-blue.svg?cacheSeconds=2592000" />
   </a>
   <a href="https://megabyte.space/docs/ansible" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
@@ -192,4 +192,4 @@ I create open source projects out of love. Although I have a job, shelter, and a
 
 ## ➤ License
 
-Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/androidstudio/-/raw/master/LICENSE) licensed.
+Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/playr/-/raw/master/LICENSE) licensed.

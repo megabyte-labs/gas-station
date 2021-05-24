@@ -32,10 +32,30 @@
     state: absent
   loop: "{{ gnome_shortcuts_to_delete }}"
 
+- name: Ensure Color Schemes source directory is present
+  file:
+    mode: 0755
+    path: "{{ color_scheme_src_directory }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: Ensure Color Schemes source is cloned and up-to-date
+  become: false
+  git:
+    dest: "{{ color_scheme_src_directory }}"
+    repo: "{{ color_scheme_repo_url }}"
+    version: latest
+  register: color_scheme_git
+
+- name: Setup X11 theme # noqa 301
+  command: "xrdb -merge Solarized Dark - Patched"
+  args:
+    chdir: "{{ color_scheme_src_directory }}/Xresources"
+
 - name: Run user-specific tasks
   include_tasks: user-Debian.yml
   loop: "{{ user_configs | default([]) }}"
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
-  when: not (user.system | default(false))
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

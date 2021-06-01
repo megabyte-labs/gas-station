@@ -1,0 +1,34 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ snitch_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ snitch_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ snitch_src_dir }}"
+    repo: "{{ snitch_aur_git_repository }}"
+    version: master
+  register: snitch_git
+
+- name: "Remove /usr/sbin/opensnitch if the source files have changed" # noqa 503
+  file:
+    path: /usr/sbin/opensnitch
+    state: absent
+  when: snitch_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ snitch_src_dir }}"
+    creates: /usr/sbin/opensnitch

@@ -1,0 +1,56 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ monero_src_dir }} directory exists"
+  file:
+    path: "{{ switchhosts_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/oldj/SwitchHosts/releases/latest
+  register: switchhosts_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_switchhosts: "{{ (ansible_local.switchhosts is not defined) or \
+      ((ansible_local.switchhosts is defined) and \
+      (ansible_local['switchhosts']['settings']['version'] != switchhosts_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Acquire {{ app_name }}'s latest AppImage"
+  get_url:
+    url: "{{ (switchhosts_latest_release_tag.json.assets | selectattr('name','contains','AppImage'))[0].browser_download_url }}"
+    dest: "{{ switchhosts_src_dir + '/' + (switchhosts_latest_release_tag.json.assets | selectattr('name','contains','AppImage'))[0].name }}"
+  when: install_switchhosts
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_switchhosts
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Ensure {{ app_name }}'s AppImage is removed"
+  file:
+    path: "{{ switchhosts_src_dir + '/' + (switchhosts_latest_release_tag.json.assets | selectattr('name','contains','AppImage'))[0].name }}"
+    state: absent
+  when: install_switchhosts
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/switchhosts.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ switchhosts_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_switchhosts

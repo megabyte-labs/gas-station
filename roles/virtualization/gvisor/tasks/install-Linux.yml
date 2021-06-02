@@ -1,0 +1,63 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ gvisor_src_dir }} directory exists"
+  file:
+    path: "{{ gvisor_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/google/gvisor/tags
+  register: gvisor_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gvisor: "{{ (ansible_local.gvisor is not defined) or \
+      ((ansible_local.gvisor is defined) and \
+      (ansible_local['gvisor']['settings']['version'] != gvisor_latest_release_tag.json[0].name | replace('release-',''))) }}"
+
+- name: "Fetch {{ app_name }}'s CHECKSUMS files"
+  uri:
+    url: "{{ item }}"
+    return_content: true
+  loop:
+    - https://storage.googleapis.com/gvisor/releases/release/latest/{{ ansible_architecture }}/runsc.sha512
+    - https://storage.googleapis.com/gvisor/releases/release/latest/{{ ansible_architecture }}/containerd-shim-runsc-v1.sha512
+  register: gvisor_checksum_files
+  when: install_gvisor
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    checksum_runsc: "{{ gvisor_checksum_files.results[0].content | regex_search('^\\w*') }}"
+    checksum_containerd_shim_runsc_v1: "{{ gvisor_checksum_files.results[1].content | regex_search('^\\w*') }}"
+  when: install_gvisor
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "https://storage.googleapis.com/gvisor/releases/release/latest/{{ ansible_architecture }}/{{ item.name }}"
+    dest: /usr/local/bin
+    mode: 0755
+    checksum: "sha512:{{ item.checksum }}"
+  loop:
+    - name: runsc
+      checksum: "{{ checksum_runsc }}"
+    - name: containerd-shim-runsc-v1
+      checksum: "{{ checksum_containerd_shim_runsc_v1 }}"
+  when: install_gvisor
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/gvisor.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ gvisor_latest_release_tag.json[0].name | replace('release-','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_gvisor

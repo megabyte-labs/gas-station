@@ -13,8 +13,9 @@ elif [ -f "/etc/lsb-release" ]; then
   # System is Debian-based
   sudo apt update
   sudo apt install -y git python3 python3-pip
-  if [ -f "~/.profile" ]; then
-    source ~/.profile # Required on Ubuntu 20.04
+  if [ -f "$HOME/.profile" ]; then
+    # shellcheck source=/dev/null
+    source "$HOME/.profile" # Required on Ubuntu 20.04
   fi
 elif [ -f "/etc/arch-release" ]; then
   # System is Archlinux

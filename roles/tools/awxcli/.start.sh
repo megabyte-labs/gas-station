@@ -13,7 +13,7 @@ fi
 
 export REPO_TYPE=ansible
 git submodule update --init --recursive
-if [ ! -f "./.modules/${REPO_TYPE}/update.sh" ]; then
+if [ ! -d "./.modules/${REPO_TYPE}" ]; then
   mkdir -p ./.modules
   git submodule add -b master https://gitlab.com/megabyte-space/common/$REPO_TYPE.git ./.modules/$REPO_TYPE
 else

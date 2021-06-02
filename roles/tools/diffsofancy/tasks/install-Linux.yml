@@ -1,0 +1,29 @@
+---
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ diffsofancy_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ diffsofancy_src_dir }}"
+    repo: "{{ diffsofancy_aur_git_repository }}"
+    version: master
+  register: diffsofancy_git
+
+- name: "Make sure .bashrc imports {{ app_name }}'s PATH" # noqa 503
+  become: false
+  lineinfile:
+    path: "{{ diffsofancy_src_dir }}/diff-so-fancy"
+    regex: '^use lib dirname'
+    line: 'use lib dirname(abs_path(File::Spec->catdir($0))) . "{{ diffsofancy_src_dir }}/lib"; # Add the local lib/ to @INC'
+  when: diffsofancy_git.changed
+
+- name: "Ensure {{ app_name }} is linked"
+  file:
+    src: "{{ diffsofancy_src_dir }}/diff-so-fancy"
+    dest: /usr/local/bin/diff-so-fancy
+    mode: 0755

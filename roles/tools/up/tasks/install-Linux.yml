@@ -1,0 +1,35 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/akavel/up/releases/latest
+  register: up_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_up: "{{ (ansible_local.up is not defined) or \
+      ((ansible_local.up is defined) and \
+      (ansible_local['up']['settings']['version'] != up_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "https://github.com/akavel/up/releases/download/{{ up_latest_release_tag.json.tag_name }}/up"
+    dest: /usr/local/bin/up
+    force: true
+  when: install_up
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/up.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ up_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_up

@@ -1,0 +1,40 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Detect the latest kubectx version
+  uri:
+    url: https://api.github.com/repos/ahmetb/kubectx/releases/latest
+  register: kubectx_latest_release_tag
+
+- name: Determine whether or not the latest version of kubectx is already installed
+  set_fact:
+    install_kubectx: "{{ (ansible_local.kubectx is not defined) or \
+      ((ansible_local.kubectx is defined) and \
+      (ansible_local['kubectx']['settings']['version'] != kubectx_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: Ensure kubectx is installed
+  unarchive:
+    src: "https://github.com/ahmetb/kubectx/releases/download/{{ kubectx_latest_release_tag.json.tag_name }}/\
+      kubectx_{{ kubectx_latest_release_tag.json.tag_name }}_linux_x86_64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - LICENSE
+    extra_opts:
+      - --strip-components=1
+  when: install_kubectx
+
+- name: Save meta information about the version of kubectx that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/kubectx.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ kubectx_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_kubectx

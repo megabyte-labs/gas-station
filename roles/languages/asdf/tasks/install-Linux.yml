@@ -1,0 +1,56 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  package:
+    name: "{{ asdf_dependencies }}"
+    state: present
+
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ asdf_src_dir }}'s source directory exists"
+  file:
+    mode: 0755
+    path: "{{ asdf_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/asdf-vm/asdf/tags
+  register: asdf_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_asdf: "{{ (ansible_local.asdf is not defined) or \
+      ((ansible_local.asdf is defined) and \
+      (ansible_local['asdf']['settings']['version'] != asdf_latest_release_tag.json[0].name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    repo: https://github.com/asdf-vm/asdf.git
+    dest: "{{ asdf_src_dir }}"
+    version: "{{ asdf_latest_release_tag.json[0].name }}"
+  when: install_asdf
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/asdf.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ asdf_latest_release_tag.json[0].name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_asdf

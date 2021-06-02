@@ -1,0 +1,64 @@
+---
+- name: "Ensure {{ app_name }}'s PATH is added to .bashrc"
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    regex: |
+      {% if ansible_system == 'Linux' %}
+      . {{ asdf_src_dir }}/asdf.sh
+      {% else %}
+      . $(brew --prefix asdf)/asdf.sh
+      {% endif %}
+    line: |
+      {% if ansible_system == 'Linux' %}
+      . {{ asdf_src_dir }}/asdf.sh
+      {% else %}
+      . $(brew --prefix asdf)/asdf.sh
+      {% endif %}
+
+- name: Ensure Bash completions is setup
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    regex: |
+      {% if ansible_system == 'Linux' %}
+      . {{ asdf_src_dir }}/completions/asdf.bash
+      {% else %}
+      . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
+      {% endif %}
+    line: |
+      {% if ansible_system == 'Linux' %}
+      . {{ asdf_src_dir }}/completions/asdf.bash
+      {% else %}
+      . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
+      {% endif %}
+
+- name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshrc
+    regex: |
+      {% if ansible_system == 'Linux' %}
+      . {{ asdf_src_dir }}/asdf.sh
+      {% else %}
+      . $(brew --prefix asdf)/asdf.sh
+      {% endif %}
+    line: |
+      {% if ansible_system == 'Linux' %}
+      . {{ asdf_src_dir }}/asdf.sh
+      {% else %}
+      . $(brew --prefix asdf)/asdf.sh
+      {% endif %}
+
+- name: Ensure ZSH completions is setup
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.zshrc
+    block: |
+      {% if ansible_system == 'Linux' %}
+      fpath=({{ asdf_src_dir }}/completions $fpath)
+      {% else %}
+      .$(brew --prefix)/share/zsh/site-functions:$FPATH
+      {% endif %}
+      autoload -Uz compinit
+      compinit

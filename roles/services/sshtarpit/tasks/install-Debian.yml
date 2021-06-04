@@ -1,0 +1,46 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name: endlessh
+    state: "{{ app_state | default('present') }}"
+  when: ansible_distribution_major_version >= 11
+
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: "Ensure {{ app_name }}'s dependencies are installed"
+      apt:
+        name: "{{ endlessh_dependencies }}"
+        state: present
+        update_cache: true
+    - name: "Ensure {{ app_name }}'s source directory is present"
+      file:
+        mode: 0755
+        path: "{{ endlessh_src_dir }}"
+        owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+        state: directory
+    - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+      become: false
+      git:
+        dest: "{{ endlessh_src_dir }}"
+        repo: "{{ endlessh_git_repository }}"
+        version: master
+      register: endlessh_git
+    - name: "Remove /usr/local/bin/endlessh if the source files have changed" # noqa 503
+      file:
+        path: /usr/local/bin/endlessh
+        state: absent
+      when: endlessh_git.changed
+    - name: "Ensure {{ app_name }} is installed" # noqa 503
+      become: false
+      command: make install
+      args:
+        chdir: "{{ endlessh_src_dir }}"
+        creates: /usr/local/bin/endlessh
+      when: endlessh_git.changed
+  when:
+    - ansible_distribution == 'Debian'
+    - ansible_distribution_major_version == 10
+
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml
+  when: endlessh_port | bool

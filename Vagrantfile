@@ -17,7 +17,6 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52789, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52743, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52780, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.27", netmask: "255.255.255.0"
   end
 
   config.vm.define "centos" do |ubuntu|
@@ -27,7 +26,6 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52689, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52643, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52680, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.26", netmask: "255.255.255.0"
   end
 
   config.vm.define "debian" do |ubuntu|
@@ -37,7 +35,6 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52589, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52543, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52580, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.25", netmask: "255.255.255.0"
   end
 
   config.vm.define "fedora" do |ubuntu|
@@ -47,7 +44,6 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52489, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52443, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52480, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.24", netmask: "255.255.255.0"
   end
 
   config.vm.define "macos" do |ubuntu|
@@ -57,7 +53,6 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52389, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52343, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52380, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.23", netmask: "255.255.255.0"
   end
 
   config.vm.define "ubuntu" do |ubuntu|
@@ -67,7 +62,6 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52289, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52243, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52280, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.22", netmask: "255.255.255.0"
   end
 
   config.vm.define "windows" do |ubuntu|
@@ -77,6 +71,5 @@ Vagrant.configure("2") do |config|
     ubuntu.vm.network "forwarded_port", guest: 3389, host: 52189, id: "rdp", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 443, host: 52143, id: "https", auto_correct: true
     ubuntu.vm.network "forwarded_port", guest: 80, host: 52180, id: "http", auto_correct: true
-    ubuntu.vm.network "private_network", ip: "172.24.24.21", netmask: "255.255.255.0"
   end
 end

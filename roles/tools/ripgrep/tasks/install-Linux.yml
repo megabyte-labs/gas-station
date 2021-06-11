@@ -1,0 +1,51 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/phiresky/ripgrep-all/releases/latest
+  register: ripgrepall_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_ripgrepall: "{{ (ansible_local.ripgrepall is not defined) or \
+      ((ansible_local.ripgrepall is defined) and \
+      (ansible_local['ripgrepall']['settings']['version'] != ripgrepall_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/phiresky/ripgrep-all/releases/download/{{ ripgrepall_latest_release_tag.json.tag_name }}/\
+      ripgrep_all-{{ ripgrepall_latest_release_tag.json.tag_name }}-x86_64-unknown-linux-musl.tar.gz"
+    dest: /usr/local/bin
+    extra_opts:
+      - --strip-components=1
+    exclude:
+      - LICENSE.md
+      - README.md
+      - doc
+    remote_src: true
+  when: install_ripgrepall
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/ripgrepall.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ ripgrepall_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_ripgrepall

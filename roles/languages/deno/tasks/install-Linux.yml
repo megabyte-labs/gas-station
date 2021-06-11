@@ -1,0 +1,38 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/denoland/deno/releases/latest
+  register: deno_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_deno: "{{ (ansible_local.deno is not defined) or \
+      ((ansible_local.deno is defined) and \
+      (ansible_local['deno']['settings']['version'] != deno_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/denoland/deno/releases/download/{{ deno_latest_release_tag.json.tag_name }}/deno-x86_64-unknown-linux-gnu.zip"
+    dest: /usr/local/bin
+    mode: 0755
+    remote_src: true
+    extra_opts:
+      - -j
+  when: install_deno
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/deno.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ deno_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_deno

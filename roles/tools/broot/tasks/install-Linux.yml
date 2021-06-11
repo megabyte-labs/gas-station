@@ -1,0 +1,62 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ broot_src_dir }} directory exists"
+  file:
+    path: "{{ broot_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/Canop/broot/releases/latest
+  register: broot_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_broot: "{{ (ansible_local.broot is not defined) or \
+      ((ansible_local.broot is defined) and \
+      (ansible_local['broot']['settings']['version'] != broot_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "https://dystroy.org/broot/download/x86_64-unknown-linux-musl/broot"
+    dest: /usr/local/bin
+    mode: 0755
+  when: install_broot
+
+- name: "Ensure {{ app_name }}'s completions are installed"
+  get_url:
+    url: "{{ item }}"
+    dest: "{{ broot_src_dir }}"
+  when: install_broot
+  loop:
+    - https://dystroy.org/broot/download/completion/broot.bash
+    - https://dystroy.org/broot/download/completion/_broot
+    - https://dystroy.org/broot/download/completion/br.bash
+    - https://dystroy.org/broot/download/completion/_br
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_broot
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/broot.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ broot_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_broot

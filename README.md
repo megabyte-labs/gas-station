@@ -28,7 +28,7 @@
 
 > <br/>**An Ansible playbook you can use to set up the ultimate home lab!**<br/><br/>
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
+<a href="#table-of-contents" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Table of Contents
 
@@ -36,6 +36,11 @@
 - [➤ Quick Start](#-quick-start)
   _ [Mac OS X/Linux](#mac-os-xlinux)
   _ [Windows](#windows)
+- [➤ Table of Contents](#-table-of-contents)
+- [➤ Introduction](#-introduction)
+- [➤ Quick Start](#-quick-start)
+    - [Mac OS X/Linux](#mac-os-xlinux)
+    - [Windows](#windows)
 - [➤ Supported Operating Systems](#-supported-operating-systems)
 - [➤ Requirements](#-requirements)
   - [Optional Requirements](#optional-requirements)
@@ -47,7 +52,7 @@
 - [➤ Contributing](#-contributing)
 - [➤ License](#-license)
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#introduction)
+<a href="#introduction" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Introduction
 
@@ -61,7 +66,7 @@ This Ansible playbook is:
 - An amazing way to learn about developer tools that many would consider to be "the best of GitHub"
 - Open to new ideas - feel free to [open an issue](https://gitlab.com/ProfessorManhattan/Playbooks/-/issues/new) or [contribute](https://gitlab.com/ProfessorManhattan/Playbooks/-/blob/master/CONTRIBUTING.md) with a pull request!
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#quick-start)
+<a href="#quick-start" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Quick Start
 
@@ -79,7 +84,7 @@ bash <(wget -qO- https://gitlab.com/ProfessorManhattan/Playbooks/-/raw/master/fi
 
 ```
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
+<a href="#supported-operating-systems" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Supported Operating Systems
 
@@ -90,7 +95,7 @@ The following chart shows the operating systems that have been tested for compat
 | Fedora    | 33         | ❌     | ❌         |
 | Ubuntu    | focal      | ✅     | ❌         |
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#requirements)
+<a href="#requirements" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Requirements
 
@@ -118,7 +123,7 @@ We use [mas](https://github.com/mas-cli/mas) to install apps from the App Store 
 
 There is another caveat with mas. In order to install an application using mas, the application has to have already been added via the App Store GUI. This means that the first time around you will have to install the apps via the App Store GUI so they are associated with your App Store account.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#roles)
+<a href="#roles" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Roles
 
@@ -128,7 +133,7 @@ role_descriptions
 
 We encourage you to browse through the repositories that are linked to in the table above to learn about the configuration options they support.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#philosophy)
+<a href="#philosophy" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Philosophy
 
@@ -150,13 +155,13 @@ You might ask, "But how can I retain application-level configurations?" We curre
 
 However, we intentionally keep this synchronization to a minimum. After all, one of the goals of this project is to be able to regularly flush the bad stuff off a system. By keeping it to a minimum, we reduce the attack surface.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#architecture)
+<a href="#architecture" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Architecture
 
 You can find a high-level overview of what each folder and file does in the [ARCHITECTURE.md](https://gitlab.com/ProfessorManhattan/Playbooks/-/blob/master/ARCHITECTURE.md) file.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#managing-environments)
+<a href="#managing-environments" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Managing Environments
 
@@ -164,7 +169,7 @@ We accomplish managing different environments by symlinking all the folders that
 
 As a convienience feature, we created a bash script that will set up all the symlinks for you. You can run this by running `bash environments/dev/link.sh`. This command will symlink all the folders in selected environment to their appropriate locations in the base project. If you create a new environment, you will have to add a symlink to the `link.sh` file found in `files/link.sh` to retain this feature.
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#contributing)
+<a href="#contributing" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ Contributing
 
@@ -188,7 +193,7 @@ I create open source projects out of love. Although I have a job, shelter, and a
 
 </details>
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#license)
+<a href="#license" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
 ## ➤ License
 

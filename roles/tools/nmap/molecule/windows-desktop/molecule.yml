@@ -13,28 +13,38 @@ lint: |
   ansible-lint
   flake8
 platforms:
-  - name: Windows-10-Desktop
+  - name: Windows-10
     box: Megabyte/Windows-Desktop
-    memory: 4096
     cpus: 2
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.33
+    groups:
+      - windows
+    memory: 4096
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
+      - "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"
 provisioner:
   name: ansible
   inventory:
     group_vars:
       all:
         virtualbox_molecule_test: true
+      windows:
+        ansible_become_method: runas
+        ansible_become_user: vagrant
+        ansible_password: vagrant
+        ansible_user: vagrant
+        ansible_winrm_scheme: http
+        ansible_winrm_transport: basic
+    host_vars:
+      Windows-10:
+        ansible_connection: winrm
+        ansible_host: 127.0.0.1
+        ansible_port: 55985
   options:
     vvv: true
   playbooks:
     converge: converge.yml
+    prepare: prepare.yml
 verifier:
   name: ansible
 scenario:

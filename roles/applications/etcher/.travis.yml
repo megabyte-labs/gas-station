@@ -3,7 +3,7 @@ dist: focal
 os: linux
 language: python
 python:
-  - '3.8'
+  - "3.8"
 git:
   submodules: false
 
@@ -19,37 +19,15 @@ jobs:
       before_install:
         - python --version
         - pip3 install ansible
-      script:
-        - ROLE_FOLDER=$(basename "$PWD")
-        - sed -i "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" tests/test.yml
         - ansible --version
-        - ansible-playbook tests/test.yml -i tests/inventory
-    - name: Mac OS X 10.15.7
-      os: osx
-      osx_image: xcode12.2
-      language: shell
-      before_install:
-        - python --version
-        - pip3 install ansible
+        - ansible-galaxy install -r requirements.yml
       script:
+        - cp tests/ansible.cfg ansible.cfg
+        - cp tests/inventory inventory
+        - cp tests/test.yml main.yml
         - ROLE_FOLDER=$(basename "$PWD")
-        - sed -i ".bak" "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" tests/test.yml
-        - ansible --version
-        - ansible-playbook tests/test.yml -i tests/inventory
-    - name: Windows 10
-      os: windows
-      language: shell
-      before_install:
-        - choco install python3
-        - python --version
-        - python -m pip install --upgrade pip
-        - pip3 install ansible
-      script:
-        - ROLE_FOLDER=$(basename "$PWD")
-        - sed -i "s/CI_ROLE_NAME/${ROLE_FOLDER}/g" tests/test.yml
-        - ansible --version
-        - ansible-playbook tests/test.yml -i tests/inventory
-      env: PATH=/c/Python38:/c/Python38/Scripts:$PATH
+        - sed -i "s/etcher/${ROLE_FOLDER}/g" main.yml
+        - ansible-playbook main.yml
 
 notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/

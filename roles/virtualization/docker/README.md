@@ -1,141 +1,234 @@
-# Ansible Role: docker
+<!-- ⚠️ This README has been generated from the file(s) "./.modules/docs/blueprint-readme.md" ⚠️--><div align="center">
+  <center>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/docker">
+      <img width="140" height="140" alt="Docker logo" src="https://gitlab.com/megabyte-space/ansible-roles/docker/-/raw/master/logo.png" />
+    </a>
+  </center>
+</div>
+<div align="center">
+  <center><h1 align="center">Ansible Role: Docker</h1></center>
+</div>
 
-Project description 
+<div align="center">
+  <h4 align="center">
+    <a href="https://megabyte.space" title="Megabyte Labs homepage" target="_blank">
+      <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/home-solid.svg" />
+    </a>
+    <a href="https://galaxy.ansible.com/professormanhattan/docker" title="Docker role on Ansible Galaxy" target="_blank">
+      <img height="50" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/ansible-galaxy.svg" />
+    </a>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/docker/-/blob/master/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
+      <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/contributing-solid.svg" />
+    </a>
+    <a href="https://www.patreon.com/ProfessorManhattan" title="Support us on Patreon" target="_blank">
+      <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/support-solid.svg" />
+    </a>
+    <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/" title="Slack chat room" target="_blank">
+      <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/chat-solid.svg" />
+    </a>
+    <a href="https://github.com/ProfessorManhattan/ansible-docker" title="GitHub mirror" target="_blank">
+      <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/github-solid.svg" />
+    </a>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/docker" title="GitLab repository" target="_blank">
+      <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/gitlab-solid.svg" />
+    </a>
+  </h4>
+  <p align="center">
+    <a href="https://galaxy.ansible.com/professormanhattan/docker" target="_blank">
+      <img alt="Ansible Galaxy role: professormanhattan.docker" src="https://img.shields.io/ansible/role/ansible_galaxy_project_id?logo=ansible&style=flat" />
+    </a>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/docker" target="_blank">
+      <img alt="Version: 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue.svg?cacheSeconds=2592000" />
+    </a>
+    <a href="https://github.com/ProfessorManhattan/ansible-docker/actions/Windows.yml" target="_blank">
+      <img alt="Windows 10 build status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-docker/Windows/master?color=cyan&label=Windows%20build&logo=windows&style=flat">
+    </a>
+    <a href="https://github.com/ProfessorManhattan/ansible-docker/actions/macOS.yml" target="_blank">
+      <img alt="macOS build status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-docker/macOS/master?label=macOS%20build&logo=apple&style=flat">
+    </a>
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/docker/commits/master" target="_blank">
+      <img alt="Linux build status" src="https://gitlab.com/megabyte-space/ansible-roles/docker/badges/master/pipeline.svg">
+    </a>
+    <a href="https://galaxy.ansible.com/professormanhattan/docker" target="_blank" title="Ansible Galaxy quality score (out of 5)">
+      <img alt="Ansible Galaxy quality score" src="https://img.shields.io/ansible/quality/ansible_galaxy_project_id?logo=ansible&style=flat" />
+    </a>
+    <a href="https://galaxy.ansible.com/professormanhattan/docker" target="_blank">
+      <img alt="Ansible Galaxy downloads" src="https://img.shields.io/ansible/role/d/53381?logo=ansible&style=flat">
+    </a>
+    <a href="https://megabyte.space/docs/ansible" target="_blank">
+      <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&style=flat" />
+    </a>
+    <a href="repository.gitlab_ansible_roles_group/docker/-/raw/master/LICENSE" target="_blank">
+      <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat" />
+    </a>
+    <a href="https://opencollective.com/megabytelabs" title="Support us on Open Collective" target="_blank">
+      <img alt="Open Collective sponsors" src="https://img.shields.io/opencollective/sponsors/megabytelabs?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAElBMVEUAAACvzfmFsft4pfD////w+P9tuc5RAAAABHRSTlMAFBERkdVu1AAAAFxJREFUKM9jgAAXIGBAABYXMHBA4yNEXGBAAU2BMz4FIIYTNhtFgRjZPkagFAuyAhGgHAuKAlQBCBtZB4gzQALoDsN0Oobn0L2PEUCoQYgZyOjRQFiJA67IRrEbAJImNwFBySjCAAAAAElFTkSuQmCC&label=Open%20Collective%20sponsors&logo=opencollective&style=flat" />
+    </a>
+    <a href="https://github.com/ProfessorManhattan" title="Support us on GitHub" target="_blank">
+      <img alt="GitHub sponsors" src="https://img.shields.io/github/sponsors/ProfessorManhattan?label=GitHub%20sponsors&logo=github&style=flat" />
+    </a>
+    <a href="https://github.com/ProfessorManhattan" target="_blank">
+      <img alt="GitHub: Megabyte Labs" src="https://img.shields.io/github/followers/ProfessorManhattan?style=social" target="_blank" />
+    </a>
+    <a href="https://twitter.com/MegabyteLabs" target="_blank">
+      <img alt="Twitter: MegabyteLabs" src="https://img.shields.io/twitter/url/https/twitter.com/MegabyteLabs.svg?style=social&label=Follow%20%40MegabyteLabs" />
+    </a>
+  </p>
+</div>
 
-## Actions:
+> </br><h3 align="center">**An Ansible role that installs Docker on nearly any platform**</h3></br>
 
-Actions performed by this role
+<!--TERMINALIZER![terminalizer_title](https://gitlab.com/megabyte-space/ansible-roles/docker/-/raw/master/.demo.gif)TERMINALIZER-->
 
+<a href="#table-of-contents)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
-#### Installs docker-compose:
-* Both Mac OS X and Windows install Docker Desktop which includes Docker Compose as well as Notary, Kubernetes, and Credential Helper. 
-* Installs docker-compose if the `docker_install_compose` variable is set to true. docker-compose allows you to configure Docker containers in groups. 
-#### Ensures docker is installed:
-* Installs Docker on the target machine. 
-* Ensures Docker is started on boot. 
-* If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package. 
-#### Adds specified users to docker group:
-* If the variable `docker_users` is set to an array of usernames then those users will be added to the docker group which allows them access to Docker. 
-#### Generates tls certificates:
-* Generates TLS/HTTPS certificates so that the Docker host can be controlled remotely. This is useful if you are using a centralized method of controlling all of your Docker hosts (like Portainer). This step only runs if the `docker_tls` variable is set to true. 
-* The certificates required for connecting to the Docker host are copied to the Ansible host's `~/.docker` folder. 
+## ➤ Table of Contents
 
-## Tags:
-## Variables:
+- [➤ Overview](#-overview)
+- [➤ Features](#-features)
+  - [Installs docker-compose](#installs-docker-compose)
+  - [Ensures Docker is installed](#ensures-docker-is-installed)
+  - [Adds specified users to docker group](#adds-specified-users-to-docker-group)
+  - [Generates TLS certificates](#generates-tls-certificates)
+- [➤ Variables](#-variables)
+  _ [docker_edition](#docker_edition)
+  _ [docker_users](#docker_users)
+- [➤ Supported Operating Systems](#-supported-operating-systems)
+- [➤ Dependencies](#-dependencies)
+  - [Galaxy Roles](#galaxy-roles)
+- [➤ Example Playbook](#-example-playbook)
+- [➤ Contributing](#-contributing)
+  - [TODO](#todo)
+- [➤ License](#-license)
 
-* `docker_edition`: `ce` - Edition can be either `ce` (Community Edition) or `ee` (Enterprise Edition).
+<a href="#overview)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
-example: 
+## ➤ Overview
 
+This repository is the home of an Ansible role that installs Docker on nearly any platform. [Docker](https://www.docker.com/) is a set of platform-as-a-service products that use OS-level virtualization to deliver software in packages called containers. Containers are isolated from one another and bundle their own software, libraries and configuration files; they can communicate with each other through well-defined channels.
 
-```yaml
+<a href="#features)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+
+## ➤ Features
+
+### Installs docker-compose
+
+- Both Mac OS X and Windows install Docker Desktop which includes Docker Compose as well as Notary, Kubernetes, and Credential Helper.
+- Installs docker-compose if the `docker_install_compose` variable is set to true. docker-compose allows you to configure Docker containers in groups.
+
+### Ensures Docker is installed
+
+- Installs Docker on the target machine.
+- Ensures Docker is started on boot.
+- If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package.
+
+### Adds specified users to docker group
+
+- If the variable `docker_users` is set to an array of usernames then those users will be added to the docker group which allows them access to Docker.
+
+### Generates TLS certificates
+
+- Generates TLS/HTTPS certificates so that the Docker host can be controlled remotely. This is useful if you are using a centralized method of controlling all of your Docker hosts (like Portainer). This step only runs if the `docker_tls` variable is set to true.
+- The certificates required for connecting to the Docker host are copied to the Ansible host's `~/.docker` folder.
+
+<a href="#variables)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+
+## ➤ Variables
+
+This role contains variables that you can customize. The variables you can customize are located in `defaults/main.yml`. By default, the variables use sensible defaults but you may want to customize the role depending on your use case. The variables, along with descriptions and examples, are listed in the chart below:
+
+ansible_variables
+
+#### docker_edition
+
+```
 docker_edition:
   - subitem: string
   - subitem2: string
+`
 ```
 
-* `docker_package`: `docker-{{ docker_edition }}` - The name of the Docker package to install
+#### docker_users
 
-
-
-* `docker_restart_handler_state`: `restarted` - The state that the Docker service should assume when a restart event is triggered
-
-
-
-* `docker_install_compose`: `true` - Whether or not to install `docker-compose`
-
-
-
-* `docker_compose_version`: `"1.26.0"` - The version of `docker-compose` that should be installed
-
-
-
-* `docker_compose_path`: `/usr/local/bin/docker-compose` - The target destination of the `docker-compose` binary that will be installed
-
-
-
-* `docker_apt_release_channel`: `stable` - The release channel to use on Debian/Ubuntu. You can set the value of this variable to either `stable` or `edge`.
-
-
-
-* `docker_apt_arch`: `amd64` - The processor architecture to use (Debian/Ubuntu only)
-
-
-
-* `https_repository_prefix`: `https://` - Allows you to customize what the apt repository URL starts with. This is useful if you are using something like apt-cacher-ng as a proxy cache which requires the URL to start with http://HTTPS/. (Debian/Ubuntu only)
-
-
-
-* `docker_apt_repository`: `See defaults/main.yml` - The apt repository to use (Debian/Ubuntu only)
-
-
-
-* `docker_apt_ignore_key_error`: `true` - Whether or not to ignore errors when adding the apt repository's GPG key (Debian/Ubuntu only)
-
-
-
-* `docker_apt_gpg_key`: `"https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"` - The URL of the apt repository's GPG key (Debian/Ubuntu only)
-
-
-
-* `docker_yum_repo_url`: `See defaults/main.yml` - The yum repository URL to retrieve the installation packages (CentOS/Fedora/RedHat only)
-
-
-
-* `docker_yum_gpg_key`: `https://download.docker.com/linux/centos/gpg` - The URL of the GPG key to validate against when downloading from the specified yum repository
-
-
-
-* `docker_users`: `[]` - A list of users to add to the docker group
-
-example: 
-
-
-```yaml
+```
 docker_users:
-  - "{{ ansible_user }}"
+  - `ansible_user`
   - secondaryuser
   - serviceaccount
+`
 ```
 
-* `docker_snap_install`: `false` - Whether or not to use snap to install Docker - you can use this if there are issues with your configuration. Certificates (used by Portainer, for instance) will not be generated for a snap install. More information about the certificates is detailed below.
+<a href="#supported-operating-systems)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
+## ➤ Supported Operating Systems
 
+The chart below shows the operating systems that we have tested this role on. It is automatically generated using the Ansible Molecule tests located in the `molecule/default/` folder. There is logic in place to automatically handle the testing of Windows, macOS, Ubuntu, Fedora, CentOS, Debian, and Archlinux. If your operating system is not listed but is a variant of one of the systems we test (i.e. a Debian-flavored system or a RedHat-flavored system) then it is possible that the role will still work.
 
-* `docker_tls`: `true` - When set to true, the role will configure Docker for TLS network connections and generate the required certificates. The certificates will be stored in `/etc/ssl/docker` on the client and in the `~/.docker` folder on the host. To reiterate, after each client machine installs Docker and generates certificates, the certificates are copied to the Ansible host machine. You can then use these certificates to connect to Docker daemons remotely (with Portainer, for instance).
+| OS Family | OS Version | Status | Idempotent |
+| --------- | ---------- | ------ | ---------- |
+| Fedora    | 33         | ❌     | ❌         |
+| Ubuntu    | focal      | ✅     | ❌         |
 
+<a href="#dependencies)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
+## ➤ Dependencies
 
-* `docker_tls_country`: `US` - The country to use when configuring TLS
+Most of our roles rely on [Ansible Galaxy](https://galaxy.ansible.com/) collections. Some of our projects are also dependent on other roles and collections that are published on Ansible Galaxy. Before you run this role, you will need to install the collection and role dependencies, as well as the Python requirements, by running:
 
+```
+pip3 install -r requirements.txt
+ansible-galaxy install -r requirements.yml
+```
 
+### Galaxy Roles
 
-* `docker_tls_state`: `New Jersey` - The state to use when configuring TLS
+At the beginning of the play, the galaxy role dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks) DRY. A full list of the dependencies along with quick descriptions is below:
 
+role_dependencies
 
+<a href="#example-playbook)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
-* `docker_tls_locality`: `The Hood` - The locality to use when configuring TLS
+## ➤ Example Playbook
 
+With the dependencies installed, all you have to do is add the role to your main playbook. The role handles the `become` behavior so you can simply add the role to your playbook without having to worry about commands that should not be run as root:
 
+```lang-yml
+- hosts: all
+  roles:
+    - professormanhattan.docker
+```
 
-* `docker_tls_organization`: `Megabyte LLC` - The organization to use when configuring TLS
+<a href="#contributing)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
+## ➤ Contributing
 
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://gitlab.com/megabyte-space/ansible-roles/docker/-/issues). If you would like to contribute, please take a look at the [contributing guide](https://gitlab.com/megabyte-space/ansible-roles/docker/-/raw/master/CONTRIBUTING.md).
 
-* `docker_tls_division`: `Megabyte Labs` - The division to use when configuring TLS
+<details>
+<summary>Sponsorship</summary>
+<br/>
+<blockquote>
+<br/>
+I create open source projects out of love. Although I have a job, shelter, and as much fast food as I can handle, it would still be pretty cool to be appreciated by the community for something I have spent a lot of time and money on. Please consider sponsoring me! Who knows? Maybe I will be able to quit my job and publish open source full time.
+<br/><br/>Sincerely,<br/><br/>
 
+**_Brian Zalewski_**<br/><br/>
 
+</blockquote>
 
-* `docker_tls_fqdn`: `machine.example.com` - The FQDN to use when configuring TLS - this should be set to the FQDN of the Docker host that's being configured
+<a href="https://www.patreon.com/ProfessorManhattan">
+  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
+</a>
 
+</details>
 
-## TODO:
+### TODO
 
-#### Improvement:
-* Complete documentation -  
+- **Improvement:** Complete documentation
+- **Test:** Complete
 
-## Author Information
-This role:  was created by: Author name
+<a href="#license)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
 
-Documentation generated using: [Ansible-autodoc](https://github.com/AndresBott/ansible-autodoc)
+## ➤ License
 
+Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/docker/-/raw/master/LICENSE) licensed.

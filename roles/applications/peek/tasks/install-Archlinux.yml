@@ -1,0 +1,17 @@
+---
+- name: "Determine whether or not GNOME is installed"
+  stat:
+    path: /usr/bin/gnome-shell
+  register: gnome_shell
+
+- name: "Ensure {{ app_name }}'s GNOME dependencies are installed"
+  community.general.pacman:
+    name: "{{ peek_optional_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+  when: gnome_shell.stat.exists
+
+- name: "Ensure {{ app_name }} is installed"
+  community.general.pacman:
+    name: peek
+    state: "{{ app_state | default('present') }}"

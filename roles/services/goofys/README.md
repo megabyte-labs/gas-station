@@ -7,6 +7,7 @@
 </div>
 <div align="center">
   <center><h1 align="center">Ansible Role: Goofys/Catfs</h1></center>
+  <center><h4 style="color: #18c3d1;">An open-source Ansible role brought to you by <a href="https://megabyte.space" target="_blank">Megabyte Labs</a></h4></center>
 </div>
 
 <div align="center">
@@ -80,10 +81,33 @@
 
 <!--TERMINALIZER![terminalizer_title](https://gitlab.com/megabyte-space/ansible-roles/goofys/-/raw/master/.demo.gif)TERMINALIZER-->
 
-<a href="#table-of-contents)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#one-line-install-method)
+
+## ➤ One-Line Install Method
+
+Looking to install Goofys/Catfs without having to deal with [Ansible](https://www.ansible.com/)? Simply run the following command that correlates to your operating system:
+
+**Linux/macOS:**
+
+```shell
+curl -sS https://install.doctor/goofys | bash
+```
+
+**Windows:**
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://win.install.doctor/goofys'))
+```
+
+And there you go. Installing goofys can be as easy as that. If, however, you would like to incorporate this into an Ansible playbook (and customize settings) then please continue reading below.
+
+**Important Note:** _Before running the commands above you should probably directly access the URL to make sure the code is legit. We already know it is safe but, before running any script on your computer, you should inspect it._
+
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
 
 ## ➤ Table of Contents
 
+- [➤ One-Line Install Method](#-one-line-install-method)
 - [➤ Overview](#-overview)
 - [➤ Variables](#-variables) \* [s3_mounts](#s3_mounts)
 - [➤ Supported Operating Systems](#-supported-operating-systems)
@@ -93,13 +117,13 @@
 - [➤ Contributing](#-contributing)
 - [➤ License](#-license)
 
-<a href="#overview)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#overview)
 
 ## ➤ Overview
 
 This repository is the home of an Ansible role that installs catfs and goofys, which create performant file S3-backed-up file systems, on Linux or macOS. [Catfs](https://github.com/kahing/catfs) allows you to have cached access to another (possibly remote) filesystem. Caching semantic is read-ahead and write-through. [Goofys](https://github.com/kahing/goofys) is a high-performance, POSIX-ish Amazon S3 file system written in Go, which allows you to mount an S3 bucket as a filey system. It's a Filey System instead of a File System because goofys strives for performance first and POSIX second. Combining catfs and goofys (and possibly a fast internet connection), you can mount a folder that is automatically synced with an S3 bucket that is also performant.
 
-<a href="#variables)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#variables)
 
 ## ➤ Variables
 
@@ -118,7 +142,7 @@ s3_mounts:
 `
 ```
 
-<a href="#supported-operating-systems)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
 ## ➤ Supported Operating Systems
 
@@ -129,7 +153,11 @@ The chart below shows the operating systems that we have tested this role on. It
 | Fedora    | 33         | ❌     | ❌         |
 | Ubuntu    | focal      | ✅     | ❌         |
 
-<a href="#dependencies)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+_The compatibility chart above was last generated on compatibility_date._
+
+**_What does idempotent mean?_** Idempotent means that if you run this role twice in row then there will be no changes to the system the second time around.
+
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#dependencies)
 
 ## ➤ Dependencies
 
@@ -142,11 +170,13 @@ ansible-galaxy install -r requirements.yml
 
 ### Galaxy Roles
 
-At the beginning of the play, the galaxy role dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks) DRY. A full list of the dependencies along with quick descriptions is below:
+Although most of our roles do not have dependencies, there are some cases where another role has to be installed before the logic can continue. At the beginning of the play, the Ansible Galaxy role dependencies listed in `meta/main.yml` will run. These dependencies are configured to only run once per playbook. If you include more than one of our roles in your playbook that have dependencies in common then the dependency installation will be skipped after the first run. Some of our roles also utilize helper roles which help keep our [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks) DRY.
+
+The `requirements.yml` file contains a full list of the dependencies required by this role (i.e. `meta/main.yml` dependencies, helper roles, and collections). For your convenience, the full list of the dependencies along with quick descriptions is below:
 
 role_dependencies
 
-<a href="#example-playbook)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#example-playbook)
 
 ## ➤ Example Playbook
 
@@ -158,7 +188,9 @@ With the dependencies installed, all you have to do is add the role to your main
     - professormanhattan.goofys
 ```
 
-<a href="#contributing)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+If you are incorporating this role into a pre-existing playbook, then it might be prudent to copy the requirements in `requirements.txt` and `requirements.yml` to their corresponding files in the root of your playbook.
+
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#contributing)
 
 ## ➤ Contributing
 
@@ -182,7 +214,7 @@ I create open source projects out of love. Although I have a job, shelter, and a
 
 </details>
 
-<a href="#license)" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#license)
 
 ## ➤ License
 

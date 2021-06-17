@@ -13,88 +13,104 @@ lint: |
   ansible-lint
   flake8
 platforms:
+  - name: Archlinux-Latest
+    box: archlinux/archlinux
+    cpus: 1
+    memory: 512
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
   - name: CentOS-7
     box: bento/centos-7
-    memory: 1024
     cpus: 1
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.2
+    memory: 512
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
   - name: CentOS-8
     box: bento/centos-8
-    memory: 1024
     cpus: 1
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.3
+    memory: 512
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
+  - name: CentOS-Stream-8
+    box: bento/centos-stream-8
+    cpus: 1
+    memory: 512
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
   - name: Debian-9
     box: bento/debian-9
-    memory: 1024
     cpus: 1
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.4
+    memory: 512
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
   - name: Debian-10
     box: bento/debian-10
-    memory: 1024
     cpus: 1
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.5
+    memory: 512
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
+  - name: Fedora-33
+    box: alvistack/fedora-33
+    cpus: 1
+    memory: 512
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+  - name: Fedora-34
+    box: alvistack/fedora-34
+    cpus: 1
+    memory: 512
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
   - name: Ubuntu-18.04
     box: bento/ubuntu-18.04
-    memory: 1024
     cpus: 1
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.8
+    memory: 512
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
   - name: Ubuntu-20.04
     box: bento/ubuntu-20.04
-    memory: 1024
     cpus: 1
-    interfaces:
-      - network_name: private_network
-        ip: 172.24.24.9
+    memory: 512
     provider_raw_config_args:
       - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
-    config_options:
-      ssh.keep_alive: true
-      ssh.remote_user: "'vagrant'"
+  - name: Ubuntu-21.04
+    box: bento/ubuntu-21.04
+    memory: 512
+    cpus: 1
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+  - name: Windows-10
+    box: Megabyte/Windows-Desktop
+    cpus: 2
+    groups:
+      - windows
+    memory: 4096
+    provider_raw_config_args:
+      - "customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"
+      - "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"
 provisioner:
   name: ansible
   inventory:
     group_vars:
       all:
         virtualbox_molecule_test: true
+      windows:
+        ansible_become_method: runas
+        ansible_become_user: vagrant
+        ansible_password: vagrant
+        ansible_user: vagrant
+        ansible_winrm_scheme: http
+        ansible_winrm_transport: basic
+    host_vars:
+      Windows-10:
+        ansible_connection: winrm
+        ansible_host: 127.0.0.1
+        ansible_port: 55985
   options:
     vvv: true
   playbooks:
     converge: converge.yml
+    prepare: prepare.yml
 verifier:
   name: ansible
 scenario:

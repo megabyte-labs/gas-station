@@ -1,6 +1,6 @@
 <h1>Contributor Covenant Code of Conduct</h1>
 
-<a href="#our-pledge" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#our-pledge)
 
 ## ➤ Our Pledge
 
@@ -8,7 +8,7 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
-<a href="#our-standards" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#our-standards)
 
 ## ➤ Our Standards
 
@@ -28,7 +28,7 @@ Examples of unacceptable behavior include:
 - Publishing others' private information, such as a physical or email address, without their explicit permission
 - Other conduct which could reasonably be considered inappropriate in a professional setting
 
-<a href="#enforcement-responsibilities" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#enforcement-responsibilities)
 
 ## ➤ Enforcement Responsibilities
 
@@ -36,13 +36,13 @@ Community leaders are responsible for clarifying and enforcing our standards of 
 
 Community leaders have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct, and will communicate reasons for moderation decisions when appropriate.
 
-<a href="#scope" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#scope)
 
 ## ➤ Scope
 
 This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces. Examples of representing our community include using an official e-mail address, posting via an official social media account, or acting as an appointed representative at an online or offline event.
 
-<a href="#enforcement" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#enforcement)
 
 ## ➤ Enforcement
 
@@ -50,7 +50,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
-<a href="#enforcement-guidelines" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#enforcement-guidelines)
 
 ## ➤ Enforcement Guidelines
 
@@ -80,7 +80,7 @@ Community leaders will follow these Community Impact Guidelines in determining t
 
 **Consequence**: A permanent ban from any sort of public interaction within the community.
 
-<a href="#attribution" style="width:100%"><img style="width:100%" alt="-----------------------------------------------------" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png"></div>
+[![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#attribution)
 
 ## ➤ Attribution
 

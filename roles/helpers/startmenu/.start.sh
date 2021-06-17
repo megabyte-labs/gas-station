@@ -12,7 +12,10 @@ if [ "$container" != 'docker' ]; then
 fi
 
 export REPO_TYPE=ansible
-git submodule update --init --recursive
+if [ -d "./.git" ]; then
+  git pull origin master --ff-only
+  git submodule update --init --recursive
+fi
 if [ ! -d "./.modules/${REPO_TYPE}" ]; then
   mkdir -p ./.modules
   git submodule add -b master https://gitlab.com/megabyte-space/common/$REPO_TYPE.git ./.modules/$REPO_TYPE

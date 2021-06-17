@@ -1,26 +1,36 @@
 {
-  "name": "@megabytelabs/playr",
+  "name": "@megabytelabs/install-doctor",
   "description": "An Ansible playbook that installs sweet software on your computer(s)",
   "license": "MIT",
   "author": "Brian Zalewski <brian@megabyte.space> (https://megabyte.space)",
+  "homepage": "https://install.doctor",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/ProfessorManhattan/ANSIBLE_ROLE_NAME.git"
+  },
+  "bugs": {
+    "email": "help@megabyte.space",
+    "url": "https://gitlab.com/ProfessorManhattan/ANSIBLE_ROLE_NAME/-/issues"
+  },
   "version": "1.0.0",
   "scripts": {
     "commit": "git-cz",
     "fix": "run-s fix:*",
     "fix:black": "black .",
-    "fix:prettier": "prettier --write . '!{.husky/_/husky.sh,.gitmodules}' && prettier-package-json --write",
+    "fix:prettier": "prettier --write . && prettier-package-json --write",
     "fix:shellcheck": "find . -type d \\( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky \\) -prune -o -type f \\( -name \\*.sh -o -name \\*.sh.j2 \\) -print0 | xargs -0 shellcheck -f diff | git apply",
     "info": "npm-scripts-info",
     "postinstall": "husky install && run-s update",
     "lint": "run-s lint:*",
-    "lint:ansible": "ansible-lint",
+    "lint:ansible": "run-s misc:symlink-roles && ansible-lint",
     "lint:black": "black . --check",
     "lint:flake8": "flake8 .",
     "lint:hadolint": "find . -type d \\( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky -o -name test \\) -prune -o -type f \\( -name Dockerfile -o -name Dockerfile.j2 \\) -print0 | xargs -0 -r -n1 docker run -v ${PWD}:/work -w /work hadolint/hadolint:latest hadolint",
-    "lint:prettier": "prettier --list-different . '!{.husky/_/husky.sh,.gitmodules}'",
+    "lint:prettier": "prettier --list-different .",
     "lint:shellcheck": "find . -type d \\( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky -o -name .start.sh \\) -prune -o -type f \\( -name \\*.sh -o -name \\*.sh.j2 \\) -print0 | xargs -0 -r -n1 shellcheck",
     "lint:yaml": "yamllint .",
     "misc:find-missing-logos": "find ./roles -mindepth 2 -maxdepth 2 -type d '!' -exec test -e \"{}/logo.png\" ';' -print",
+    "misc:symlink-roles": "export ANSIBLE_GALAXY_USERNAME_PREFIX=professormanhattan. && BASE_DIR=\"$PWD\"; find ./roles -mindepth 2 -maxdepth 2 -type d -print0 | while read -d $'\\0' ROLE_PATH; do; local ROLE_BASENAME=$(basename $ROLE_PATH); if [ ! -d ~/.ansible/roles/\"${ANSIBLE_GALAXY_USERNAME_PREFIX}${ROLE_BASENAME}\" ]; then; ln -sf \"$BASE_DIR/$ROLE_PATH\" ~/.ansible/roles/\"${ANSIBLE_GALAXY_USERNAME_PREFIX}$ROLE_BASENAME\"; fi; done",
     "prepare-release": "run-s update lint test version",
     "start": "run-s update",
     "test": "vagrant up",
@@ -35,17 +45,34 @@
   "devDependencies": {
     "@megabytelabs/prettier-config-ansible": "^1.0.0",
     "consola": "^2.15.3",
-    "cspell": "^5.3.3",
+    "cspell": "^5.6.3",
     "cz-conventional-changelog": "^3.3.0",
-    "husky": "^5.1.1",
-    "lint-staged": "^10.5.4",
+    "husky": "^6.0.0",
+    "lint-staged": "^11.0.0",
     "npm-run-all": "^4.1.5",
     "npm-scripts-info": "^0.3.9",
-    "prettier": "^2.1.1",
-    "prettier-package-json": "^2.1.3",
-    "prettier-plugin-sh": "^0.6.0",
+    "prettier": "^2.3.1",
+    "prettier-package-json": "^2.6.0",
+    "prettier-plugin-sh": "^0.6.1",
     "shellcheck": "^1.0.0",
-    "standard-version": "^9.0.0"
+    "standard-version": "^9.3.0"
+  },
+  "keywords": [
+    "ansible",
+    "archlinux",
+    "centos",
+    "debian",
+    "fedora",
+    "macos",
+    "megabytelabs",
+    "molecule",
+    "playbook",
+    "professormanhattan",
+    "ubuntu",
+    "windows"
+  ],
+  "engines": {
+    "node": ">=10"
   },
   "funding": [
     {
@@ -87,6 +114,7 @@
     "lint:shellcheck": "Performs linting of shell scripts",
     "lint:yaml": "Runs yamllint which is a general purpose linter for YAML files",
     "misc:find-missing-logos": "When this command is run in the main playbook root directory, it will report all of the roles that are missing the logo.png file",
+    "misc:symlink-roles": "Symlinks all roles to ~/.ansible/roles. For example, the androidstudio role would have a symlink at ~/.ansible/roles/professormanhattan.androidstudio.",
     "prepare-release": "Prepares the repository for a release",
     "shell:OS_NAME": "Open a Docker shell session for debugging (OS_NAME can be archlinux, centos, debian, fedora, macos, ubuntu, or windows",
     "test": "Runs molecule tests for all the supported operating systems using VirtualBox (this is RAM intensive)",
@@ -95,5 +123,10 @@
     "test:OS_NAME": "Provisions a full desktop VirtualBox VM, installs the roles, and does not delete the VM after testing for further inspection (OS NAME can be archlinux, centos, debian, fedora, macos, ubuntu, or windows)",
     "update": "Runs .start.sh to automatically update meta files and documentation",
     "version": "Used by 'npm run prepare-release' to update the CHANGELOG"
+  },
+  "standard-version": {
+    "scripts": {
+      "prerelease": "git add --all"
+    }
   }
 }

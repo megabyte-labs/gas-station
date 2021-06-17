@@ -1,5 +1,8 @@
 #!/bin/bash
-cd ~ || { echo "$0: Directory do not exist"; exit 1; }
+cd ~ || {
+  echo "$0: Directory do not exist"
+  exit 1
+}
 sudo apt-get update
 sudo apt-get -y upgrade
 sudo apt-get -y install git ansible python3-pip libffi-dev libssl-dev sshpass

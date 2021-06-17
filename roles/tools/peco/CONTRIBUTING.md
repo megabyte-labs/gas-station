@@ -2,53 +2,52 @@
 
 First of all, thanks for visiting this page 😊 ❤️ ! We are totally ecstatic that you may be considering contributing to this project. You should read this guide if you are considering creating a pull request.
 
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#table-of-contents)
 
 ## ➤ Table of Contents
 
-* [➤ Code of Conduct](#-code-of-conduct)
-* [➤ Philosophy](#-philosophy)
-* [➤ Supported Operating Systems](#-supported-operating-systems)
-	* [Other Operating Systems](#other-operating-systems)
-	* [Code Style for Platform-Specific Roles](#code-style-for-platform-specific-roles)
-	* [Preferred Installation Method for Mac OS X](#preferred-installation-method-for-mac-os-x)
-* [➤ Setting Up Development Environment](#-setting-up-development-environment)
-	* [Requirements](#requirements)
-	* [Getting Started](#getting-started)
-	* [NPM Tasks Available](#npm-tasks-available)
-	* [Troubleshooting Python Issues](#troubleshooting-python-issues)
-* [➤ Pull Requests](#-pull-requests)
-	* [How to Commit Code](#how-to-commit-code)
-	* [Pre-Commit Hook](#pre-commit-hook)
-* [➤ Code Format](#-code-format)
-	* [Code Format Example](#code-format-example)
-	* [Platform-Specific Roles](#platform-specific-roles)
-* [➤ Code Style](#-code-style)
-	* [Arrays](#arrays)
-	* [Alphabetical Order](#alphabetical-order)
-	* [Dependency Variables](#dependency-variables)
-	* [DRY](#dry)
-* [➤ Commenting](#-commenting)
-	* [Variable Comments](#variable-comments)
-	* [Action Comments](#action-comments)
-		* [Example Action Comment Implementation](#example-action-comment-implementation)
-		* [Example Action Comment Generated Output](#example-action-comment-generated-output)
-		* [Action Comment Guidelines](#action-comment-guidelines)
-	* [TODO Comments](#todo-comments)
-		* [Example TODO Comment Implementation](#example-todo-comment-implementation)
-		* [Example TODO Comment Generated Output](#example-todo-comment-generated-output)
-		* [TODO Comment Guidelines](#todo-comment-guidelines)
-* [➤ Testing](#-testing)
-	* [Idempotence](#idempotence)
-	* [Debugging](#debugging)
-	* [Molecule Documentation](#molecule-documentation)
-	* [Testing Desktop Environments](#testing-desktop-environments)
-* [➤ Linting](#-linting)
-	* [Fixing ansible-lint Errors](#fixing-ansible-lint-errors)
-		* [[208] File permissions unset or incorrect](#208-file-permissions-unset-or-incorrect)
-		* [[301] Command should not change things if nothing needs doing](#301-command-should-not-change-things-if-nothing-needs-doing)
-		* [[305] Use shell only when shell functionality is required](#305-use-shell-only-when-shell-functionality-is-required)
+- [➤ Code of Conduct](#-code-of-conduct)
+- [➤ Philosophy](#-philosophy)
+- [➤ Supported Operating Systems](#-supported-operating-systems)
+  - [Other Operating Systems](#other-operating-systems)
+  - [Code Style for Platform-Specific Roles](#code-style-for-platform-specific-roles)
+  - [Preferred Installation Method for Mac OS X](#preferred-installation-method-for-mac-os-x)
+- [➤ Setting Up Development Environment](#-setting-up-development-environment)
+  - [Requirements](#requirements)
+  - [Getting Started](#getting-started)
+  - [NPM Tasks Available](#npm-tasks-available)
+  - [Troubleshooting Python Issues](#troubleshooting-python-issues)
+- [➤ Pull Requests](#-pull-requests)
+  - [How to Commit Code](#how-to-commit-code)
+  - [Pre-Commit Hook](#pre-commit-hook)
+- [➤ Code Format](#-code-format)
+  - [Code Format Example](#code-format-example)
+  - [Platform-Specific Roles](#platform-specific-roles)
+- [➤ Code Style](#-code-style)
+  - [Arrays](#arrays)
+  - [Alphabetical Order](#alphabetical-order)
+  - [Dependency Variables](#dependency-variables)
+  - [DRY](#dry)
+- [➤ Commenting](#-commenting)
+  - [Variable Comments](#variable-comments)
+  - [Action Comments](#action-comments)
+    - [Example Action Comment Implementation](#example-action-comment-implementation)
+    - [Example Action Comment Generated Output](#example-action-comment-generated-output)
+    - [Action Comment Guidelines](#action-comment-guidelines)
+  - [TODO Comments](#todo-comments)
+    - [Example TODO Comment Implementation](#example-todo-comment-implementation)
+    - [Example TODO Comment Generated Output](#example-todo-comment-generated-output)
+    - [TODO Comment Guidelines](#todo-comment-guidelines)
+- [➤ Testing](#-testing)
+  - [Idempotence](#idempotence)
+  - [Debugging](#debugging)
+  - [Molecule Documentation](#molecule-documentation)
+  - [Testing Desktop Environments](#testing-desktop-environments)
+- [➤ Linting](#-linting)
+  - [Fixing ansible-lint Errors](#fixing-ansible-lint-errors)
+    - [[208] File permissions unset or incorrect](#208-file-permissions-unset-or-incorrect)
+    - [[301] Command should not change things if nothing needs doing](#301-command-should-not-change-things-if-nothing-needs-doing)
+    - [[305] Use shell only when shell functionality is required](#305-use-shell-only-when-shell-functionality-is-required)
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#code-of-conduct)
 
@@ -56,21 +55,19 @@ First of all, thanks for visiting this page 😊 ❤️ ! We are totally ecstati
 
 This project and everyone participating in it is governed by the [Code of Conduct](https://gitlab.com/megabyte-space/ansible-roles/peco/-/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [help@megabyte.space](mailto:help@megabyte.space).
 
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#philosophy)
 
 ## ➤ Philosophy
 
 When you are working with one of our Ansible projects, try asking yourself, "**How can this be improved?**" For example, in the case of the [Android Studio role](https://github.com/ProfessorManhattan/ansible-androidstudio), the role installs Android Studio but there may be additional tasks that should be automated. Consider the following examples:
 
-* *The software is installed but is asking for a license key.* - In this case, we should provide an option for automatically installing the license key using a CLI command.
-* *The software supports plugins* - We should provide an option for specifying the plugins that are automatically installed.
-* *In the case of Android Studio, many users have to install SDKs before using the software.* - We should offer the capability to automatically install user-specified SDKs.
-* *The software has configuration files with commonly tweaked settings.* - We should provide the ability to change these settings.
-* *The software has the capability to integrate with another piece of software in the [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks)*. - This integration should be automated.
+- _The software is installed but is asking for a license key._ - In this case, we should provide an option for automatically installing the license key using a CLI command.
+- _The software supports plugins_ - We should provide an option for specifying the plugins that are automatically installed.
+- _In the case of Android Studio, many users have to install SDKs before using the software._ - We should offer the capability to automatically install user-specified SDKs.
+- _The software has configuration files with commonly tweaked settings._ - We should provide the ability to change these settings.
+- _The software has the capability to integrate with another piece of software in the [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks)_. - This integration should be automated.
 
 Ideally, you should use the software installed by the main playbook. This is really the only way of testing whether or not the software was installed properly and has all the common settings automated. The software installed by the main playbook is all widely-acclaimed, cross-platform software that many people find useful.
-
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
@@ -78,25 +75,25 @@ Ideally, you should use the software installed by the main playbook. This is rea
 
 All of our roles should run without error on the following operating systems:
 
-* Archlinux (Latest)
-* CentOS 7 and 8
-* Debian 9 and 10
-* Fedora (Latest)
-* Ubuntu (16.04, 18.04, 20.04, and Latest)
-* Mac OS X (Latest)
-* Windows 10 (Latest)
+- Archlinux (Latest)
+- CentOS 7 and 8
+- Debian 9 and 10
+- Fedora (Latest)
+- Ubuntu (16.04, 18.04, 20.04, and Latest)
+- Mac OS X (Latest)
+- Windows 10 (Latest)
 
 ### Other Operating Systems
 
 Although we do not have a timeline set up, we are considering adding support for the following operating systems:
 
-* **Qubes**
-* Elementary OS
-* Zorin
-* OpenSUSE
-* Manjaro
-* FreeBSD
-* Mint
+- **Qubes**
+- Elementary OS
+- Zorin
+- OpenSUSE
+- Manjaro
+- FreeBSD
+- Mint
 
 ### Code Style for Platform-Specific Roles
 
@@ -119,7 +116,6 @@ If you have a role that only installs software made for Windows 10 then ensure t
 
 We currently support installing applications with both homebrew casks and mas. Since mas does not allow automated logins to the App Store (and requires that the application was already installed by the account signed into the App Store GUI), we prefer the use of homebrew casks for installing applications.
 
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#setting-up-development-environment)
 
 ## ➤ Setting Up Development Environment
@@ -128,11 +124,11 @@ Before contributing to this project, you will have to make sure you have the too
 
 ### Requirements
 
-* **Ansible** >=2.10
-* **Python 3**, along with the `python3-netaddr` and `python3-pip` libraries (i.e. `sudo apt-get install python3 python3-netaddr python3-pip`)
-* **Docker**
-* **Node.js** >=12 which is used for the development environment which includes a pre-commit hook
-* **VirtualBox** which is used for running Molecule tests
+- **Ansible** >=2.10
+- **Python 3**, along with the `python3-netaddr` and `python3-pip` libraries (i.e. `sudo apt-get install python3 python3-netaddr python3-pip`)
+- **Docker**
+- **Node.js** >=12 which is used for the development environment which includes a pre-commit hook
+- **VirtualBox** which is used for running Molecule tests
 
 ### Getting Started
 
@@ -207,7 +203,6 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#pull-requests)
 
 ## ➤ Pull Requests
@@ -222,16 +217,15 @@ Instead of using `git commit`, we prefer that you use `npm run commit`. You will
 
 Even if you decide not to use `npm run commit`, you will see that `git commit` behaves differently since the pre-commit hook is installed when you run `npm i`. This pre-commit hook is there to test your code before committing. If you need to bypass the pre-commit hook, then you will have to add the `--no-verify` tag at the end of your `git commit` command (e.g. `git commit -m "Commit" --no-verify`).
 
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#code-format)
 
 ## ➤ Code Format
 
 We try to structure our Ansible task and variable files similarly across all our Ansible projects. This allows us to do things like use RegEx to make ecosystem wide changes. A good way of making sure that your code follows the format we are using is to clone the [main playbook repository](https://gitlab.com/ProfessorManhattan/Playbooks) and use Visual Studio Code to search for code examples of how we are performing similar tasks. For example:
 
-* All of our roles use a similar pattern for the `tasks/main.yml` file
-* The file names and variable names are consistent across our roles
-* Contributors automatically format some parts of their code by leveraging our pre-commit hook (which is installed when you run `npm i` in the root of a project)
+- All of our roles use a similar pattern for the `tasks/main.yml` file
+- The file names and variable names are consistent across our roles
+- Contributors automatically format some parts of their code by leveraging our pre-commit hook (which is installed when you run `npm i` in the root of a project)
 
 ### Code Format Example
 
@@ -240,12 +234,12 @@ To dive a little deeper, take the following block of code that was retrieved fro
 ```yaml
 ---
 - name: Include variables based on the operating system
-  include_vars: '{{ ansible_os_family }}.yml'
+  include_vars: "{{ ansible_os_family }}.yml"
 
 - name: Include tasks based on the operating system
   become: true
   block:
-    - include_tasks: 'install-{{ ansible_os_family }}.yml'
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
 ```
 
 Now, if you compare the block of code above to other `tasks/main.yml` files in other roles (which you can find in our [GitLab Ansible Roles group](https://gitlab.com/megabyte-space/ansible-roles) or our [main playbook](https://gitlab.com/ProfessorManhattan/Playbooks)), you will see that the files are either identical or nearly identical. However, some roles will exclude the first task titled "Include variables based on the operating system" when variables are not required for the role. Our goal is to be consistent but not to the point where we are degrading the functionality of our code.
@@ -269,12 +263,11 @@ If you have a role that only installs software made for Windows 10 then ensure t
   when: ansible_os_family == 'Windows'
 ```
 
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#code-style)
 
 ## ➤ Code Style
 
-To elaborate again, we try to follow the same code style across all our Ansible repositories. If something is done one way somewhere, then it should be done the same way elsewhere. It is up to you to [browse through our roles](https://gitlab.com/ProfessorManhattan/Playbooks/-/tree/master/roles) to get a feel for how everything should be styled. You should clone [the main Playbooks repository](https://gitlab.com/ProfessorManhattan/Playbooks), initialize all the submodules either via `npm i` or `git submodule update --init --recursive`, and search through the code base to see how we are *styling* different task types. Below are some examples:
+To elaborate again, we try to follow the same code style across all our Ansible repositories. If something is done one way somewhere, then it should be done the same way elsewhere. It is up to you to [browse through our roles](https://gitlab.com/ProfessorManhattan/Playbooks/-/tree/master/roles) to get a feel for how everything should be styled. You should clone [the main Playbooks repository](https://gitlab.com/ProfessorManhattan/Playbooks), initialize all the submodules either via `npm i` or `git submodule update --init --recursive`, and search through the code base to see how we are _styling_ different task types. Below are some examples:
 
 ### Arrays
 
@@ -285,7 +278,7 @@ When there is only one parameter, then you should inline it.
 ```yaml
 when:
   - install_minikube
-...
+---
 when:
   - install_minikube
   - install_hyperv_plugin
@@ -295,7 +288,7 @@ when:
 
 ```yaml
 when: install_minikube
-...
+---
 when:
   - install_minikube
   - install_hyperv_plugin
@@ -368,17 +361,15 @@ DRY stands for "Don't Repeat Yourself." Whenever there is code that is duplicate
   include_tasks: install-Linux.yml
 ```
 
-
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#commenting)
 
 ## ➤ Commenting
 
-We strive to make our roles easy to understand. Commenting is a major part of making our roles easier to grasp. Several types of comments are supported in such a way that they tie into our automated documentation generation system. This project uses [ansible-autodoc](https://github.com/AndresBott/ansible-autodoc) to scan through specially marked up comments and generate documentation out of them. The module also allows the use of markdown in comments so feel free to bold, italicize, and `code_block` as necessary. Although it is perfectly acceptable to use regular comments, in most cases, you should use one of the following types of *special* comments:
+We strive to make our roles easy to understand. Commenting is a major part of making our roles easier to grasp. Several types of comments are supported in such a way that they tie into our automated documentation generation system. This project uses [ansible-autodoc](https://github.com/AndresBott/ansible-autodoc) to scan through specially marked up comments and generate documentation out of them. The module also allows the use of markdown in comments so feel free to bold, italicize, and `code_block` as necessary. Although it is perfectly acceptable to use regular comments, in most cases, you should use one of the following types of _special_ comments:
 
-* [Variable comments](#variable-comments)
-* [Action comments](#action-comments)
-* [TODO comments](#todo-comments)
+- [Variable comments](#variable-comments)
+- [Action comments](#action-comments)
+- [TODO comments](#todo-comments)
 
 ### Variable Comments
 
@@ -387,27 +378,27 @@ It is usually not necessary to add full-fledged comments to anything in the `var
 Each variable in `defaults/main.yml` should be added and documented using the following format:
 
 ```yaml
- # @var variable_name: default_value
- # The description of the variable which should be no longer than 160 characters per line.
- # You can seperate the description into new lines so you do not pass the 160 character
- # limit
- variable_name: default_value
+# @var variable_name: default_value
+# The description of the variable which should be no longer than 160 characters per line.
+# You can seperate the description into new lines so you do not pass the 160 character
+# limit
+variable_name: default_value
 ```
 
 There are cases where you may want include an example or you can not fit the default_value on one line. In cases like this, use the following format:
 
 ```yaml
- # @var variable_name: []
- # The description of the variable which should be no longer than 160 characters per line.
- # You can seperate the description into new lines so you do not pass the 160 character
- # limit
- variable_name: []
- # @example #
- # variable_name:
- #   - name: jimmy
- #     param: henry
- #   - name: albert
- # @end
+# @var variable_name: []
+# The description of the variable which should be no longer than 160 characters per line.
+# You can seperate the description into new lines so you do not pass the 160 character
+# limit
+variable_name: []
+# @example #
+# variable_name:
+#   - name: jimmy
+#     param: henry
+#   - name: albert
+# @end
 ```
 
 Each variable/comment block in `defaults/main.yml` should be seperated by a line return. You can see an example of a `defaults/main.yml` file using this special [variable syntax in the Docker role](https://gitlab.com/ProfessorManhattan/Playbooks/-/blob/master/roles/virtualization/docker/defaults/main.yml).
@@ -421,31 +412,31 @@ Action comments allow us to describe what the role does. Each action comment sho
 The following is an example of the implementation of action comments. You can find the [source here](https://gitlab.com/ProfessorManhattan/Playbooks/-/blob/master/roles/virtualization/docker/tasks/main.yml) as well as an example of why and how you would include an [action comment outside of the `tasks/main.yml` file here](https://gitlab.com/ProfessorManhattan/Playbooks/-/blob/master/roles/virtualization/docker/tasks/compose-Darwin.yml).
 
 ```yaml
- # @action Ensures Docker is installed
- # Installs Docker on the target machine.
- # @action Ensures Docker is installed
- # Ensures Docker is started on boot.
- - name: Include tasks based on the operating system
-   block:
-     - include_tasks: "install-ansible_os_family.yml"
-   when: not docker_snap_install
+# @action Ensures Docker is installed
+# Installs Docker on the target machine.
+# @action Ensures Docker is installed
+# Ensures Docker is started on boot.
+- name: Include tasks based on the operating system
+  block:
+    - include_tasks: "install-ansible_os_family.yml"
+  when: not docker_snap_install
 
- # @action Ensures Docker is installed
- # If the target Docker host is a Linux machine and the `docker_snap_install` variable
- # is set to true, then Docker will be installed as a snap package.
- - name: Install Docker via snap
-   community.general.snap:
-     name: docker
-   when:
-     - ansible_os_family not in ('Windows', 'Darwin')
-     - docker_snap_install
+# @action Ensures Docker is installed
+# If the target Docker host is a Linux machine and the `docker_snap_install` variable
+# is set to true, then Docker will be installed as a snap package.
+- name: Install Docker via snap
+  community.general.snap:
+    name: docker
+  when:
+    - ansible_os_family not in ('Windows', 'Darwin')
+    - docker_snap_install
 
- # @action Installs Docker Compose
- # Installs Docker Compose if the `docker_install_compose` variable is set to true.
- - name: Install Docker Compose (based on OS)
-   block:
-     - include_tasks: "compose-ansible_os_family.yml"
-   when: docker_install_compose | bool
+# @action Installs Docker Compose
+# Installs Docker Compose if the `docker_install_compose` variable is set to true.
+- name: Install Docker Compose (based on OS)
+  block:
+    - include_tasks: "compose-ansible_os_family.yml"
+  when: docker_install_compose | bool
 ```
 
 #### Example Action Comment Generated Output
@@ -454,19 +445,19 @@ The block of code above will generate markdown that would look similar to this:
 
 **Ensures Docker is installed**
 
-* Installs Docker on the target machine.
-* Ensures Docker is started on boot.
-* If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package.
+- Installs Docker on the target machine.
+- Ensures Docker is started on boot.
+- If the target Docker host is a Linux machine and the `docker_snap_install` variable is set to true, then Docker will be installed as a snap package.
 
 **Installs Docker Compose**
 
-* Installs Docker Compose if the `docker_install_compose` variable is set to true.
+- Installs Docker Compose if the `docker_install_compose` variable is set to true.
 
 #### Action Comment Guidelines
 
-* The wording of each action should be in active tense, describing a capability of the role. So instead of calling an action "Generate TLS certificates," we would call it, "Generates TLS certificates."
-* The bulk of the action comments should be placed in the `tasks/main.yml` file. However, there may be use cases for putting an action comment in another file. For instance, if we did not support adding wildcard TLS certificates on Windows hosts only, then we might add an action comment to the `install-Windows.yml` file with the appropriate action section heading with further details.
-* The goal of action comments are to present our users with some easy to understand bullet points about exactly what the role does and also elaborate on some of the higher-level technical details.
+- The wording of each action should be in active tense, describing a capability of the role. So instead of calling an action "Generate TLS certificates," we would call it, "Generates TLS certificates."
+- The bulk of the action comments should be placed in the `tasks/main.yml` file. However, there may be use cases for putting an action comment in another file. For instance, if we did not support adding wildcard TLS certificates on Windows hosts only, then we might add an action comment to the `install-Windows.yml` file with the appropriate action section heading with further details.
+- The goal of action comments are to present our users with some easy to understand bullet points about exactly what the role does and also elaborate on some of the higher-level technical details.
 
 ### TODO Comments
 
@@ -475,9 +466,9 @@ TODO comments are similar to action comments in the sense that through automatio
 #### Example TODO Comment Implementation
 
 ```yaml
- # @todo bug: bug description
- # @todo improvement: improvement description
- # @todo bug: another bug description
+# @todo bug: bug description
+# @todo improvement: improvement description
+# @todo bug: another bug description
 ```
 
 #### Example TODO Comment Generated Output
@@ -486,22 +477,21 @@ The above code will output something that looks like this:
 
 **bug**
 
-* bug description
-* another bug description
+- bug description
+- another bug description
 
 **improvement**
 
-* improvement description
+- improvement description
 
 #### TODO Comment Guidelines
 
-* A TODO comment can be placed anywhere as long as no lines pass the limit of 160 characters.
-* Try using similar TODO comment groups. Nothing is set in stone yet but try to use the following categories unless you really believe we need a new category:
-  * bug
-  * feature
-  * improvement
-  * test
-
+- A TODO comment can be placed anywhere as long as no lines pass the limit of 160 characters.
+- Try using similar TODO comment groups. Nothing is set in stone yet but try to use the following categories unless you really believe we need a new category:
+  - bug
+  - feature
+  - improvement
+  - test
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#testing)
 
@@ -513,7 +503,7 @@ You can test all of the operating systems we support by running the following co
 molecule test
 ```
 
-The command `molecule test` will spin up VirtualBox VMs for all the OSes we support and run the role(s). *Do this before committing code.* If you are committing code for only one OS and can not create the fix or feature for the other operating systems then please [file an issue](https://gitlab.com/ProfessorManhattan/Playbooks/-/issues/new) so someone else can pick it up.
+The command `molecule test` will spin up VirtualBox VMs for all the OSes we support and run the role(s). _Do this before committing code._ If you are committing code for only one OS and can not create the fix or feature for the other operating systems then please [file an issue](https://gitlab.com/ProfessorManhattan/Playbooks/-/issues/new) so someone else can pick it up.
 
 ### Idempotence
 
@@ -536,9 +526,9 @@ For more information about Ansible Molecule, check out [the docs](https://molecu
 
 Some of our roles include applications like Android Studio. You can not fully test Android Studio from a Docker command line. In cases like this, you should use our desktop scenarios to provision a desktop GUI-enabled VM to test things like:
 
-* Making sure the Android Studio shortcut is in the applications menu
-* Opening Android Studio to make sure it is behaving as expected
-* Seeing if there is anything we can automate (e.g. if there is a "Terms of Usage" you have to click OK at then we should automate that process if possible)
+- Making sure the Android Studio shortcut is in the applications menu
+- Opening Android Studio to make sure it is behaving as expected
+- Seeing if there is anything we can automate (e.g. if there is a "Terms of Usage" you have to click OK at then we should automate that process if possible)
 
 You can specify which scenario you want to test by passing the `-s` flag with the name of the scenario you want to run. For instance, if you wanted to test on Ubuntu Desktop, you would run the following command:
 
@@ -551,10 +541,9 @@ This would run the Molecule test on Ubuntu Desktop.
 By default, the `molecule test` command will destroy the VM after the test is complete. To run the Ubuntu Desktop test and then open the desktop GUI you would have to:
 
 1. Run `molecule converge -s ubuntu-desktop`
-2. Open the VM through the VirtualBox UI (the username and password are both *vagrant*)
+2. Open the VM through the VirtualBox UI (the username and password are both _vagrant_)
 
 You can obtain a list of all possible scenarios by looking in the `molecule/` folder. The `molecule/default/` folder is run when you do not pass a scenario. All the other scenarios can be run by manually specifying the scenario (i.e. folder name).
-
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#linting)
 
@@ -595,4 +584,3 @@ Here is an example of code that will remove the error:
 #### [305] Use shell only when shell functionality is required
 
 Only use the Ansible `shell:` task when absolutely necessary. If you get this error then test if replacing `shell:` with `command:` resolves the error. If that does not work and you can not figure out how to properly configure the environment for `command:` to work, then you can add `# noqa 305` at the end of the line that includes the `name:` property. The same is true for other linting errors - `# noqa` followed by the reported lint error code will instruct ansible-lint to ignore the error.
-

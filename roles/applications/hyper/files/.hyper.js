@@ -5,11 +5,11 @@
 module.exports = {
   config: {
     hyperline: {
-      plugins: ["hostname", "ip", "cpu", "memory", "network"]
+      plugins: ["hostname", "ip", "cpu", "memory", "network"],
     },
     hyperBorder: {
       borderColors: ["#fc1da7", "#fba506"],
-      borderWidth: "2px"
+      borderWidth: "2px",
     },
     // choose either `'stable'` for receiving highly polished,
     // or `'canary'` for less polished but more frequent updates
@@ -95,7 +95,7 @@ module.exports = {
       lightBlue: "#6A76FB",
       lightMagenta: "#FD7CFC",
       lightCyan: "#68FDFE",
-      lightWhite: "#FFFFFF"
+      lightWhite: "#FFFFFF",
     },
 
     // the shell to run when spawning a new session (i.e. /usr/local/bin/fish)
@@ -142,7 +142,7 @@ module.exports = {
 
     // Whether to use the WebGL renderer. Set it to false to use canvas-based
     // rendering (slower, but supports transparent backgrounds)
-    webGLRenderer: false
+    webGLRenderer: false,
 
     // for advanced config flags please refer to https://hyper.is/#cfg
   },
@@ -164,7 +164,7 @@ module.exports = {
     "hyper-savetext",
     "hyper-search",
     "hyper-statusline",
-    "hyper-tab-icons"
+    "hyper-tab-icons",
   ],
 
   // in development, you can create a directory under
@@ -175,5 +175,5 @@ module.exports = {
   keymaps: {
     // Example
     // 'window:devtools': 'cmd+alt+o',
-  }
-};
+  },
+}

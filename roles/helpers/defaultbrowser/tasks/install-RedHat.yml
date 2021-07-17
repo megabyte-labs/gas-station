@@ -3,5 +3,18 @@
   alternatives:
     link: /usr/bin/x-www-browser
     name: x-www-browser
-    path: "{{ browser_dict[default_browser_chosen] | default('') }}"
+    path: "{{ browser_dict[default_browser_chosen].executable | default('') }}"
     priority: 200
+
+- name: Ensure xdg-utils is installed
+  yum:
+    name: xdg-utils
+    state: present
+
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

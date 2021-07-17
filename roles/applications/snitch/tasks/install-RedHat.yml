@@ -5,12 +5,6 @@
     path: /etc/ansible/facts.d
     state: directory
 
-- name: "Ensure {{ snitch_src_dir }} directory exists"
-  file:
-    path: "{{ snitch_src_dir }}"
-    state: directory
-    mode: 0755
-
 - name: "Detect the latest {{ app_name }} version"
   uri:
     url: https://api.github.com/repos/evilsocket/opensnitch/releases/latest
@@ -22,18 +16,9 @@
       ((ansible_local.snitch is defined) and \
       (ansible_local['snitch']['settings']['version'] != snitch_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
-- name: "Acquire {{ app_name }}'s installers"
-  get_url:
-    url: "https://github.com/evilsocket/opensnitch/releases/download/{{ snitch_latest_release_tag.json.tag_name }}/{{ item }}"
-    dest: "{{ snitch_src_dir }}/{{ item }}"
-  when: install_snitch
-  loop:
-    - "opensnitch-{{ snitch_latest_release_tag.json.tag_name | replace('v','') }}-1.x86_64.rpm"
-    - "opensnitch-ui-{{ snitch_latest_release_tag.json.tag_name | replace('v','') }}-1.noarch.rpm"
-
 - name: "Ensure {{ app_name }} is installed"
   yum:
-    name: "{{ snitch_src_dir }}/{{ item }}"
+    name: "https://github.com/evilsocket/opensnitch/releases/download/{{ snitch_latest_release_tag.json.tag_name }}/{{ item }}"
     state: present
   when: install_snitch
   loop:

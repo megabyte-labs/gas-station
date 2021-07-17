@@ -36,24 +36,31 @@
     owner: "{{ user.username }}"
     mode: 0755
 
+# Texture referesh does not work in latest Ubuntu releases, due to not being able to start Kodi from CLI
 - name: "Ensure {{ app_name }} application is running" # noqa 305
   become_user: "{{ user.username }}"
   shell: "{{ '(nohup /Applications/Kodi.app/Contents/MacOS/Kodi >/dev/null 2>&1 &)' if ansible_system == 'Darwin' else \
     \"DISPLAY=:`ls /tmp/.X11-unix/ | grep -E '^X.$' | tail -c +2` nohup /usr/bin/kodi >/dev/null 2>&1 &\" }}"
   async: 30
   poll: 10
-  when: refresh_texture_cache
+  when:
+    - refresh_texture_cache
+    - ansible_distribution != 'Ubuntu'
 
 - name: "Execute Texture Cache Maintenance Utility ({{ user.username }})" # noqa 301
   become_user: "{{ user.username }}"
   command: "{{ './texturecache.py c' if ansible_system == 'Darwin' else 'python3 ./texturecache.py c' }}"
   args:
     chdir: "{{ kodi_conf_dir }}"
-  when: refresh_texture_cache
+  when:
+    - refresh_texture_cache
+    - ansible_distribution != 'Ubuntu'
 
 - name: "Ensure {{ app_name }} is stopped" # noqa 305
   become_user: "{{ user.username }}"
   shell: "{{ \"kill $(ps -x | awk '/MacOS\/Kodi/ {print $1}')\" if ansible_system == 'Darwin' else \"kill $(ps -eo pid,comm | awk '/kodi-x11/ {print $1}')\" }}"
-  when: refresh_texture_cache
   args:
     executable: /bin/bash
+  when:
+    - refresh_texture_cache
+    - ansible_distribution != 'Ubuntu'

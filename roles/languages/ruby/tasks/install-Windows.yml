@@ -1,2 +1,15 @@
 ---
-[]
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: ruby
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure configured gems are installed (system)
+  ansible.windows.win_command: "gem install {{ ruby_gems | default([]) }}"
+
+- name: Ensure configured gems are installed (user)
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

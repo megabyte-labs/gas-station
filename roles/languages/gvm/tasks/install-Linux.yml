@@ -15,12 +15,12 @@
 
 - name: "Ensure older version of {{ app_name }} is uninstalled" # noqa 503
   file:
-    src: "{{ gvm_src_folder }}/gvm"
+    path: "{{ gvm_src_folder }}/gvm"
     state: absent
   when: gvm_installer.changed
 
 - name: "Ensure {{ app_name }} is installed" # noqa 503
-  command: "gvm-installer.sh master {{ gvm_src_folder }}"
+  command: "./gvm-installer.sh master {{ gvm_src_folder }}"
   args:
     creates: "{{ gvm_src_folder }}/gvm"
     chdir: "{{ gvm_src_folder }}"
@@ -28,10 +28,11 @@
 
 - name: "Ensure Profile imports {{ app_name }}'s PATH"
   become_user: "{{ user.username }}"
-  lineinfile:
+  blockinfile:
     path: ~/.bash_profile
-    regex: "gvm/scripts/env/gvm"
-    line: "source {{ gvm_src_folder }}/gvm/scripts/env/gvm"
+    block: |
+      source {{ gvm_src_folder }}/gvm/scripts/gvm
+      source {{ gvm_src_folder }}/gvm/scripts/env/gvm
     mode: 0600
     backup: true
     create: true

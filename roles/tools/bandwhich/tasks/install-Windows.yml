@@ -1,11 +1,9 @@
 ---
-- name: "Ensure rustup and winpcap are installed"
+- name: "Ensure winpcap is installed"
   become_method: runas
   become_user: "{{ ansible_user }}"
   chocolatey.chocolatey.win_chocolatey:
-    name:
-      - rustup.install
-      - winpcap
+    name: winpcap
     state: "{{ app_state | default('present') }}"
 
 - name: Ensure Megabyte Labs configuration directory exists
@@ -43,10 +41,10 @@
   ansible.windows.win_file:
     path: '%PROGRAMFILES%\bandwhich\bandwhich'
     state: absent
+  when: install_bandwhich
 
 - name: "Ensure {{ app_name }} is installed"
   ansible.windows.win_shell: |
-    rustup toolchain install stable-msvc
     cargo install bandwhich --root C:\Program Files\bandwhich
   args:
     creates: '%PROGRAMFILES%\bandwhich\bandwhich'
@@ -57,3 +55,4 @@
     dest: '%USERPROFILE%\.config\megabytelabs\bandwhich'
     content: |
       {{ bandwhich_latest_release_tag.json.tag_name }}
+  when: install_bandwhich

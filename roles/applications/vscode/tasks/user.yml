@@ -23,7 +23,7 @@
   stat:
     path: "{{ settings_path }}"
   register: settings_stat
-  when: ansible_os_system != 'Windows'
+  when: ansible_os_family != 'Windows'
 
 - name: Fetch the Theme file
   become: true
@@ -32,9 +32,7 @@
     url: https://github.com/mbadolato/iTerm2-Color-Schemes/raw/master/vscode/Solarized%20Dark%20-%20Patched.json
     return_content: true
   register: solarized_theme_vscode
-  when:
-    - ansible_os_system != 'Windows'
-    - settings_stat.exists
+  when: ansible_os_family != 'Windows'
 
 - name: Create the settings.json file
   become: true
@@ -43,7 +41,7 @@
     dest: "{{ settings_path }}"
     content: "{{ solarized_theme_vscode.content }}"
     mode: 0600
-  when: not settings_stat.exists
+  when: not settings_stat.stat.exists
 
 - name: Ensure Theme is setup
   become: true
@@ -52,13 +50,13 @@
     path: "{{ settings_path }}"
     block: ",{{ solarized_theme_vscode.content | trim('\n') | trim('{') | trim ('}') }}"
     insertbefore: "^}$"
-  when: ansible_os_system != 'Windows'
+  when: ansible_os_family != 'Windows'
 
 - name: Check if the settings.json file exists
   ansible.windows.win_stat:
     path: "{{ settings_path }}"
-  register: settings_stat
-  when: ansible_os_system == 'Windows'
+  register: settings_stat_win
+  when: ansible_os_family == 'Windows'
 
 - name: Fetch the Theme file
   become: true
@@ -68,7 +66,7 @@
     url: https://github.com/mbadolato/iTerm2-Color-Schemes/raw/master/vscode/Solarized%20Dark%20-%20Patched.json
     return_content: true
   register: solarized_theme_vscode
-  when: ansible_os_system == 'Windows'
+  when: ansible_os_family == 'Windows'
 
 - name: Create the settings.json file
   become: true
@@ -77,7 +75,9 @@
   ansible.windows.win_copy:
     dest: "{{ settings_path }}"
     content: "{{ solarized_theme_vscode.content }}"
-  when: not settings_stat.exists
+  when:
+    - ansible_os_family == 'Windows'
+    - not settings_stat_win.stat.exists
 
 - name: Get the contents of the settings.json file
   become: true
@@ -85,6 +85,9 @@
   become_user: "{{ user.username }}"
   ansible.windows.win_shell: type "{{ settings_path }}"
   register: settings_json
+  when:
+    - ansible_os_family == 'Windows'
+    - settings_stat_win.stat.exists
 
 - name: Ensure Theme is setup
   become: true
@@ -95,5 +98,5 @@
     block: ",{{ solarized_theme_vscode.content | trim('\n') | trim('{') | trim ('}') }}"
     insertbefore: "^}$"
   when:
-    - ansible_os_system == 'Windows'
+    - ansible_os_family == 'Windows'
     - "'workbench.colorCustomizations' not in settings_json"

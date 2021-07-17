@@ -4,6 +4,7 @@
   become_user: "{{ user.username }}"
   block:
     - include_tasks: appimages-Linux.yml
+  when: app_images_repository
 
 # TODO: Convert this code to use the systemd module instead
 - name: Run necessary systemctl commands # noqa 303
@@ -40,3 +41,12 @@
     regexp: ^colorsheme.*
     line: "colorscheme {{ default_vim_theme }}"
     state: present
+
+- name: Setup X11 theme
+  become: true
+  become_user: "{{ user.username }}"
+  copy:
+    content: |
+      xrdb -nocpp -merge "{{ color_scheme_src_directory }}/Xresources/Solarized Dark - Patched"
+    dest: ~/.xinitrc
+    mode: 0755

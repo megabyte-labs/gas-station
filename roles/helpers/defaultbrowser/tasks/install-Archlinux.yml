@@ -4,11 +4,10 @@
     name: xdg-utils
     state: present
 
-- name: Get the default browser
-  command: "xdg-settings get default-web-browser"
-  changed_when: false
-  register: current_default_browser
-
-- name: Set the default browser # noqa 503
-  command: "xdg-settings set default-web-browser {{ browser_dict[default_browser_chosen] | default('') }}"
-  when: current_default_browser.stdout != browser_dict[default_browser_chosen]
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -17,23 +17,24 @@
     path: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
   register: file_stats
 
-- name: Download workstation
-  get_url:
-    url: "{{ workstation_download_url }}"
-    dest: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
+- name: Download workstation # noqa 303
+  command: |
+    curl -LA "Mozilla/5.0 (X11; Linux x86_64; rv:82.0) Gecko/20210101 Firefox/82.0" "{{ workstation_download_url }}" \
+      -o "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
+  args:
+    creates: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
   when: not file_stats.stat.exists
 
-- name: Mark script executable
+- name: Ensure Workstation installer is executable
   file:
     path: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
-    state: file
     mode: 0755
 
 - name: Run installer
   become: true
   command: >
     {{ workstation_tempdir }}/tryworkstation-linux-64.sh --eulas-agreed --console
-    --required {{'--set-setting vmware-workstation serialNumber '+ workstation_license
+    --required {{ '--set-setting vmware-workstation serialNumber ' + workstation_license
     if workstation_license is defined else '' }}
   args:
     creates: /usr/bin/vmware

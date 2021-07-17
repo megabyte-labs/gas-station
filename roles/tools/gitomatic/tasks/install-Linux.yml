@@ -1,0 +1,79 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/muesli/gitomatic/releases/latest
+  register: gitomatic_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gitomatic: "{{ (ansible_local.gitomatic is not defined) or \
+      ((ansible_local.gitomatic is defined) and \
+      (ansible_local['gitomatic']['settings']['version'] != gitomatic_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  uri:
+    url: "https://github.com/muesli/gitomatic/releases/download/{{ gitomatic_latest_release_tag.json.tag_name }}/checksums.txt"
+    return_content: true
+  register: gitomatic_checksum_file
+  when: install_gitomatic
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    gitomatic_checksum: "{{ gitomatic_checksum_file.content | regex_search('.*gitomatic_(\\d.)*\\d*_'+ansible_system+'_x86_64.tar.gz') | \
+      regex_replace('  gitomatic_(\\d.)*\\d*_' + ansible_system + '_x86_64.tar.gz','') }}"
+  when: install_gitomatic
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://github.com/muesli/gitomatic/releases/download/{{ gitomatic_latest_release_tag.json.tag_name }}/\
+      gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_{{ ansible_system }}_x86_64.tar.gz"
+    dest: "/tmp/gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_{{ ansible_system }}_x86_64.tar.gz"
+    checksum: "sha256:{{ gitomatic_checksum }}"
+  when: install_gitomatic
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    src: /usr/local/bin/gitomatic
+    state: absent
+  when: install_gitomatic
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "/tmp/gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_{{ ansible_system }}_x86_64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - README.md
+      - LICENSE
+    extra_opts:
+      - --strip-components=1
+  when:
+    - install_gitomatic
+    - ansible_family == 'Linux'
+
+- name: "Ensure {{ app_name }} is installed" # noqa 303
+  command: |
+    tar -x -f "/tmp/gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_{{ ansible_system }}_x86_64.tar.gz" \
+      --exclude=LICENSE --exclude=README.md --strip-components=1 -C /usr/local/bin
+  args:
+    creates: /usr/local/bin/gitomatic
+  when:
+    - install_gitomatic
+    - ansible_family == 'Darwin'
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/gitomatic.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_gitomatic

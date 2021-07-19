@@ -4,13 +4,13 @@
 Vagrant.require_version ">= 1.6.2"
 
 nodes = [
-  { :hostname => 'vagrant-archlinux', :ip => '192.168.14.41', :box => 'Megabyte/Archlinux-Desktop' },
-  { :hostname => 'vagrant-centos', :ip => '192.168.14.42', :box => 'Megabyte/CentOS-Desktop' },
-  { :hostname => 'vagrant-debian', :ip => '192.168.14.43', :box => 'Megabyte/Debian-Desktop' },
-  { :hostname => 'vagrant-fedora', :ip => '192.168.14.44', :box => 'Megabyte/Fedora-Desktop' },
-  { :hostname => 'vagrant-macos', :ip => '192.168.14.45', :box => 'Megabyte/macOS-Desktop', :ram => 8192 },
-  { :hostname => 'vagrant-ubuntu', :ip => '192.168.14.46', :box => 'Megabyte/Ubuntu-Desktop' },
-  { :hostname => 'vagrant-windows', :ip => '192.168.14.47', :box => 'Megabyte/Windows-Desktop', :ram => 4096 }
+  { :hostname => 'archlinux', :ip => '192.168.14.41', :box => 'Megabyte/Archlinux-Desktop' },
+  { :hostname => 'centos', :ip => '192.168.14.42', :box => 'Megabyte/CentOS-Desktop' },
+  { :hostname => 'debian', :ip => '192.168.14.43', :box => 'Megabyte/Debian-Desktop' },
+  { :hostname => 'fedora', :ip => '192.168.14.44', :box => 'Megabyte/Fedora-Desktop' },
+  { :hostname => 'macos', :ip => '192.168.14.45', :box => 'Megabyte/macOS-Desktop', :ram => 8192 },
+  { :hostname => 'ubuntu', :ip => '192.168.14.46', :box => 'Megabyte/Ubuntu-Desktop' },
+  { :hostname => 'windows', :ip => '192.168.14.47', :box => 'Megabyte/Windows-Desktop', :ram => 4096 }
 ]
 
 Vagrant.configure("2") do |config|

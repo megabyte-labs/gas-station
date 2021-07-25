@@ -3,6 +3,7 @@
   become_user: "{{ user.username }}"
   lineinfile:
     path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    create: true
     regex: |
       {% if ansible_system == 'Linux' %}
       . {{ asdf_src_dir }}/asdf.sh
@@ -37,6 +38,7 @@
   become_user: "{{ user.username }}"
   lineinfile:
     path: ~/.zshrc
+    create: true
     regex: |
       {% if ansible_system == 'Linux' %}
       . {{ asdf_src_dir }}/asdf.sh
@@ -55,10 +57,7 @@
   blockinfile:
     path: ~/.zshrc
     block: |
-      {% if ansible_system == 'Linux' %}
       fpath=({{ asdf_src_dir }}/completions $fpath)
-      {% else %}
-      .$(brew --prefix)/share/zsh/site-functions:$FPATH
-      {% endif %}
       autoload -Uz compinit
       compinit
+  when: ansible_system == 'Linux'

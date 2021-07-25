@@ -1,4 +1,18 @@
 ---
+- name: Check if com.apple.launchservices.secure.plist exists
+  become_user: "{{ user.username }}"
+  stat:
+    path: ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+  register: launchservices_secure_stat
+
+- name: Ensure com.apple.launchservices.secure.plist exists
+  become_user: "{{ user.username }}"
+  copy:
+    src: com.apple.launchservices.secure.plist
+    dest: ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+    mode: 0644
+  when: not launchservices_secure_stat.stat.exists
+
 - name: Convert plist file to XML # noqa 301
   become_user: "{{ user.username }}"
   command: plutil -convert xml1 ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist

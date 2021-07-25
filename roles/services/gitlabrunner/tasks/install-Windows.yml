@@ -29,10 +29,13 @@
     --tag-list "{{ gitlab_runner_tags }}"
   args:
     chdir: "{{ gitlab_runner_path }}"
-  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)
+  register: gitlab_runner_registration
+  when:
+    - (not gitlabrunner_config.stat.exists)
+    - register_runner
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
   ansible.windows.win_file:
     path: '%USERPROFILE%\.config\megabytelabs\gitlabrunner'
     state: touch
-  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)
+  when: gitlab_runner_registration.changed

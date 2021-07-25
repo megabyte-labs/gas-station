@@ -2,11 +2,13 @@
 - name: Run common Darwin/Linux tasks
   include_tasks: tls-Darwin-Linux.yml
 
+# Adding the cert to keystore using CLI does not work in MacOS 11. https://developer.apple.com/forums/thread/671582
 - name: Add certificate to keystore # noqa 301
   become: true
   command: security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.pem
   args:
     chdir: "/usr/local/share/.docker/certs.d"
+  when: ansible_distribution_major_version | int < 11
 
 - name: Copy Docker server certificates to User directories
   become: true

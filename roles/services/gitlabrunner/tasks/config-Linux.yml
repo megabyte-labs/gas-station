@@ -14,6 +14,8 @@
   register: gitlabrunner_config
 
 - name: "Ensure {{ app_name }} is registered" # noqa 503
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin:{{ ansible_env.PATH }}
   command: gitlab-runner register \
     --non-interactive \
     --url "{{ gitlab_url }}" \
@@ -22,11 +24,14 @@
     --docker-image "{{ gitlab_runner_image }}" \
     --description "{{ gitlab_runner_description }}" \
     --tag-list "{{ gitlab_runner_tags }}"
-  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)
+  register: gitlab_runner_registration
+  when:
+    - (not gitlabrunner_config.stat.exists)
+    - register_runner
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
   file:
     path: ~/.config/megabytelabs/gitlabrunner
     mode: 0600
     state: touch
-  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)
+  when: gitlab_runner_registration.changed

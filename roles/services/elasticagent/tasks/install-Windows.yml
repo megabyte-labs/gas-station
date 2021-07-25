@@ -1,50 +1,84 @@
 ---
-- name: "Ensure {{ app_name }}'s setup is downloaded (64-bit client)"
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Ensure installation folder for {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: "{{ elastic_src }}"
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/elasticagent'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\elasticagent'
+  register: elasticagent_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type elasticagent
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_elasticagent_version
+  when: elasticagent_config.stat.exists
+
+- name: "Fetch {{ app_name }}'s downloads page"
+  ansible.windows.win_uri:
+    url: https://www.elastic.co/downloads/elastic-agent
+    return_content: true
+  register: elasticagent_latest_release_tag
+
+- name: "Find the latest {{ app_name }} version"
+  set_fact:
+    elasticagent_latest_release: "{{ elasticagent_latest_content.content | regex_search('>((\\d+\\.)+\\d+)<') | regex_replace('>((\\d+\\.)+\\d+)<','\\1') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_elasticagent: "{{ (current_elasticagent_version.skipped | default(false)) or \
+      ((not current_elasticagent_version.skipped | default(false)) and (current_elasticagent_version.stdout != elasticagent_latest_release)) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  ansible.windows.win_uri:
+    url: "https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-{{ elasticagent_latest_release }}-windows-x86_64.zip.sha512"
+    return_content: true
+  register: elasticagent_checksum_file
+  when: install_elasticagent
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    elasticagent_checksum: "{{ elasticagent_checksum_file.content | regex_search('(.*)  elastic-agent-.*') | regex_replace('(.*)  elastic-agent.*','\\1') }}"
+  when: install_elasticagent
+
+- name: "Acquire {{ app_name }}'s latest installer"
   ansible.windows.win_get_url:
-    url: "{{ elastic_agent_64_windows_url }}"
-    dest: "{{ elastic_src }}"
-  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+    url: "https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-{{ elasticagent_latest_release }}-windows-x86_64.zip"
+    dest: "{{ elastic_src }}/elastic-agent-{{ elasticagent_latest_release }}-windows-x86_64.zip"
+    checksum: "{{ elasticagent_checksum }}"
+    checksum_algorithm: sha512
+  when: install_elasticagent
 
-- name: "Extract {{ app_name }}'s archive"
+- name: "Ensure {{ app_name }} is installed"
   community.windows.win_unzip:
-    src: "{{ elastic_src }}/elastic-agent-{{ elastic_agent_version }}-windows-x86_64.zip"
-    dest: "{{ elastic_src }}/64bit"
-  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
+    src: "elastic-agent-{{ elasticagent_latest_release }}-windows-x86_64.zip"
+    dest: "{{ elastic_src }}"
+    delete_archive: true
+  when: install_elasticagent
 
-- name: "Ensure {{ app_name }} is installed (64-bit client)"
+- name: "Ensure {{ app_name }} is installed"
   become: true
   become_method: runas
   ansible.windows.win_command: ".\\elastic-agent.exe install -f --kibana-url={{ kibana_url }} \
     --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
   args:
-    chdir: "{{ elastic_src }}/64bit"
+    chdir: "{{ elastic_src }}"
     creates: '%PROGRAMFILES%\Elastic\Agent\'
-  when: ansible_architecture == 'x86_64' or ansible_architecture == 'aarch64'
 
-- name: "Ensure {{ app_name }}'s setup is downloaded (32-bit client)"
-  ansible.windows.win_get_url:
-    url: "{{ elastic_agent_32_windows_url }}"
-    dest: "{{ elastic_src }}"
-  when:
-    - ansible_architecture != 'x86_64'
-    - ansible_architecture != 'aarch64'
-
-- name: "Extract {{ app_name }}'s archive"
-  community.windows.win_unzip:
-    src: "{{ elastic_src }}/elastic-agent-{{ elastic_agent_version }}-windows-x86.zip"
-    dest: "{{ elastic_src }}/32bit"
-  when:
-    - ansible_architecture != 'x86_64'
-    - ansible_architecture != 'aarch64'
-
-- name: "Ensure {{ app_name }} is installed (32-bit client)"
-  become: true
-  become_method: runas
-  ansible.windows.win_command: ".\\elastic-agent.exe install -f --kibana-url={{ kibana_url }} \
-    --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
-  args:
-    chdir: "{{ elastic_src }}/32bit"
-    creates: '%PROGRAMFILES%\Elastic\Agent\'
-  when:
-    - ansible_architecture != 'x86_64'
-    - ansible_architecture != 'aarch64'
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\elasticagent'
+    content: |
+      {{ elasticagent_latest_release }}
+  when: install_elasticagent

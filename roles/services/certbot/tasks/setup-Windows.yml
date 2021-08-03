@@ -1,66 +1,39 @@
 ---
+- name: Ensure Certbot and certbot-dns-cloudflare is installed
+  ansible.windows.win_command: pip install -U certbot certbot-dns-cloudflare
+
 - name: Ensure that {{ certbot_dir }} directory exists
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   ansible.windows.win_file:
-    path: "{{ certbot_dir }}"
+    path: "{{ certbot_dir }}/repo"
     state: directory
 
-- name: Ensure to install dependencies
-  become_method: runas
-  become_user: "{{ ansible_user }}"
-  chocolatey.chocolatey.win_chocolatey:
-    name: "{{ dependencies }}"
-    state: present
-
-- name: Check if git repo exists already
-  become_method: runas
-  become_user: "{{ ansible_user }}"
+- name: Check if git repo exists
   ansible.windows.win_stat:
-    path: "{{ certbot_dir }}/.git"
+    path: "{{ certbot_dir }}/repo/.git"
   register: repo_stats
 
 - name: Clone Certbot repo
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   ansible.windows.win_command: >
     "C:\Program Files\Git\bin\git.exe"
     "clone"
     "{{ certbot_repo }}"
-    "{{ certbot_dir }}"
+    "{{ certbot_dir }}/repo"
     "--branch"
     "{{ certbot_version }}"
     "--recursive"
   args:
-    creates: "{{ certbot_dir }}/.git"
+    creates: "{{ certbot_dir }}/repo/.git"
   when: not repo_stats.stat.exists
 
 - name: Pull Certbot repo changes
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   ansible.windows.win_command: >
     "C:\Program Files\Git\bin\git.exe"
     "pull"
   args:
-    chdir: "{{ certbot_dir }}"
+    chdir: "{{ certbot_dir }}/repo"
   register: pull_repo_status
   when: repo_stats.stat.exists
-
-- name: Ensure to install certbot
-  become_method: runas
-  become_user: "{{ ansible_user }}"
-  ansible.windows.win_command: "{{ python_path }} setup.py install"
-  args:
-    chdir: "{{ certbot_dir }}/certbot"
-  when: pull_repo_status.stdout | trim != "Already up to date."
-
-- name: Ensure to install certbot-dns-cloudflare
-  become_method: runas
-  become_user: "{{ ansible_user }}"
-  ansible.windows.win_command: "{{ python_path }} setup.py install"
-  args:
-    chdir: "{{ certbot_dir }}/certbot-dns-cloudflare"
-  when: pull_repo_status.stdout | trim != "Already up to date."
+  changed_when: not (pull_repo_status.rc ==0 and pull_repo_status.stdout | trim == "Already up to date.")
 
 - name: Generate Let's Encrypt certificates
   include_tasks: certificate-Windows.yml
@@ -72,16 +45,12 @@
     - certbot_create_method == 'standalone'
 
 - name: Check if the Scheduled Task to renew certs is registered
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   community.windows.win_scheduled_task_stat:
-    name: Certbot Renewal Task
+    name: Certbot Renew Task
   register: task_stat
 
 - name: Create a task to renew Let's Encrypt Certs
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   ansible.windows.win_command: powershell.exe -NoProfile -NonInteractive -File renew-up.ps1
   args:
-    chdir: "{{ certbot_dir }}/windows-installer"
-  when: not task_stat.folder_exists
+    chdir: "{{ certbot_dir }}/repo/windows-installer/assets"
+  when: not task_stat.task_exists

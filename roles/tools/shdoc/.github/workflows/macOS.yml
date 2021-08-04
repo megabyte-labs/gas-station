@@ -1,0 +1,49 @@
+---
+name: macOS
+# yamllint disable-line rule:truthy
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: "0 5 * * 2"
+
+jobs:
+  integration:
+    name: Integration
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macos-10.15
+
+    steps:
+      - name: Check out the codebase.
+        uses: actions/checkout@v2
+
+      - name: Install test dependencies.
+        run: |
+          sudo pip3 install ansible
+          if [ -f requirements.yml ]; then ansible-galaxy install -r requirements.yml; fi
+
+      - name: Set up the test environment.
+        run: |
+          cp tests/ansible.cfg ./ansible.cfg
+          cp tests/inventory ./inventory
+          cp tests/test.yml main.yml
+          sed -i '.bak' "s/-.role:./- role:\ ansible-/g" main.yml
+
+      - name: Test the playbook.
+        env:
+          ANSIBLE_FORCE_COLOR: "1"
+        run: |
+          ansible-playbook main.yml
+
+      - name: Check for idempotence.
+        env:
+          ANSIBLE_FORCE_COLOR: "1"
+        run: |
+          idempotence=$(mktemp)
+          ansible-playbook main.yml | tee -a ${idempotence}
+          tail ${idempotence} | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0) || (echo 'Idempotence test: fail' && exit 1)

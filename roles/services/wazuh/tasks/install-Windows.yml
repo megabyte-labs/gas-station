@@ -1,11 +1,8 @@
 ---
 - name: Ensure Megabyte Labs configuration directory exists
   ansible.windows.win_file:
-    path: "{{ item }}"
+    path: '%USERPROFILE%\.config\megabytelabs'
     state: directory
-  loop:
-    - '%USERPROFILE%\.config'
-    - '%USERPROFILE%\.config\megabytelabs'
 
 - name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/wazuh'"
   ansible.windows.win_stat:
@@ -23,18 +20,19 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: "{{ wazuh_package_page }}"
+    return_content: true
   register: wazuh_release_page
-  when: wazuh_version is undefined
+  when: not (wazuh_version | bool)
 
 - name: Find the latest version
   set_fact:
     wazuh_version: "{{ wazuh_release_page.content | regex_search('-(?:\\d\\.)*\\d(?:-\\d)*.pkg') | replace ('.pkg','') | trim('-') }}"
-  when: wazuh_version is undefined
+  when: not (wazuh_version | bool)
 
 - name: "Determine whether or not the latest version of {{ app_name }}'s is already installed"
   set_fact:
-    install_wazuh: "{{ (current_wazuh_version.skipped) or \
-      ((not current_wazuh_version.skipped) and (current_wazuh_version.stdout != wazuh_version)) }}"
+    install_wazuh: "{{ (current_wazuh_version.skipped | default(false)) or \
+      ((not current_wazuh_version.skipped | default(false)) and (current_wazuh_version.stdout != wazuh_version)) }}"
 
 - name: "Ensure {{ app_name }}'s installer directory is present"
   ansible.windows.win_file:

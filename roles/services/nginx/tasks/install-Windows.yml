@@ -1,41 +1,57 @@
 ---
 - name: "Ensure NGINX is installed"
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   chocolatey.chocolatey.win_chocolatey:
     name: nginx
     state: "{{ app_state | default('present') }}"
-    package_params:
-      - "/installLocation:{{ nginx_install_path }}"
+    package_params: "/installLocation:{{ nginx_install_path }}"
 
 - name: Clone the error page repository
-  git:
-    depth: "1"
-    dest: "{{ error_page_directory }}"
-    repo: "{{ error_page_repository }}"
-    version: master
-    force: true
+  ansible.windows.win_command: >
+    "C:\Program Files\Git\bin\git.exe"
+    "clone"
+    "{{ error_page_repository }}"
+    "{{ error_page_directory }}"
+  when: error_page_repository | bool
 
 - name: Register file information for dhparam.pem
   ansible.windows.win_stat:
     path: "{{ dhparam_path }}"
   register: dhparam_pem
 
+- name: "Ensure {{ dhparam_path | dirname }} is created"
+  ansible.windows.win_file:
+    path: "{{ dhparam_path | dirname }}"
+    state: directory
+
 - name: Generate dhparam.pem for improved SSL security (this can take awhile..)
-  ansible.windows.win_command: openssl dhparam -out {{ dhparam_path }} {{ dhparam_size | default(omit) }}
+  ansible.windows.win_command: openssl dhparam -out {{ '"' + dhparam_path + '"' }} {{ dhparam_size | default(omit) }}
   when: not dhparam_pem.stat.exists
+
+- name: "Check if {{ sites_available_path }} directory exists"
+  ansible.windows.win_stat:
+    path: "{{ sites_available_path }}"
+  register: sites_available_stat
 
 - name: Clear sites-available if configured to do so
   ansible.windows.win_file:
     path: "{{ sites_available_path + '*' }}"
     state: absent
-  when: nginx_clear_sites_available
+  when:
+    - nginx_clear_sites_available
+    - sites_available_stat.stat.exists
+
+- name: "Check if {{ sites_enabled_path }} directory exists"
+  ansible.windows.win_stat:
+    path: "{{ sites_enabled_path }}"
+  register: sites_enabled_stat
 
 - name: Clear sites-enabled if configured to do so
   ansible.windows.win_file:
     path: "{{ sites_enabled_path + '*' }}"
     state: absent
-  when: nginx_clear_sites_enabled
+  when:
+    - nginx_clear_sites_enabled
+    - sites_enabled_stat.stat.exists
 
 - name: Generate sites-available
   include_tasks: site-available.yml
@@ -45,8 +61,7 @@
 - name: Generate sites-available for proxy host
   vars:
     nginx_proxy_host_override: true
-  block:
-    - include_tasks: site-available.yml
+  include_tasks: site-available.yml
   loop: "{{ hosts | list }}"
   when:
     - nginx_proxy_host

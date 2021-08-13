@@ -1,40 +1,28 @@
 ---
 - name: Ensure Nginx is installed
-  become: false
   chocolatey.chocolatey.win_chocolatey:
     name: nginx
     state: present
-    package_params:
-      - "/installLocation:{{ nginx_install_path }}"
+    package_params: /installLocation:{{ nginx_install_path }}
 
 - name: Ensure PHP packages are installed
-  become: false
   chocolatey.chocolatey.win_chocolatey:
     name: "{{ php_packages }}"
     state: present
-    package_params:
-      - /InstallDir:{{ php_conf_paths[0] }}
+    package_params: /InstallDir:{{ php_conf_paths[0] }}
 
 - name: Fetch APCu DLL Archive
-  become: false
   ansible.windows.win_get_url:
     url: "{{ apcu_url }}"
     dest: "{{ php_conf_paths[0] }}/apcu.zip"
 
 - name: Ensure to install APCu
-  become: false
   community.windows.win_unzip:
     src: "{{ php_conf_paths[0] }}/apcu.zip"
     dest: "{{ php_conf_paths[0] }}/ext"
-
-- name: Cleanup APCu DLL Archive
-  become: false
-  ansible.windows.win_file:
-    name: "{{ php_conf_paths[0] }}/apcu.zip"
-    state: absent
+    delete_archive: true
 
 - name: Configure PHP Components
-  become: false
   block:
     - name: Configure php.ini
       include_tasks: windows/ini.yml

@@ -13,7 +13,7 @@
   register: ffsend_config
 
 - name: "Detect previously installed {{ app_name }} version"
-  ansible.windows.win_command: type ffsend
+  ansible.windows.win_shell: type ffsend
   args:
     chdir: '%USERPROFILE%\.config\megabytelabs'
   changed_when: false
@@ -23,13 +23,14 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: https://api.github.com/repos/timvisee/ffsend/releases/latest
+    return_content: true
   register: ffsend_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_ffsend: "{{ (current_ffsend_version.skipped | default(false)) or \
       ((not current_ffsend_version.skipped | default(false)) and \
-      (current_ffsend_version.stdout != ffsend_latest_release_tag.json.tag_name | replace('v',''))) }}"
+      (current_ffsend_version.stdout | trim != ffsend_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure {{ ffsend_path }} directory exists"
   ansible.windows.win_file:

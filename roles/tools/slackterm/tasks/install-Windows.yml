@@ -28,30 +28,47 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: https://api.github.com/repos/erroneousboat/slack-term/releases/latest
+    return_content: true
   register: slackterm_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_slackterm: "{{ (current_slackterm_version.skipped | default(false)) or \
       ((not current_slackterm_version.skipped | default(false)) and \
-      (current_slackterm_version.stdout != slackterm_latest_release_tag.json.tag_name | replace('v',''))) }}"
+      (current_slackterm_version.stdout | trim != slackterm_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
-- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
-  git:
-    dest: "{{ slackterm_goroot }}"
-    repo: https://github.com/erroneousboat/slack-term
-    version: master
-  when: install_slackterm
+- name: "Check if {{ app_name }}'s source is present"
+  ansible.windows.win_stat:
+    path: "{{ slackterm_src_dir }}\\.git"
+  register: slackterm_stat
+
+- name: "Ensure {{ app_name }}'s source is cloned"
+  ansible.windows.win_command: git clone https://github.com/erroneousboat/slack-term slackterm
+  args:
+    chdir: "{{ slackterm_src_dir | win_dirname }}"
+  when: not slackterm_stat.stat.exists
+
+- name: "Ensure {{ app_name }}'s source is up-to-date"
+  ansible.windows.win_command: git pull
+  args:
+    chdir: "{{ slackterm_src_dir }}"
+  when:
+    - slackterm_stat.stat.exists
+    - install_slackterm
+  register: slackterm_pull
+  changed_when: not (slackterm_pull.rc == 0 and ('Already up to date' in slackterm_pull.stdout))
 
 - name: "Ensure {{ app_name }} is installed" # noqa 503
   ansible.windows.win_command: go install .
   args:
-    chdir: "{{ slackterm_goroot }}"
+    chdir: "{{ slackterm_src_dir }}"
+  environment:
+    GOPATH: "{{ slackterm_goroot }}"
   when: install_slackterm
 
 - name: "Ensure {{ app_name }} installation is added to PATH"
   ansible.windows.win_path:
-    elements: "{{ slackterm_goroot }}"
+    elements: "{{ slackterm_goroot }}\\bin"
     state: present
 
 - name: Run user configuration tasks
@@ -61,8 +78,8 @@
     label: "{{ user.username }}"
     loop_var: user
   when:
+    - (user.slack_api_key is defined and user.slack_api_key)
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
-    - user.slack_api_key | bool
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
   ansible.windows.win_copy:

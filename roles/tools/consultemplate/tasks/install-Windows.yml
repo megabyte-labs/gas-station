@@ -1,4 +1,14 @@
 ---
+- name: "Find the latest version of {{ app_name }} from the release page"
+  ansible.windows.win_uri:
+    url: https://releases.hashicorp.com/consul-template/
+    return_content: true
+  register: consultemplate_version
+
+- name: "Save the version of {{ app_name }} to a variable"
+  set_fact:
+    consultemplate_version: "{{ consultemplate_version.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
 - name: Ensure Megabyte Labs configuration directory exists
   ansible.windows.win_file:
     path: "{{ item }}"
@@ -23,7 +33,7 @@
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_consultemplate: "{{ (current_consultemplate_version.skipped | default(false)) or \
-      ((not current_consultemplate_version.skipped | default(false)) and (current_consultemplate_version.stdout != consultemplate_version)) }}"
+      ((not current_consultemplate_version.skipped | default(false)) and (current_consultemplate_version.stdout | trim != consultemplate_version)) }}"
 
 - name: "Ensure {{ consultemplate_path }} directory exists"
   ansible.windows.win_file:
@@ -51,5 +61,5 @@
   ansible.windows.win_copy:
     dest: '%USERPROFILE%\.config\megabytelabs\consultemplate'
     content: |
-      {{ consultemplate_latest_release_tag.json.tag_name }}
+      {{ consultemplate_version }}
   when: install_consultemplate

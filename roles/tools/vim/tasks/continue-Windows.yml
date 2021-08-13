@@ -1,0 +1,19 @@
+---
+- name: Ensure vim-plug is installed
+  include_tasks: plugins/install-Windows.yml
+
+- name: Ensure vimrc is setup
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: vimrc.j2
+    dest: '%USERPROFILE%\_vimrc'
+
+- name: "Check if '%USERPROFILE%/vimfiles/plugged' directory exists"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\vimfiles\plugged'
+  register: plugin_stat
+
+- name: Ensure plugins are installed # noqa 301
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: 'vim +"PlugInstall --sync" +qa'
+  when: not plugin_stat.stat.exists

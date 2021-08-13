@@ -4,13 +4,17 @@
 
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
 
 - name: "Install missing {{ app_name }} extensions"
-  include_tasks: user.yml
+  include_tasks: user-Linux.yml
   loop: "{{ user_configs | default([]) }}"
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
-  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - ansible_os_family != 'Windows'

@@ -13,7 +13,7 @@
   register: teleport_config
 
 - name: "Detect previously installed {{ app_name }} version"
-  ansible.windows.win_command: type teleport
+  ansible.windows.win_shell: type teleport
   args:
     chdir: '%USERPROFILE%\.config\megabytelabs'
   changed_when: false
@@ -23,17 +23,18 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: https://api.github.com/repos/gravitational/teleport/releases/latest
+    return_content: true
   register: teleport_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_teleport: "{{ (current_teleport_version.skipped | default(false)) or \
-      ((not current_teleport_version.skipped | default(false)) and (current_teleport_version.stdout \
+      ((not current_teleport_version.skipped | default(false)) and (current_teleport_version.stdout | trim \
       != teleport_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
-- name: "Ensure {{ app_name }} is downloaded and up-to-date"
+- name: "Ensure {{ app_name }} is downloaded"
   ansible.windows.win_get_url:
-    url: "https://releases.hashicorp.com/consul-template/{{ teleport_version }}/consul-template_{{ teleport_version }}_windows_amd64.zip"
+    url: "https://get.gravitational.com/teleport-{{ teleport_latest_release_tag.json.tag_name }}-windows-amd64-bin.zip"
     dest: '%TEMP%\teleport.zip'
   when: install_teleport
 

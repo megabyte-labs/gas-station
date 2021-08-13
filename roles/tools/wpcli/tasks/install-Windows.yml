@@ -7,13 +7,18 @@
     - '%USERPROFILE%\.config'
     - '%USERPROFILE%\.config\megabytelabs'
 
+- name: "Ensure '%PROGRAMFILES%/wp-cli' exists"
+  ansible.windows.win_file:
+    path: '%PROGRAMFILES%\wp-cli'
+    state: directory
+
 - name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/wpcli'"
   ansible.windows.win_stat:
     path: '%USERPROFILE%\.config\megabytelabs\wpcli'
   register: wpcli_config
 
 - name: "Detect previously installed {{ app_name }} version"
-  ansible.windows.win_command: type wpcli
+  ansible.windows.win_shell: type wpcli
   args:
     chdir: '%USERPROFILE%\.config\megabytelabs'
   changed_when: false
@@ -23,12 +28,14 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: https://api.github.com/repos/wp-cli/wp-cli/releases/latest
+    return_content: true
   register: wpcli_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_wpcli: "{{ (current_wpcli_version.skipped) or \
-      ((not current_wpcli_version.skipped) and (current_wpcli_version.stdout != wpcli_latest_release_tag.json.tag_name | replace('v','') )) }}"
+    install_wpcli: "{{ (current_wpcli_version.skipped | default(false)) or \
+      ((not current_wpcli_version.skipped | default(false)) and \
+      (current_wpcli_version.stdout | trim != wpcli_latest_release_tag.json.tag_name | replace('v','') )) }}"
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   ansible.windows.win_file:
@@ -38,8 +45,8 @@
 
 - name: "Ensure {{ app_name }} is installed"
   ansible.windows.win_get_url:
-    url: "{{ 'https://github.com/wp-cli/wp-cli/releases/download/' + ffsend_latest_release_tag.json.tag_name + \
-      '/wp-cli-' + ffsend_latest_release_tag.json.tag_name | replace('v','') + '.phar' }}"
+    url: "{{ 'https://github.com/wp-cli/wp-cli/releases/download/' + wpcli_latest_release_tag.json.tag_name + \
+      '/wp-cli-' + wpcli_latest_release_tag.json.tag_name | replace('v','') + '.phar' }}"
     dest: '%PROGRAMFILES%\wp-cli\wp-cli.phar'
   when: install_wpcli
 

@@ -1,6 +1,5 @@
 ---
 - name: "Ensure {{ plugins_folder }} is created"
-  become_method: runas
   become_user: "{{ user.username }}"
   ansible.windows.win_file:
     path: "{{ item }}"
@@ -22,54 +21,53 @@
   when: user.intellij_plugins is defined
 
 - name: Check if Terms acceptance file is present
-  become_method: runas
   become_user: "{{ user.username }}"
   ansible.windows.win_stat:
-    path: "{{ plugin_folder_prefix | dirname + '\\consentOptions\\accepted' }}"
+    path: "{{ plugin_folder_prefix | win_dirname + '\\consentOptions\\accepted' }}"
   register: accepted_file_stat
 
 - name: Ensure Terms acceptance file exists
-  become_method: runas
   become_user: "{{ user.username }}"
   ansible.windows.win_copy:
-    dest: "{{ plugin_folder_prefix | dirname + '\\consentOptions\\accepted' }}"
+    dest: "{{ plugin_folder_prefix | win_dirname + '\\consentOptions\\accepted' }}"
     content: |
       rsch.send.usage.stat:1.1:0:{{ ansible_date_time.epoch }}
   when: not accepted_file_stat.stat.exists
 
 - name: Ensure Solarized theme's source directory is present
-  become_method: runas
   become_user: "{{ user.username }}"
   ansible.windows.win_file:
     path: "{{ solarized_theme_src_dir }}"
     state: directory
 
-- name: Ensure Solarized theme's source is cloned and up-to-date
-  become_method: runas
+- name: Ensure Solarized theme's source is downloaded
   become_user: "{{ user.username }}"
-  git:
-    dest: "{{ solarized_theme_src_dir }}"
-    repo: "{{ solarized_theme_repository }}"
-    version: master
+  ansible.windows.win_get_url:
+    url: https://github.com/jkaving/intellij-colors-solarized/archive/refs/heads/master.zip
+    dest: "{{ solarized_theme_src_dir }}/master.zip"
   register: solarized_theme_git
 
+- name: Ensure Solarized theme's source is extracted
+  community.windows.win_unzip:
+    src: "{{ solarized_theme_src_dir }}/master.zip"
+    dest: "{{ solarized_theme_src_dir }}"
+  when: solarized_theme_git.changed
+
 - name: Ensure Solarized theme files are copied # noqa 503
-  become_method: runas
   become_user: "{{ user.username }}"
   ansible.windows.win_copy:
     dest: "{{ colors_folder }}"
     src: "{{ item }}"
     remote_src: true
   loop:
-    - "{{ solarized_theme_src_dir }}\\Solarized Dark.icls"
-    - "{{ solarized_theme_src_dir }}\\Solarized Light.icls"
+    - "{{ solarized_theme_src_dir }}\\intellij-colors-solarized-master\\Solarized Dark.icls"
+    - "{{ solarized_theme_src_dir }}\\intellij-colors-solarized-master\\Solarized Light.icls"
   when: solarized_theme_git.changed
 
 - name: Ensrure Color scheme setting is applied
-  become_method: runas
   become_user: "{{ user.username }}"
   ansible.windows.win_copy:
-    dest: "{{ plugins_folder | dirname + '\\options\\colors.scheme.xml' }}"
+    dest: "{{ plugins_folder | win_dirname + '\\options\\colors.scheme.xml' }}"
     content: |
       <application>
         <component name="EditorColorsManagerImpl">

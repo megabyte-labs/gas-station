@@ -1,11 +1,8 @@
 ---
 - name: Ensure Megabyte Labs configuration directory exists
   ansible.windows.win_file:
-    path: "{{ item }}"
+    path: '%USERPROFILE%\.config\megabytelabs'
     state: directory
-  loop:
-    - '%USERPROFILE%\.config'
-    - '%USERPROFILE%\.config\megabytelabs'
 
 - name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/switchhosts'"
   ansible.windows.win_stat:
@@ -23,13 +20,14 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: https://api.github.com/repos/oldj/SwitchHosts/releases/latest
+    return_content: true
   register: switchhosts_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_switchhosts: "{{ (current_switchhosts_version.skipped | default(false)) or \
       ((not current_switchhosts_version.skipped | default(false)) and \
-      (current_switchhosts_version.stdout != switchhosts_latest_release_tag.json.tag_name | replace('v',''))) }}"
+      (current_switchhosts_version.stdout | trim != switchhosts_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure {{ switchhosts_dir }} directory exists"
   ansible.windows.win_file:

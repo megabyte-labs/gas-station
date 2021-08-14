@@ -28,18 +28,19 @@
 - name: "Detect the latest {{ app_name }} version"
   ansible.windows.win_uri:
     url: https://api.github.com/repos/Canop/broot/releases/latest
+    return_content: true
   register: broot_latest_release_tag
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_broot: "{{ (current_broot_version.skipped | default(false)) or \
       ((not current_broot_version.skipped | default(false)) and \
-      (current_broot_version.stdout != broot_latest_release_tag.json.tag_name | replace('v','') )) }}"
+      (current_broot_version.stdout | trim != broot_latest_release_tag.json.tag_name | replace('v','') )) }}"
 
 - name: "Ensure {{ app_name }} is installed"
   ansible.windows.win_get_url:
     url: "https://dystroy.org/broot/download/x86_64-pc-windows-gnu/broot.exe"
-    dest: "{{ broot_dest_dir }}\broot.exe"
+    dest: "{{ broot_dest_dir }}\\broot.exe"
   when: install_broot
 
 - name: "Add {{ broot_dest_dir }} to PATH"
@@ -50,16 +51,15 @@
 - name: "Ensure {{ app_name }}'s completion is installed"
   ansible.windows.win_get_url:
     url: "https://dystroy.org/broot/download/completion/_broot.ps1"
-    dest: "{{ broot_dest_dir }}\_broot.ps1"
+    dest: "{{ broot_dest_dir }}\\_broot.ps1"
   when: install_broot
 
 - name: Configure initialization script for PowerShell
   become_method: runas
   become_user: "{{ user.username }}"
   community.windows.win_lineinfile:
-    path: '~\Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
-    regex: '. {{ broot_dest_dir }}\_broot.ps1'
-    line: '. {{ broot_dest_dir }}\_broot.ps1'
+    path: '%USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
+    line: '. $env:PROGRAMFILES\broot\_broot.ps1'
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"

@@ -1,0 +1,13 @@
+---
+- name: "Determine if the {{ extension }} extension is already present"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: ls
+  args:
+    chdir: '%USERPROFILE%\.vscode\extensions'
+  register: extension_ls
+  changed_when: false
+
+- name: "Install the {{ extension }} extension"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: "{{ code_binary_path }} --install-extension {{ extension }}"
+  when: not ((extension_ls.stdout | lower) | regex_findall((extension | lower) + '-[0-9]+\.[0-9]+\.[0-9]+') | length)

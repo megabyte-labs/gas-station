@@ -7,12 +7,16 @@
     url: https://releases.hashicorp.com/consul-template/
     return_content: true
   register: consultemplate_version
+  when: ansible_os_family != 'Windows'
 
 - name: "Save the version of {{ app_name }} to a variable"
   set_fact:
     consultemplate_version: "{{ consultemplate_version.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+  when: ansible_os_family != 'Windows'
 
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"

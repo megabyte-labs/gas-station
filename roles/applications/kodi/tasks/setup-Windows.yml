@@ -1,0 +1,22 @@
+---
+- name: Ensure '%APPDATA%\Kodi\userdata\' directory exists
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: "{{ kodi_conf_dir }}\\userdata\\"
+    state: directory
+
+- name: Create configuration files
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: "{{ item }}.j2"
+    dest: "{{ kodi_conf_dir }}\\userdata\\{{ item }}"
+  with_items:
+    - sources.xml
+    - advancedsettings.xml
+
+- name: Download Texture Cache Maintenance Utility
+  become_user: "{{ user.username }}"
+  ansible.windows.win_get_url:
+    url: https://raw.github.com/MilhouseVH/texturecache.py/master/texturecache.py
+    dest: "{{ kodi_conf_dir }}\\texturecache.py"
+    force: false

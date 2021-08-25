@@ -1,0 +1,55 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/cloudflare/cloudflared/releases/latest
+  register: cloudflared_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_cloudflared: "{{ (ansible_local.cloudflared is not defined) or \
+      ((ansible_local.cloudflared is defined) and \
+      (ansible_local['cloudflared']['settings']['version'] != cloudflared_latest_release_tag.json.tag_name)) }}"
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    cloudflared_checksum: "{{ cloudflared_latest_release_tag.json.body | regex_search('cloudflared-linux-amd64. .*') \
+      | regex_replace('cloudflared-linux-amd64. ','') }}"
+  when:
+    - install_cloudflared
+    - ansible_system == 'Linux'
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "https://github.com/cloudflare/cloudflared/releases/download/{{ cloudflared_latest_release_tag.json.tag_name }}/cloudflared-linux-amd64"
+    dest: /usr/local/bin/cloudflared
+    checksum: "sha256:{{ cloudflared_checksum }}"
+    mode: 0755
+  when:
+    - install_cloudflared
+    - ansible_system == 'Linux'
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/cloudflare/cloudflared/releases/download/{{ cloudflared_latest_release_tag.json.tag_name }}/cloudflared-darwin-amd64.tgz"
+    dest: /usr/local/bin
+    remote_src: true
+  when:
+    - install_cloudflared
+    - ansible_system == 'Darwin'
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/cloudflared.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ cloudflared_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_cloudflared

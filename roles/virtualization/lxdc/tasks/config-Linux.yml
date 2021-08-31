@@ -1,0 +1,28 @@
+---
+- name: "Create {{ lxd_group_name }} group"
+  group:
+    name: "{{ lxd_group_name }}"
+    state: present
+
+- name: "Add users to {{ lxd_group_name }} group"
+  user:
+    name: '{{ item }}'
+    groups: lxd
+    append: true
+  loop: "{{ lxd_users }}"
+
+- name: Create LXD preseed config file
+  template:
+    src: lxd-preseed.j2
+    dest: /tmp/lxd-preseed
+    mode: 0700
+  when: lxd_init | default(false)
+  register: lxd_preseed_status
+
+- name: Configure LXD # noqa 503
+  shell: |
+    set -o pipefail
+    cat /tmp/lxd.preseed | lxd init --preseed
+  args:
+    executable: /bin/bash
+  when: lxd_preseed_status.changed

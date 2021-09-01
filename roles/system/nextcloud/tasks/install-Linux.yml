@@ -1,0 +1,57 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ nextcloud_src_dir }} directory exists"
+  file:
+    path: "{{ nextcloud_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/nextcloud/desktop/releases/latest
+  register: nextcloud_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_nextcloud: "{{ (ansible_local.nextcloud is not defined) or \
+      ((ansible_local.nextcloud is defined) and \
+      (ansible_local['nextcloud']['settings']['version'] != nextcloud_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://github.com/nextcloud/desktop/releases/download/{{ nextcloud_latest_release_tag.json.tag_name }}/\
+      Nextcloud-{{ nextcloud_latest_release_tag.json.tag_name | replace('v','') }}-x86_64.AppImage"
+    dest: "{{ nextcloud_src_dir }}/Nextcloud-{{ nextcloud_latest_release_tag.json.tag_name | replace('v','') }}-x86_64.AppImage"
+  when: install_nextcloud
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_nextcloud
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Ensure {{ app_name }}'s AppImage is removed from /usr/local/bin"
+  file:
+    path: "{{ nextcloud_src_dir }}/Nextcloud-{{ nextcloud_latest_release_tag.json.tag_name | replace('v','') }}-x86_64.AppImage"
+    state: absent
+  when: install_nextcloud
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/nextcloud.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ nextcloud_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_nextcloud

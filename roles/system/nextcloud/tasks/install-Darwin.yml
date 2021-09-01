@@ -1,0 +1,21 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew_cask:
+    name: nextcloud
+    state: "{{ app_state | default('present') }}"
+    sudo_password: "{{ ansible_password }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: Ensure configuration is added
+  become_user: "{{ user.username }}"
+  template:
+    src: nextcloud.cfg.j2
+    dest: /Users/{{ user.username }}/Library/Preferences/Nextcloud/nextcloud.cfg
+    mode: 0664
+    backup: true
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

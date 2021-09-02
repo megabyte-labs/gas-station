@@ -1,0 +1,23 @@
+---
+- name: Ensure ~/Applications directory exists
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: ~/Applications
+    state: directory
+
+- name: "Ensure {{ app_name }}'s AppImage is copied"
+  become_user: "{{ user.username }}"
+  copy:
+    src: "{{ nextcloud_src_dir }}/Nextcloud-{{ nextcloud_latest_release_tag.json.tag_name | replace('v','') }}-x86_64.AppImage"
+    dest: ~/Applications
+    mode: 0700
+    remote_src: true
+
+- name: Ensure configuration is added
+  become_user: "{{ user.username }}"
+  template:
+    src: nextcloud.cfg.j2
+    dest: ~/.config/Nextcloud/nextcloud.cfg
+    mode: 0664
+    backup: true

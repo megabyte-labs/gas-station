@@ -1,0 +1,19 @@
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: "https://exiftool.org/index.html"
+    return_content: true
+  register: exiftool_latest_release
+
+- name: "Save the version of {{ app_name }} to variable"
+  set_fact:
+    exiftool_latest_version: "{{ exiftool_latest_release.content | regex_search('Image-ExifTool-(\\d*\\.\\d*).tar.gz') \
+      | regex_replace('Image-ExifTool-(\\d*\\.\\d*).tar.gz','\\1')  }}"
+
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"

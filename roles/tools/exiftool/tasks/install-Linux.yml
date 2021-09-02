@@ -1,0 +1,73 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ app_name }}'s directory exists"
+  file:
+    mode: 0755
+    path: "{{ exiftool_src_dir }}"
+    state: directory
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_exiftool: "{{ (ansible_local.exiftool is not defined) or \
+      ((ansible_local.exiftool is defined) and (ansible_local['exiftool']['settings']['version'] != exiftool_latest_version)) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: "{{ exiftool_src_dir }}/exiftool"
+    state: absent
+  when: install_exiftool
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://exiftool.org/Image-ExifTool-{{ exiftool_latest_version }}.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - '*files'
+      - Changes
+      - html
+      - Makefile.PL
+      - MANIFEST
+      - META.*
+      - perl-Image-ExifTool.spec
+      - README
+      - t
+    extra_opts:
+      - --strip-components=1
+  when:
+    - install_exiftool
+    - ansible_system == 'Linux'
+
+- name: "Acquire {{ app_name }}'s latest installer" # noqa 303
+  get_url:
+    url: "https://exiftool.org/Image-ExifTool-{{ exiftool_latest_version }}.tar.gz"
+    dest: "{{ exiftool_src_dir }}/Image-ExifTool-{{ exiftool_latest_version }}.tar.gz"
+  when:
+    - install_exiftool
+    - ansible_system == 'Darwin'
+
+- name: "Ensure {{ app_name }} is installed" # noqa 303
+  command: |
+    tar -x -f "{{ exiftool_src_dir }}/Image-ExifTool-{{ exiftool_latest_version }}.tar.gz" --strip-components=1 \
+      --include=exiftool --include=lib -C /usr/local/bin
+  args:
+    creates: "{{ exiftool_src_dir }}/exiftool"
+  when:
+    - install_exiftool
+    - ansible_system == 'Darwin'
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/exiftool.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ exiftool_latest_version }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_exiftool

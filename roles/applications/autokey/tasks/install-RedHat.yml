@@ -1,15 +1,23 @@
 ---
 - name: "Ensure {{ app_name }}'s dependencies are installed"
-  ansible.builtin.yum:
+  yum:
     name: "{{ autokey_dependencies }}"
     state: "{{ app_state | default('present') }}"
 
 - name: "Ensure {{ app_name }}'s Python dependencies are installed"
-  ansible.builtin.pip:
+  pip:
     name: PyGObject
     state: present
 
 - name: "Ensure {{ app_name }} is installed"
-  ansible.builtin.pip:
+  pip:
     name: git+https://github.com/autokey/autokey
     state: "{{ app_state | default('present') }}"
+
+- name: Ensure Scripts are downloaded
+  become_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+  git:
+    repo: https://github.com/ten0s/autokey.git
+    dest: ~/.config/
+    version: master
+  when: install_scripts

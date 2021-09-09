@@ -6,15 +6,16 @@
     update_cache: true
 
 - name: "Ensure {{ app_name }}'s source directory is present"
-  ansible.builtin.file:
+  file:
     mode: 0755
     path: "{{ autokey_src_dir }}"
     state: directory
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
-  ansible.builtin.git:
+  git:
     dest: "{{ autokey_src_dir }}"
     repo: "{{ autokey_aur_git_repository }}"
+    version: master
   register: autokey_git
 
 - name: "Remove /usr/sbin/autokey-gtk if the source files have changed" # noqa 503
@@ -28,3 +29,11 @@
   args:
     chdir: "{{ autokey_src_dir }}"
     creates: /usr/sbin/autokey-gtk
+
+- name: Ensure Scripts are downloaded
+  become_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+  git:
+    repo: https://github.com/ten0s/autokey.git
+    dest: ~/.config/
+    version: master
+  when: install_scripts

@@ -1,0 +1,150 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: Save GitHub Repository information as facts
+  set_fact:
+    binary_name: "{{ (gh_repo | replace('https://','')).split('/')[2] }}"
+    repo_user: "{{ (gh_repo | replace('https://','')).split('/')[1] }}"
+
+- name: "Ensure installation folder for {{ binary_name }} exists"
+  ansible.windows.win_file:
+    path: "C:/Program Files/{{ binary_name }}"
+    state: directory
+
+- name: "Check if {{ binary_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/{{ binary_name }}'"
+  ansible.windows.win_stat:
+    path: "C:/Users/{{ ansible_user }}/.config/megabytelabs/{{ binary_name }}"
+  register: gh_binary_config
+
+- name: "Detect previously installed {{ binary_name }} version"
+  ansible.windows.win_shell: type {{ binary_name }}
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_gh_binary_version
+  when: gh_binary_config.stat.exists
+
+- name: "Detect the latest {{ binary_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/{{ repo_user }}/{{ binary_name }}/releases/latest
+  register: gh_binary_latest_release_tag
+
+- name: Provide instructions if Releases are not published
+  fail:
+    msg: "{{ binary_name }} does not have releases published as GitHub Releases. Please check the repository for installation steps"
+  when:
+    - gh_binary_latest_release_tag.json is undefined or (gh_binary_latest_release_tag.json and (not gh_binary_latest_release_tag.json.assets))
+
+- name: "Ensure {{ binary_name }} is installed"
+  block:
+    - name: "Determine whether or not the latest version of {{ binary_name }} is already installed"
+      set_fact:
+        install_gh_binary: "{{ (current_gh_binary_version.skipped | default(false)) or \
+          ((not current_gh_binary_version.skipped | default(false)) and \
+          (current_gh_binary_version.stdout | trim != gh_binary_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+    - name: Filter the release file names based on System Architecture
+      set_fact:
+        archive_names: "{{ (gh_binary_latest_release_tag.json.assets | \
+          selectattr('name','match',binary_name + '.*(?i)arm.*' if 'arm' in ansible_machine | lower else '((?!(?i)arm).)*$')) | map(attribute='name') }}"
+      when: install_gh_binary
+
+    - name: "Find the name of the installer file for {{ binary_name }}"
+      shell: |
+        bash -c ". {{ role_path }}/files/release_info.sh; find_file_name \"{{ archive_names | join(' ') }}\" {{ ansible_system | lower }} {{ binary_name }}"
+      register: archive_name
+      when: install_gh_binary
+      delegate_to: localhost
+
+    - name: "Find CHECKSUMS URL(s) for {{ binary_name }} installer"
+      set_fact:
+        checksum_urls: "{{ (gh_binary_latest_release_tag.json.assets | selectattr('name','match','.*(?i)checksum.*')) \
+          | map(attribute='browser_download_url') }}"
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+
+    - name: "Find the Checksum of {{ binary_name }} installer"
+      shell: |
+        bash -c ". {{ role_path }}/files/release_info.sh; find_checksum \"{{ checksum_urls | join(' ') }}\" {{ archive_name.stdout }}"
+      register: archive_checksum
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+      delegate_to: localhost
+
+    - name: "Acquire {{ binary_name }}'s latest installer"
+      ansible.windows.win_get_url:
+        url: "https://github.com/{{ repo_user }}/{{ binary_name }}/releases/download/{{ gh_binary_latest_release_tag.json.tag_name }}/\
+          {{ archive_name.stdout | replace('NO_EXTN','') }}"
+        dest: "C:/Program Files/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        checksum: "{{ (archive_checksum.stdout | length > 0) | ternary(archive_checksum.stdout,omit) }}"
+        checksum_algorithm: sha256
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+
+    - name: "Ensure {{ binary_name }} is installed"
+      community.windows.win_unzip:
+        src: "C:/Program Files/{{ binary_name }}/{{ archive_name.stdout }}"
+        dest: "C:/Program Files/{{ binary_name }}"
+        delete_archive: true
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - "'NO_EXTN' not in archive_name.stdout"
+        - not (archive_name.stdout | regex_search('(?i)(setup|installer)'))
+
+    - name: "Ensure {{ binary_name }} is installed"
+      ansible.windows.win_copy:
+        src: "C:/Program Files/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        dest: "C:/Program Files/{{ binary_name }}/{{ binary_name }}"
+        remote_src: true
+        mode: 0755
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - "'NO_EXTN' in archive_name.stdout"
+        - not (archive_name.stdout | regex_search('(?i)(setup|installer)'))
+
+    - name: "Ensure {{ binary_name }} is installed"
+      ansible.windows.win_package:
+        path: "C:/Program Files/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        state: present
+        arguments: '/q /norestart'
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - "'NO_EXTN' in archive_name.stdout"
+        - archive_name.stdout | regex_search('(?i)(setup|installer)')
+
+    - name: "Add '%PROGRAMFILES%/{{ binary_name }}' to PATH"
+      ansible.windows.win_path:
+        elements: "C:/Program Files/{{ binary_name }}"
+        state: present
+
+    - name: "Save meta information about the version of {{ binary_name }} that was installed"
+      ansible.windows.win_copy:
+        dest: '%USERPROFILE%\.config\megabytelabs\{{ binary_name }}'
+        content: |
+          {{ gh_binary_latest_release_tag.json.tag_name | replace('v','') }}
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+  when: gh_binary_latest_release_tag.json.assets
+  always:
+    - name: Reset variables
+      set_fact:
+        binary_name: ""
+        repo_user: ""
+        gh_binary_config: ""
+        current_gh_binary_version: ""
+        gh_binary_latest_release_tag: ""
+        archive_names: ""
+        archive_name: ""
+        archive_checksum: ""
+        install_gh_binary: false
+        checksum_urls: ""

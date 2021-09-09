@@ -1,0 +1,17 @@
+---
+- name: "Ensure GOPATH is added to .bashrc"
+  ansible.windows.win_path:
+    name: GOPATH
+    elements: '%APPDATA%\go'
+    scope: machine
+    state: present
+
+- name: Ensure packages are installed
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: go get {{ package }}@latest
+  environment:
+    GOPATH: '%APPDATA%\go'
+  loop: "{{ developer_dependencies }}"
+  loop_control:
+    label: "{{ package }}"
+    loop_var: package

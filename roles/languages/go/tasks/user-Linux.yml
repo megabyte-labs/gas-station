@@ -1,0 +1,19 @@
+---
+- name: "Ensure GOPATH is added to .bashrc"
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    create: true
+    mode: 0700
+    regex: 'export GOPATH=$HOME/.local/go'
+    line: 'export GOPATH=$HOME/.local/go'
+
+- name: Ensure packages are installed # noqa 301 305
+  become_user: "{{ user.username }}"
+  shell: go get {{ package }}@latest
+  environment:
+    GOPATH: "{{ ('/home/' if ansible_system == 'Linux' else '/Users/') + user.username + '/.local/go' }}"
+  loop: "{{ developer_dependencies }}"
+  loop_control:
+    label: "{{ package }}"
+    loop_var: package

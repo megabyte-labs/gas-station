@@ -42,4 +42,4 @@ fi
 # Install the Ansible requirements and run the playbook
 cd ~/Playbooks || exit
 ansible-galaxy install -r requirements.yml
-ansible-playbook --ask-vault-pass -i inventories/workstation.yml --skip-tags "skip_on_init" playbooks/workstation.yml
+ansible-playbook --ask-vault-pass -i inventories/laptop.yml --skip-tags "skip_on_init" playbooks/init.yml

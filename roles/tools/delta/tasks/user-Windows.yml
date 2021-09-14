@@ -1,0 +1,25 @@
+---
+- name: "Check if '%USERPROFILE%/.gitconfig' exists"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.gitconfig'
+  register: gitconfig_stat
+
+- name: "Detect contents of '%USERPROFILE%/.gitconfig'"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: type .gitconfig
+  args:
+    chdir: '%USERPROFILE%\'
+  changed_when: false
+  register: gitconfig_content
+  when: gitconfig_stat.stat.exists
+
+- name: "Ensure {{ app_name }} config is added to '%USERPROFILE%/.gitconfig'"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%/.gitconfig'
+    content: |
+      {% if gitconfig_content.stdout | regex_search('.*\[delta\].*') %}
+      {{ gitconfig_content.stdout }}
+      {% endif %}
+      {{ lookup('file', 'gitconfig') }}

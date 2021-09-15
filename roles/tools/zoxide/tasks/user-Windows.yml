@@ -1,0 +1,41 @@
+---
+- name: "Ensure {{ app_name }} is configured"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: zoxide init powershell
+  environment:
+    _ZO_DATA_DIR: "{{ 'C:\\Users\\' + user.username + 'AppData\\Roaming' }}"
+    _ZO_ECHO: 1
+
+- name: "Ensure '%USERPROFILE%/Documents/WindowsPowerShell/' folder exists"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\Documents\WindowsPowerShell\'
+    state: directory
+
+- name: "Check if '%USERPROFILE%/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1' exists"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
+  register: ps_profile_stat
+
+- name: "Detect contents of '%USERPROFILE%/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1'"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: type Microsoft.PowerShell_profile.ps1
+  args:
+    chdir: '%USERPROFILE%\Documents\WindowsPowerShell\'
+  changed_when: false
+  register: ps_profile_content
+  when: ps_profile_stat.stat.exists
+
+- name: "Ensure {{ app_name }} config is added to '%USERPROFILE%/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1'"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
+    content: |
+      {% if ps_profile_content.stdout | regex_search('.*zoxide init.*') %}
+      {{ ps_profile_content.stdout }}
+      {% endif %}
+      Invoke-Expression (& {
+          $hook = if ($PSVersionTable.PSVersion.Major -lt 6) { 'prompt' } else { 'pwd' }
+          (zoxide init --hook $hook powershell) -join "`n"
+      })

@@ -1,0 +1,17 @@
+---
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://gitlab.com/api/v4/projects/28462485/releases
+  register: gitdock_releases
+
+- name: "Save the latest {{ app_name }} version to a variable"
+  set_fact:
+    gitdock_latest_version: "{{ gitdock_releases.json[0].tag_name }}"
+
+- name: Include tasks based on the operating system
+  become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when: ansible_os_family != 'Archlinux'

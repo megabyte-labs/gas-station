@@ -1,0 +1,65 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ gitdock_src_dir }} directory exists"
+  file:
+    path: "{{ gitdock_src_dir }}"
+    state: directory
+    mode: 0755
+  when: ansible_os_family == 'Debian'
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gitdock: "{{ (ansible_local.gitdock is not defined) or \
+      ((ansible_local.gitdock is defined) and \
+      (ansible_local['gitdock']['settings']['version'] != gitdock_latest_version | replace('v',''))) }}"
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://gitlab.com/api/v4/projects/28462485/packages/generic/gitdock/{{ gitdock_latest_version | replace('v','') }}/GitDock.deb"
+    dest: "{{ gitdock_src_dir }}/GitDock{{ gitdock_latest_version }}.deb"
+  when:
+    - install_gitdock
+    - ansible_os_family == 'Debian'
+
+- name: "Ensure {{ app_name }} is installed (DEB)"
+  apt:
+    deb: "{{ gitdock_src_dir }}/GitDock{{ gitdock_latest_version }}.deb"
+    state: present
+  when:
+    - install_gitdock
+    - ansible_os_family == 'Debian'
+
+- name: "Ensure {{ app_name }} is installed (RPM)"
+  yum:
+    name: "https://gitlab.com/api/v4/projects/28462485/packages/generic/gitdock/{{ gitdock_latest_version | replace('v','') }}/GitDock.rpm"
+    state: present
+  when:
+    - install_gitdock
+    - ansible_os_family == 'RedHat'
+
+- name: "Ensure {{ app_name }} is installed (DMG)"
+  include_role:
+    name: dmginstall
+  vars:
+    dmgs:
+      - name: GitDock
+        url: "https://gitlab.com/api/v4/projects/28462485/packages/generic/gitdock/{{ gitdock_latest_version | replace('v','') }}/GitDock.dmg"
+  when:
+    - install_gitdock
+    - ansible_os_family == 'Darwin'
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/gitdock.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ gitdock_latest_version | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_gitdock

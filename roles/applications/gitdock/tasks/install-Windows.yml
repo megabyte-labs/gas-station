@@ -1,0 +1,37 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/gitdock'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\gitdock'
+  register: gitdock_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type gitdock
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_gitdock_version
+  when: gitdock_config.stat.exists
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gitdock: "{{ (current_gitdock_version.skipped | default(false)) or \
+      ((not current_gitdock_version.skipped | default(false)) and \
+      (current_gitdock_version.stdout | trim != gitdock_latest_version | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_package:
+    src: "https://gitlab.com/api/v4/projects/28462485/packages/generic/gitdock/{{ gitdock_latest_version | replace('v','') }}/GitDock.exe"
+    state: present
+  when: install_gitdock
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\gitdock'
+    content: |
+      {{ gitdock_latest_version  | replace('v','') }}
+  when: install_gitdock

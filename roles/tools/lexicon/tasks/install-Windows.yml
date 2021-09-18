@@ -1,0 +1,16 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_command: pip install -U dns-lexicon[full]
+
+- name: Ensure configuration file is created
+  ansible.windows.win_copy:
+    dest: "{{ lexicon_config_path }}"
+    content: "{{ user.lexicon_config | to_nice_yaml(indent=2, width=1000) }}"
+    backup: true
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.lexicon_config is defined

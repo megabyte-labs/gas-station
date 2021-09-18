@@ -1,0 +1,23 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name: zoxide
+    state: "{{ app_state | default('present') }}"
+  when: (ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 11) or
+    (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 21)
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - (ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 11) or
+        (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 21)
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+  when: not ((ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 11) or
+    (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 21))

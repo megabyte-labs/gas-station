@@ -2,18 +2,11 @@
 - name: "Ensure {{ app_name }} is installed"
   become: false
   community.general.homebrew:
-    name: git-delta
+    name: zoxide
     state: "{{ app_state | default('present') }}"
 
-- name: "Ensure {{ app_name }} config is added to ~/.gitconfig"
-  become_user: "{{ user.username }}"
-  blockinfile:
-    path: ~/.gitconfig
-    marker: "# {mark} Ansible managed block for delta"
-    backup: true
-    create: true
-    mode: 0700
-    block: "{{ lookup('file', 'gitconfig') }}"
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"

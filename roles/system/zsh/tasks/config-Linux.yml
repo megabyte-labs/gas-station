@@ -31,3 +31,46 @@
     regexp: "^ZSH_THEME="
     line: '{{ ''ZSH_THEME="'' + omz_theme + ''"'' }}'
     backup: true
+
+- name: Ensure zsh-autocomplete directory exists
+  become_user: "{{ user.username }}"
+  file:
+    dest: ~/.local/share/zsh-autocomplete
+    state: directory
+    mode: 0700
+
+- name: Ensure zsh-autocomplete is cloned and up-to-date
+  become_user: "{{ user.username }}"
+  git:
+    repo: 'https://github.com/marlonrichert/zsh-autocomplete.git'
+    dest: ~/.local/share/zsh-autocomplete
+    version: master
+    depth: 1
+
+- name: Ensure zsh-autocomplete configuration is added
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshrc
+    line: 'source ~/Git/zsh-autocomplete/zsh-autocomplete.plugin.zsh'
+    insertbefore: BOF
+    backup: true
+    create: true
+    mode: 0700
+
+- name: Ensure compinit settings are commented out
+  become_user: "{{ user.username }}"
+  replace:
+    path: ~/.zshrc
+    regexp: '^.*compinit.*$'
+    replace: '# \1'
+    backup: true
+
+- name: Ensure zsh-autocomplete configuration is added to Ubuntu
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshenv
+    line: 'skip_global_compinit=1'
+    backup: true
+    create: true
+    mode: 0700
+  when: ansible_distribution == 'Ubuntu'

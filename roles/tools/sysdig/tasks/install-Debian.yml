@@ -1,0 +1,36 @@
+---
+- name: "Add {{ app_name }}'s apt key"
+  apt_key:
+    state: present
+    url: "{{ sysdig_apt_key_url }}"
+
+- name: "Add {{ app_name }}'s apt repository"
+  apt_repository:
+    filename: "{{ app_name | lower | replace(' ', '-') }}"
+    repo: "{{ sysdig_apt_repository }}"
+    state: present
+    update_cache: true
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name:
+      - "linux-headers-{{ ansible_kernel }}"
+      - sysdig
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure sysdig group exists
+  group:
+    name: sysdig
+    state: present
+
+- name: Ensure sysdig users are added to the sysdig group
+  user:
+    name: "{{ user.username }}"
+    groups:
+      - sysdig
+    append: true
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: user.sysdiguser is defined and user.sysdiguser

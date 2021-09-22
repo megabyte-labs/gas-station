@@ -1,0 +1,35 @@
+---
+- name: "Add {{ app_name }}'s yum repository"
+  yum_repository:
+    baseurl: "{{ sysdig_rpm_repository }}"
+    description: "{{ app_name }}'s repository"
+    gpgcheck: true
+    gpgkey: "{{ sysdig_rpm_key }}"
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+    repo_gpgcheck: false
+
+- name: "Ensure {{ app_name }} is installed"
+  yum:
+    name:
+      - "kernel-headers-{{ ansible_kernel }}"
+      - sysdig
+    state: "{{ app_state | default('present') }}"
+    enable_repo: epel
+    update_cache: true
+
+- name: Ensure sysdig group exists
+  group:
+    name: sysdig
+    state: present
+
+- name: Ensure sysdig users are added to the sysdig group
+  user:
+    name: "{{ user.username }}"
+    groups:
+      - sysdig
+    append: true
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: user.sysdiguser is defined and user.sysdiguser

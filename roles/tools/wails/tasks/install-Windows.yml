@@ -1,0 +1,76 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if tdm-gcc has configuration stored in '%USERPROFILE%/.config/megabytelabs/tdm_gcc'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\tdm_gcc'
+  register: tdm_gcc_config
+
+- name: Detect previously installed tdm-gcc version
+  ansible.windows.win_shell: type tdm_gcc
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_tdm_gcc_version
+  when: tdm_gcc_config.stat.exists
+
+- name: Detect the latest tdm-gcc version
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/jmeubank/tdm-gcc/releases
+    return_content: true
+  register: tdm_gcc_releases
+
+- name: Detect URL of the latest tdm-gcc version
+  set_fact:
+    tdm_gcc_latest_version_url: "{{ (tdm_gcc_releases.json | map(attribute='assets') | \
+      flatten | selectattr('browser_download_url','match','.*\\d.exe$'))[0].browser_download_url }}"
+
+- name: Detect the latest tdm-gcc version
+  set_fact:
+    tdm_gcc_latest_version: "{{ tdm_gcc_latest_version_url | regex_search('(((\\d+\\.)*\\d+)(-\\d)*)') }}"
+
+- name: Determine whether or not the latest version of tdm-gcc is already installed
+  set_fact:
+    install_tdm_gcc: "{{ (current_tdm_gcc_version.skipped | default(false)) or \
+      ((not current_tdm_gcc_version.skipped | default(false)) and (current_tdm_gcc_version.stdout | trim != tdm_gcc_latest_version)) }}"
+
+- name: Ensure tdm-gcc is installed
+  ansible.windows.win_package:
+    path: "{{ tdm_gcc_latest_version_url }}"
+  when: install_tdm_gcc
+
+- name: Save meta information about the version of tdm-gcc that was installed
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\tdm_gcc'
+    content: |
+      {{ tdm_gcc_latest_version }}
+  when: install_tdm_gcc
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_command: go get -u github.com/wailsapp/wails/cmd/wails
+  args:
+    creates: "{{ wails_goroot }}/bin/wails"
+  environment:
+    GOPATH: "{{ wails_goroot }}"
+
+- name: "Ensure {{ app_name }} is added to PATH"
+  ansible.windows.win_path:
+    elements:
+      - "{{ wails_goroot }}/bin/wails"
+
+- name: "Ensure {{ app_name }} is setup"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: wails.json.j2
+    dest: '%USERPROFILE%\.wails\wails.json'
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.wails_name is defined
+    - user.wails_email is defined

@@ -1,0 +1,21 @@
+---
+- name: "Ensure {{ app_name }} is built"
+  command: go install github.com/gabrie30/ghorg@latest
+  args:
+    creates: "{{ ghorg_goroot }}/bin/ghorg"
+  environment:
+    GOPATH: "{{ ghorg_goroot }}"
+
+- name: "Ensure {{ app_name }} is linked"
+  file:
+    src: "{{ ghorg_goroot }}/bin/ghorg"
+    dest: /usr/local/bin/ghorg
+    state: link
+
+- name: Run Linux user tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

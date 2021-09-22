@@ -1,0 +1,28 @@
+---
+- name: "Collect {{ app_name }} registration status"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: warp-cli status
+  register: warp_status
+
+- name: "Ensure {{ app_name }} is registered"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: warp-cli register
+  when: "'Registration missing' in warp_status.stdout"
+
+- name: "Ensure {{ app_name }} is connected"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: warp-cli connect
+  when: "'Registration missing' in warp_status.stdout"
+
+- name: "Ensure {{ app_name }} Always-On mode is enabled"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: warp-cli enable-always-on
+  when: "'Registration missing' in warp_status.stdout"
+
+- name: "Ensure {{ app_name }}'s AppImage is copied"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: warp-cli teams-enroll {{ user.cloudflare_teams_client_id }} {{ user.cloudflare_teams_client_secret }}
+  when:
+    - user.cloudflare_teams_client_id is defined and user.cloudflare_teams_client_id | length > 0
+    - user.cloudflare_teams_client_secret is defined and user.cloudflare_teams_client_secret | length >0
+    - "'Registration missing' in warp_status.stdout"

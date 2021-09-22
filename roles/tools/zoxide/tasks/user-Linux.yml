@@ -1,0 +1,25 @@
+---
+- name: "Ensure {{ app_name }} is configured" # noqa 301
+  become_user: "{{ user.username }}"
+  command: zoxide init {{ 'zsh' if ansible_os_family == 'Darwin' else 'bash' }}
+  environment:
+    _ZO_DATA_DIR: "{{ '$HOME/Library/Application Support' if ansible_os_family == 'Darwin' else '$HOME/.local/share' }}"
+    _ZO_ECHO: 1
+
+- name: Ensure ~/.bashrc is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.bashrc
+    line: 'eval "$(zoxide init bash)"'
+    backup: true
+    create: true
+    mode: 0700
+
+- name: Ensure ~/.zshrc is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshrc
+    line: 'eval "$(zoxide init zsh)"'
+    backup: true
+    create: true
+    mode: 0700

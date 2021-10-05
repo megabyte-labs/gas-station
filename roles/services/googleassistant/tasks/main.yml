@@ -1,0 +1,20 @@
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client/releases/latest
+  register: googleassistant_latest_release_tag
+  delegate_to: localhost
+
+- name: "Save the latest {{ app_name }} version to a variable"
+  set_fact:
+    googleassistant_latest_version: "{{ googleassistant_latest_release_tag.json.tag_name | replace('v','') }}"
+
+- name: Include tasks based on the operating system
+  become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"

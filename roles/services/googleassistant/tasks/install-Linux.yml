@@ -1,0 +1,49 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ googleassistant_src_dir }} directory exists"
+  file:
+    path: "{{ googleassistant_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_googleassistant: "{{ (ansible_local.googleassistant is not defined) or \
+      ((ansible_local.googleassistant is defined) and (ansible_local['googleassistant']['settings']['version'] != googleassistant_latest_version)) }}"
+
+- name: "Acquire {{ app_name }}'s AppImage"
+  get_url:
+    url: "https://github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client/releases/download/\
+      {{ googleassistant_latest_release_tag.json.tag_name }}/Google_Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
+    dest: "{{ googleassistant_src_dir }}/Google_Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
+  when: install_googleassistant
+
+- name: "Ensure {{ app_name }}'s AppImage is removed from /usr/local/src"
+  file:
+    path: "{{ googleassistant_src_dir }}/Google_Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
+    state: absent
+  when: install_googleassistant
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/googleassistant.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ googleassistant_latest_version }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_googleassistant
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

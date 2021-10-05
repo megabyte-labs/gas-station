@@ -15,14 +15,18 @@
   args:
     creates: "{{ tmp_dir }}/{{ dmg.name }}"
 
+- name: Find the name of the Application folder
+  command: find "{{ tmp_dir }}/{{ dmg.name }}" -type d -maxdepth 1 -name '*.app'
+  register: app_glob
+  changed_when: false
+
 - name: Copy the application to the Applications folder
   copy:
+    src: "{{ app_glob.stdout }}"
     dest: "/Applications/"
     mode: preserve
     owner: root
-    src: "{{ item }}"
-  with_fileglob:
-    - "{{ tmp_dir }}/{{ dmg.name }}/*.app"
+    remote_src: true
 
 - name: Unmount the DMG file
   command: "hdiutil detach {{ tmp_dir }}/{{ dmg.name }}"

@@ -1,0 +1,47 @@
+---
+- name: "Ensure {{ software_item }} is installed (dnf)"
+  dnf:
+    name: "{{ software_package[software_item]['dnf'] }}"
+    state: present
+  when: "'dnf' in available_methods"
+  register: dnf_result
+  failed_when: "dnf_result.rc == 1 and 'Failed to install' not in dnf_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (Binary)"
+  get_url:
+    url: "{{ software_package[software_item]['binary'] }}"
+    dest: "/usr/local/bin/{{ software_item }}"
+    mode: 0755
+  when:
+    - "'binary' in available_methods"
+    - "(dnf_result.rc is defined and dnf_result.rc == 1 and 'Failed to install' in dnf_result.msg) or dnf_result.skipped is defined or \
+        ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
+  register: binary_result
+  failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (snap)"
+  snap:
+    name: "{{ software_package[software_item]['snap'] }}"
+    state: present
+  when:
+    - "'snap' in available_methods"
+    - "(dnf_result.rc is defined and dnf_result.rc == 1 and 'Failed to install' in dnf_result.msg) or dnf_result.skipped is defined or \
+        ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+  register: snap_result
+  failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (GitHub)"
+  include_role:
+    name: githubbinary
+  vars:
+    github_binaries:
+      - "{{ software_package[software_item]['github'] }}"
+  when:
+    - "'github' in available_methods"
+    - "(dnf_result.rc is defined and dnf_result.rc == 1 and 'Failed to install' in dnf_result.msg) or dnf_result.skipped is defined or \
+        ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+    - snap_result.msg is defined or snap_result.skipped is defined or ((snap_result.changed and snap_result.failed) and (not snap_result.changed))

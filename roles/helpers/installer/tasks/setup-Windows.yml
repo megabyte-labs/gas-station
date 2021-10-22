@@ -1,0 +1,55 @@
+---
+- name: "Ensure {{ software_item }} is installed (Chocolatey)"
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ software_package[software_item]['choco'] }}"
+    state: present
+  when: "'choco' in available_methods"
+  register: choco_result
+  failed_when: "choco_result.rc == 1 and 'The package was not found' not in choco_result.stdout"
+
+- name: "Ensure {{ software_item }} is installed (Scoop)"
+  community.windows.win_scoop:
+    name: "{{ software_package[software_item]['scoop'] }}1"
+    state: present
+  when:
+    - "'scoop' in available_methods"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
+        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
+  register: scoop_result
+  failed_when: "scoop_result.stdout is defined and not ('installed successfully' in scoop_result.stdout or \
+    'Couldn\\'t find manifest for' in scoop_result.stdout)"
+  changed_when: "scoop_result.stdout is defined and 'installed successfully' in scoop_result.stdout"
+
+- name: "Ensure {{ software_item }} is installed (Binary)"
+  block:
+    - name: "Ensure C:/Program Files/{{ software_item }} folder exists"
+      ansible.windows.win_file:
+        path: "C:/Program Files/{{ software_item }}"
+        state: directory
+    - name: "Ensure {{ software_item }} is installed (Binary)"
+      ansible.windows.win_get_url:
+        url: "{{ software_package[software_item]['exe'] }}"
+        dest: "C:/Program Files/{{ software_item }}/{{ software_item }}.exe"
+      register: binary_result
+      failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+    - name: "Ensure {{ software_item }} is added to PATH"
+      ansible.windows.win_path:
+        elements:
+          - "C:/Program Files/{{ software_item }}"
+  when:
+    - "'exe' in available_methods"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
+        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
+    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout"
+
+- name: "Ensure {{ software_item }} is installed (GitHub)"
+  include_role:
+    name: githubbinary
+  vars:
+    github_binaries:
+      - "{{ software_package[software_item]['github'] }}"
+  when:
+    - "'github' in available_methods"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
+        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
+    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout"

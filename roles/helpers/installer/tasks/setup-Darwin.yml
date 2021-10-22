@@ -1,0 +1,42 @@
+---
+- name: "Ensure {{ software_item }}'s Homebrew Tap is installed"
+  become: false
+  community.general.homebrew_tap:
+    name: "{{ software_package[software_item]['brew_tap'] }}"
+    state: present
+  when: software_package[software_item]['brew_tap'] is defined
+
+- name: "Ensure {{ software_item }} is installed (Homebrew)"
+  become: false
+  community.general.homebrew:
+    name: "{{ software_package[software_item]['brew'] }}"
+    state: present
+  when: "'brew' in available_methods"
+  register: brew_result
+  failed_when: "'No available formula or cask with the name' not in brew_result.msg and 'already installed' not in brew_result.msg and \
+    'Package installed' not in brew_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (Binary)"
+  get_url:
+    url: "{{ software_package[software_item]['binary'] }}"
+    dest: "/usr/local/bin/{{ software_item }}"
+    mode: 0755
+  when:
+    - "'binary' in available_methods"
+    - "'No available formula or cask with the name' in brew_result.msg or brew_result.skipped is defined or \
+        ((brew_result.changed and brew_result.failed) and (not brew_result.changed))"
+  register: binary_result
+  failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (GitHub)"
+  include_role:
+    name: githubbinary
+  vars:
+    github_binaries:
+      - "{{ software_package[software_item]['github'] }}"
+  when:
+    - "'github' in available_methods"
+    - "'No available formula or cask with the name' in brew_result.msg or brew_result.skipped is defined or \
+        ((brew_result.changed and brew_result.failed) and (not brew_result.changed))"
+    - "binary_result.msg is defined and 'Request failed' in binary_result.msg or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"

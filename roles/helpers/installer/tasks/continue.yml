@@ -1,0 +1,18 @@
+---
+- name: Ensure software is installed
+  block:
+    - name: Find the avaliable installation methods
+      set_fact:
+        available_methods: "{{ available_methods | default([]) + [installation_method] }}"
+      when: software_package[software_item] | dict2items | selectattr('key','equalto',installation_method) | length > 0
+      loop: "{{ preferred_installation_methods }}"
+      loop_control:
+        label: "{{ installation_method }}"
+        loop_var: installation_method
+    - name: "Run generic {{ ansible_os_family }} tasks"
+      include_tasks: setup-{{ ansible_os_family }}.yml
+  when: "'.' not in software_item"
+
+- name: Ensure software is installed from Ansible Galaxy
+  include_tasks: role.yml
+  when: "'.' in software_item"

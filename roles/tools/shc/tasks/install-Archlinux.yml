@@ -1,0 +1,34 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ shc_dependencies }}"
+    state: present
+    update_cache: true
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ shc_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ shc_src_dir }}"
+    repo: "{{ shc_aur_git_repository }}"
+    version: master
+  register: shc_git
+
+- name: "Remove /usr/sbin/shc if the source files have changed" # noqa 503
+  file:
+    path: /usr/sbin/shc
+    state: absent
+  when: shc_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ shc_src_dir }}"
+    creates: /usr/sbin/shc

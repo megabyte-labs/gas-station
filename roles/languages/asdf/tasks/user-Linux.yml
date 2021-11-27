@@ -1,9 +1,16 @@
 ---
 - name: "Ensure {{ app_name }}'s dependencies are installed"
-  become_user: root
   package:
     name: "{{ asdf_dependencies }}"
     state: present
+  when: ansible_os_family != 'Darwin'
+
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  become_user: "{{ user.username }}"
+  package:
+    name: "{{ asdf_dependencies_darwin }}"
+    state: present
+  when: ansible_os_family == 'Darwin'
 
 - name: Ensure custom facts directory exists
   file:
@@ -115,6 +122,7 @@
   when: install_asdf
 
 - name: Ensure NodeJS ASDF Plugin is installed
+  become_user: "{{ user.username }}"
   shell: |
     . "$ASDF_DIR/asdf.sh"
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -127,6 +135,7 @@
   changed_when: not (asdf_node_plugin_install.rc == 2 and 'Plugin named nodejs already added' in asdf_node_plugin_install.stderr)
 
 - name: Configure the default global packages
+  become_user: "{{ user.username }}"
   template:
     src: default-npm-packages.j2
     dest: ~/.default-npm-packages
@@ -134,6 +143,7 @@
   when: nodejs_npm_global_packages | default([]) | length
 
 - name: Ensure .tool-versions file is created
+  become_user: "{{ user.username }}"
   lineinfile:
     path: ~/.tool-versions
     regex: "nodejs {{ nodejs_version | replace('.x','.0.0') }}"
@@ -144,6 +154,7 @@
   when: nodejs_version is defined and nodejs_version | length > 0
 
 - name: Ensure NodeJS and default packages are installed
+  become_user: "{{ user.username }}"
   shell: |
     . "$ASDF_DIR/asdf.sh"
     asdf install

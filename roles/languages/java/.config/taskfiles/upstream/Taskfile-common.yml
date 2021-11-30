@@ -1,0 +1,221 @@
+---
+version: '3'
+
+vars:
+  COMMON_FOLDER: .common
+  DOCS_URL: https://gitlab.com/megabyte-labs/documentation/{{.REPOSITORY_SUBTYPE}}
+  SHARED_COMMON_URL: https://gitlab.com/megabyte-labs/common/shared.git
+  SHARED_FOLDER: .shared
+
+tasks:
+  clean: rm -rf {{.SHARED_FOLDER}}
+
+  clone:
+    cmds:
+      - task: clone:common
+      - task: clone:docs
+
+  clone:common:
+    cmds:
+      - rm -rf ./{{.SHARED_FOLDER}}
+      - git clone --depth=1 {{.SHARED_COMMON_URL}} ./{{.SHARED_FOLDER}}
+      - rm -rf ./{{.SHARED_FOLDER}}/.git
+
+  clone:docs:
+    cmds:
+      - mkdir -p ./{{.SHARED_FOLDER}}/common/.config
+      - rm -rf ./{{.SHARED_FOLDER}}/.config/docs
+      - git clone --depth=1 {{.DOCS_URL}} ./{{.SHARED_FOLDER}}/common/.config/docs
+      - |
+        cd ./{{.SHARED_FOLDER}}/common/.config/docs
+        rm -rf .git .config .github .gitlab .vscode .editorconfig .gitignore .gitlab-ci.yml
+        rm -rf LICENSE Taskfile.yml package-lock.json package.json poetry.lock pyproject.toml
+
+  combine:
+    cmds:
+      - mkdir -p _generated_
+      - mv .common* _generated_
+      - |
+        mv _generated_/.common _generated_/common
+        for FOLDER in _generated_/.common-*; do
+          TARGET="$(echo $FOLDER | sed 's/^_generated_\/.common-//')"
+          mv "$FOLDER" "_generated_/$TARGET"
+        done
+
+  copy:
+    deps:
+      - copy:common
+      - copy:project
+      - copy:project:subtype
+
+  copy:common:
+    cmds:
+      - cp -rT ./{{.SHARED_FOLDER}}/common/ .
+      - task: :common:husky:permissions
+
+  copy:project:
+    cmds:
+      - cp -rT ./{{.SHARED_FOLDER}}/common ./{{.COMMON_FOLDER}}
+      - if [ ! -d project ]; then mkdir project; fi
+      - cp -rT project ./{{.COMMON_FOLDER}}
+
+  copy:project:subtype:
+    cmds:
+      - |
+        for FOLDER in project-*/; do
+          SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
+          cp -rT "$FOLDER" "./{{.COMMON_FOLDER}}-$SUBTYPE" &
+        done
+        wait
+
+  merge:
+    deps:
+      - merge:package
+      - merge:variables
+
+  merge:package:
+    cmds:
+      - task: merge:package:project
+      - task: merge:package:project:subtype
+
+  merge:package:project:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        function ensureKeywords() {
+          if [ ! -f "$1" ]; then echo "{}" > "$1"; fi
+          KEYWORDS="$(jq -r '.keywords' "$1")"
+          if [ "$KEYWORDS" == 'null' ] || [ "$KEYWORDS" == '' ]; then
+            TMP="$(mktemp)"
+            jq -r '.keywords = [] | .' "$1" > "$TMP"
+            mv "$TMP" "$1"
+          fi
+        }
+
+        function mergePackages() {
+          # Ensure array exists in both JSON files
+          ensureKeywords "$1"
+          ensureKeywords "$2"
+
+          # Merge the files
+          TMP="$(mktemp)"
+          jq --arg keywords "$(jq '.keywords[]' "$1" "$2" | jq -s '. | unique')" -s -S \
+            '.[0] * .[1] | .keywords = ($keywords | fromjson) | .' "$1" "$2" > "$TMP"
+          mv "$TMP" "$3"
+        }
+
+        mergePackages "./{{.SHARED_FOLDER}}/common/package.hbs.json" "./project/package.hbs.json" "./{{.COMMON_FOLDER}}/package.hbs.json"
+
+  merge:package:project:subtype:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        function ensureKeywords() {
+          if [ ! -f "$1" ]; then echo "{}" > "$1"; fi
+          KEYWORDS="$(jq -r '.keywords' "$1")"
+          if [ "$KEYWORDS" == 'null' ] || [ "$KEYWORDS" == '' ]; then
+            TMP="$(mktemp)"
+            jq -r '.keywords = [] | .' "$1" > "$TMP"
+            mv "$TMP" "$1"
+          fi
+        }
+
+        function mergePackages() {
+          # Ensure array exists in both JSON files
+          ensureKeywords "$1"
+          ensureKeywords "$2"
+
+          # Merge the files
+          TMP="$(mktemp)"
+          jq --arg keywords "$(jq '.keywords[]' "$1" "$2" | jq -s '. | unique')" -s -S '.[0] * .[1] | .keywords = ($keywords | fromjson) | .' "$1" "$2" > "$TMP"
+          mv "$TMP" "$3"
+        }
+
+        for FOLDER in project-*/; do
+          SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
+          mergePackages "./{{.COMMON_FOLDER}}/package.hbs.json" "project-$SUBTYPE/package.hbs.json" "./{{.COMMON_FOLDER}}-$SUBTYPE/package.hbs.json" &
+        done
+        wait
+
+  merge:variables:
+    cmds:
+      - task: merge:variables:project
+      - task: merge:variables:subtype
+
+  merge:variables:project:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        if [ -f "project/.config/variables.json" ]; then
+          jq -s -S '.[0] * .[1]' "./{{.COMMON_FOLDER}}/.config/docs/variables.json" \
+            "project/.config/variables.json" > "./{{.COMMON_FOLDER}}/.config/variables.json"
+        else
+          cp ./{{.COMMON_FOLDER}}/.config/docs/variables.json ./{{.COMMON_FOLDER}}/.config/variables.json
+        fi
+
+  merge:variables:subtype:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        GROUP="$(jq -r '.blueprint.group' package.json)"
+        if [ "$GROUP" == 'null' ]; then
+          GROUP="$(yq e '.vars.REPOSITORY_TYPE' Taskfile.yml)"
+          if [ "$GROUP" == 'null' ]; then
+            echo "ERROR '.blueprint.group' did not exist in the package.json and the fallback '.vars.REPOSITORY_TYPE' did not exist in the Taskfile.yml"
+          fi
+        fi
+        function handleSubtype() {
+          FOLDER="$1"
+          SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
+          mkdir -p "./{{.COMMON_FOLDER}}-$SUBTYPE/.config"
+          TMP="$(mktemp)"
+          jq --arg group "$GROUP" --arg subtype "$SUBTYPE" '.subgroup = $subtype | .group = $group | .' ./{{.COMMON_FOLDER}}/.config/variables.json > "$TMP"
+          if [ -f "project-$SUBTYPE/.config/variables.json" ]; then
+            jq -s -S '.[0] * .[1]' "$TMP" "project-$SUBTYPE/.config/variables.json" > "./{{.COMMON_FOLDER}}-$SUBTYPE/.config/variables.json"
+          else
+            mv "$TMP" "./{{.COMMON_FOLDER}}-$SUBTYPE/.config/variables.json"
+          fi
+        }
+        for FOLDER in project-*/; do
+          handleSubtype "$FOLDER" &
+        done
+        wait
+
+  reset:
+    cmds:
+      - rm -rf .common*
+      - rm -rf _generated_
+
+  template:
+    deps:
+      - :install:modules:local
+      - :install:npm:hbs
+    cmds:
+      - task: :upstream:variables
+        vars:
+          INPUT_FILE: ./{{.COMMON_FOLDER}}/.config/docs/variables.json
+          OUTPUT_FILE: ./.variables.json
+      - task: template:files
+
+  template:files:
+    deps:
+      - template:files:handlebars
+      - template:files:hbs
+
+  template:files:handlebars:
+    vars:
+      IGNORES: -o -path './project*' -o -path './deprecated*' -o
+    cmds:
+      - task: :upstream:template:handlebars
+        vars:
+          ADDITIONAL_IGNORE_FOLDERS: -path './{{.COMMON_FOLDER}}*' -o -path './project*' -o -path './deprecated*' -o
+
+  template:files:hbs:
+    cmds:
+      - task: :upstream:template:hbs
+        vars:
+          ADDITIONAL_IGNORE_FOLDERS: -path './{{.COMMON_FOLDER}}*' -o -path './project*' -o -path './deprecated*' -o

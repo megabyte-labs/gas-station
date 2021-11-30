@@ -1,0 +1,37 @@
+---
+version: '3'
+
+tasks:
+  slim:
+    deps:
+      - :install:software:docker
+      - :install:software:dockerslim
+      - :install:software:jq
+    vars:
+      DOCKER_COMMAND:
+        sh: jq -r '.docker_command' .variables.json
+      SLUG:
+        sh: jq -r '.slug' .variables.json
+    cmds:
+      - |
+        if [[ "{{.DOCKER_COMMAND}}" != 'null' ]]; then
+          for TEST_SCENARIO in slim_test/*/; do
+            true info 'Capturing output from the `latest` image for the `'"$TEST_SCENARIO"'` scenario'
+            LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest {{.DOCKER_COMMAND}})
+            true info 'Capturing output from the `slim` image for the `'"$TEST_SCENARIO"'` scenario'
+            SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim {{.DOCKER_COMMAND}})
+            if [ "$LATEST_OUTPUT" == "$SLIM_OUTPUT" ]; then
+              true success "The 'slim' and 'latest' image outputs match for the '$TEST_SCENARIO' scenario."
+            else
+              true error 'The output from the `slim` image does not match the output from the `latest` image for the `'"$TEST_SCENARIO"'` scenario.'
+              exit 1
+            fi
+          done
+        fi
+    status:
+      - test ! -d slim_test
+    preconditions:
+      - sh: '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" != "" ]]'
+        msg: The slim image has not been built yet. Try running `task build`.
+      - sh: '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" == "" ]]'
+        msg: The regular image has not been built yet. Try running `task build`.

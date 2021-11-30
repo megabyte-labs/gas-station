@@ -1,0 +1,354 @@
+---
+version: '3'
+
+tasks:
+  brew:
+    deps:
+      - common
+    run: once
+    cmds:
+      - task: brew:{{OS}}
+    status:
+      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  brew:cask:
+    deps:
+      - brew
+    run: when_changed
+    cmds:
+      - brew install --cask {{.CASK}}
+    status:
+      - type {{.CASK}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  brew:darwin:
+    cmds:
+      - |
+        if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
+          eval "$(~/.local/homebrew/bin/brew shellenv)"
+        elif ! type brew &> /dev/null; then
+          rm -rf ~/.local/homebrew
+          mkdir -p ~/.local/homebrew
+          git clone https://github.com/Homebrew/brew ~/.local/homebrew
+          eval "$(~/.local/homebrew/bin/brew shellenv)"
+          brew update --force --quiet
+          chmod -R go-w "$(brew --prefix)/share/zsh"
+        fi
+
+  brew:formulae:
+    deps:
+      - brew
+    run: when_changed
+    cmds:
+      - brew install {{.FORMULAE}}
+    status:
+      - type {{.FORMULAE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  brew:linux:
+    run: once
+    cmds:
+      - |
+        function ensureSource() {
+          if ! (grep "/bin/brew shellenv" < cat "$1" &> /dev/null); then
+            echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
+          fi
+        }
+        case "${SHELL}" in
+          */bash*)
+            if [[ -r "${HOME}/.bash_profile" ]]; then
+              SHELL_PROFILE="${HOME}/.bash_profile"
+            else
+              SHELL_PROFILE="${HOME}/.profile"
+            fi
+            ;;
+          */zsh*)
+            SHELL_PROFILE="${HOME}/.zprofile"
+            ;;
+          *)
+            SHELL_PROFILE="${HOME}/.profile"
+            ;;
+        esac
+        if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
+          eval "$(~/.local/homebrew/bin/brew shellenv)"
+          ensureSource "$SHELL_PROFILE"
+        elif ! type brew &> /dev/null; then
+          rm -rf ~/.local/homebrew
+          mkdir -p ~/.local/homebrew
+          git clone https://github.com/Homebrew/brew ~/.local/homebrew
+          eval "$(~/.local/homebrew/bin/brew shellenv)"
+          brew update --force --quiet
+          ensureSource "$SHELL_PROFILE"
+        fi
+
+  brew:windows:
+    cmds:
+      - task: common:windows
+
+  common:
+    run: once
+    cmds:
+      - task: common:{{OS}}
+
+  common:darwin:
+    interactive: true
+    cmds:
+      - xcode-select --install
+    status:
+      - xcode-select -p 2&>1 /dev/null
+
+  common:linux:
+    vars:
+      LINUX_FAMILY:
+        sh: |
+          if [ -f "/etc/debian_version" ]; then
+            echo "debian"
+          elif [ -f "/etc/redhat-release" ]; then
+            echo "redhat"
+          elif [ -f "/etc/arch-release" ]; then
+            echo "archlinux"
+          else
+            echo "unknown"
+          fi
+    cmds:
+      - task: common:linux:{{.LINUX_FAMILY}}
+
+  common:linux:archlinux:
+    interactive: true
+    cmds:
+      - true warn "Archlinux support for Homebrew is not very well documented.. if this does not work and you can get it working, please open a PR :)"
+      - |
+        sudo pacman update
+        sudo pacman -S base-devel curl file git procps-ng
+    status:
+      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - ldconfig -p | grep base-devel || [[ "${container:=}" == "docker" ]]
+      - ldconfig -p | grep file || [[ "${container:=}" == "docker" ]]
+      - ldconfig -p | grep procps-ng || [[ "${container:=}" == "docker" ]]
+
+  common:linux:debian:
+    interactive: true
+    cmds:
+      - |
+        sudo apt-get update
+        sudo apt-get install build-essential curl file git procps
+    status:
+      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - dpkg-query -l build-essential &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - dpkg-query -l file &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - dpkg-query -l procps &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  common:linux:redhat:
+    interactive: true
+    cmds:
+      - |
+        sudo yum groupinstall 'Development Tools'
+        sudo yum install curl file git procps-ng
+        if [ -f '/etc/os-release' ]; then
+          source /etc/os-release
+          if [ "$ID" == 'fedora' ] && [ "$VERSION_ID" -gt "29" ]; then
+            sudo yum install libxcrypt-compat
+          fi
+        fi
+    status:
+      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - ldconfig -p | grep file || [[ "${container:=}" == "docker" ]]
+      - ldconfig -p | grep procps-ng || [[ "${container:=}" == "docker" ]]
+
+  common:linux:unknown:
+    cmds:
+      - true warn 'You are using an operating system that we do not directly support. Please make sure
+        the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.'
+
+  common:windows:
+    cmds:
+      - true error "Windows is not supported. Try using a Windows WSL environment."
+      - exit 1
+
+  docker:
+    run: once
+    cmds:
+      - task: docker:{{OS}}
+
+  docker:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: docker
+
+  docker:linux:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: docker
+
+  docker:windows:
+    cmds:
+      - task: common:windows
+
+  dockle:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: goodwithtech/r/dockle
+
+  exiftool:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: exiftool
+
+  gh:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gh
+
+  git:
+    deps:
+      - common
+    run: once
+
+  gitleaks:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gitleaks
+
+  glab:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: glab
+
+  go:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: go
+
+  jq:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: jq
+
+  node:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: node
+
+  poetry:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: poetry
+
+  python:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: python
+
+  rsync:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: rsync
+
+  sshpass:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: hudochenkov/sshpass/sshpass
+
+  tokei:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: tokei
+
+  trivy:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: aquasecurity/trivy/trivy
+
+  vagrant:
+    cmds:
+      - task: vagrant:{{OS}}
+
+  vagrant:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: vagrant
+
+  vagrant:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: vagrant
+
+  virtualbox:
+    cmds:
+      - task: virtualbox:{{OS}}
+
+  virtualbox:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: virtualbox
+
+  virtualbox:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: virtualbox
+
+  vmware:
+    cmds:
+      - task: vmware:{{OS}}
+
+  vmware:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: vmware-fusion
+
+  vmware:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: vmware
+
+  yq:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: yq

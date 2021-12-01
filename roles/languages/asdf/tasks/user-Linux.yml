@@ -1,22 +1,17 @@
 ---
 - name: "Ensure {{ app_name }}'s dependencies are installed"
+  become_user: root
   package:
     name: "{{ asdf_dependencies }}"
     state: present
-  when: ansible_os_family != 'Darwin'
-
-- name: "Ensure {{ app_name }}'s dependencies are installed"
-  become_user: "{{ user.username }}"
-  package:
-    name: "{{ asdf_dependencies_darwin }}"
-    state: present
-  when: ansible_os_family == 'Darwin'
+  when: ansible_system == 'Linux'
 
 - name: Ensure custom facts directory exists
   file:
     mode: 0755
     path: /etc/ansible/facts.d
     state: directory
+  when: ansible_system == 'Linux'
 
 - name: "Ensure {{ asdf_src_dir }}'s source directory exists"
   file:
@@ -24,17 +19,20 @@
     path: "{{ asdf_src_dir }}"
     owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
+  when: ansible_system == 'Linux'
 
 - name: "Detect the latest {{ app_name }} version"
   uri:
     url: https://api.github.com/repos/asdf-vm/asdf/tags
   register: asdf_latest_release_tag
+  when: ansible_system == 'Linux'
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_asdf: "{{ (ansible_local.asdf is not defined) or \
       ((ansible_local.asdf is defined) and \
       (ansible_local['asdf']['settings']['version'] != asdf_latest_release_tag.json[0].name | replace('v',''))) }}"
+  when: ansible_system == 'Linux'
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
   become: false
@@ -42,61 +40,63 @@
     repo: https://github.com/asdf-vm/asdf.git
     dest: "{{ asdf_src_dir }}"
     version: "{{ asdf_latest_release_tag.json[0].name }}"
-  when: install_asdf
+  when:
+    - ansible_system == 'Linux'
+    - install_asdf
 
 - name: "Ensure {{ app_name }}'s PATH is added to .bashrc"
   become_user: "{{ user.username }}"
   lineinfile:
     path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
     create: true
-    regex: |
-      {% if ansible_system == 'Linux' %}
+    regex: >-
+      {%- if ansible_system == 'Linux' -%}
       . {{ asdf_src_dir }}/asdf.sh
-      {% else %}
+      {%- else -%}
       . $(brew --prefix asdf)/asdf.sh
-      {% endif %}
-    line: |
-      {% if ansible_system == 'Linux' %}
+      {%- endif -%}
+    line: >-
+      {%- if ansible_system == 'Linux' -%}
       . {{ asdf_src_dir }}/asdf.sh
-      {% else %}
+      {%- else -%}
       . $(brew --prefix asdf)/asdf.sh
-      {% endif %}
+      {%- endif -%}
     mode: 0700
 
 - name: Ensure Bash completions is setup
   become_user: "{{ user.username }}"
   lineinfile:
     path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
-    regex: |
-      {% if ansible_system == 'Linux' %}
+    regex: >-
+      {%- if ansible_system == 'Linux' -%}
       . {{ asdf_src_dir }}/completions/asdf.bash
-      {% else %}
+      {%- else -%}
       . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
-      {% endif %}
-    line: |
-      {% if ansible_system == 'Linux' %}
+      {%- endif -%}
+    line: >-
+      {%- if ansible_system == 'Linux' -%}
       . {{ asdf_src_dir }}/completions/asdf.bash
-      {% else %}
+      {%- else -%}
       . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
-      {% endif %}
+      {%- endif -%}
 
 - name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
   become_user: "{{ user.username }}"
   lineinfile:
     path: ~/.zshrc
     create: true
-    regex: |
-      {% if ansible_system == 'Linux' %}
+    regex: >-
+      {%- if ansible_system == 'Linux' -%}
       . {{ asdf_src_dir }}/asdf.sh
-      {% else %}
+      {%- else -%}
       . $(brew --prefix asdf)/asdf.sh
-      {% endif %}
-    line: |
-      {% if ansible_system == 'Linux' %}
+      {%- endif -%}
+    line: >-
+      {%- if ansible_system == 'Linux' -%}
       . {{ asdf_src_dir }}/asdf.sh
-      {% else %}
+      {%- else -%}
       . $(brew --prefix asdf)/asdf.sh
-      {% endif %}
+      {%- endif -%}
     mode: 0700
 
 - name: Ensure ZSH completions is setup
@@ -119,7 +119,9 @@
     value: "{{ asdf_latest_release_tag.json[0].name | replace('v','') }}"
     backup: true
     no_extra_spaces: true
-  when: install_asdf
+  when:
+    - ansible_system == 'Linux'
+    - install_asdf
 
 - name: Ensure NodeJS ASDF Plugin is installed
   become_user: "{{ user.username }}"
@@ -127,19 +129,21 @@
     . "$ASDF_DIR/asdf.sh"
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
   environment:
-    ASDF_DIR: "{{ ('/home/' if ansible_system == 'Linux' else '/Users/') + user.username + '/.local/asdf' }}"
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/opt/asdf' }}"
   args:
     executable: /bin/bash
   register: asdf_node_plugin_install
-  failed_when: not (asdf_node_plugin_install.rc == 2 and 'Plugin named nodejs already added' in asdf_node_plugin_install.stderr)
-  changed_when: not (asdf_node_plugin_install.rc == 2 and 'Plugin named nodejs already added' in asdf_node_plugin_install.stderr)
+  failed_when: asdf_node_plugin_install.rc != 0 and
+    not (asdf_node_plugin_install.rc == 2 and 'Plugin named nodejs already added' in asdf_node_plugin_install.stderr)
+  changed_when: asdf_node_plugin_install.rc != 0 and
+    not (asdf_node_plugin_install.rc == 2 and 'Plugin named nodejs already added' in asdf_node_plugin_install.stderr)
 
 - name: Configure the default global packages
   become_user: "{{ user.username }}"
   template:
     src: default-npm-packages.j2
     dest: ~/.default-npm-packages
-    mode: 0400
+    mode: 0600
   when: nodejs_npm_global_packages | default([]) | length
 
 - name: Ensure .tool-versions file is created
@@ -150,7 +154,7 @@
     line: "nodejs {{ nodejs_version | replace('.x','.0.0') }}"
     backup: true
     create: true
-    mode: 0500
+    mode: 0600
   when: nodejs_version is defined and nodejs_version | length > 0
 
 - name: Ensure NodeJS and default packages are installed
@@ -159,7 +163,8 @@
     . "$ASDF_DIR/asdf.sh"
     asdf install
   environment:
-    ASDF_DIR: "{{ ('/home/' if ansible_system == 'Linux' else '/Users/') + user.username + '/.local/asdf' }}"
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/opt/asdf' }}"
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   args:
     executable: /bin/bash
   register: asdf_node_install

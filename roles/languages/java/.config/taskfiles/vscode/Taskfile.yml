@@ -29,12 +29,12 @@ tasks:
         TMP_JQ="$(mktemp)"
         jq -cRrs 'split("\n") | "{ \"recommendations\": \(.) }"' < "$TMP_YQ" > "$TMP_JQ"
         sed 's/,""//' < "$TMP_JQ" > '{{.EXTENSIONS_FILE}}'
-      - prettier --write '{{.EXTENSIONS_FILE}}'
+      - prettier --write '{{.EXTENSIONS_FILE}}' &
 
   generate:
-    deps:
-      - extensions
-      - tasks
+    cmds:
+      - task vscode:extensions &
+      - task vscode:tasks &
 
   tasks:
     deps:
@@ -71,4 +71,4 @@ tasks:
           fi
         done <<< "$TASK_LIST"
         jq --arg tasks "${TASKS%?}]" '.tasks = ($tasks | fromjson)' "$TMP" > '{{.TASKS_FILE}}'
-      - prettier --write '{{.TASKS_FILE}}'
+      - prettier --write '{{.TASKS_FILE}}' &

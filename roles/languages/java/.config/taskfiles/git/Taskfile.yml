@@ -59,8 +59,9 @@ tasks:
     run: once
     cmds:
       - cmd: >
-          if [ ! -z "$GITHUB_TOKEN" ] && test -e .git && ! gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} > /dev/null; then
-            gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.DESCRIPTION}}" --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}}
+          if [ ! -z "$GITHUB_TOKEN" ] && test -e .git && ! gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} 2&>1 /dev/null; then
+            gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "🔥👉 {{.DESCRIPTION}} 🚀" \
+              --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} 2&>1 /dev/null
           else
             true warn 'The `GITHUB_TOKEN` environment variable is not set so the GitLab repository cannot be updated via the API.'
           fi
@@ -104,7 +105,7 @@ tasks:
     cmds:
       - >
         if [ ! -z "$GITHUB_TOKEN" ]; then
-          gh api -X PATCH repos/{owner}/{repo} -f description="{{.DESCRIPTION}}" -f homepage="{{.HOMEPAGE}}" \
+          gh api -X PATCH repos/{owner}/{repo} -f description="🔥👉 {{.DESCRIPTION}} 🚀" -f homepage="{{.HOMEPAGE}}" \
             -f has_issues={{.GITHUB_ISSUES}} -f has_wiki={{.GITHUB_WIKI}} -f private="{{.PRIVATE}}" --silent
           RESULT="$TOPICS"
           if [ "$TOPICS_LENGTH" -gt 20 ]; then
@@ -170,7 +171,7 @@ tasks:
     cmds:
       - cmd: >
           if [ ! -z "$GITLAB_TOKEN" ] && test -e .git && ! glab repo view '{{.GITLAB_PATH}}' > /dev/null; then
-            glab repo create '{{.GITLAB_PATH}}' --group '{{.GITLAB_GROUP}}' --description '{{.DESCRIPTION}}' --name '{{.NAME}}' \
+            glab repo create '{{.GITLAB_PATH}}' --group '{{.GITLAB_GROUP}}' --description '🔥👉 {{.DESCRIPTION}} 🚀' --name '{{.NAME}}' \
               {{.PROJECT_TYPE}} --tag '$KEYWORDS'
           else
             true warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository cannot be created.'
@@ -325,7 +326,7 @@ tasks:
           PROJECT_ID="$(glab api projects/:fullpath -X PUT -f build_coverage_regex="{{.TEST_COVERAGE_REGEX}}" \
           -f wiki_enabled={{.GITLAB_WIKI}} -f visibility="{{.PROJECT_TYPE}}" -f topics="$KEYWORDS" | jq '.id')"
           curl -s -H 'Content-Type: application/json' -H "Authorization: Bearer $GITLAB_TOKEN" -X PUT --data \
-          '{"description": "{{.DESCRIPTION}}", "issues_template": "{{.ISSUES_TEMPLATE}}", "name": "{{.NAME}}"}' \
+          '{"description": "🔥👉 {{.DESCRIPTION}} 🚀", "issues_template": "{{.ISSUES_TEMPLATE}}", "name": "{{.NAME}}"}' \
           "https://gitlab.com/api/v4/projects/$PROJECT_ID" > /dev/null
         else
           true warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository cannot be updated via the API.'

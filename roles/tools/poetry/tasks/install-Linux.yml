@@ -1,0 +1,45 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become_user: "{{ user.username }}"
+  shell: |
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+  args:
+    creates: ~/.poetry/bin
+
+- name: Ensure Bash completions is setup
+  shell: |
+    ~/.poetry/bin/poetry completions bash > /etc/bash_completion.d/poetry.bash-completion
+  args:
+    creates: /etc/bash_completion.d/poetry.bash-completion
+  when: ansible_system == 'Linux'
+
+- name: Ensure Bash completions is setup
+  shell: |
+    ~/.poetry/bin/poetry completions bash > $(brew --prefix)/etc/bash_completion.d/poetry.bash-completion
+  args:
+    creates: /usr/local/Cellar/etc/bash_completion.d/poetry.bash-completion
+  when: ansible_system != 'Linux'
+
+- name: Ensure Zsh completions is setup
+  become_user: "{{ user.username }}"
+  shell: |
+    ~/.poetry/bin/poetry completions zsh > ~/.zfunc/_poetry
+  args:
+    creates: ~/.zfunc/_poetry
+
+- name: Configure ~/.zshrc
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.zshrc
+    insertbefore: '^.*compinit.*$'
+    line: 'fpath+=~/.zfunc'
+    backup: true
+
+- name: Populate the config file with repository information
+  become_user: "{{ user.username }}"
+  shell: |
+    ~/.poetry/bin/poetry config repositories.{{ poetry_repo_name }} {{ poetry_repo_url }}
+    ~/.poetry/bin/poetry config http-basic.{{ poetry_repo_name }} {{ poetry_repo_username }} {{ poetry_repo_password }}
+  when:
+   - poetry_repo_name and poetry_repo_url
+   - poetry_repo_username and poetry_repo_password

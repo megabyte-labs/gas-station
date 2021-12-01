@@ -17,14 +17,6 @@
     - ssh_check_test.failed is defined
     - ssh_check_test.failed
 
-- name: Determine facts based on the host's ID
-  set_fact:
-    fqdn: "{{ hosts[host_id].hosts.split()[-1] }}"
-    hostname: "{{ hosts[host_id].hostname }}"
-    host_list: "{{ hosts | list }}"
-    ip_address: "{{ hosts[host_id].ip_address }}"
-    nginx_sites: "{{ apps }}"
-
 - name: Ensure python-netaddr is installed on Ansible controller host
   become: false
   pip:
@@ -62,8 +54,6 @@
 
 - name: Set miscellaneous facts
   set_fact:
-    apps: "{{ app_map[host_id] }}"
-    authelia_on_localhost: "{{ 'authelia' in apps }}"
     docker_tls_fqdn: "{{ fqdn }}"
     #   kibana_enrollment_id: "{{ vlan }}"
 
@@ -74,6 +64,10 @@
   with_subelements:
     - "{{ app_map | dict2items }}"
     - value
+
+- name: Debug new_app_map
+  debug:
+    msg: "{{ app_host_map }}"
 
 - name: Set the appropriate netdata room
   set_fact:

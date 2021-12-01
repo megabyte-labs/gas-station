@@ -1,0 +1,47 @@
+---
+- name: "Ensure {{ software_item }} is installed (apt)"
+  apt:
+    name: "{{ software_package[software_item]['apt'] }}"
+    state: present
+  when: "'apt' in available_methods"
+  register: apt_result
+  failed_when: "apt_result.msg is defined and 'No package matching' not in apt_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (Binary)"
+  get_url:
+    url: "{{ software_package[software_item]['binary'] }}"
+    dest: "/usr/local/bin/{{ software_item }}"
+    mode: 0755
+  when:
+    - "'binary' in available_methods"
+    - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
+        ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
+  register: binary_result
+  failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (snap)"
+  snap:
+    name: "{{ software_package[software_item]['snap'] }}"
+    state: present
+  when:
+    - "'snap' in available_methods"
+    - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
+        ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+  register: snap_result
+  failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (GitHub)"
+  include_role:
+    name: githubbinary
+  vars:
+    github_binaries:
+      - "{{ software_package[software_item]['github'] }}"
+  when:
+    - "'github' in available_methods"
+    - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
+        ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+    - snap_result.msg is defined or snap_result.skipped is defined or ((snap_result.changed and snap_result.failed) and (not snap_result.changed))

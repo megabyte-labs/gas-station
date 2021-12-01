@@ -1,0 +1,40 @@
+---
+- name: Ensure ~/Applications directory exists
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: ~/Applications
+    state: directory
+  when: ansible_os_family == 'Linux'
+
+- name: Ensure Google Assistant directory exists
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: '~/.config/Google Assistant'
+    state: directory
+
+- name: "Ensure {{ app_name }}'s AppImage is copied"
+  become_user: "{{ user.username }}"
+  copy:
+    src: "{{ googleassistant_src_dir }}/Google_Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
+    dest: ~/Applications
+    mode: 0700
+    remote_src: true
+  when:
+    - install_googleassistant
+    - ansible_os_family == 'Linux'
+
+- name: "Ensure {{ app_name }} is configured"
+  become_user: "{{ user.username }}"
+  template:
+    src: config.json.j2
+    dest: "{{ '~/.config/Google Assistant/config.json' if ansible_os_family == 'Linux' else '~/Library/Application Support/Google Assistant/config.json' }}"
+    mode: 0700
+
+- name: "Copy {{ app_name }}'s files"
+  become_user: "{{ user.username }}"
+  copy:
+    src: client-secret.json
+    dest: ~/.config/Google Assistant/client-secret.json
+    mode: 0700

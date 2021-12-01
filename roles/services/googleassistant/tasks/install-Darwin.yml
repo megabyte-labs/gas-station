@@ -1,0 +1,39 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_googleassistant: "{{ (ansible_local.googleassistant is not defined) or \
+      ((ansible_local.googleassistant is defined) and (ansible_local['googleassistant']['settings']['version'] != googleassistant_latest_version)) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  include_role:
+    name: dmginstall
+  vars:
+    dmgs:
+      - name: "{{ app_name | replace(' ','_') }}"
+        url: "https://github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client/releases/download/\
+          {{ googleassistant_latest_release_tag.json.tag_name }}/Google_Assistant-{{ googleassistant_latest_version }}.dmg"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/googleassistant.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ googleassistant_latest_version }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_googleassistant
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

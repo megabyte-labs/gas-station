@@ -38,8 +38,8 @@
   <a title="Ansible Galaxy role: professormanhattan.java" href="https://galaxy.ansible.com/professormanhattan/java" target="_blank">
     <img alt="Ansible Galaxy role: professormanhattan.java" src="https://img.shields.io/ansible/role/ansible_galaxy_project_id?logo=ansible&style=flat-square" />
   </a>
-  <a title="Version: 1.0.0" href="https://github.com/ProfessorManhattan/ansible-java" target="_blank">
-    <img alt="Version: 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
+  <a title="Version: 1.0.1" href="https://github.com/ProfessorManhattan/ansible-java" target="_blank">
+    <img alt="Version: 1.0.1" src="https://img.shields.io/badge/version-1.0.1-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
   </a>
   <a title="Windows 11 test status on GitHub" href="https://github.com/ProfessorManhattan/ansible-java/actions/workflows/Windows.yml" target="_blank">
     <img alt="Windows 11 test status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-java/Windows%20Ansible%20Role%20Test/master?color=cyan&label=Windows&logo=windows&style=flat-square">
@@ -90,7 +90,6 @@
 - [Supported Operating Systems](#supported-operating-systems)
 - [Dependencies](#dependencies)
   - [Galaxy Roles](#galaxy-roles)
-  - [Galaxy Collections](#galaxy-collections)
 - [Example Playbook](#example-playbook)
   - [Real World Example](#real-world-example)
 - [Contributing](#contributing)
@@ -130,8 +129,7 @@ You can also check out **[Install Doctor](https://install.doctor)**. It is an ap
 
 The chart below shows the operating systems that we have tested this role on. It is automatically generated using the Ansible Molecule tests located in the `molecule/` folder. There is CI logic in place to automatically handle the testing of Windows, macOS, Ubuntu, Fedora, CentOS, Debian, and Archlinux. If your operating system is not listed but is a variant of one of the systems we test (i.e. a Debian-flavored system or a RedHat-flavored system) then it is possible that the role will still work.
 
-| OS Family | OS Version | Status | Idempotent | Tested On |
-| --------- | ---------- | ------ | ---------- | --------- |
+compatibility_matrix
 
 **_What does idempotent mean?_** Idempotent means that if you run this role twice in row then there will be no changes to the system the second time around.
 
@@ -156,16 +154,7 @@ Although most of our roles do not have dependencies, there are some cases where 
 
 The `requirements.yml` file contains a full list of the Ansible Galaxy dependencies required by this role (i.e. `meta/main.yml` role dependencies, helper roles, collections, etc.). For your convenience, a list of the role dependencies along with quick descriptions is below:
 
-| Dependency                                                                                                                                                                    | Description | Supported OSes               | Status                       |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------- | ---------------------------- |
-| <b><a href="https://galaxy.ansible.com/professormanhattan/homebrew" title="professormanhattan.homebrew on Ansible Galaxy" target="_blank">professormanhattan.homebrew</a></b> | Unavailable | <div align="center">❔</div> | <div align="center">❔</div> |
-
-### Galaxy Collections
-
-This role is dependent on multiple Ansible Galaxy collections. The collections along with a links to their source are listed below.
-
-- <a href="https://galaxy.ansible.com/chocolatey/chocolatey" title="chocolatey.chocolatey collection on Ansible Galaxy" target="_blank"><img alt="chocolatey.chocolatey Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-chocolatey.chocolatey-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
-- <a href="https://galaxy.ansible.com/community/general" title="community.general collection on Ansible Galaxy" target="_blank"><img alt="community.general Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-community.general-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
+role_dependencies
 
 <a href="#example-playbook" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -176,7 +165,7 @@ With the dependencies installed, all you have to do is add the role to your main
 ```lang-yml
 - hosts: all
   roles:
-    - galaxy_info.namespace.java
+    - professormanhattan.java
 ```
 
 If you are incorporating this role into a pre-existing playbook, then it might be prudent to copy the requirements outlined in `pyproject.toml` and `requirements.yml` to their corresponding files in the root of your playbook so you only have to worry about installing one set of requirements during future use. Note that the dependencies in `pyproject.toml` can be moved to the more traditional `requirements.txt`, if that is what you are currently using to track Python dependencies.

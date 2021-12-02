@@ -6,7 +6,8 @@
 {{ load:.config/docs/readme-playbook/quick-start.md }}
 {{ load:.config/docs/readme-playbook/supported-os.md }}
 {{ load:.config/docs/readme-playbook/dependencies.md }}
-{{ load:.config/docs/readme-playbook/roles.md }}
+{{ load:.config/docs/readme-playbook/software.md }}
+{{ load:.config/docs/readme-playbook/web-apps.md}}
 {{ load:.config/docs/readme-playbook/philosophy.md }}
 {{ load:.config/docs/readme-playbook/architecture.md }}
 {{ load:.config/docs/readme-playbook/managing-environments.md }}

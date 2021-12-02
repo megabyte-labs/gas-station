@@ -15,8 +15,14 @@ Dear Awesome Person,<br/><br/>
 
 </blockquote>
 
-<a href="{{ profile.patreon }}">
-  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
+<a title="Support us on Open Collective" href="{{ profile_link.opencollective }}/{{ profile.opencollective }}" target="_blank">
+  <img alt="Open Collective sponsors" src="https://img.shields.io/opencollective/sponsors/megabytelabs?logo=opencollective&label=OpenCollective&logoColor=white&style={{ badge_style }}" />
+</a>
+<a title="Support us on GitHub" href="{{ profile_link.github }}/{{ profile.github }}" target="_blank">
+  <img alt="GitHub sponsors" src="https://img.shields.io/github/sponsors/{{ profile.github }}?label=GitHub%20sponsors&logo=github&style={{ badge_style }}" />
+</a>
+<a href="{{ profile_link.patreon }}/{{ profile.patreon }}" title="Support us on Patreon" target="_blank">
+  <img alt="Patreon" src="https://img.shields.io/badge/Patreon-Support-052d49?logo=patreon&logoColor=white&style={{ badge_style }}" />
 </a>
 
 </details>

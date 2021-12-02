@@ -6,7 +6,7 @@
   </center>
 </div>
 <div align="center">
-  <center><h1 align="center">Ansible Playbook: Gas Station ⛽ - Fuel Your DevEnv<i></i></h1></center>
+  <center><h1 align="center">Ansible Playbook: Gas Station ⛽<i></i></h1></center>
   <center><h4 style="color: #18c3d1;">Brought to you by <a href="https://megabyte.space" target="_blank">Megabyte Labs</a></h4><i></i></center>
 </div>
 
@@ -16,9 +16,6 @@
   </a>
   <a href="https://github.com/ProfessorManhattan/Gas-Station/blob/master/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
     <img alt="Contributing" src="https://img.shields.io/badge/Contributing-Guide-0074D9?logo=github-sponsors&logoColor=white&style=for-the-badge" />
-  </a>
-  <a href="https://www.patreon.com/ProfessorManhattan" title="Support us on Patreon" target="_blank">
-    <img alt="Patreon" src="https://img.shields.io/badge/Patreon-Support-052d49?logo=patreon&logoColor=white&style=for-the-badge" />
   </a>
   <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/" title="Chat with us on Slack" target="_blank">
     <img alt="Slack" src="https://img.shields.io/badge/Slack-Chat-e01e5a?logo=slack&logoColor=white&style=for-the-badge" />
@@ -35,29 +32,17 @@
   <a title="Version: 0.0.1" href="https://github.com/ProfessorManhattan/Gas-Station" target="_blank">
     <img alt="Version: 0.0.1" src="https://img.shields.io/badge/version-0.0.1-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
   </a>
-  <a title="Molecule test status on GitLab" href="https://gitlab.com/megabyte-labs/gas-station/-/commits/master" target="_blank">
-    <img alt="Molecule test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/gas-station?branch=master&label=Linux&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAElBMVEUAAAAwPEEuOEIxOzswPj7///91+pI+AAAABXRSTlMANRkNJejDPNcAAAB+SURBVCjPddHBDYAgDIXhGtMRHMG7S3hvTP79VxFIQVq1wOVLm7wU8QIJpSThC2wGwwJoPQFKRdiAAIhGsAykZNSZAOVNMx4BMjwtpySgr6CDJdB/MAdJwAvSiFoE5aABHUb0ch0WHNQq+KPAOgCgrbEnbjAHArjGz3jr3hpumrQpvwi66rkAAAAASUVORK5CYII=&style=flat-square">
+  <a title="Build status" href="https://gitlab.com/megabyte-labs/gas-station/-/commits/master" target="_blank">
+    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/gas-station?branch=master&label=build&logo=gitlab&style=flat-square">
   </a>
-  <a title="E2E test status" href="https://gitlab.com/megabyte-labs/gas-station/-/commits/e2e" target="_blank">
-    <img alt="E2E test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/gas-station?branch=e2e&label=E2E&logo=virtualbox&style=flat-square">
+  <a title="E2E test status for all operating systems" href="https://gitlab.com/megabyte-labs/gas-station/-/commits/e2e" target="_blank">
+    <img alt="E2E test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/gas-station?branch=e2e&label=e2e%20test&logo=virtualbox&style=flat-square">
   </a>
   <a title="Documentation" href="https://megabyte.space/docs/ansible" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&style=flat-square" />
   </a>
   <a title="License: MIT" href="https://github.com/ProfessorManhattan/Gas-Station/blob/master/LICENSE" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAAHpJREFUCNdjYOD/wMDAUP+PgYHxhzwDA/MB5gMM7AwMDxj4GBgKGGQYGCyAEEgbMDDwAAWAwmk8958xpIOI5zKH2RmOyhxmZjguAiKmgIgtQOIYmFgCIp4AlaQ9OczGkJYCJEAGgI0CGwo2HmwR2Eqw5SBnNIAdBHYaAJb6KLM15W/CAAAAAElFTkSuQmCC&style=flat-square" />
-  </a>
-  <a title="Support us on Open Collective" href="https://opencollective.com/megabytelabs" target="_blank">
-    <img alt="Open Collective sponsors" src="https://img.shields.io/opencollective/sponsors/megabytelabs?logo=opencollective&label=OpenCollective&logoColor=white&style=flat-square" />
-  </a>
-  <a title="Support us on GitHub" href="https://github.com/ProfessorManhattan" target="_blank">
-    <img alt="GitHub sponsors" src="https://img.shields.io/github/sponsors/ProfessorManhattan?label=GitHub%20sponsors&logo=github&style=flat-square" />
-  </a>
-  <a title="Follow us on GitHub" href="https://github.com/ProfessorManhattan" target="_blank">
-    <img alt="GitHub: ProfessorManhattan" src="https://img.shields.io/github/followers/ProfessorManhattan?style=social" target="_blank" />
-  </a>
-  <a title="Follow us on Twitter" href="https://twitter.com/MegabyteLabs" target="_blank">
-    <img alt="Twitter: MegabyteLabs" src="https://img.shields.io/twitter/url/https/twitter.com/MegabyteLabs.svg?style=social&label=Follow%20%40MegabyteLabs" />
   </a>
 </div>
 
@@ -79,15 +64,20 @@
   - [Operating System](#operating-system)
   - [Connection](#connection)
   - [MAS on Mac OS X](#mas-on-mac-os-x)
-- [Roles](#roles)
+- [Software](#software)
   - [Binaries](#binaries)
   - [NPM Packages](#npm-packages)
   - [Python Packages](#python-packages)
   - [Ruby Gems](#ruby-gems)
   - [Visual Studio Code Extensions](#visual-studio-code-extensions)
   - [Chrome Extensions](#chrome-extensions)
-  - [Homebrew Casks and Formulae](#homebrew-casks-and-formulae)
+  - [Homebrew Formulae (macOS and Linux only)](#homebrew-formulae-macos-and-linux-only)
+  - [Homebrew Casks (macOS only)](#homebrew-casks-macos-only)
   - [Go, Rust, and System-Specific Packages](#go-rust-and-system-specific-packages)
+- [Web Applications](#web-applications)
+  - [Helm Charts](#helm-charts)
+  - [Host Applications](#host-applications)
+    - [HTPC](#htpc)
 - [Philosophy](#philosophy)
 - [Architecture](#architecture)
 - [Managing Environments](#managing-environments)
@@ -190,9 +180,9 @@ We use [mas](https://github.com/mas-cli/mas) to install apps from the App Store 
 
 There is another caveat with mas. In order to install an application using mas, the application has to have already been added via the App Store GUI. This means that the first time around you will have to install the apps via the App Store GUI so they are associated with your App Store account.
 
-<a href="#roles" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
+<a href="#software" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
-## Roles
+## Software
 
 This project breaks down software into a role (found in the subdirectories of the `roles/` folder) if the software requires anything other than being added to the `PATH` variable. Below is a quick description of what each role does. Browsing through this list, along with the conditions laid out in `main.yml`, you will be able to get a better picture of what software will be installed by the default `main.yml` playbook.
 
@@ -204,47 +194,102 @@ We encourage you to browse through the repositories that are linked to in the ta
 
 A lot of nifty software does not require any configuration other than being added to the `PATH` or being installed with an installer like `brew`. For this kind of software that requires no configuration, we list the software we would like installed by the playbook as a variable in `group_vars/` or `host_vars/` as an array of keys assigned to the `software` variable ([example here](environments/prod/group_vars/desktop/vars.yml)). With those keys, we install the software using the `[professormanhattan.genericinstaller](https://galaxy.ansible.com/professormanhattan/genericinstaller)` role which determines how to install the binaries by looking up the keys against the `software_package` object ([example here](environments/prod/group_vars/all/software.yml)). For your convienience, the software we recommend and install by default is listed below:
 
-binaries_chart
+binary_var_chart
 
 ### NPM Packages
 
 NPM provides a huge catalog of useful CLIs and libraries so we also include a useful and interesting default set of NPM-hosted CLIs for hosts in the `desktop` group ([defined here](environments/prod/group_vars/desktop/npm-packages.yml), for example):
 
-npm_packages_chart
+npm_var_chart
 
 ### Python Packages
 
 In a similar fashion to the NPM packages, we include a great set of default Python packages that are included by default for the `desktop` group ([defined here](environments/prod/group_vars/desktop/pip-packages.yml)):
 
-python_packages_chart
+pypi_var_chart
 
 ### Ruby Gems
 
 A handful of Ruby gems are also installed on targets in the `desktop` group ([defined here](environments/prod/group_vars/desktop/ruby-gems.yml)):
 
-ruby_gems_chart
+gem_var_chart
 
 ### Visual Studio Code Extensions
 
 A considerable amount of effort has gone into researching and finding the "best" VS Code extensions. They are [defined here](environments/prod/group_vars/desktop/vscode-extensions.yml) and Gas Station also installs a good baseline configuration which includes settings for these extensions:
 
-vscode_extensions_chart
+vscode_var_chart
 
 ### Chrome Extensions
 
 To reduce the amount of time it takes to configure Chromium-based browsers like Brave, Chromium, and Chrome, we also include the capability of automatically installing Chromium-based browser extensions (via a variable [defined here](environments/prod/group_vars/desktop/chrome-extensions.yml)):
 
-chrome_extensions_chart
+chrome_var_chart
 
-### Homebrew Casks and Formulae
+### Homebrew Formulae (macOS and Linux only)
 
-Although most of the `brew` installs are handled by the [Binaries](#binaries) installer, some `brew` packages are also installed using [this configuration](environments/prod/group_vars/desktop/homebrew.yml). The default packages include:
+Although most of the `brew` installs are handled by the [Binaries](#binaries) installer, some `brew` packages are also installed using [this configuration](environments/prod/group_vars/desktop/homebrew.yml). The default Homebrew formulae include:
 
-homebrew_chart
+brew_var_chart
+
+### Homebrew Casks (macOS only)
+
+On macOS, some software is installed using Homebrew casks. These include:
+
+cask_var_chart
 
 ### Go, Rust, and System-Specific Packages
 
 Go packages, Rust crates, and system-specific packages like `.deb` and `.rpm` bundles are all handled by the `[professormanhattan.genericinstaller](https://galaxy.ansible.com/professormanhattan/genericinstaller)` role described above in the [Binaries](#binaries) section. There are also ways of installing Go and Rust packages directly by using configuration options provided by their corresponding roles outlined in the [Roles](#roles) section.
+
+<a href="#web-applications" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
+
+## Web Applications
+
+This playbook does a bit more than just install software. It also optionally sets up web applications too. If you choose to deploy the default Gas Station web applications on your network, you should probably do it on a computer/server that has a lot of RAM (e.g. 64GB+).
+
+Although a production environment will always be more stable and performant if it is hosted with a major cloud provider, sometimes it makes more sense to locally host web applications. Some applications have abnormally large RAM requirements that could potentially cost thousands per month to host with a legit cloud provider.
+
+We use Kubernetes as the provider for the majority of the applications. It is a production-grade system and although there is a steeper learning curve it is well worth it. Each application we install is packaged as a Helm chart. All of the data is backed up regularly to an encrypted cloud S3 bucket of your choice.
+
+### Helm Charts
+
+The available Helm charts that this playbook completely handles the set up for are listed below.
+
+helm_var_chart
+
+### Host Applications
+
+By default, on each computer provisioned using the default settings of Gas Station, several apps are installed on each host. Docker Compose is used to manage the deployment. The default apps include:
+
+| App                                                | Description                                                                                                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Authelia](https://www.authelia.com/)**          | An authentication portal that supports SSO and 2FA                                                                                                    |
+| **[Homer](https://github.com/bastienwirtz/homer)** | A very simple homepage which is customized by the playbook to automatically include links to the Docker containers you choose to host on the computer |
+| **[Portainer](https://www.portainer.io/)**         | A Docker management tool                                                                                                                              |
+| **[Serve](https://github.com/vercel/serve)**       | Simple interface for viewing files located or symlinked to in the `/var/www/` folder of the machine                                                   |
+
+You can, of course, disable deploying these apps. However, we include them because they have a small footprint and include useful features. You can also customize the list of apps you wish to include on each host.
+
+#### HTPC
+
+We do not maintain any of the host applications except the ones listed above. However, we do provide the capability of marking a computer being provisioned as an HTPC. Doing this will include a suite of web applications with powerful auto-downloading, organizing, tagging, and media-serving capabilities. Since most people will probably be stepping outside the confines of the law for this, it is not recommended. If you still want to experiment then you can find descriptions of the applications below. The applications are intended to be hosted on a single computer via Docker Compose. The backend for Kodi is included but you should still use the regular installation method for Plex and the front-end of Kodi to view your media collection.
+
+| App                                                                        | Description                                                                      |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **[WireGuard](https://docs.linuxserver.io/images/docker-wireguard)**       | Dedicated VPN for the HTPC applications                                          |
+| **[Bazarr](https://docs.linuxserver.io/images/docker-bazarr)**             | Manages and automatically downloads subtitles                                    |
+| **[Heimdall](https://docs.linuxserver.io/images/docker-heimdall)**         | Start page for all the HTPC apps                                                 |
+| **[Jackett](https://docs.linuxserver.io/images/docker-jackett)**           | Request proxy server for Radarr and Sonarr                                       |
+| **[Kodi Headless](https://hub.docker.com/r/linuxserver/kodi-headless)**    | Backend for Kodi                                                                 |
+| **[Lidarr](https://docs.linuxserver.io/images/docker-lidarr)**             | Music collection manager that automatically downloads from BitTorrent and Usenet |
+| **[NZBGet](https://docs.linuxserver.io/images/docker-nzbget)**             | Usenet downloader                                                                |
+| **[Ombi](https://docs.linuxserver.io/images/docker-ombi)**                 | Plex request and user management system                                          |
+| **[Organizr](https://docs.linuxserver.io/images/docker-htpcmanager)**      | Front end for HTPC web applications                                              |
+| **[Radarr](https://docs.linuxserver.io/images/docker-radarr)**             | Automatic movie downloader                                                       |
+| **[Sonarr](https://docs.linuxserver.io/images/docker-sonarr)**             | Automatic TV show downloader                                                     |
+| **[Tautulli](https://docs.linuxserver.io/images/docker-tautulli)**         | Metrics and monitoring for Plex                                                  |
+| **[Transmission](https://docs.linuxserver.io/images/docker-transmission)** | BitTorrent client                                                                |
 
 <a href="#philosophy" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -314,8 +359,14 @@ I create open source projects out of love. Although I have a job, shelter, and a
 
 </blockquote>
 
-<a href="ProfessorManhattan">
-  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
+<a title="Support us on Open Collective" href="https://opencollective.com/megabytelabs" target="_blank">
+  <img alt="Open Collective sponsors" src="https://img.shields.io/opencollective/sponsors/megabytelabs?logo=opencollective&label=OpenCollective&logoColor=white&style=for-the-badge" />
+</a>
+<a title="Support us on GitHub" href="https://github.com/ProfessorManhattan" target="_blank">
+  <img alt="GitHub sponsors" src="https://img.shields.io/github/sponsors/ProfessorManhattan?label=GitHub%20sponsors&logo=github&style=for-the-badge" />
+</a>
+<a href="https://www.patreon.com/ProfessorManhattan" title="Support us on Patreon" target="_blank">
+  <img alt="Patreon" src="https://img.shields.io/badge/Patreon-Support-052d49?logo=patreon&logoColor=white&style=for-the-badge" />
 </a>
 
 </details>

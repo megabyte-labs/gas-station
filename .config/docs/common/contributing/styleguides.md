@@ -10,6 +10,7 @@ Style guides are generally written for a specific language but a great place to 
 * [Angular Style Guide](https://angular.io/guide/styleguide)
 * [Effective Go](https://go.dev/doc/effective_go)
 * [PEP 8 Python Style Guide](https://www.python.org/dev/peps/pep-0008/)
+* [Git Style Guide](https://github.com/agis/git-style-guide)
 
 For more informative links, refer to the [GitHub Awesome Guidelines List](https://github.com/Kristories/awesome-guidelines).
 

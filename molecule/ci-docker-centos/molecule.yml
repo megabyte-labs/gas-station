@@ -1,0 +1,76 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+    role-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - command: /sbin/init
+    image: megabytelabs/ansible-molecule-centos-7:latest
+    name: CentOS-7
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  - command: /sbin/init
+    image: megabytelabs/ansible-molecule-centos-8:latest
+    name: CentOS-8
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+provisioner:
+  connection_options:
+    ansible_connection: docker
+    ansible_password: ansible
+    ansible_ssh_user: ansible
+  inventory:
+    group_vars:
+      all:
+        docker_molecule_test: true
+  name: ansible
+  options:
+    vvv: true
+  playbooks:
+    converge: ../converge.yml
+scenario:
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - lint
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+verifier:
+  name: ansible

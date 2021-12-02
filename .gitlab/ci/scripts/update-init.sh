@@ -26,11 +26,11 @@ git clone --depth=1 https://gitlab.com/megabyte-labs/common/shared.git common-sh
 # @description Refresh taskfiles and GitLab CI files
 mkdir -p .config
 rm -rf .config/taskfiles
-cp -rT common-shared/common/.config/taskfiles .config/taskfiles
-cp -rT common-shared/common/.config/scripts .config/scripts
+cp -rf common-shared/common/.config/taskfiles .config/
+cp -rf common-shared/common/.config/scripts .config/
 mkdir -p .gitlab
 rm -rf .gitlab/ci
-cp -rT common-shared/common/.gitlab/ci .gitlab/ci
+cp -rf common-shared/common/.gitlab/ci .gitlab/
 
 # @description Ensure proper NPM dependencies are installed
 echo "Installing NPM packages"
@@ -40,8 +40,10 @@ fi
 if [ -f 'package-lock.json' ]; then
   rm package-lock.json
 fi
-pnpm install --save-dev --ignore-scripts @mblabs/eslint-config@latest @mblabs/prettier-config@latest handlebars-helpers glob
-pnpm install --save-optional --ignore-scripts chalk inquirer signale string-break
+if type pnpm &> /dev/null; then
+  pnpm install --save-dev --ignore-scripts @mblabs/eslint-config@latest @mblabs/prettier-config@latest handlebars-helpers glob
+  pnpm install --save-optional --ignore-scripts chalk inquirer signale string-break
+fi
 sed 's/.*cz-conventional-changelog.*//' < package.json
 # @description Re-generate the Taskfile.yml if it has invalid includes
 echo "Ensuring Taskfile is properly configured"

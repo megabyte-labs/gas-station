@@ -5,4 +5,4 @@
 # @description
 #   This is a placeholder for now.
 
-echo "Preparing release.."
+. .config/log info "Preparing release.."

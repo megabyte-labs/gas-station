@@ -15,10 +15,12 @@ set -eo pipefail
 # @exitcode 1+ If an error was encountered
 function ensureValidTaskfile() {
   if task donothing &> /dev/null; then
-    echo "The Taskfile.yml and taskfile references appear to be valid"
+    . .config/log info "The Taskfile.yml and taskfile references appear to be valid"
   else
-    echo "Taskfile.yml is invalid.. Attempting to non-destructively fix Taskfile.yml and taskfile references"
-    git clone --depth=1 https://gitlab.com/megabyte-labs/common/shared.git .shared-common
+    . .config/log warn "Taskfile.yml is invalid.. Attempting to fix."
+    if [ ! -d '.shared-common' ]; then
+      git clone --depth=1 https://gitlab.com/megabyte-labs/common/shared.git .shared-common
+    fi
     cp .shared-common/Taskfile.yml Taskfile.yml
     cp -rT .shared-common/common/.config/taskfiles .config/taskfiles
     rm -rf .shared-common

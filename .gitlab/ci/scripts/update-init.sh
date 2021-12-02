@@ -71,6 +71,21 @@ rm -rf .config/esbuild
 rm -rf .pnpm-store
 rm -rf .husky
 rm -rf tests
+rm -rf molecule/archlinux-desktop
+rm -rf molecule/centos-desktop
+rm -rf molecule/ci-docker-archlinux
+rm -rf molecule/ci-docker-centos
+rm -rf molecule/ci-docker-debian-snap
+rm -rf molecule/ci-docker-debian
+rm -rf molecule/ci-docker-fedora
+rm -rf molecule/ci-docker-ubuntu-snap
+rm -rf molecule/ci-docker-ubuntu
+rm -rf molecule/debian-desktop
+rm -rf molecule/docker-snap
+rm -rf molecule/fedora-desktop
+rm -rf molecule/macos-desktop
+rm -rf molecule/ubuntu-desktop
+rm -rf molecule/windows-desktop
 if test -d .config/docs; then
   cd .config/docs || exit
   rm -rf .git .config .github .gitlab .vscode .editorconfig .gitignore .gitlab-ci.yml

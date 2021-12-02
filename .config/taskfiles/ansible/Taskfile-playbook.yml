@@ -2,6 +2,46 @@
 version: '3'
 
 tasks:
+  docs:
+    deps:
+      - :install:npm:leasot
+    summary: |
+      ```shell
+      # @description Processes leasot data and returns .variables.json data including charts written in @appnest/readme format
+      #
+      # @arg $1 The file that the leasot JSON was written to
+      # @arg $2 The tag being processed
+      function populateChartVar() {
+        ...
+      }
+      ```
+    vars:
+      DOC_IDS: '@binary,@brew,@cask,@chrome,@gem,@helm,@hostapp,@htpc,@npm,@pypi,@vscode'
+    cmds:
+      - |
+        function populateChartVar() {
+          CHART='[["Package", "Description"],'
+          jq --arg tag "$(echo $2 | tr '[a-z]' '[A-Z]')" -r '.[] | select(.tag == $tag) | .
+          | del(. ["file", "ref", "line", "tag"]) | .text' "$1" | while read COMMENT; do
+            if [ "$CHART" != '[' ]; then
+              CHART="${CHART},"
+            fi
+            LINK="$(echo $COMMENT | sed 's/ - .*//')"
+            DESCRIPTION="$(echo $COMMENT | sed 's/.* - //')"
+            CHART="${CHART}[\"**$LINK\**",\"$DESCRIPTION\"]"
+          done
+          CHART="${CHART}]"
+          TMP="$(mktemp)"
+          jq --arg chart "$CHART" --arg key "${2}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP"
+          mv "$TMP" .variables.json
+        }
+        TMP="$(mktemp)"
+        leasot --tags '{{.DOC_IDS}}' --reporter json './environments/prod/group_vars/**/*.yml' > "$TMP"
+        VARIABLES_JSON="$(jq '.' .variables.json)"
+        for ID in {{replace "," " " .DOC_IDS}}; do
+          populateChartVar "$TMP" "$ID"
+        done
+
   environment:
     cmds:
       - task: environment:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}

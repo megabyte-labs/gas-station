@@ -1,31 +1,37 @@
 ---
-#- import_playbook: playbooks/terminal.yml
-#  vars:
-#    install_roles:
-#      - tabby
-#      - hyper
-
-- hosts: pfsense
-  roles:
-    - roles/misc/pfsense
-
-- hosts: seconion
-  roles:
-    - roles/misc/seconion
-
-- hosts: all:!pfsense:!seconion
+- name: Prepare connection and variables
+  hosts: all
   gather_facts: false
   roles:
     - roles/system/connect
 
-- hosts: macos-desktop
+- name: Provision the firewall and network controller
+  hosts: pfsense
   roles:
-    - roles/tools/mas
+    - roles/misc/pfsense
+    - roles/misc/unifi
 
-- hosts: all:!pfsense:!seconion
+- name: Setup the IDS
+  hosts: seconion
   roles:
-    # - roles/system/dns
-    # - roles/system/hosts
+    - roles/misc/seconion
+
+- name: Reformat network
+  hosts: all:!pfsense:!seconion
+  roles:
+    - role: roles/misc/wipe
+      when: false
+
+- name: Setup VM controller and network
+  hosts: maas
+  roles:
+    - roles/misc/maas
+
+- name: Configure systems with common settings and applications
+  hosts: all:!pfsense:!seconion
+  roles:
+    - roles/system/dns
+    - roles/system/hosts
     - roles/system/ssh
     - roles/system/common
     - roles/system/security
@@ -39,35 +45,28 @@
     - roles/system/zsh
     - roles/system/tmux
     - roles/system/motd
+    - roles/tools/mas
     - roles/languages/asdf
     - roles/languages/go
-    # - roles/languages/gvm
     - roles/languages/java
-    # - roles/languages/jenv
     - roles/languages/sdkman
     - roles/languages/nodejs
-    # - roles/languages/nvm
     - roles/languages/deno
     - roles/languages/php
     - roles/languages/composer
     - roles/languages/ruby
-    # - roles/languages/rvm
     - roles/languages/pip
-    # - roles/languages/pyenv
     - roles/languages/rust
     - roles/tools/vault
     - roles/services/antivirus
     - roles/services/cloudflare
     - roles/services/cockpit
     - roles/services/cups
-    - role: roles/services/dnsmasq
-      when: install_dnsmasq | default(false)
+    # - roles/services/dnsmasq
     - roles/services/elasticagent
     - roles/services/goofys
     - roles/services/netdata
     # - roles/services/nginx
-    - role: roles/services/portout
-      when: install_portout | default(false)
     - roles/services/gitlabrunner
     - roles/services/rclone
     - roles/services/restic
@@ -79,153 +78,145 @@
     - roles/virtualization/gvisor
     - roles/system/warp
 
-- hosts: desktop
+- name: Install desktop software
+  hosts: desktop
   roles:
-    - roles/languages/cocoapods # CocoaPods: A dependency manager for Swift and Objective-C
+    - roles/languages/cocoapods
     - roles/virtualization/dockerpushrm
-    - roles/virtualization/dockerslim # Docker Slim: Toolset for generating compact, secure Docker images
-    - roles/virtualization/kubernetes # Kubernetes: Tools useful for managing Kubernetes clusters
-    - roles/virtualization/parallels # Parallels: Desktop virtualization software for Mac OS X
-    - roles/virtualization/vagrant # Vagrant: A tool useful for building and managing virtual environments
-    - roles/virtualization/virtualbox # VirtualBox: Cross-platform, open-source desktop virtualization software
-    - roles/virtualization/vmware # VMWare: A virtualization platform
-    - professormanhattan.androidstudio # Android Studio: An IDE used to build Android apps
-    - roles/applications/appium # Appium: An E2E test framework for mobile devices
-    - roles/applications/autokey # AutoKey: Application that allows you to create key bindings for programmable commands
-    - roles/applications/bravebrowser # Brave Browser: A browser with default settings that help with privacy
-    - roles/applications/chrome # Chrome: Google's web browser
-    - roles/applications/etcher # Etcher: Creates bootable USBs
-    - roles/applications/filezilla # FileZilla: FTP client
-    - roles/applications/firefox # Firefox: An open-source web browser
-    # - roles/applications/flameshot # Flameshot: A screenshot utility for Linux
-    - roles/applications/gimp # Gimp: An image editor similar to Photoshop
-    - roles/applications/gitkraken # GitKraken: Git repository manager
-    - roles/applications/hyper # Hyper: Extensible terminal built on web technologies like JavaScript, HTML, and CSS
-    - roles/applications/inkscape # Inkscape: Vector graphics software
-    - roles/applications/intellij # IntelliJ Community Edition: An IDE for Java
-    - roles/applications/kitty # kitty: Fast, featureful, GPU-based terminal emulator
-    - roles/applications/kodi # Kodi: HTPC media center
-    - roles/applications/lollypop # Lollypop: A slick music player available on Linux
-    - roles/applications/mailspring # Mailspring: An e-mail client available on Windows, macOS, and Linux
-    - roles/applications/microsoftedge # Microsoft Edge: Microsoft's latest Chromium-based browser
-    - roles/applications/microsofttodo # Microsoft To Do: A to-do list manager created by Microsoft
-    - roles/applications/nordvpn # NordVPN: VPN software for Mac OS X and Windows - installer skips on Linux
-    - roles/applications/office # LibreOffice/Microsoft Office: Installs Microsoft Office and LibreOffice if Microsoft Office is not available
-    - roles/applications/onionshare # Onion Share: Transfer files over Tor
-    - roles/applications/plex # Plex: A home media server that includes the capability of streaming movies/shows remotely
-    - roles/applications/postman # Postman: A collaboration platform for API development
-    - roles/applications/qbittorrent # qBittorrent: A torrent downloader
-    - roles/applications/raspberryimager # Raspberry Imager: Utility that flashes MicroSD cards for use with Raspberry Pis
-    - roles/applications/rdm # Redis Desktop Manager: A GUI for managing Redis instances
-    - roles/applications/remotedesktop # Remote Desktop: Installs the best remote desktop software based on the operating system
-    - roles/applications/sharex # ShareX: Screen capture, file sharing, and productivity tool
-    - roles/applications/shotcut # Shotcut: Cross-platform, open-source video editor
-    - roles/applications/shotwell # Shotwell: A photo management tool
-    - roles/applications/skype # Skype: VOIP/chat application
-    - roles/applications/slack # Slack: Team collaboration software
-    # software.yml - roles/applications/snitch # Snitch: Application firewall
-    - roles/applications/tabby # Tabby: An alternative terminal
-    - roles/applications/teams # Microsoft Teams: Collaboration/chat software
-    - roles/applications/teamviewer # TeamViewer: Software that provides remote access to others
-    - roles/applications/visualstudio # Visual Studio: Installs Visual Studio Community Edition on Windows
-    - roles/applications/vlc # VLC: Cross-platform multimedia player
-    - roles/applications/vscode # Visual Studio Code: A code editor redefined and optimized for building and debugging modern web apps
-    # - roles/applications/wireshark # Wireshark: Most widely-used network protocol analyzer (packet sniffer)
-    - roles/applications/xcode # Xcode: Installs Xcode on Mac OS X
-    - roles/applications/zoom # Zoom: Video conferencing software
-    - roles/services/zenbot # Zenbot: Automated cryptocurrency trading tool
-    - roles/tools/aria # Aria: Download utility
-    - roles/tools/autojump # Autojump: Allows user to intelligently change directories to frequently visited directories
-    - roles/tools/awscli # AWS CLI: A command-line interface for AWS
-    - roles/tools/awxcli # AWX CLI: A command-line interface for Ansible Tower/AWX
-    - roles/tools/azurecli # Azure CLI: A command-line interface for working with Microsoft Azure
-    - roles/tools/beets # Beets: CLI tool used for managing large music libraries
-    - roles/tools/broot # Broot: A better alternative to cd
-    - roles/tools/bw # BitWarden CLI: CLI tool used to manage BitWarden
-    - roles/tools/cointop # Cointop: A terminal dashboard for monitoring cryptocurrencies
-    - roles/tools/consultemplate # Consul Template: Populates values from Consul or Vault into files
-    - roles/tools/diffsofancy # diffsofancy: Good looking diffs
-    - roles/tools/ffmpeg # ffmpeg: Audio/video manipulation library
-    - roles/tools/fpm # fpm: Build packages such as rpms, debs, OSX packages, etc.
-    - roles/tools/fzf # fzf: A command-line fuzzy finder
-    - roles/tools/gh # gh: The official GitHub CLI
-    - roles/tools/gist # gist: Uploads code to gist.github.com
-    - roles/tools/gitextras # Git Extras: Popular collection of tools that are added to git
-    - roles/tools/gitfuzzy # Git Fuzzy: Interactive git with the help of fzf
-    - roles/tools/gitlfs # Git LFS: Adds support for Git LFS (Large File System)
-    - roles/tools/gitsecret # Git Secret: A bash tool that allows you to store encrypted private data inside a git repository
-    - roles/tools/gitsome # Gitsome: Supercharged Git/GitHub CLI with autocomplete
-    - roles/tools/gitstats # Git Stats: Local git statistics including GitHub-like contributions calendar
-    - roles/tools/glances # Glances: Cross-platform monitoring tool written in Python
-    - roles/tools/googlecloudsdk # GCP SDK: Command-line tools for working with Google Cloud Platform
-    - roles/tools/googler # Googler: A power tool to Google from the command-line
-    - roles/tools/gradle # Gradle: A build automation tool
-    - roles/tools/homebrew # Homebrew: A package manager for Mac OS X and Linux
-    - roles/tools/htop # htop: An interactive process viewer
-    - roles/tools/httpie # HTTPie: Command line HTTP client
-    - roles/tools/jo # Jo: Bash utility to create JSON
-    - roles/tools/jq # JQ: Lightweight and flexible JSON parser
-    - roles/tools/juju # Juju: Open source service modelling tool
-    - roles/tools/loop # loop: UNIX's missing loop command
-    - roles/tools/lpass # LastPass CLI: CLI tool for interacting with LastPass
-    - roles/tools/lsd # LSD: A better alternative to the ls command
-    - roles/tools/mcfly # McFly: Tool for browsing through terminal history
-    - roles/tools/mitmproxy # MITM Proxy: Tool for simulating MITM scenarios
-    - roles/tools/multipass # Multipass: Orchestrates virtual Ubuntu instances
-    - roles/tools/ngrok # Ngrok: Secure introspectable tunnels to localhost
-    - roles/tools/nmap # nmap: A network mapping free security scanner
-    - roles/tools/normit # normit: translate text with optional speech synthesis
-    - roles/tools/packer # Packer: Tool for creating identical images for multiple platforms from a single configuration
-    - roles/tools/pandoc # Pandoc: A document converter
-    - roles/tools/pgcli # pgcli: Interactive command line tool for managing PostgreSQL datbases
-    - roles/tools/powershell # PowerShell: Cross-platform task automation and configuration management framework
-    - roles/tools/ripgrep # ripgrep: A command line search tool
-    - roles/tools/s5cmd # s5cmd: The fastest tool for interacting with S3 buckets
+    - roles/virtualization/dockerslim
+    - roles/virtualization/kubernetes
+    - roles/virtualization/parallels
+    - roles/virtualization/vagrant
+    - roles/virtualization/virtualbox
+    - roles/virtualization/vmware
+    - professormanhattan.androidstudio
+    - roles/applications/appium
+    - roles/applications/autokey
+    - roles/applications/bravebrowser
+    - roles/applications/chrome
+    - roles/applications/etcher
+    - roles/applications/filezilla
+    - roles/applications/firefox
+    - roles/applications/gimp
+    - roles/applications/gitkraken
+    - roles/applications/hyper
+    - roles/applications/inkscape
+    - roles/applications/intellij
+    - roles/applications/kitty
+    - roles/applications/kodi
+    - roles/applications/lollypop
+    - roles/applications/mailspring
+    - roles/applications/microsoftedge
+    - roles/applications/microsofttodo
+    - roles/applications/nordvpn
+    - roles/applications/office
+    - roles/applications/onionshare
+    - roles/applications/plex
+    - roles/applications/postman
+    - roles/applications/qbittorrent
+    - roles/applications/raspberryimager
+    - roles/applications/rdm
+    - roles/applications/remotedesktop
+    - roles/applications/sharex
+    - roles/applications/shotcut
+    - roles/applications/shotwell
+    - roles/applications/skype
+    - roles/applications/slack
+    - roles/applications/tabby
+    - roles/applications/teams
+    - roles/applications/teamviewer
+    - roles/applications/visualstudio
+    - roles/applications/vlc
+    - roles/applications/vscode
+    - roles/applications/wireshark
+    - roles/applications/xcode
+    - roles/applications/zoom
+    - roles/services/zenbot
+    - roles/tools/aria
+    - roles/tools/autojump
+    - roles/tools/awscli
+    - roles/tools/awxcli
+    - roles/tools/azurecli
+    - roles/tools/beets
+    - roles/tools/broot
+    - roles/tools/bw
+    - roles/tools/cointop
+    - roles/tools/consultemplate
+    - roles/tools/diffsofancy
+    - roles/tools/ffmpeg
+    - roles/tools/fpm
+    - roles/tools/fzf
+    - roles/tools/gh
+    - roles/tools/gist
+    - roles/tools/gitextras
+    - roles/tools/gitfuzzy
+    - roles/tools/gitlfs
+    - roles/tools/gitsecret
+    - roles/tools/gitsome
+    - roles/tools/gitstats
+    - roles/tools/glances
+    - roles/tools/googlecloudsdk
+    - roles/tools/googler
+    - roles/tools/gradle
+    - roles/tools/homebrew
+    - roles/tools/htop
+    - roles/tools/httpie
+    - roles/tools/jo
+    - roles/tools/jq
+    - roles/tools/juju
+    - roles/tools/loop
+    - roles/tools/lpass
+    - roles/tools/lsd
+    - roles/tools/mcfly
+    - roles/tools/mitmproxy
+    - roles/tools/multipass
+    - roles/tools/ngrok
+    - roles/tools/nmap
+    - roles/tools/normit
+    - roles/tools/packer
+    - roles/tools/pandoc
+    - roles/tools/pgcli
+    - roles/tools/powershell
+    - roles/tools/ripgrep
+    - roles/tools/s5cmd
     - roles/tools/scrcpy
-    - roles/tools/slackterm # Slackterm: A CLI for Slack
-    - roles/tools/teleport # Teleport Client: Client required to join a Teleport network
-    - roles/tools/tfenv # Terraform Version Manager: Allows you to easily switch between Terraform versions
-    - roles/tools/translate # Translate Shell: Generate translations from the command line
-    - roles/tools/tree # tree: Command-line utility to show file system trees
+    - roles/tools/slackterm
+    - roles/tools/teleport
+    - roles/tools/tfenv
+    - roles/tools/translate
+    - roles/tools/tree
     - roles/tools/upx
-    - roles/tools/vim # vim: Ensures the vim text-editor is installed with plugins
-    - roles/tools/watchman # Facebook Watchman: Watches file system and can trigger commands
-    - roles/tools/wget # wget: Ensures wget is installed on any platform
-    - roles/tools/windowsadmincenter # Windows Admin Center: Browser-based app for managing Windows servers
+    - roles/tools/vim
+    - roles/tools/watchman
+    - roles/tools/wget
+    - roles/tools/windowsadmincenter
     - roles/tools/windowspowertoys
-    - roles/tools/wpcli # WP-CLI: A CLI for working with WordPress
-    - roles/tools/yank # Yank: Copies terminal output to the clipboard
-    - roles/tools/yarn # Yarn: Fast, reliable, and secure dependency management tool for Node.js
-    - roles/tools/youtubedl # youtube-dl: CLI that can download videos from YouTube and other sites
-    - roles/crypto/ledgerlive # Ledger Live: An interface for Ledger, a cold-storage for cryptocurrencies
-    - roles/crypto/monero # Monero: A cryptocurrency GUI
-    - roles/services/guacamole # Guacamole Client: Client for hosting RDP from browser
-    - roles/services/zenbot # Zenbot: Cryptocurrency trading bot
-    - roles/system/extensions # Extensions: Provides the capability of installing GNOME extensions using a configuration
-    - roles/system/desktop # Desktop: Applies miscellaneous tweaks to desktop computers
-    - roles/tools/zoxide # zoxide: A smarter cd command for your terminal
-    - roles/tools/lexicon # Lexicon: A tool to manipulate DNS records
-    - roles/tools/wails # Wails: A lightweight framework that helps build Desktop applications using Go
-    - roles/tools/himalaya # Himalaya: A CLI email client
-    - roles/tools/ghorg # ghorg: Clone entire org's/user's repositories
-    - roles/tools/sysdig # sysdig: System-level exploration and troubleshooting tool
-    - roles/tools/shc # shc: A generic Shell script compiler
-    - roles/tools/recoverpy # recoverpy: Find and recover deleted file interactively
-    - roles/application/iterm2 # iterm2: Alternative to Apple's Terminal app
-    - roles/tools/gitfilterrepo # git-filter-repo: Tool for rewriting git history
-    - roles/tools/poetry # Poetry: Dependency manager for Python
-    - roles/tools/trec # t-rec: Blazingly fast terminal recorder that generates animated gif images for the web written in rust
+    - roles/tools/wpcli
+    - roles/tools/yank
+    - roles/tools/yarn
+    - roles/tools/youtubedl
+    - roles/crypto/ledgerlive
+    - roles/crypto/monero
+    - roles/services/guacamole
+    - roles/services/zenbot
+    - roles/system/extensions
+    - roles/system/desktop
+    - roles/tools/zoxide
+    - roles/tools/lexicon
+    - roles/tools/wails
+    - roles/tools/himalaya
+    - roles/tools/ghorg
+    - roles/tools/sysdig
+    - roles/tools/shc
+    - roles/tools/recoverpy
+    - roles/application/iterm2
+    - roles/tools/gitfilterrepo
+    - roles/tools/poetry
+    - roles/tools/trec
 
-- hosts: all:!pfsense:!seconion
+- name: Finish configuring systems
+  hosts: all:!pfsense:!seconion
   roles:
-    - role: roles/misc/easyengine
-      when: install_easyengine | default(false)
-    - role: roles/misc/hosthomepage
-      when: install_host_homepage | default(false)
-    # - role: roles/misc/ipa
-    #   when: install_ipa | default(false)
-    - role: roles/misc/maas
-      when: install_maas | default(false)
-    # - role: roles/misc/pihole # Currently relies on external role to set up encrypted DNS
-    #   when: install_pihole | default(false)
+    # - roles/misc/easyengine
+    # - roles/misc/hosthomepage
     - roles/system/finish

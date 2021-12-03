@@ -1,0 +1,44 @@
+---
+test:jest:unit:
+  artifacts:
+    paths:
+      - coverage/
+    reports:
+      cobertura: coverage/cobertura-coverage.xml
+      junit: junit.xml
+    when: always
+  before_script:
+    - task ci:before:npm
+  cache:
+    key: megabytelabs
+    paths:
+      - node_modules/
+  image: megabytelabs/jest:slim
+  needs: []
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - exists:
+        - 'src/**/*.spec.ts'
+  script:
+    - task npm:test:ci
+  stage: test
+  variables:
+    GIT_DEPTH: 1
+
+pages:
+  stage: deploy
+  only:
+    - master
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+  dependencies:
+    - jest
+  script:
+    - mkdir .public
+    - cp -r coverage/* .public
+    - mv .public public
+  artifacts:
+    paths:
+      - public

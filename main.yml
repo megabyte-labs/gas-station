@@ -36,25 +36,36 @@
 # - import_playbook: playbooks/vpn.yml
 # - import_playbook: playbooks/web-browser.yml
 
-
-- hosts: pfsense
-  roles:
-    - roles/misc/pfsense
-
-- hosts: seconion
-  roles:
-    - roles/misc/seconion
-
-- hosts: all:!pfsense:!seconion
+- name: Prepare connection and variables
+  hosts: all
   gather_facts: false
   roles:
     - roles/system/connect
 
-- hosts: macos-desktop
+- name: Provision the firewall and network controller
+  hosts: pfsense
   roles:
-    - roles/tools/mas
+    - roles/misc/pfsense
+    - roles/misc/unifi
 
-- hosts: all:!pfsense:!seconion
+- name: Setup the IDS
+  hosts: seconion
+  roles:
+    - roles/misc/seconion
+
+- name: Reformat network
+  hosts: all:!pfsense:!seconion
+  roles:
+    - role: roles/misc/wipe
+      when: false
+
+- name: Setup VM controller and network
+  hosts: maas
+  roles:
+    - roles/misc/maas
+
+- name: Configure systems with common settings and applications
+  hosts: all:!pfsense:!seconion
   roles:
     - roles/system/fuse
     - roles/tools/starship # Developer note - dotfiles role needs starship installed before it runs
@@ -62,6 +73,7 @@
     - roles/system/zsh
     - roles/system/tmux
     - roles/system/motd
+    - roles/tools/mas
     - roles/services/antivirus
     - roles/services/cups
     - role: roles/services/dnsmasq
@@ -69,21 +81,15 @@
     - roles/services/nginx
     - role: roles/services/portout
       when: install_portout | default(false)
+    - roles/system/santa
 
 # - hosts: desktop
 #  roles:
 #    - roles/services/zenbot # Zenbot: Automated cryptocurrency trading tool
 
-- hosts: all:!pfsense:!seconion
+- name: Finish configuring systems
+  hosts: all:!pfsense:!seconion
   roles:
-    - role: roles/misc/easyengine
-      when: install_easyengine | default(false)
-    - role: roles/misc/hosthomepage
-      when: install_host_homepage | default(false)
-    # - role: roles/misc/ipa
-    #   when: install_ipa | default(false)
-    - role: roles/misc/maas
-      when: install_maas | default(false)
-    # - role: roles/misc/pihole # Currently relies on external role to set up encrypted DNS
-    #   when: install_pihole | default(false)
+    # - roles/misc/easyengine
+    # - roles/misc/hosthomepage
     - roles/system/finish

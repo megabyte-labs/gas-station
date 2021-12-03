@@ -1,0 +1,18 @@
+---
+vagrant:validate:
+  allow_failure: true
+  image:
+    name: megabytelabs/vagrant:slim
+    entrypoint: ['']
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - exists:
+        - '**/Vagrantfile'
+  script:
+    - set -eo pipefail
+    - find . -type f -name 'Vagrantfile' -exec bash -c 'INITIAL_DIR=$PWD; VAGRANTFILE_PATH=$1;
+      cd $(dirname $VAGRANTFILE_PATH); vagrant validate; cd $INITIAL_DIR' _ {} \;
+  stage: lint
+  variables:
+    GIT_DEPTH: 1

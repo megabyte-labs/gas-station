@@ -1,0 +1,94 @@
+---
+version: '3'
+
+tasks:
+  labels:
+    deps:
+      - :install:software:jq
+    vars:
+      GROUP_URL:
+        sh: jq -r '.repository.group.dockerfile' .variables.json
+    cmds:
+      - task: update:labels:add
+      - task: update:labels:{{OS}}
+    sources:
+      - .variables.json
+      - Dockerfile
+      - package.json
+    preconditions:
+      - sh: test -f Dockerfile
+        msg: A `Dockerfile` is not present in the root of this project!
+      - sh: test -f .variables.json
+        msg: The `.variables.json` file is not present in the root of this project!
+      - sh: test -f package.json
+        msg: The `package.json` file is not present in the root of this project!
+
+  labels:add:
+    vars:
+      AUTHORS:
+        sh: jq -r '.docker_label_authors' .variables.json
+      HELP_EMAIL:
+        sh: jq -r '.email.help' .variables.json
+      LICENSE:
+        sh: jq -r '.license' .variables.json
+      ORGANIZATION:
+        sh: jq -r '.organization' .variables.json
+      URL:
+        sh: jq -r '.link.home' .variables.json
+    cmds:
+      - |
+        if ! grep 'org.opencontainers.image.documentation' Dockerfile; then
+          echo 'ARG BUILD_DATE' >> Dockerfile
+          echo 'ARG REVISION' >> Dockerfile
+          echo 'ARG VERSION' >> Dockerfile
+          echo '' >> Dockerfile
+          echo 'LABEL maintainer="{{.ORGANIZATION}} <{{.HELP_EMAIL}}>"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.authors="{{.AUTHORS}}"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.created=$BUILD_DATE' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.description="[[ Injected by running `task update` ]]"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.documentation="[[ Injected by running `task update` ]]"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.licenses="{{.LICENSE}}"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.revision=$REVISION' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.source="[[ Injected by running `task update` ]]"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.url="{{.URL}}"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.vendor="{{.ORGANIZATION}}"' >> Dockerfile
+          echo 'LABEL org.opencontainers.image.version=$VERSION' >> Dockerfile
+          echo 'LABEL space.megabyte.type="{{.REPOSITORY_SUBTYPE}}"' >> Dockerfile
+          echo '' >> Dockerfile
+        fi
+    status:
+      - grep 'org.opencontainers.image.documentation' Dockerfile
+
+  labels:darwin:
+    vars:
+      GROUP_URL:
+        sh: jq -r '.repository.group.dockerfile' .variables.json
+    env:
+      DESCRIPTION:
+        sh: jq -r '.description' package.json
+    cmds:
+      # yamllint disable rule:line-length
+      # eslint-disable max-len
+      - sed -i .bak "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=${DESCRIPTION}^g" Dockerfile && rm Dockerfile.bak
+      - sed -i .bak "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation=\"{{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}/-/blob/master/README.md\"^g" Dockerfile && rm Dockerfile.bak
+      - sed -i .bak "s^.*org.opencontainers.image.source.*^LABEL org.opencontainers.image.source=\"{{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}.git\"^g" Dockerfile && rm Dockerfile.bak
+      # yamllint enable rule:line-length eslint-enable max-lens
+      # eslint-enable max-len
+
+  labels:linux:
+    vars:
+      GROUP_URL:
+        sh: jq -r '.repository.group.dockerfile' .variables.json
+      SLUG:
+        sh: jq -r '.blueprint.slug' package.json
+    env:
+      DESCRIPTION:
+        sh: jq -r '.description' package.json
+    cmds:
+      # yamllint disable rule:line-length
+      # eslint-disable max-len
+      - sed -i "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=${DESCRIPTION}^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation={{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}/-/blob/master/README.md\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.source.\*^LABEL org.opencontainers.image.source={{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}.git\"^g" Dockerfile
+      # yamllint enable rule:line-length
+      # eslint-enable max-len

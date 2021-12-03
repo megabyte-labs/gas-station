@@ -1,0 +1,26 @@
+---
+version: '3'
+
+vars:
+  TEMPLATE_FILE:
+    sh: if [ ! -z "{{.CLI_ARGS}}" ]; then echo "{{.CLI_ARGS}}"; else echo "default.packer.json"; fi
+  VARIABLES_PATH: .variables.json
+
+tasks:
+  latestos:
+    deps:
+      - :install:python:requirements
+      - :install:software:jq
+    vars:
+      TAG:
+        sh: jq -r '.variables.latestos_tag' {{.TEMPLATE_FILE}}
+    cmds:
+      - |
+        if [ "${container:=}" != 'docker' ] && [[ '{{.TAG}}' != 'macos' ]]; then # TODO: Only generate if latestos wasn't run recently
+          latestos {{.TAG}}
+        fi
+    status:
+      - '[[ "{{.TAG}}}" == "macos" ]] || [ "${container:=}" == "docker" ]'
+    preconditions:
+      - sh: test -f {{.TEMPLATE_FILE}}
+        msg: The `{{.TEMPLATE_FILE}}` file is missing from the root of this project.

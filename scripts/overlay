@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# This file loops through all the folders that are two levels deep
+# in the ./roles folder that is in the base of this repository.
+
+if [[ -d "$PWD/roles" ]]; then
+	find "$PWD/roles" -mindepth 2 -maxdepth 2 -type d -not -path '*/\.*' | while read -r FOLDER; do
+		echo "Changing directory to $FOLDER"
+		cd "$FOLDER" || exit
+		TMP="$(mktemp)"
+		jq '.type = "module"' package.json > "$TMP"
+		mv "$TMP" package.json
+		yq e -i '.galaxy_info.namespace = "professormanhattan"' meta/main.yml
+	done
+else
+	echo "ERROR: This script should be run from the root of the repository where the roles directory resides."
+fi

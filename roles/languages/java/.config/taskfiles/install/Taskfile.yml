@@ -1,0 +1,101 @@
+---
+version: '3'
+
+tasks:
+  install-doctor:
+    cmds:
+      - |
+        if ! type {{.SOFTWARE}} &> /dev/null; then
+          true info 'Using https://install.doctor to install `{{.SOFTWARE}}`'
+          curl -sS https://install.doctor/{{.SOFTWARE}} | bash
+        fi
+    status:
+      - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  modules:global:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+    run: once
+    cmds:
+      - task: :install:npm:commitizen
+      - task: :install:npm:commitlint
+      - task: :install:npm:cz-emoji
+      - task: :install:npm:cspell
+      - task: :install:npm:eslint
+      - task: :install:npm:git-notify
+      - task: :install:npm:hbs
+      - task: :install:npm:husky
+      - task: :install:npm:lint-staged
+      - task: :install:npm:prettier
+      - task: :install:npm:readme
+      - task: :install:npm:remark
+      - task: :install:npm:shellcheck
+      - task: :install:npm:standard-version
+      - task: :install:npm:yarnhook
+    status:
+      - '[[ "${container:=}" == "docker" ]]'
+
+  modules:local:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM_LOCAL}}
+      - modules:local:package
+    cmds:
+      - '{{.NPM_PROGRAM_LOCAL}} install'
+      - task install:npm:cz-emoji &
+      - task: modules:local:sync
+    sources:
+      - .cache/package-deps.json
+
+  modules:local:package:
+    deps:
+      - :install:software:jq
+    vars:
+      NPM_DEPS:
+        sh: jq -r '.dependencies | keys[] as $k | "\($k), \(.[$k])"' package.json
+      NPM_DEVDEPS:
+        sh: jq -r '.devDependencies | keys[] as $k | "\($k), \(.[$k])"' package.json
+      NPM_OPTDEPS:
+        sh: jq -r '.optionalDependencies | keys[] as $k | "\($k), \(.[$k])"' package.json
+    run: when_changed
+    cmds:
+      - mkdir -p .cache
+      - echo '{{.NPM_DEPS}}' > .cache/package-deps.json
+      - echo '{{.NPM_DEVDEPS}}' >> .cache/package-deps.json
+      - echo '{{.NPM_OPTDEPS}}' >> .cache/package-deps.json
+    sources:
+      - package.json
+    generates:
+      - .cache/package-deps.json
+
+  modules:local:sync:
+    cmds:
+      - |
+        for PATTERN in {{.NPM_KEEP_UPDATED}}; do
+          find ./node_modules/$PATTERN -maxdepth 0 | while read PATHH; do
+            if [ -f "$PATHH/package.json" ]; then
+              PKG="$(echo $PATHH | sed 's/.\/node_modules\///')"
+              task install:modules:local:sync:package -- "$PKG" &
+            fi
+          done
+        done
+
+  modules:local:sync:package:
+    cmds:
+      - cmd: |
+          LATEST="$(npm view {{.CLI_ARGS}} version)"
+          LOCAL="$(jq -r '.version' ./node_modules/{{.CLI_ARGS}}/package.json)"
+          COMPARE="$(. .config/scripts/lib/semver-compare.sh $LOCAL $LATEST)"
+          if [ "$COMPARE" == '-1' ]; then
+            true info "Version $LATEST is available for {{.CLI_ARGS}} (currently version $LOCAL)"
+            {{.NPM_PROGRAM_LOCAL}} update {{.CLI_ARGS}}
+          fi
+        ignore_error: true
+
+  modules:prompt:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+    run: once
+    cmds:
+      - npm install chalk inquirer signale
+    sources:
+      - .config/scripts/prompts/**

@@ -1,4 +1,10 @@
 ---
+# - name: Prepare connection and variables
+#   hosts: all
+#   gather_facts: false
+#   roles:
+#     - roles/system/connect
+
 - name: Provision the firewall and network controller
   hosts: pfsense
   roles:
@@ -10,14 +16,39 @@
   roles:
     - roles/misc/seconion
 
+# - name: Reformat network
+#   hosts: all:!pfsense:!seconion
+#   roles:
+#     - role: roles/misc/wipe
+#       when: false
+
 - name: Setup VM controller and network
   hosts: maas
   roles:
     - roles/misc/maas
 
-- name: Configure systems with common settings and applications
-  hosts: all:!pfsense:!seconion
+- hosts: done
   roles:
+    - roles/system/dns
+    # - roles/system/hosts
+    - roles/system/ssh
+    - roles/system/common
+    - roles/system/security
+    - roles/system/firewall
+    - roles/services/sshtarpit
+    - roles/system/fuse
+    - roles/system/disks
+    - roles/tools/starship # Developer note - dotfiles role needs starship installed before it runs
+    - roles/system/dotfiles
+    - roles/system/vpn
+    - roles/system/zsh
+    - roles/system/tmux
+    - roles/system/motd
+    - roles/tools/mas
+    - roles/languages/go
+    - roles/languages/java
+    - roles/languages/sdkman
+    - roles/languages/nodejs
     - roles/languages/deno
     - roles/languages/php
     - roles/languages/composer
@@ -25,12 +56,16 @@
     - roles/languages/pip
     - roles/languages/rust
     - roles/tools/vault
-    - roles/services/antivirus
-    - roles/services/cloudflare
-    - roles/services/cockpit
+
+- name: Configure systems with common settings and applications
+  hosts: all:!pfsense:!seconion
+  roles:
+    # - roles/services/antivirus
+    # - roles/services/cloudflare
+    # - roles/services/cockpit @ERROR - when this was installing, the internet went out and when I rebooted I couldnt get into the machine
     - roles/services/cups
     # - roles/services/dnsmasq
-    - roles/services/elasticagent
+    #- roles/services/elasticagent
     - roles/services/goofys
     - roles/services/netdata
     # - roles/services/nginx
@@ -44,18 +79,20 @@
     - roles/virtualization/gitdocker
     - roles/virtualization/gvisor
     - roles/system/warp
+    - roles/languages/asdf
 
 - name: Install desktop software
   hosts: desktop
   roles:
-    - roles/languages/cocoapods
+    # - roles/languages/cocoapods
     - roles/virtualization/dockerpushrm
     - roles/virtualization/dockerslim
     - roles/virtualization/kubernetes
-    - roles/virtualization/parallels
+    # - roles/virtualization/parallels
     - roles/virtualization/vagrant
     - roles/virtualization/virtualbox
     - roles/virtualization/vmware
+    # - professormanhattan.androidstudio
     - roles/applications/appium
     - roles/applications/autokey
     - roles/applications/bravebrowser
@@ -177,7 +214,7 @@
     - roles/tools/recoverpy
     - roles/applications/iterm2
     - roles/tools/gitfilterrepo
-    # - roles/tools/poetry
+    - roles/tools/poetry
     - roles/tools/trec
 
 - name: Finish configuring systems

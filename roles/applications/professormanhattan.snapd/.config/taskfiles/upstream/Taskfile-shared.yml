@@ -1,0 +1,43 @@
+---
+version: '3'
+
+vars:
+  SHARED_COMMON_FOLDER: common
+  VARIABLES_URL: https://gitlab.com/megabyte-labs/documentation/shared/-/raw/master/common.json
+
+tasks:
+  copy:
+    cmds:
+      - mv .gitlab-ci.yml .gitlab-ci.yml.bak
+      - cp -rT ./{{.SHARED_COMMON_FOLDER}}/ .
+      - mv .gitlab-ci.yml.bak .gitlab-ci.yml
+      - task: :common:husky:permissions
+
+  template:
+    cmds:
+      - task: template:files
+
+  template:files:
+    deps:
+      - template:files:handlebars
+      - template:files:hbs
+
+  template:files:handlebars:
+    cmds:
+      - task: :upstream:template:handlebars
+        vars:
+          ADDITIONAL_IGNORE_FOLDERS: -path './{{.SHARED_COMMON_FOLDER}}*' -o -path './deprecated*' -o
+
+  template:files:hbs:
+    cmds:
+      - task: :upstream:template:hbs
+        vars:
+          ADDITIONAL_IGNORE_FOLDERS: -path './{{.SHARED_COMMON_FOLDER}}*' -o -path './deprecated*' -o
+
+  variables:
+    cmds:
+      - curl -s {{.VARIABLES_URL}} > .variables.json
+      - task: :upstream:variables
+        vars:
+          INPUT_FILE: .variables.json
+          OUTPUT_FILE: .variables.json

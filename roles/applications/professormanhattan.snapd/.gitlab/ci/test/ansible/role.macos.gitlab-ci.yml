@@ -1,0 +1,25 @@
+---
+.shared_macos_runners:
+  tags:
+    - shared-macos-amd64
+
+test:molecule:darwin:
+  allow_failure: true
+  extends:
+    - .shared_macos_runners
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'schedule' || $CI_PIPELINE_SOURCE == 'web'
+    - if: $CI_COMMIT_TITLE =~ /^(automation|chore).*/
+      when: never
+    - changes:
+        - '{defaults,files,handlers,meta,molecule,tasks,templates,vars}/**'
+        - ansible.cfg
+        - poetry.lock
+        - pyproject.toml
+        - requirements.yml
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master'
+  script:
+    - bash test/darwin/test.sh
+  stage: test

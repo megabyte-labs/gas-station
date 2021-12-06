@@ -1,3 +1,0 @@
-## Contributors
-
-{{ contributors_list }}

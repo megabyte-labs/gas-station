@@ -7,10 +7,7 @@
   loop: "{{ user.groups }}"
   loop_control:
     loop_var: group
-  when: false
-  # when: user.groups is defined
-  
-  # @error on Fedora 35 - failed: [workstation] (item=lpadmin) => {"ansible_loop_var": "group", "changed": false, "group": "lpadmin", "msg": "groupadd: Permission denied.\ngroupadd: cannot lock /etc/group; try again later.\n", "name": "lpadmin"}
+  when: user.groups is defined
 
 - name: Ensure default group is present
   become_user: root
@@ -20,15 +17,12 @@
   when: user.group is defined
 
 - name: Ensure user belongs to configured groups
-  become: true
   become_user: root
   user:
     append: true
     groups: "{{ user.groups }}"
     name: "{{ user.username }}"
-  when: false
-  # when: user.groups is defined
-  # @error on Fedora 35 - fatal: [workstation]: FAILED! => {"changed": false, "msg": "Group lpadmin does not exist"}
+  when: user.groups is defined
 
 - name: Apply permissions to default folders
   include_tasks: linux/permissions.yml

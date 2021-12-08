@@ -1,56 +1,8 @@
 ---
-- name: Gather package facts
-  package_facts:
-    manager: auto
-
-- name: Copy appimaged.deb
-  copy:
-    dest: ~/appimaged.deb
-    mode: 0600
-    src: appimaged.deb # TODO Acquire this from the source instead so it stays updated
-  when: ansible_facts.packages.appimaged is not defined
-
-- name: Install appimaged
-  apt:
-    deb: ~/appimaged.deb
-  when: ansible_facts.packages.appimaged is not defined
-
-- name: Remove appimaged.deb
-  file:
-    path: ~/appimaged.deb
-    state: absent
-  when: ansible_facts.packages.appimaged is not defined
-
 - name: Install custom desktop apt software
   apt:
     name: "{{ debian_desktop_apt_packages }}"
     state: present
 
-- name: Remove undesirable .desktop links
-  file:
-    path: "{{ desktop_links_path }}/{{ item }}"
-    state: absent
-  loop: "{{ gnome_shortcuts_to_delete }}"
-
-- name: Ensure Color Schemes source directory is present
-  file:
-    mode: 0755
-    path: "{{ color_scheme_src_directory }}"
-    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
-    state: directory
-
-- name: Ensure Color Schemes source is cloned and up-to-date
-  become: false
-  git:
-    dest: "{{ color_scheme_src_directory }}"
-    repo: "{{ color_scheme_repo_url }}"
-    version: master
-  register: color_scheme_git
-
-- name: Run user-specific tasks
-  include_tasks: user-Debian.yml
-  loop: "{{ user_configs | default([]) }}"
-  loop_control:
-    label: "{{ user.username }}"
-    loop_var: user
-  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml

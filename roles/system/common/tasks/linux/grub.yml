@@ -7,6 +7,12 @@
     state: present
   when: ansible_os_family == 'Debian'
 
+- name: Ensure plymouth's packages are installed
+  dnf:
+    name: plymouth-plugin-script
+    state: present
+  when: ansible_os_family == 'RedHat'
+
 - name: Optimize the GRUB resolution
   lineinfile:
     path: "{{ grub_path }}"
@@ -39,7 +45,6 @@
   command: "bash install.sh {{ grub_theme_options }}"
   args:
     chdir: /root/.grub-theme
-  notify: update grub
+  register: grub_theme_install
   when: not grub_theme.stat.exists or grub_force_install
-  # @error on Fedora 35 fatal: [workstation]: FAILED! => {"changed": true, "cmd": ["bash", "install.sh", "-s", "ultrawide", "-t", "vimix"], "delta": "0:00:07.721075", "end": "2021-12-04 10:42:37.076684", "msg": "non-zero return code", "rc": 1, "start": "2021-12-04 10:42:29.355609", "stderr": "Generating grub configuration file ...\nFound theme: /usr/share/grub/themes/vimix/theme.txt\nAdding boot menu entry for UEFI Firmware Settings ...\ndone\nGenerating grub configuration file ...\nFound theme: /usr/share/grub/themes/vimix/theme.txt\nAdding boot menu entry for UEFI Firmware Settings ...\ndone", "stderr_lines": ["Generating grub configuration file ...", "Found theme: /usr/share/grub/themes/vimix/theme.txt", "Adding boot menu entry for UEFI Firmware Settings ...", "done", "Generating grub configuration file ...", "Found theme: /usr/share/grub/themes/vimix/theme.txt", "Adding boot menu entry for UEFI Firmware Settings ...", "done"], "stdout": "\u001b[H\u001b[2J\u001b[3J \u001b[1;32m \n Checking for the existence of themes directory... \u001b[0m\n \u001b[1;32m \n Installing vimix color ultrawide theme... \u001b[0m\n \u001b[1;32m \n Setting vimix as default... \u001b[0m\n \u001b[1;32m \n Updating grub config...\n \u001b[0m\n \u001b[1;36m Find config file on /boot/efi/EFI/fedora/grub.cfg ...\n \u001b[0m\n \u001b[1;36m Find config file on /boot/grub2/grub.cfg ...\n \u001b[0m\n \u001b[1;32m \n * All done! \u001b[0m\n \u001b[1;33m \n * At the next restart of your computer you will see your new Grub theme: 'vimix'  \u001b[0m", "stdout_lines": ["\u001b[H\u001b[2J\u001b[3J \u001b[1;32m ", " Checking for the existence of themes directory... \u001b[0m", " \u001b[1;32m ", " Installing vimix color ultrawide theme... \u001b[0m", " \u001b[1;32m ", " Setting vimix as default... \u001b[0m", " \u001b[1;32m ", " Updating grub config...", " \u001b[0m", " \u001b[1;36m Find config file on /boot/efi/EFI/fedora/grub.cfg ...", " \u001b[0m", " \u001b[1;36m Find config file on /boot/grub2/grub.cfg ...", " \u001b[0m", " \u001b[1;32m ", " * All done! \u001b[0m", " \u001b[1;33m ", " * At the next restart of your computer you will see your new Grub theme: 'vimix'  \u001b[0m"]}
-  
+  failed_when: grub_theme_install.rc != 0 and not (grub_theme_install.rc == 1 and 'All done!' in grub_theme_install.stdout)

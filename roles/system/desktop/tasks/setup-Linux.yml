@@ -1,0 +1,54 @@
+---
+- name: Fetch the Releases page to determine the name of the appimaged file
+  uri:
+    url: https://github.com/probonopd/go-appimage/releases/tag/continuous
+    return_content: true
+  register: go_appimage_releases
+
+- name: Ensure ~/Applications directory is present
+  become_user: "{{ ansible_user }}"
+  file:
+    path: ~/Applications
+    state: directory
+    mode: 0700
+
+- name: Download latest appimaged AppImage
+  become_user: "{{ ansible_user }}"
+  get_url:
+    url: "https://github.com/probonopd/go-appimage/releases/download/continuous/\
+      {{ go_appimage_releases.content | regex_search ('appimaged-\\d*-x86_64\\.AppImage') }}"
+    dest: ~/Applications/appimaged.AppImage
+    mode: 0700
+
+- name: Run appimaged # noqa 301 305
+  become_user: "{{ ansible_user }}"
+  shell: "nohup ~/Applications/appimaged.AppImage &"
+
+- name: Remove undesirable .desktop links
+  file:
+    path: "{{ desktop_links_path }}/{{ item }}"
+    state: absent
+  loop: "{{ gnome_shortcuts_to_delete }}"
+
+- name: Ensure Color Schemes source directory is present
+  file:
+    mode: 0755
+    path: "{{ color_scheme_src_directory }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: Ensure Color Schemes source is cloned and up-to-date
+  become: false
+  git:
+    dest: "{{ color_scheme_src_directory }}"
+    repo: "{{ color_scheme_repo_url }}"
+    version: master
+  register: color_scheme_git
+
+- name: Run user-specific tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs | default([]) }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

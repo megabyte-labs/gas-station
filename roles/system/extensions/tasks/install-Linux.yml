@@ -1,0 +1,78 @@
+---
+- name: Ensure install-gnome-extensions dependencies are installed
+  package:
+    name: "{{ gnome_extensions_installer_dependencies }}"
+    state: present
+
+- name: Copy install-gnome-extensions executable
+  copy:
+    dest: /usr/local/bin/install-gnome-extensions
+    mode: 0755
+    owner: root
+    src: install-gnome-extensions.sh
+
+- name: Ensure gnome-shell extensions folder exists
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.local
+    - ~/.local/share
+    - ~/.local/share/gnome-shell
+    - ~/.local/share/gnome-shell/extensions
+
+- name: Determine which GNOME extensions are already installed (user)
+  become: true
+  become_user: "{{ user.username }}"
+  command: ls ~/.local/share/gnome-shell/extensions/
+  changed_when: false
+  register: user_gnome_extensions
+
+- name: Configure install list for the GNOME extension installer
+  include_tasks: GNOME-list.yml
+  loop: "{{ user.gnome_extensions | default([]) }}"
+  loop_control:
+    label: "{{ item.url }}"
+
+- name: Determine whether or not an install file was created
+  stat:
+    path: /tmp/install-gnome-extensions.txt
+  register: install_gnome_extensions
+
+- name: "Give {{ user.username }} passwordless sudo priviledges"
+  lineinfile:
+    line: "{{ user.username }} ALL=(ALL) NOPASSWD: ALL"
+    path: /etc/sudoers
+    regex: "^{{ user.username }}"
+  when: install_gnome_extensions.stat.exists
+
+- name: Run the installer
+  become: true
+  become_user: "{{ user.username }}"
+  command: install-gnome-extensions --enable --overwrite --file /tmp/install-gnome-extensions.txt
+  when: install_gnome_extensions.stat.exists
+
+- name: "Remove {{ user.username }}'s passwordless sudo priviledges"
+  lineinfile:
+    line: "{{ user.username }} ALL=(ALL) ALL"
+    path: /etc/sudoers
+    regex: "^{{ user.username }}"
+  when: install_gnome_extensions.stat.exists
+
+- name: Remove the GNOME extensions installer list file
+  file:
+    path: /tmp/install-gnome-extensions.txt
+    state: absent
+
+- name: Apply extension settings
+  include_tasks: GNOME-settings.yml
+  loop: "{{ user.gnome_extensions | default([]) }}"
+  loop_control:
+    label: "{{ item.url }}"
+
+- name: Restart GNOME
+  command: killall -SIGQUIT gnome-shell
+  when: install_gnome_extensions.stat.exists

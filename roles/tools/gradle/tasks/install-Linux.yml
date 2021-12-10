@@ -1,0 +1,92 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ gradle_src_dir }} directory exists"
+  file:
+    path: "{{ gradle_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Ensure {{ gradle_install_dir }} directory exists"
+  file:
+    path: "{{ gradle_install_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/gradle/gradle/releases/latest
+  register: gradle_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gradle: "{{ (ansible_local.gradle is not defined) or \
+      ((ansible_local.gradle is defined) and \
+      (ansible_local['gradle']['settings']['version'] != gradle_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  uri:
+    url: https://gradle.org/release-checksums/
+    return_content: true
+  register: gradle_checksum_page
+  when: install_gradle
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    gradle_checksum: "{{ gradle_checksum_page.content | regex_search('Binary-only \\(-bin\\) ZIP Checksum: <code>(\\w*)<\\/code>') | \
+      regex_replace('Binary-only \\(-bin\\) ZIP Checksum: <code>(\\w*)<\\/code>','\\1') }}"
+  when: install_gradle
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://services.gradle.org/distributions/gradle-{{ gradle_latest_release_tag.json.tag_name | replace('v','') }}-bin.zip"
+    dest: "{{ gradle_src_dir }}/gradle.zip"
+    checksum: "sha256:{{ gradle_checksum }}"
+  when: install_gradle
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ gradle_src_dir }}/gradle.zip"
+    dest: "{{ gradle_install_dir }}"
+    remote_src: true
+  when: install_gradle
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/gradle.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ gradle_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_gradle
+
+- name: Ensure /usr/local/etc/bash_completion.d directory exists
+  file:
+    path: /usr/local/etc/bash_completion.d
+    state: directory
+    mode: 0755
+
+- name: Ensure BASH completion is setup
+  get_url:
+    url: "https://raw.githubusercontent.com/eriwen/gradle-completion/master/gradle-completion.bash"
+    dest: /usr/local/etc/bash_completion.d/gradle-completion.bash
+    mode: 0644
+
+- name: "Ensure PATH is set and completion is sourced"
+  lineinfile:
+    path: /etc/profile.d/gradle.sh
+    create: true
+    regexp: "{{ item.regex }}"
+    line: "{{ item.line }}"
+    mode: 0644
+  loop:
+    - regex: '^export PATH=$PATH:/opt/gradle/'
+      line: "export PATH=$PATH:/opt/gradle/gradle-{{ gradle_latest_release_tag.json.tag_name | replace('v','') }}/bin"
+    - regex: '. /usr/local/etc/bash_completion.d/gradle-completion.bash'
+      line: '. /usr/local/etc/bash_completion.d/gradle-completion.bash'

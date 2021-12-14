@@ -1,29 +1,14 @@
 ---
-- name: Fetch the initialization command # noqa 503
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  become_user: "{{ user.username }}"
-  command: starship init powershell
-  register: starship_out
-  changed_when: false
-  when: false
-  # @error on Fedora 35 - This is not necessarily a PowerShell tool - it's for any shell, follow the instructions here and include initialization logic in each dotfile that only runs when starship is installed https://starship.rs/
-
 - name: Ensure ~/.config/powershell exists
   become_user: "{{ user.username }}"
   file:
     mode: 0700
-    path: "{{ item }}"
+    path: ~/.config/powershell
     state: directory
-  loop:
-    - ~/.config
-    - ~/.config/powershell
 
 - name: Create the Initialization script for powershell # noqa 503
   become_user: "{{ user.username }}"
   copy:
     dest: "~/.config/powershell/Microsoft.PowerShell_profile.ps1"
-    content: "{{ starship_out.stdout }}"
-    mode: "0660"
-  when: false
-  # @error on Fedora 35 --- I'm not sure we can just assume the stdout is supposed to be the profile
+    content: "Invoke-Expression (&starship init powershell)"
+    mode: 0660

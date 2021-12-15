@@ -1,0 +1,56 @@
+---
+# yamllint disable rule:line-length
+- name: Update platforms
+  hosts: localhost
+  tasks:
+    - name: Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable
+      set_fact:
+        # eslint-disable-next-line max-len
+        molecule_yml: "{{ molecule_yml | combine({'platforms': (molecule_yml.platforms | selectattr('groups', 'contains', lookup('env', 'MOLECULE_GROUP')))}) }}"
+      when: ansible_env.MOLECULE_GROUP is defined
+
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: '{{ molecule_no_log }}'
+  tasks:
+    - name: Create molecule instance(s)
+      vagrant:
+        instances: '{{ molecule_yml.platforms }}'
+        default_box: "{{ molecule_yml.driver.default_box | default('generic/alpine310') }}"
+        provider_name: '{{ molecule_yml.driver.provider.name | default(omit, true) }}'
+        provision: '{{ molecule_yml.driver.provision | default(omit) }}'
+        cachier: '{{ molecule_yml.driver.cachier | default(omit) }}'
+        parallel: '{{ molecule_yml.driver.parallel | default(omit) }}'
+        state: up
+      register: server
+      no_log: false
+
+    # NOTE(retr0h): Vagrant/VirtualBox sucks and parallelizing instance creation
+    # causes issues.
+
+    # Mandatory configuration for Molecule to function.
+
+    - when: server.changed | bool
+      block:
+        - name: Populate instance config dict
+          set_fact:
+            instance_conf_dict:
+              instance: '{{ item.Host }}'
+              address: '{{ item.HostName }}'
+              user: '{{ item.User }}'
+              port: '{{ item.Port }}'
+              identity_file: '{{ item.IdentityFile }}'
+          with_items: '{{ server.results }}'
+          register: instance_config_dict
+
+        - name: Convert instance config dict to a list
+          set_fact:
+            instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+        - name: Dump instance config
+          copy:
+            content: '{{ instance_conf | to_json | from_json | to_yaml }}'
+            dest: '{{ molecule_instance_config }}'
+            mode: 0600

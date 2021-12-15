@@ -1,0 +1,34 @@
+---
+version: '3'
+
+tasks:
+  build:
+    desc: Build a regular Docker image and then generate a slim build from it
+    cmds:
+      - task: :docker:build:fat
+      - task: :docker:build:slim
+
+  standard-version:prebump:
+    cmds:
+      - |
+        if grep -q "CMD.\[\"--version\"\]" Dockerfile; then
+          VERSION=$(docker run --cap-drop=ALL -e PY_COLORS=0 --rm megabytelabs/shellcheck:latest | perl \
+            -pe 'if(($v)=/([0-9]+([.][0-9]+)+)/){print"$v";exit}$_=""')
+          if [[ $VERSION == *.*.* ]]; then
+            echo $VERSION
+          elif [[ $VERSION == *.* ]]; then
+            echo $VERSION.0
+          fi
+        fi
+
+  standard-version:prerelease: git add --all
+
+  standard-version:pretag:
+    vars:
+      PACKAGE_VERSION:
+        sh: grep version < package.json | head -1 | awk -F':' '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]'
+    cmds:
+      - |
+        if git show-ref --tags 'v{{.PACKAGE_VERSION}}' --quiet; then
+          git tag -d 'v{{.PACKAGE_VERSION}}'
+        fi

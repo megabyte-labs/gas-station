@@ -11,6 +11,7 @@
     mode: 0755
     path: "{{ omz_destination }}"
     state: directory
+  when: not install_prezto
 
 - name: Ensure installer script is downloaded
   get_url:
@@ -19,12 +20,15 @@
     mode: 0755
     force: true
   register: omz_installer
+  when: not install_prezto
 
 - name: "Ensure older version of {{ app_name }} is uninstalled" # noqa 503
   file:
     path: "{{ omz_destination }}/oh-my-zsh"
     state: absent
-  when: omz_installer.changed
+  when:
+    - not install_prezto
+    - omz_installer.changed
 
 - name: "Ensure {{ app_name }} is installed" # noqa 503
   environment:
@@ -35,37 +39,25 @@
   args:
     chdir: "{{ omz_destination }}"
     creates: "{{ omz_destination }}/oh-my-zsh"
-  when: omz_installer.changed
+  when:
+    - not install_prezto
+    - omz_installer.changed
 
-- name: "Ensure folder {{ omz_destination }}/oh-my-zsh/plugins/k exists" # noqa 503
-  file:
-    path: "{{ omz_destination }}/oh-my-zsh/plugins/k"
-    state: directory
-    mode: 0755
-  when: omz_installer.changed
+- name: Run Antigen installation tasks
+  include_tasks: antigen-Linux.yml
+  when: ansible_os_family not in ('Darwin', 'Debian')
 
-- name: "Ensure k plugin's source is downloaded and up-to-date" # noqa 503
-  git:
-    repo: https://github.com/supercrabtree/k.git
-    dest: "{{ omz_destination }}/oh-my-zsh/plugins/k"
-    version: master
-  when: omz_installer.changed
-  # @action error on Fedora 35 -- this seems kind of out of place here --- can we seperate all the plugins out into a list and then install them all at once with ohmyzsh after it's done installing?
-  # @info Do we want to ditch Starship (or use it just for PowerShell or other shells that are less likely to be used as you were coding it) and use ohmyzsh to handle everythiing like the theme and powerline fonts status bar etc.?
-
-- name: Ensure ZSH directory permissions are correct
-  file:
-    path: "{{ item }}"
-    mode: 0755
-    state: directory
-  loop:
-    - /usr/local/share/zsh
-    - /usr/local/share/zsh/site-functions
-
-- name: Run generic tasks
-  include_tasks: config-Linux.yml
+- name: Ensure .zshrc is setup
+  become_user: "{{ user.username }}"
+  template:
+    src: zshrc.j2
+    dest: ~/.zshrc
+    mode: 0700
+    backup: true
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
-  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+  when:
+    - not install_prezto
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))

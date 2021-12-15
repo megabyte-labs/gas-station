@@ -1,0 +1,48 @@
+---
+version: '3'
+
+tasks:
+  pip:
+    deps:
+      - :install:software:python
+    run: when_changed
+    cmds:
+      - pip3 install {{.PACKAGE}}
+    status:
+      - type {{.PACKAGE}} &> /dev/null
+
+  pytest:
+    run: once
+    cmds:
+      - task: pip
+        vars:
+          PACKAGE: pytest
+
+  pytest-cov:
+    run: once
+    cmds:
+      - task: pip
+        vars:
+          PACKAGE: pytest-cov
+
+  requirements:
+    deps:
+      - :install:software:python
+    run: once
+    cmds:
+      - task: requirements:poetry
+      - task: :{{if eq .REPOSITORY_TYPE "ansible"}}ansible:galaxy:requirements{{else}}donothing{{end}}
+    status:
+      - '[[ "${container:=}" == "docker" ]]'
+
+  requirements:poetry:
+    deps:
+      - :install:software:poetry
+    run: once
+    cmds:
+      - poetry install
+    sources:
+      - pyproject.toml
+    preconditions:
+      - sh: test -f pyproject.toml
+        msg: The `pyproject.toml` file is missing!

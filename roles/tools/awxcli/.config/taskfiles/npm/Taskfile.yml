@@ -1,0 +1,286 @@
+---
+version: '3'
+
+vars:
+  BINARY_BUILD_FOLDER: dist/bin
+  BUILD_FOLDERS: build coverage dist
+
+tasks:
+  build:
+    deps:
+      - :install:modules:local
+      - :install:npm:esbuild
+      - :install:npm:nest
+      - clean
+    desc: Build the application
+    cmds:
+      - task: depcheck:dependencies
+      - mkdir -p dist
+      - task: build:compile
+
+  build:compile:
+    deps:
+      - build:nest
+      - build:esbuild:bundled
+      - build:esbuild:minified
+      - build:fpm
+
+  build:esbuild:bundled:
+    deps:
+      - :install:modules:local
+      - :install:npm:esbuild
+    cmds:
+      - node .config/esbuild/bundled.js
+
+  build:esbuild:minified:
+    deps:
+      - :install:modules:local
+      - :install:npm:esbuild
+    cmds:
+      - node .config/esbuild/minified.js
+
+  build:fpm:
+    deps:
+      - :install:software:jq
+    vars:
+      NPM_PACKAGE_NAME:
+        sh: jq -r '.blueprint.bin_name' package.json
+      NPM_PACKAGE_VERSION:
+        sh: jq -r '.version' package.json
+    cmds:
+      - task: build:fpm-build
+        vars:
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+
+  build:fpm:build:
+    deps:
+      - task: build:fpm:compile
+        vars:
+          ARCHITECTURE: amd64
+          FILE_EXTENSION: deb
+          FPM_TARGET: deb
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+          SYSTEM: debian
+      - task: build:fpm:compile
+        vars:
+          ARCHITECTURE: arm64
+          FILE_EXTENSION: deb
+          FPM_TARGET: deb
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+          SYSTEM: debian
+      - task: build:fpm:compile
+        vars:
+          ARCHITECTURE: amd64
+          FILE_EXTENSION: txz
+          FPM_TARGET: freebsd
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+          SYSTEM: freebsd
+      # - task: build:fpm:compile
+      #   vars:
+      #     ARCHITECTURE: amd64
+      #     FILE_EXTENSION:
+      #     FPM_TARGET: pacman
+      #     NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+      #     NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+      #     SYSTEM: archlinux
+      - task: build:fpm:compile
+        vars:
+          ARCHITECTURE: amd64
+          FILE_EXTENSION: rpm
+          FPM_TARGET: rpm
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+          SYSTEM: redhat
+      - task: build:fpm:compile
+        vars:
+          ARCHITECTURE: arm64
+          FILE_EXTENSION: rpm
+          FPM_TARGET: rpm
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+          SYSTEM: redhat
+      - task: build:fpm:compile
+        vars:
+          ARCHITECTURE: all
+          FILE_EXTENSION: tar
+          FPM_TARGET: tar
+          NPM_PACKAGE_NAME: '{{.NPM_PACKAGE_NAME}}'
+          NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
+          SYSTEM: source
+    cmds:
+      - gzip -9 {{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-source-all.tar
+
+  build:fpm:compile:
+    deps:
+      - :install:software:fpm
+    cmds:
+      - '{{.NPX_HANDLE}}fpm -s npm -t {{.FPM_TARGET}}
+        -p {{.BINARY_BUILD_FOLDER}}/{{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-{{.SYSTEM}}-{{.ARCHITECTURE}}.{{.FILE_EXTENSION}}
+        --architecture {{.ARCHITECTURE}} .'
+
+  build:nest:
+    deps:
+      - :install:modules:local
+      - :install:npm:nest
+    cmds:
+      - '{{.NPX_HANDLE}}nest build'
+      - task: build:nest:after
+
+  build:nest:after:
+    deps:
+      - :common:update:man-page
+      - build:pkg
+
+  build:pkg:
+    deps:
+      - :install:modules:local
+      - :install:npm:pkg
+    cmds:
+      - '{{.NPX_HANDLE}}pkg package.json'
+
+  build:release: 'true'
+
+  clean:
+    deps:
+      - :install:software:rsync
+    desc: Remove temporary folders that might conflicts with builds
+    vars:
+      RANDOM_STRING:
+        sh: openssl rand -hex 14
+    cmds:
+      - mkdir -p '/tmp/{{.RANDOM_STRING}}'
+      - mkdir -p '/tmp/{{.RANDOM_STRING}}-empty'
+      - |
+        for TMP_FILE in {{.BUILD_FOLDERS}}; do
+          if [ -d "$TMP_FILE" ]; then
+            mv "$TMP_FILE" "/tmp/{{.RANDOM_STRING}}/$TMP_FILE" 2> /dev/null
+            (rsync -a --delete '/tmp/{{.RANDOM_STRING}}-empty' "/tmp/{{.RANDOM_STRING}}/$TMP_FILE" && rm -rf "/tmp/{{.RANDOM_STRING}}-$TMP_FILE") &
+          fi
+        done
+        wait
+
+  depcheck:dependencies:
+    deps:
+      - :install:npm:depcheck
+      - :install:software:jq
+    desc: Remove unused dependencies
+    cmds:
+      - "{{.NPX_HANDLE}}depcheck --json | jq -r '.dependencies[]' | xargs -n1 npm uninstall --save"
+
+  preinstall:
+    deps:
+      - :install:npm:only-allow
+    cmds:
+      - only-allow pnpm
+
+  start:
+    deps:
+      - :install:modules:local
+      - :install:npm:nest
+    desc: Run the application
+    cmds:
+      - '{{.NPX_HANDLE}}nest start'
+
+  start:debug:
+    deps:
+      - :install:modules:local
+      - :install:npm:nest
+    cmds:
+      - '{{.NPX_HANDLE}}nest start --watch'
+
+  start:inspect:
+    deps:
+      - :install:modules:local
+      - :install:npm:ndb
+      - :install:npm:nodemon
+      - :install:npm:ts-node
+    desc: Run the application in `watch` mode and open DevTools
+    cmds:
+      - '{{.NPX_HANDLE}}ndb nest start --watch'
+
+  start:inspect:legacy:
+    deps:
+      - :install:modules:local
+      - :install:npm:nest
+    cmds:
+      - '{{.NPX_HANDLE}}nest start --debug --watch'
+
+  start:prod:
+    deps:
+      - :install:modules:local
+      - :install:npm:nest
+    desc: Run the application in `production` mode
+    cmds:
+      - task: build
+      - node dist/main
+
+  start:prod:inspect:
+    deps:
+      - :install:modules:local
+      - :install:npm:nest
+    desc: Run the application in `production` and `watch` mode and open DevTools
+    cmds:
+      - '{{.NPX_HANDLE}}ndb nodemon'
+
+  test:
+    deps:
+      - :install:modules:local
+      - :install:npm:jest
+    desc: Run the unit tests for an NPM project
+    cmds:
+      - '{{.NPX_HANDLE}}jest'
+
+  test:ci:
+    deps:
+      - :install:modules:local
+      - :install:npm:jest
+    cmds:
+      - '{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit'
+
+  test:coverage:
+    deps:
+      - :install:modules:local
+      - :install:npm:jest
+    desc: Generate code coverage assets
+    cmds:
+      - '{{.NPX_HANDLE}}jest --coverage'
+
+  test:dashboard:
+    deps:
+      - :install:modules:local
+      - :install:npm:majestic
+    desc: Run and manage test cases from a web interface (powered by `majestic`)
+    cmds:
+      - '{{.NPX_HANDLE}}majestic --debug'
+
+  test:debug:
+    deps:
+      - :install:modules:local
+      - :install:npm:jest
+    desc: Debug tests in `watch` mode
+    cmds:
+      - '{{.NPX_HANDLE}}jest --watch'
+
+  test:e2e: 'true'
+
+  test:inspect:
+    deps:
+      - :install:modules:local
+      - :install:npm:jest
+      - :install:npm:ndb
+      - :install:npm:nodemon
+      - :install:npm:ts-node
+    desc: Debug tests with DevTools in `watch` mode
+    cmds:
+      - '{{.NPX_HANDLE}}ndb nodemon --config .common/nodemon-jest.json'
+
+  typesync:
+    deps:
+      - :install:npm:typesync
+    desc: Install missing type definitions
+    cmds:
+      - '{{.NPX_HANDLE}}typesync'

@@ -1,0 +1,100 @@
+---
+version: '3'
+
+tasks:
+  check:package:
+    interactive: true
+    deps:
+      - :install:software:jq
+    vars:
+      BLUEPRINT_REQUIRED_FIELDS: title description group name overview slug subgroup
+    cmds:
+      - |
+        if [ "$(jq -r '.type' package.json)" != 'module' ]; then
+          TMP="$(mktemp)"
+          jq '.type = "module"' package.json > "$TMP"
+          mv "$TMP" package.json
+        fi
+        if [ "$(jq -r '.dependencies' package.json)" == 'null' ]; then
+          TMP="$(mktemp)"
+          jq '.dependencies = {}' package.json > "$TMP"
+          mv "$TMP" package.json
+        fi
+        ALREADY_PRESENT=true
+        for ITEM in {{.BLUEPRINT_REQUIRED_FIELDS}}; do
+          VALUE="$(jq --arg item "$ITEM" -r '.blueprint[$item]' package.json)"
+          if [ "$VALUE" == 'null' ]; then
+            ALREADY_PRESENT=false
+            break
+          fi
+        done
+        if [ "$ALREADY_PRESENT" == 'true' ]; then
+          GITHUB="$(jq -r '.blueprint.repository.github' package.json)"
+          GITLAB="$(jq -r '.blueprint.repository.gitlab' package.json)"
+          if [ "$GITHUB" == 'null' ] || [ "$GITLAB" == 'null' ]; then
+            ALREADY_PRESENT=false
+          fi
+        fi
+        if [ ! -f 'package.json' ] || [ "$ALREADY_PRESENT" != 'true' ]; then
+          node .config/scripts/prompts/package.js "$ALREADY_PRESENT"
+        fi
+      - task: update:taskfile
+
+  clean:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        TMP="$(mktemp)"
+        jq 'del(."standard-version")' package.json > "$TMP"
+        mv "$TMP" package.json
+      - |
+        TMP="$(mktemp)"
+        jq 'del(."lint-staged")' package.json > "$TMP"
+        mv "$TMP" package.json
+
+  prime:package:
+    deps:
+      - :install:software:jq
+    cmds:
+      - curl -s https://gitlab.com/megabyte-labs/common/shared/-/raw/master/package.json > package-reference.json
+      - |
+        DEPS="$(jq -s '.[0].dependencies // {} * .[1].dependencies // {}' package-reference.json package.json)"
+        DEV_DEPS="$(jq -s '.[0].devDependencies // {} * .[1].devDependencies // {}' package-reference.json package.json)"
+        OPT_DEPS="$(jq -s '.[0].optionalDependencies // {} * .[1].optionalDependencies // {}' package-reference.json package.json)"
+        ESLINT_CONFIG="$(jq -r '.eslintConfig.extends' package-reference.json)"
+        PRETTIER_CONFIG="$(jq -r '.prettier' package-reference.json)"
+        TMP="$(mktemp)"
+        jq --arg deps "$DEPS" --arg devDeps "$DEV_DEPS" --arg optDeps "$OPT_DEPS" --arg eslint "$ESLINT_CONFIG" \
+          --arg prettier "$PRETTIER_CONFIG" '.dependencies = ($deps | fromjson) | .devDependencies = ($devDeps
+          | fromjson) | .optionalDependencies = ($optDeps | fromjson) | .eslintConfig.extends = $eslint
+          | .prettier = $prettier' package.json > "$TMP"
+        mv "$TMP" package.json
+      - rm package-reference.json
+
+  update:taskfile:
+    deps:
+      - :install:software:yq
+    cmds:
+      - |
+        GROUP="$(jq -r '.blueprint.group' package.json)"
+        SUBGROUP="$(jq -r '.blueprint.subgroup' package.json)"
+        TASK_GROUP="$(yq eval '.vars.REPOSITORY_TYPE' Taskfile.yml)"
+        TASK_SUBGROUP="$(yq eval '.vars.REPOSITORY_SUBTYPE' Taskfile.yml)"
+        if [ "$GROUP" != "$TASK_GROUP" ]; then
+          yq e -i ".vars.REPOSITORY_TYPE = \"$GROUP\"" Taskfile.yml
+        fi
+        if [ "$SUBGROUP" != "$TASK_SUBGROUP" ]; then
+          yq e -i ".vars.REPOSITORY_SUBTYPE = \"$SUBGROUP\"" Taskfile.yml
+        fi
+        UPSTREAM='upstream:project'
+        if [ '{{.REPOSITORY_TYPE}}.{{.REPOSITORY_SUBTYPE}}' == 'common.shared' ]; then
+          UPSTREAM='upstream:shared'
+        elif [ '{{.REPOSITORY_TYPE}}.{{.REPOSITORY_SUBTYPE}}' == 'documentation.shared' ]; then
+          UPSTREAM='upstream:commondocs'
+        elif [ '{{.REPOSITORY_TYPE}}' == 'common' ]; then
+          UPSTREAM='upstream:common'
+        elif [ '{{.REPOSITORY_TYPE}}' == 'documentation' ]; then
+          UPSTREAM='upstream:docs'
+        fi
+        yq e -i ".tasks.start.cmds[0].task = \"$UPSTREAM\"" Taskfile.yml

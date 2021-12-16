@@ -1,24 +1,52 @@
 ---
-- name: "Ensure {{ app_name }} is installed"
+- name: "Ensure {{ app_name }} is installed"  # noqa 303
   become_user: "{{ user.username }}"
   shell: |
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+    set -o pipefail && curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
   args:
     creates: ~/.poetry/bin
 
-- name: Ensure Bash completions is setup
-  shell: |
-    ~/.poetry/bin/poetry completions bash > /etc/bash_completion.d/poetry.bash-completion
-  args:
-    creates: /etc/bash_completion.d/poetry.bash-completion
-  when: ansible_system == 'Linux'
+# @action: Revisit at a later point once support for Python 3.10 is added to Poetry and remove
+# this step, and the step in `install-<ansible_os_family>.yml` where Python 3.9 is installed
+- name: Ensure Poertry uses Python 3.9
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.poetry/bin/poetry
+    regexp: '^#!/usr/bin/env python'
+    line: '#!/usr/bin/env python3.9'
 
 - name: Ensure Bash completions is setup
+  become_user: "{{ user.username }}"
+  shell: |
+    ~/.poetry/bin/poetry completions bash
+  register: poetry_bash_completions
+  args:
+    creates: /etc/bash_completion.d/poetry.bash-completion # This is intentional; avoid running this step when there are more than 1 users to loop through
+  when: ansible_system == 'Linux'
+
+- name: Ensure Bash completions are saved
+  copy:
+    dest: /etc/bash_completion.d/poetry.bash-completion
+    content: "{{ poetry_bash_completions.stdout }}"
+    mode: 0655
+  when:
+    - ansible_system == 'Linux'
+    - "poetry_bash_completions.stdout is defined and 'skipped' not in poetry_bash_completions.stdout"
+
+- name: Ensure Bash completions is setup (Darwin)
+  become_user: "{{ user.username }}"
   shell: |
     ~/.poetry/bin/poetry completions bash > $(brew --prefix)/etc/bash_completion.d/poetry.bash-completion
   args:
     creates: /usr/local/Cellar/etc/bash_completion.d/poetry.bash-completion
   when: ansible_system != 'Linux'
+
+- name: Ensure Zsh completions is setup
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/.zfunc
+    state: directory
+    mode: 0700
 
 - name: Ensure Zsh completions is setup
   become_user: "{{ user.username }}"
@@ -34,6 +62,8 @@
     insertbefore: '^.*compinit.*$'
     line: 'fpath+=~/.zfunc'
     backup: true
+    create: true
+    mode: 0700
 
 - name: Populate the config file with repository information
   become_user: "{{ user.username }}"
@@ -41,5 +71,5 @@
     ~/.poetry/bin/poetry config repositories.{{ poetry_repo_name }} {{ poetry_repo_url }}
     ~/.poetry/bin/poetry config http-basic.{{ poetry_repo_name }} {{ poetry_repo_username }} {{ poetry_repo_password }}
   when:
-   - poetry_repo_name and poetry_repo_url
-   - poetry_repo_username and poetry_repo_password
+    - poetry_repo_name and poetry_repo_url
+    - poetry_repo_username and poetry_repo_password

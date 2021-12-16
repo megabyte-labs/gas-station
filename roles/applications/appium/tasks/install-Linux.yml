@@ -1,14 +1,18 @@
 ---
+- name: "Ensure {{ app_name }} is installed"
+  community.general.npm:
+    name: appium
+    global: true
+    state: latest
+
+# Appium Desktop Installation
 - name: Ensure Megabyte Labs configuration directory exists
   file:
     mode: 0700
-    path: "{{ item }}"
+    path: ~/.config/megabytelabs
     state: directory
-  loop:
-    - ~/.config
-    - ~/.config/megabytelabs
 
-- name: "Check if {{ app_name }} Desktop has configuration stored in /root/.config/megabytelabs/appiumdesktop"
+- name: "Check if {{ app_name }} Desktop has configuration stored in ~/.config/megabytelabs/appiumdesktop"
   stat:
     path: ~/.config/megabytelabs/appiumdesktop
   register: appiumdesktop_config
@@ -36,10 +40,26 @@
   get_url:
     url: "https://github.com/appium/appium-desktop/releases/download/{{ appiumdesktop_latest_release_tag.json.tag_name }}/\
       Appium-linux-{{ appiumdesktop_latest_release_tag.json.tag_name | replace('v','') }}.AppImage"
-    dest: "{{ appiumdesktop_src_path }}"
+    dest: "{{ appiumdesktop_src_path }}/Appium-Desktop.AppImage"
     mode: 0755
-    owner: root
-    group: root
+  when: install_appiumdesktop
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  vars:
+    appimage_name: Appium-Desktop.AppImage
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_appiumdesktop
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Ensure {{ app_name }} Desktop AppImage is removed from /usr/local/bin"
+  file:
+    path: "{{ appiumdesktop_src_path }}/Appium-Desktop.AppImage"
+    state: absent
   when: install_appiumdesktop
 
 - name: "Save meta information about the version of {{ app_name }} Desktop that was installed"
@@ -50,8 +70,61 @@
       {{ appiumdesktop_latest_release_tag.json.tag_name | replace('v','') }}
   when: install_appiumdesktop
 
-- name: "Ensure {{ app_name }} is installed"
-  community.general.npm:
-    name: appium
-    global: true
-    state: latest
+# Appium Inspector Installation
+- name: "Check if Appium Inspector has configuration stored in ~/.config/megabytelabs/appium_inspector"
+  stat:
+    path: ~/.config/megabytelabs/appium_inspector
+  register: appium_inspector_config
+
+- name: "Detect previously installed Appium Inspector version"
+  command: cat appium_inspector
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_appium_inspector_version
+  when: appium_inspector_config.stat.exists
+
+- name: "Detect the latest Appium Inspector version"
+  uri:
+    url: https://api.github.com/repos/appium/appium-inspector/releases/latest
+  register: appium_inspector_latest_release_tag
+
+- name: "Determine whether or not the latest version of Appium Inspector's AppImage is already installed"
+  set_fact:
+    install_appium_inspector: "{{ (current_appium_inspector_version.skipped) or \
+      ((not current_appium_inspector_version.skipped) and \
+      (current_appium_inspector_version.stdout != appium_inspector_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Acquire the latest Appium Inspector AppImage"
+  get_url:
+    url: "https://github.com/appium/appium-desktop/releases/download/{{ appium_inspector_latest_release_tag.json.tag_name }}/\
+      Appium-Inspector-linux-{{ appium_inspector_latest_release_tag.json.tag_name | replace('v','') }}.AppImage"
+    dest: "{{ appium_inspector_src_path }}/Appium-Inspector.AppImage"
+    mode: 0755
+  when: install_appium_inspector
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  vars:
+    appimage_name: Appium-Inspector.AppImage
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_appium_inspector
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Ensure Appium Inspector AppImage is removed from /usr/local/bin"
+  file:
+    path: "{{ appium_inspector_src_path }}/Appium-Inspector.AppImage"
+    state: absent
+  when: install_appium_inspector
+
+- name: "Save meta information about the version of Appium Inspector that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/appium_inspector
+    mode: 0600
+    content: |
+      {{ appium_inspector_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_appium_inspector

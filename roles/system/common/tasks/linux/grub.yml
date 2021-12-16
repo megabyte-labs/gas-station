@@ -7,6 +7,12 @@
     state: present
   when: ansible_os_family == 'Debian'
 
+- name: Ensure plymouth's packages are installed
+  dnf:
+    name: plymouth-plugin-script
+    state: present
+  when: ansible_os_family == 'RedHat'
+
 - name: Optimize the GRUB resolution
   lineinfile:
     path: "{{ grub_path }}"
@@ -39,5 +45,6 @@
   command: "bash install.sh {{ grub_theme_options }}"
   args:
     chdir: /root/.grub-theme
-  notify: update grub
+  register: grub_theme_install
   when: not grub_theme.stat.exists or grub_force_install
+  failed_when: grub_theme_install.rc != 0 and not (grub_theme_install.rc == 1 and 'All done!' in grub_theme_install.stdout)

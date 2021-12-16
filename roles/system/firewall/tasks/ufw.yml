@@ -38,7 +38,7 @@
     - "{{ lan_network.management }}"
     - "{{ lan_network.work }}"
     - "{{ main_ip_address }}"
-  when: vlan != 'cloud'
+  when: (vlan | default('cloud')) != 'cloud'
 
 - name: Allow (but limit) SSH connections from anywhere
   ufw:
@@ -46,7 +46,7 @@
     port: "{{ ssh_port }}"
     proto: tcp
     comment: Allow SSH connections originating from the Internet
-  when: vlan == 'cloud'
+  when: (vlan | default('cloud')) == 'cloud'
 
 - name: Allow apt-cacher-ng access
   ufw:
@@ -156,14 +156,14 @@
   loop: "{{ rc1918_networks }}"
   when:
     - not ('nuc' in apps)
-    - vlan != 'cloud'
+    - (vlan | default('cloud')) != 'cloud'
 
 - name: Allow HTTP/HTTPS access from internet
   ufw:
     rule: allow
     name: "Nginx Full"
     comment: Allow access to NGINX from internet
-  when: ('nuc' in apps) or (vlan == 'cloud')
+  when: ('nuc' in apps) or ((vlan | default('cloud')) == 'cloud')
 
 - name: Enable UFW
   ufw:

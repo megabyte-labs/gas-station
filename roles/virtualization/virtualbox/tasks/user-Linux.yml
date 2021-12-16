@@ -1,20 +1,15 @@
 ---
-- name: "Ensure VirtualBox machine folder is location is configured"
+- name: Ensure VirtualBox config folder exists
   become_user: "{{ user.username }}"
-  lineinfile:
-    path: ~/.config/VirtualBox/VirtualBox.xml
-    backrefs: true
-    regex: '(^    <SystemProperties )(defaultMachineFolder="\S*")( .*$)'
-    line: '\1 defaultMachineFolder="/home/{{ user.username }}/.virtualbox" \3'
+  file:
+    path: "{{ '~/.config/VirtualBox' if ansible_system == 'Linux' else '~/Library/VirtualBox' }}"
+    state: directory
     mode: 0700
-  when: ansible_system == 'Linux'
 
 - name: "Ensure VirtualBox machine folder is location is configured"
   become_user: "{{ user.username }}"
-  lineinfile:
-    path: ~/Library/VirtualBox/VirtualBox.xml
-    backrefs: true
-    regex: '(^    <SystemProperties )(defaultMachineFolder="\S*")( .*$)'
-    line: '\1 defaultMachineFolder="/Users/{{ user.username }}/.virtualbox" \3'
-    mode: 0700
-  when: ansible_system != 'Linux'
+  template:
+    src: VirtualBox.xml.j2
+    dest: "{{ '~/.config/VirtualBox/VirtualBox.xml' if ansible_system == 'Linux' else '~/Library/VirtualBox/VirtualBox.xml' }}"
+    backup: true
+    mode: 0600

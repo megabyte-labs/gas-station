@@ -2,13 +2,16 @@
 - name: Ensure Megabyte Labs configuration directory exists
   file:
     mode: 0700
-    path: "{{ item }}"
+    path: ~/.config/megabytelabs
     state: directory
-  loop:
-    - ~/.config
-    - ~/.config/megabytelabs
 
-- name: "Check if Antigen has configuration stored in /root/.config/megabytelabs/antigen"
+- name: "Ensure {{ antigen_src_path }} directory exists"
+  file:
+    mode: 0755
+    path: "{{ antigen_src_path }}"
+    state: directory
+
+- name: "Check if Antigen has configuration stored in ~/.config/megabytelabs/antigen"
   stat:
     path: ~/.config/megabytelabs/antigen
   register: antigen_config
@@ -28,26 +31,14 @@
 
 - name: "Determine whether or not the latest version of Antigen is already installed"
   set_fact:
-    install_antigen: "{{ (current_antigen_version.skipped) or \
-      ((not current_antigen_version.skipped) and (current_antigen_version.stdout != antigen_latest_release_tag.json.tag_name | replace ('v',''))) }}"
+    install_antigen: "{{ (current_antigen_version.skipped | default(false)) or \
+      ((not current_antigen_version.skipped | default(false)) and \
+      (current_antigen_version.stdout != antigen_latest_release_tag.json.tag_name | replace ('v',''))) }}"
 
-- name: "Acquire the latest Antigen installer script"
+- name: Ensure antigen is installed
   get_url:
     url: "https://github.com/zsh-users/antigen/releases/download/{{ antigen_latest_release_tag.json.tag_name }}/antigen.zsh"
-    dest: "{{ antigen_src_path }}"
-  when: install_antigen
-
-- name: Ensure older version of Antigen is uninstalled
-  file:
-    path: "$HOME/.antigen"
-    state: absent
-  when: install_antigen
-
-- name: "Ensure Antigen is installed"
-  command: antigen.zsh
-  args:
-    chdir: "{{ antigen_src_path }}"
-    creates: "$HOME/.antigen"
+    dest: "{{ antigen_src_path }}/antigen.zsh"
   when: install_antigen
 
 - name: "Save meta information about the version of Antigen that was installed"

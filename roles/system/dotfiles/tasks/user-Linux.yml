@@ -55,11 +55,10 @@
     line: "export PATH=$PATH:~/.local/bin # PATH modified by Ansible"
 
 - name: Attempt to run starship and register the response
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: starship --help
+  shell: type starship > /dev/null
   changed_when: false
-  register: starship
+  register: has_starship
+  failed_when: has_starship.rc != 0 and not (has_starship.rc == 1  and 'not found' in has_starship.stderr)
 
 - name: Remove starship references if starship command is unavailable
   lineinfile:
@@ -71,4 +70,4 @@
       exe: bash
     - file: .zshrc
       exe: zsh
-  when: starship.rc == 1
+  when: "'not found' in has_starship.stderr"

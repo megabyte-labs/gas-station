@@ -1,4 +1,8 @@
 ---
+- name: Ensrue Plymouth is installed (Archlinux)
+  include_tasks: plymouth-Archlinux.yml
+  when: ansible_os_family == 'Archlinux'
+
 - name: Ensure Megabyte Labs configuration directory exists
   file:
     mode: 0700
@@ -25,6 +29,12 @@
   set_fact:
     install_plymouth_theme: "{{ (current_plymouth_theme.stdout | default('no_theme')) != plymouth_theme }}"
 
+- name: "Ensure {{ plymouth_themes_dir }} directory exists"
+  file:
+    path: "{{ plymouth_themes_dir }}"
+    state: directory
+    mode: 0755
+
 - name: Copy and unarchive the Plymouth theme
   unarchive:
     src: "files/plymouth-themes/{{ plymouth_theme }}.tar.gz"
@@ -37,7 +47,9 @@
     link: "{{ plymouth_themes_dir }}/default.plymouth"
     path: "{{ plymouth_themes_dir }}/{{ plymouth_theme }}/{{ plymouth_theme }}.plymouth"
     priority: 100
-  when: install_plymouth_theme
+  when:
+    - ansible_os_family != 'Archlinux'
+    - install_plymouth_theme
 
 - name: Activate the Plymouth theme # noqa 301
   shell: >
@@ -47,6 +59,13 @@
   args:
     executable: /usr/bin/bash
   notify: update initramfs
+  when:
+    - ansible_os_family != 'Archlinux'
+    - install_plymouth_theme
+
+- name: Set the Plymouth theme # noqa 301 305
+  shell: plymouth-set-default-theme connect
+  notify: update initramfs
   when: install_plymouth_theme
 
 - name: Save information about the current Plymouth theme
@@ -55,3 +74,4 @@
     mode: 0600
     content: |
       {{ plymouth_theme }}
+  when: install_plymouth_theme

@@ -71,7 +71,13 @@
       when: zfs_swap.changed
   when: "'ZFS' in ansible_facts.cmdline.root"
 
-- name: Create Swap file
+- name: Find the Filesystem of / partition # noqa 303 305
+  shell: set -o pipefail & mount | grep ' on / type '
+  register: root_fs_type
+  changed_when: false
+  when: "'ZFS' not in ansible_facts.cmdline.root"
+
+- name: Create Swap file (non btrfs, non-ZFS root filesystem)
   block:
     - name: Check if swap file already exists
       stat:
@@ -95,7 +101,43 @@
         dest: /etc/fstab
         regexp: /swapfile
         line: "/swapfile none swap sw 0 0"
-  when: "'ZFS' not in ansible_facts.cmdline.root"
+  when:
+    - root_fs_type.stdout is defined
+    - "'btrfs' not in root_fs_type.stdout"
+
+- name: Create Swap file (btrfs root filesystem)
+  block:
+    - name: Check if swap file already exists
+      stat:
+        path: /swapfile
+      register: swapfile
+    - name: Create /swapfile
+      command: truncate -s 0 /swapfile
+      when: not swapfile.stat.exists
+    - name: Set properties on the swapfile # noqa 305
+      shell: |
+        chattr +C /swapfile
+        btrfs property set /swapfile compression none
+    - name: Set the size of the swapfile
+      command: "fallocate -l {{ swap_space }} /swapfile"
+    - name: Set permissions on /swapfile
+      file:
+        path: /swapfile
+        mode: 0600
+    - name: Format /swapfile
+      command: mkswap /swapfile
+      when: not swapfile.stat.exists
+    - name: Turn on swap
+      command: swapon /swapfile
+      when: not swapfile.stat.exists
+    - name: Ensure swap loads on boot
+      lineinfile:
+        dest: /etc/fstab
+        regexp: /swapfile
+        line: "/swapfile none swap sw 0 0"
+  when:
+    - root_fs_type.stdout is defined
+    - "'btrfs' in root_fs_type.stdout"
 
 - name: Set swappiness
   sysctl:

@@ -5,20 +5,15 @@
   changed_when: false
   when: ansible_os_family != 'RedHat'
 
-- name: Backup the display manager query (non-RedHat)
-  set_fact:
-    display_manager: "{{ display_man }}"
-
 - name: Register display manager path (RedHat)
   command: grep '/usr/s\?bin' /etc/systemd/system/display-manager.service
-  register: display_man
+  register: display_man_rh
   changed_when: false
   when: ansible_os_family == 'RedHat'
 
-- name: Backup the display manager query (RedHat) # noqa 503
+- name: Backup the display manager query
   set_fact:
-    display_manager: "{{ display_man }}"
-  when: display_man.changed
+    display_manager: "{{ display_man if display_man.stdout is defined else display_man_rh }}"
 
 - name: Set auto login user for LightDM
   blockinfile:

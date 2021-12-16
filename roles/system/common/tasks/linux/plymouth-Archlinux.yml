@@ -1,0 +1,41 @@
+---
+- name: Ensure Plymouth's dependencies are installed
+  community.general.pacman:
+    name: "{{ plymouth_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: Ensure Plymouth's source directory is present
+  file:
+    mode: 0755
+    path: "{{ plymouth_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: Ensure Plymouth's source is cloned and up-to-date
+  become: false
+  git:
+    dest: "{{ plymouth_src_dir }}"
+    repo: "{{ plymouth_aur_git_repository }}"
+    version: master
+    force: true
+  register: plymouth_git
+
+- name: Remove /usr/bin/plymouth if the source files have changed # noqa 503
+  file:
+    path: /usr/bin/plymouth
+    state: absent
+  when: plymouth_git.after != plymouth_git.before
+
+- name: Ensure Plymouth is installed
+  become: false
+  shell: |
+    spawn makepkg -sic --noconfirm
+    expect "password for"
+    send "{{ ansible_become_pass }}\r"
+    expect eof
+    exit
+  args:
+    chdir: "{{ plymouth_src_dir }}"
+    creates: /usr/bin/plymouth
+    executable: /usr/bin/expect

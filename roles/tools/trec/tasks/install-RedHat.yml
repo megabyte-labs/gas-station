@@ -1,5 +1,19 @@
 ---
-- name: "Ensure {{ app_name }} is installed"
-  shell: cargo install -f t-rec --root "/usr/local/bin"
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  dnf:
+    name: "{{ trec_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: true
+
+- name: "Ensure {{ app_name }} is installed" # noqa 305
+  become_user: "{{ ansible_user }}"
+  shell: cargo install -f t-rec
   args:
-    creates: "/usr/local/bin/t-rec"
+    creates: "~/.cargo/bin/t-rec"
+
+- name: "Copy {{ app_name }} executable to /usr/local/bin"
+  copy:
+    src: "/home/{{ ansible_user }}/.cargo/bin/t-rec"
+    dest: "/usr/local/bin/t-rec"
+    mode: preserve
+    remote_src: true

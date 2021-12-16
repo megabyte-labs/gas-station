@@ -6,11 +6,11 @@
     state: present
   when: ansible_system == 'Linux'
 
-- name: Ensure custom facts directory exists
+- name: Ensure Megabyte Labs configuration directory exists
   file:
-    mode: 0755
-    path: /etc/ansible/facts.d
+    path: ~/.config/megabytelabs
     state: directory
+    mode: 0700
   when: ansible_system == 'Linux'
 
 - name: "Ensure {{ asdf_src_dir }}'s source directory exists"
@@ -21,6 +21,22 @@
     state: directory
   when: ansible_system == 'Linux'
 
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/{{ app_name }}"
+  register: asdf_config
+  when: ansible_system == 'Linux'
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat {{ app_name }}
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_asdf_version
+  when:
+    - ansible_system == 'Linux'
+    - asdf_config.stat.exists
+
 - name: "Detect the latest {{ app_name }} version"
   uri:
     url: https://api.github.com/repos/asdf-vm/asdf/tags
@@ -29,13 +45,11 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_asdf: "{{ (ansible_local.asdf is not defined) or \
-      ((ansible_local.asdf is defined) and \
-      (ansible_local['asdf']['settings']['version'] != asdf_latest_release_tag.json[0].name | replace('v',''))) }}"
+    install_asdf: "{{ (current_asdf_version.skipped | default(false)) or \
+      ((not current_asdf_version.skipped | default(false)) and (current_asdf_version.stdout != asdf_latest_release_tag.json[0].name | replace('v',''))) }}"
   when: ansible_system == 'Linux'
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
-  become: false
   git:
     repo: https://github.com/asdf-vm/asdf.git
     dest: "{{ asdf_src_dir }}"
@@ -45,7 +59,6 @@
     - install_asdf
 
 - name: "Ensure {{ app_name }}'s PATH is added to .bashrc"
-  become_user: "{{ user.username }}"
   lineinfile:
     path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
     create: true
@@ -64,7 +77,6 @@
     mode: 0700
 
 - name: Ensure Bash completions is setup
-  become_user: "{{ user.username }}"
   lineinfile:
     path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
     regex: >-
@@ -81,7 +93,6 @@
       {%- endif -%}
 
 - name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
-  become_user: "{{ user.username }}"
   lineinfile:
     path: ~/.zshrc
     create: true
@@ -100,7 +111,6 @@
     mode: 0700
 
 - name: Ensure ZSH completions is setup
-  become_user: "{{ user.username }}"
   blockinfile:
     path: ~/.zshrc
     block: |
@@ -110,21 +120,16 @@
   when: ansible_system == 'Linux'
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
-  become_user: root
-  community.general.ini_file:
-    path: /etc/ansible/facts.d/asdf.fact
-    mode: 0644
-    section: settings
-    option: version
-    value: "{{ asdf_latest_release_tag.json[0].name | replace('v','') }}"
-    backup: true
-    no_extra_spaces: true
+  copy:
+    dest: "~/.config/megabytelabs/{{ app_name }}"
+    mode: 0600
+    content: |
+      {{ asdf_latest_release_tag.json[0].name | replace('v','') }}
   when:
     - ansible_system == 'Linux'
     - install_asdf
 
 - name: Ensure NodeJS ASDF Plugin is installed
-  become_user: "{{ user.username }}"
   shell: |
     . "$ASDF_DIR/asdf.sh"
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -139,7 +144,6 @@
     not (asdf_node_plugin_install.rc == 2 and 'Plugin named nodejs already added' in asdf_node_plugin_install.stderr)
 
 - name: Configure the default global packages
-  become_user: "{{ user.username }}"
   template:
     src: default-npm-packages.j2
     dest: ~/.default-npm-packages
@@ -147,7 +151,6 @@
   when: nodejs_npm_global_packages | default([]) | length
 
 - name: Ensure .tool-versions file is created
-  become_user: "{{ user.username }}"
   lineinfile:
     path: ~/.tool-versions
     regex: "nodejs {{ nodejs_version | replace('.x','.0.0') }}"
@@ -158,7 +161,6 @@
   when: nodejs_version is defined and nodejs_version | length > 0
 
 - name: Ensure NodeJS and default packages are installed
-  become_user: "{{ user.username }}"
   shell: |
     . "$ASDF_DIR/asdf.sh"
     asdf install

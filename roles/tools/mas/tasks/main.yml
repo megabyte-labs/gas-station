@@ -3,6 +3,7 @@
   community.general.homebrew:
     name: mas
     state: present
+  when: ansible_os_family == 'Darwin'
 
 - name: Get MAS account status
   environment:
@@ -12,6 +13,7 @@
   failed_when: mas_account_result.rc > 1
   check_mode: false
   changed_when: false
+  when: ansible_os_family == 'Darwin'
 
 # Cannot signin using the CLI, sign in using App Store. See https://github.com/mas-cli/mas/issues/164
 # - name: Sign in to MAS when email and password are provided
@@ -42,6 +44,7 @@
   register: mas_list
   check_mode: false
   changed_when: false
+  when: ansible_os_family == 'Darwin'
 
 - name: Ensure configured MAS apps are installed
   environment:
@@ -51,9 +54,12 @@
   when:
     - (item.id | default(item) | string) not in mas_list.stdout
     - mas_installed_apps | length
+    - ansible_os_family == 'Darwin'
 
 - name: Upgrade all apps (if configured)
   environment:
     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: mas upgrade
-  when: mas_upgrade_all_apps
+  when:
+    - mas_upgrade_all_apps
+    - ansible_os_family == 'Darwin'

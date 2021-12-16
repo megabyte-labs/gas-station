@@ -1,0 +1,39 @@
+---
+- name: Install AppImages
+  become: true
+  become_user: "{{ user.username }}"
+  block:
+    - include_tasks: appimages-Linux.yml
+  when: app_images_repository
+
+- name: Apply user dconf settings
+  become: true
+  become_user: "{{ user.username }}"
+  community.general.dconf:
+    key: "{{ item.key | string }}"
+    value: "{{ item.value | string }}"
+    state: present
+  loop: "{{ user.dconf_settings }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Set the default vim theme
+  become: true
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.vimrc
+    regexp: ^colorsheme.*
+    line: "colorscheme {{ default_vim_theme }}"
+    state: present
+    mode: 0700
+    backup: true
+    create: true
+
+- name: Setup X11 theme
+  become: true
+  become_user: "{{ user.username }}"
+  copy:
+    content: |
+      xrdb -nocpp -merge "{{ color_scheme_src_directory }}/Xresources/Solarized Dark - Patched"
+    dest: ~/.xinitrc
+    mode: 0755

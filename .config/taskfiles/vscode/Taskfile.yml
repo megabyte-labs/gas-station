@@ -29,12 +29,13 @@ tasks:
         TMP_JQ="$(mktemp)"
         jq -cRrs 'split("\n") | "{ \"recommendations\": \(.) }"' < "$TMP_YQ" > "$TMP_JQ"
         sed 's/,""//' < "$TMP_JQ" > '{{.EXTENSIONS_FILE}}'
-      - prettier --write '{{.EXTENSIONS_FILE}}' &
+      - |
+        {{.NPX_HANDLE}}prettier --write '{{.EXTENSIONS_FILE}}' > /dev/null
 
   generate:
-    cmds:
-      - task vscode:extensions &
-      - task vscode:tasks &
+    deps:
+      - extensions
+      - tasks
 
   tasks:
     deps:
@@ -49,16 +50,11 @@ tasks:
 
       This is a simple implementation. There are many features provided by VS Code that we
       can potentially leverage to make our `tasks.json` better and more useful to developers.
-    env:
-      TASK_LIST:
-        sh: task --list
-      TMP:
-        sh: mktemp
     run: when_changed
     cmds:
       - |
+        TMP="$(mktemp)"
         echo '{"version": "2.0.0"}' > "$TMP"
-      - |
         TASKS='['
         while read LINE; do
           if [ "${LINE:0:1}" == '*' ]; then
@@ -69,6 +65,7 @@ tasks:
             COMMAND="bash .config/scripts/vscode.sh && task $TASK_NAME"
             TASKS+="{\"label\": \"$LABEL\", \"type\": \"$TYPE\", \"command\": \"$COMMAND\"},"
           fi
-        done <<< "$TASK_LIST"
+        done <<< "$(task --list)"
         jq --arg tasks "${TASKS%?}]" '.tasks = ($tasks | fromjson)' "$TMP" > '{{.TASKS_FILE}}'
-      - prettier --write '{{.TASKS_FILE}}' &
+      - |
+        {{.NPX_HANDLE}}prettier --write '{{.TASKS_FILE}}' > /dev/null

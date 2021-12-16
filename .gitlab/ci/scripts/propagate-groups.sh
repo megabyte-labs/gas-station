@@ -53,7 +53,7 @@ function triggerUpdates() {
   echo "${#PROJECT_IDS_LIST[@]} projects being triggered to update."
   for PROJECT_ID in "${PROJECT_IDS_LIST[@]}"; do
     echo "Triggering pipeline for project ID ${PROJECT_ID}"
-    RESPONSE=$(curl -s --request POST --form "token=${CI_JOB_TOKEN}" --form ref=master "https://gitlab.com/api/v4/projects/${PROJECT_ID}/trigger/pipeline")
+    RESPONSE=$(curl -s --request POST --form "token=${CI_JOB_TOKEN}" --form ref=synchronize --form "variables[PIPELINE_SOURCE]=$CI_PROJECT_ID" "https://gitlab.com/api/v4/projects/${PROJECT_ID}/trigger/pipeline")
     MESSAGE=$(parseJSON "$RESPONSE" web_url)
     if [ "$MESSAGE" ]; then
       echo "Pipeline URL: $MESSAGE"

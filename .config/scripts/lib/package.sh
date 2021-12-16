@@ -32,14 +32,14 @@ function ensurePackageInstalled() {
         sudo pacman update
         sudo pacman -S "$1"
       else
-        . .config/log error "$1 is missing. Please install $1 to continue." && exit 1
+        .config/log error "$1 is missing. Please install $1 to continue." && exit 1
       fi
     elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-      . .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+      .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
     elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-      . .config/log error "FreeBSD support not added yet" && exit 1
+      .config/log error "FreeBSD support not added yet" && exit 1
     else
-      . .config/log error "System type not recognized" && exit 1
+      .config/log error "System type not recognized" && exit 1
     fi
   fi
 }

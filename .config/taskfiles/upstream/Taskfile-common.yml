@@ -30,6 +30,7 @@ tasks:
         cd ./{{.SHARED_FOLDER}}/common/.config/docs
         rm -rf .git .config .github .gitlab .vscode .editorconfig .gitignore .gitlab-ci.yml
         rm -rf LICENSE Taskfile.yml package-lock.json package.json poetry.lock pyproject.toml
+        rm -rf docs common.json pnpm-lock.yaml
 
   combine:
     cmds:
@@ -49,24 +50,32 @@ tasks:
       - copy:project:subtype
 
   copy:common:
+    env:
+      PATH:
+        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - cp -rT ./{{.SHARED_FOLDER}}/common/ .
       - task: :common:husky:permissions
 
   copy:project:
+    env:
+      PATH:
+        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - cp -rT ./{{.SHARED_FOLDER}}/common ./{{.COMMON_FOLDER}}
       - if [ ! -d project ]; then mkdir project; fi
       - cp -rT project ./{{.COMMON_FOLDER}}
 
   copy:project:subtype:
+    env:
+      PATH:
+        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - |
         for FOLDER in project-*/; do
           SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
-          cp -rT "$FOLDER" "./{{.COMMON_FOLDER}}-$SUBTYPE" &
+          cp -rT "$FOLDER" "./{{.COMMON_FOLDER}}-$SUBTYPE"
         done
-        wait
 
   merge:
     deps:
@@ -105,7 +114,7 @@ tasks:
           mv "$TMP" "$3"
         }
 
-        mergePackages "./{{.SHARED_FOLDER}}/common/package.hbs.json" "./project/package.hbs.json" "./{{.COMMON_FOLDER}}/package.hbs.json"
+        mergePackages "./{{.SHARED_FOLDER}}/common/package.json.liquid" "./project/package.json.liquid" "./{{.COMMON_FOLDER}}/package.json.liquid"
 
   merge:package:project:subtype:
     deps:
@@ -135,7 +144,7 @@ tasks:
 
         for FOLDER in project-*/; do
           SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
-          mergePackages "./{{.COMMON_FOLDER}}/package.hbs.json" "project-$SUBTYPE/package.hbs.json" "./{{.COMMON_FOLDER}}-$SUBTYPE/package.hbs.json" &
+          mergePackages "./{{.COMMON_FOLDER}}/package.json.liquid" "project-$SUBTYPE/package.json.liquid" "./{{.COMMON_FOLDER}}-$SUBTYPE/package.json.liquid" &
         done
         wait
 
@@ -193,7 +202,7 @@ tasks:
   template:
     deps:
       - :install:modules:local
-      - :install:npm:hbs
+      - :install:npm:liquidjs
     cmds:
       - task: :upstream:variables
         vars:
@@ -203,19 +212,10 @@ tasks:
 
   template:files:
     deps:
-      - template:files:handlebars
-      - template:files:hbs
+      - template:files:liquidjs
 
-  template:files:handlebars:
-    vars:
-      IGNORES: -o -path './project*' -o -path './deprecated*' -o
+  template:files:liquidjs:
     cmds:
-      - task: :upstream:template:handlebars
-        vars:
-          ADDITIONAL_IGNORE_FOLDERS: -path './{{.COMMON_FOLDER}}*' -o -path './project*' -o -path './deprecated*' -o
-
-  template:files:hbs:
-    cmds:
-      - task: :upstream:template:hbs
+      - task: :upstream:template:liquidjs
         vars:
           ADDITIONAL_IGNORE_FOLDERS: -path './{{.COMMON_FOLDER}}*' -o -path './project*' -o -path './deprecated*' -o

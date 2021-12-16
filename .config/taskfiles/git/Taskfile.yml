@@ -1,7 +1,36 @@
 ---
+# eslint-disable max-lines, eslint-comments/disable-enable-pair
 version: '3'
 
 vars:
+  EMOJI_END:
+    sh: |
+      if [ -f '.variables.json' ]; then
+        BP_END="$(jq -r '.emoji_end' .variables.json)"
+        if [ "$BP_END" != 'null' ]; then
+          echo "$BP_END"
+        else
+          if [ "$(jq -r '.emoji_endings[15]' .variables.json)" != 'null' ]; then
+            echo "$(jq --arg place "$(shuf -i 0-15 -n 1)" -r '.emoji_endings[($place | tonumber)]' .variables.json)"
+          else
+            echo ""
+          fi
+        fi
+      fi
+  EMOJI_START:
+    sh: |
+      if [ -f '.variables.json' ]; then
+        BP_START="$(jq -r '.emoji_start' .variables.json)"
+        if [ "$BP_START" != 'null' ]; then
+          echo "$BP_START"
+        else
+          if [ "$(jq -r '.emoji_beginnings[15]' .variables.json)" != 'null' ]; then
+            echo "$(jq --arg place "$(shuf -i 0-15 -n 1)" -r '.emoji_beginnings[($place | tonumber)]' .variables.json)"
+          else
+            echo ""
+          fi
+        fi
+      fi
   GITHUB_ISSUES: true
   GITHUB_WIKI: false
   GITLAB_WIKI: false
@@ -24,18 +53,18 @@ tasks:
       - git init
       - git remote add origin "{{.GITLAB_REPO}}"
       - git add --all
-      - git commit -m "refactor(convert-dir-to-submodule) Adding folder/project to its own git repository."
-      - git push origin master
+      - git commit --quiet -m "refactor(convert-dir-to-submodule) Adding folder/project to its own git repository."
+      - git push --quiet -u --no-progress origin master
       - |
         cd ..
         rm -rf {{.BASENAME}}
         git add {{.BASENAME}}
-        git commit -m "refactor(convert-dir-to-submodule) Removing folder which will now be a submodule."
+        git commit --quiet -m "refactor(convert-dir-to-submodule) Removing folder which will now be a submodule."
         git submodule add -b master "{{.GITLAB_REPO}}" {{.BASENAME}}
         git add {{.BASENAME}}
-        git commit -m "refactor(convert-dir-to-submodule) Adding new submodule which was previously a directory."
-        git push -u origin HEAD
-      - true success 'Converted the `{{.BASENAME}}` directory to a submodule'
+        git commit --quiet -m "refactor(convert-dir-to-submodule) Adding new submodule which was previously a directory."
+        git push --quiet -u --no-progress origin HEAD
+      - .config/log success 'Converted the `{{.BASENAME}}` directory to a submodule'
     preconditions:
       - sh: '[[ ! $(git rev-parse --git-dir) =~ ".git/modules" ]]'
         msg: Cannot convert the directory to a submodule - the directory already appears to be a submodule.
@@ -44,6 +73,7 @@ tasks:
     deps:
       - :install:software:gh
       - :install:software:jq
+      - remotes
     vars:
       DESCRIPTION:
         sh: jq -r '.description' package.json
@@ -53,20 +83,21 @@ tasks:
         sh: jq -r '.homepage' package.json
       PROJECT_TYPE:
         sh: if [[ $(jq -r '.private' package.json) == 'true' ]]; then echo '--private'; else echo '--public'; fi
-    env:
-      TMP:
-        sh: mktemp
     run: once
     cmds:
-      - cmd: >
-          if [ ! -z "$GITHUB_TOKEN" ] && test -e .git && ! gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} 2&>1 /dev/null; then
-            gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "🔥👉 {{.DESCRIPTION}} 🚀" \
-              --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} 2&>1 /dev/null
-          else
-            true warn 'The `GITHUB_TOKEN` environment variable is not set so the GitLab repository cannot be updated via the API.'
+      - cmd: |
+          TMP="$(mktemp)"
+          if [ ! -z "$GITHUB_TOKEN" ] && test -e .git && ! gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} 2&> /dev/null; then
+            gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}" \
+              --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} > /dev/null
+            .config/log success 'Created a GitHub repository - `https://github.com/{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}`'
+            git add --all
+            git commit --quiet -m "🎂 Birth" -n
+            git push --quiet -u --no-progress github master
           fi
         ignore_error: true
     sources:
+      - .variables.json
       - package.json
     preconditions:
       - sh: '[ "{{.DESCRIPTION}}" != "null" ]'
@@ -76,9 +107,21 @@ tasks:
       - sh: '[ "{{.HOMEPAGE}}" != "null" ]'
         msg: The `.homepage` in `package.json` must be set.
 
+  github:ids:
+    deps:
+      - :install:software:gh
+      - :install:software:jq
+      - github:create
+    cmds:
+      - |
+        PROJECT_ID="$(gh repo view --json id | jq -r '.id')"
+        TMP="$(mktemp)" && jq --arg projectId "$PROJECT_ID" '.blueprint.github_id = $projectId' package.json > "$TMP"
+        mv "$TMP" package.json
+
   github:update:
     deps:
       - github:update:meta
+      - github:ids
       - github:variables
 
   github:update:meta:
@@ -95,18 +138,15 @@ tasks:
         sh: jq -r '.homepage' package.json
       PRIVATE:
         sh: jq -r '.private' package.json | sed 's/null/false/'
-    env:
-      OPTIONAL_TAGS:
-        sh: jq '.keywords' .config/common-keywords.json
-      TOPICS:
-        sh: jq '.keywords' package.json | sed 's/null/[]/'
-      TOPICS_LENGTH:
-        sh: jq -r '.keywords | length' package.json
     cmds:
-      - >
+      - |
+        OPTIONAL_TAGS="$(jq '.keywords' .config/common-keywords.json)"
+        TOPICS="$(jq '.keywords' package.json | sed 's/null/[]/')"
+        TOPICS_LENGTH="$(jq -r '.keywords | length' package.json)"
         if [ ! -z "$GITHUB_TOKEN" ]; then
-          gh api -X PATCH repos/{owner}/{repo} -f description="🔥👉 {{.DESCRIPTION}} 🚀" -f homepage="{{.HOMEPAGE}}" \
+          gh api -X PATCH repos/{owner}/{repo} -f description="{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}" -f homepage="{{.HOMEPAGE}}" \
             -f has_issues={{.GITHUB_ISSUES}} -f has_wiki={{.GITHUB_WIKI}} -f private="{{.PRIVATE}}" --silent
+          .config/log success 'Ensured GitHub metadata is up-to-date'
           RESULT="$TOPICS"
           if [ "$TOPICS_LENGTH" -gt 20 ]; then
             function updateList() {
@@ -122,12 +162,14 @@ tasks:
           if [[ "$MINIMIZED_TOPICS" != '""' ]]; then
             curl -s -X PUT -H "Accept: application/vnd.github.mercy-preview+json" -u "{{.GITHUB_ORG}}:$GITHUB_TOKEN" \
               'https://api.github.com/repos/{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}/topics' -d '{"names":['"$MINIMIZED_TOPICS"']}' > /dev/null
+            .config/log success 'Updated GitHub topics successfully'
           fi
         else
-          true warn 'The `GITHUB_TOKEN` environment variable is not set so the GitHub repository cannot be updated via the API.'
+          .config/log warn 'The `GITHUB_TOKEN` environment variable is not set so the GitHub repository cannot be updated via the API.'
         fi
     sources:
       - .config/common-keywords.json
+      - .variables.json
       - package.json
     preconditions:
       - sh: '[ "{{.DESCRIPTION}}" != "null" ]'
@@ -143,14 +185,48 @@ tasks:
       - |
         if [ ! -z "$GITHUB_TOKEN" ] && [ ! -z "$ANSIBLE_GALAXY_TOKEN" ] && [ '{{.REPOSITORY_TYPE}}' == 'ansible' ]; then
           gh secret set ANSIBLE_GALAXY_TOKEN -b "$ANSIBLE_GALAXY_TOKEN"
+          .config/log success 'Updated GitHub Actions `ANSIBLE_GALAXY_TOKEN` environment variable successfully'
         fi
     status:
       - '[ -z "$GITHUB_TOKEN" ] || [ -z "$ANSIBLE_GALAXY_TOKEN" ] || [ "{{.REPOSITORY_TYPE}}" != "ansible" ]'
+
+  gitlab:branches:
+    deps:
+      - :install:software:glab
+      - gitlab:create
+    vars:
+      REPO_ID:
+        sh: glab api projects/:fullpath | jq '.id'
+    run: once
+    cmds:
+      - |
+        if [ "$(glab api projects/:fullpath/protected_branches/master | jq '.code_owner_approval_required')" == 'false' ]; then
+          glab api projects/:fullpath/protected_branches/master -X DELETE > /dev/null &
+          glab api projects/:fullpath/protected_branches -X POST -f name=master -f code_owner_approval_required=true > /dev/null &
+        fi
+        if [ '{{.REPOSITORY_TYPE}}' == 'ansible' ]; then
+          glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=test/linux -f ref=master > /dev/null &
+          glab api projects/:fullpath/protected_branches -X POST -f name=test/linux -f code_owner_approval_required=true > /dev/null &
+          glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=test/darwin -f ref=master > /dev/null &
+          glab api projects/:fullpath/protected_branches -X POST -f name=test/darwin -f code_owner_approval_required=true > /dev/null &
+          glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=test/windows -f ref=master > /dev/null &
+          glab api projects/:fullpath/protected_branches -X POST -f name=test/windows -f code_owner_approval_required=true > /dev/null &
+        fi
+        glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=main -f ref=master > /dev/null &
+        glab api projects/:fullpath/protected_branches -X POST -f name=main -f code_owner_approval_required=true > /dev/null &
+        glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=next -f ref=master > /dev/null &
+        glab api projects/:fullpath/protected_branches -X POST -f name=next -f code_owner_approval_required=true > /dev/null &
+        glab api projects/:fullpath/protected_branches -X POST -f name=protected/* -f code_owner_approval_required=true > /dev/null &
+        glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=synchronize -f ref=master > /dev/null &
+        glab api projects/:fullpath/protected_branches -X POST -f name=synchronize -f code_owner_approval_required=true > /dev/null &
+        wait
+        .config/log success "Successfully set up GitLab protected branches"
 
   gitlab:create:
     deps:
       - :install:software:glab
       - :install:software:jq
+      - remotes
     vars:
       DESCRIPTION:
         sh: jq -r '.description' package.json
@@ -164,20 +240,22 @@ tasks:
         sh: if [[ $(jq -r '.private' package.json) == 'true' ]]; then echo '--private'; else echo '--public'; fi
       TMP:
         sh: mktemp
-    env:
-      KEYWORDS:
-        sh: jq -r '.keywords | tostring' package.json | sed 's/\[//' | sed 's/\]//'
     run: once
     cmds:
-      - cmd: >
-          if [ ! -z "$GITLAB_TOKEN" ] && test -e .git && ! glab repo view '{{.GITLAB_PATH}}' > /dev/null; then
-            glab repo create '{{.GITLAB_PATH}}' --group '{{.GITLAB_GROUP}}' --description '🔥👉 {{.DESCRIPTION}} 🚀' --name '{{.NAME}}' \
-              {{.PROJECT_TYPE}} --tag '$KEYWORDS'
-          else
-            true warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository cannot be created.'
+      - cmd: |
+          KEYWORDS="$(jq -r '.keywords | tostring' package.json | sed 's/\[//' | sed 's/\]//')"
+          if [ ! -z "$GITLAB_TOKEN" ] && test -e .git && ! glab repo view '{{.GITLAB_PATH}}' 2&> /dev/null; then
+            NO_PROMPT=1 glab repo create '{{.GITLAB_PATH}}' --group '{{.GITLAB_GROUP}}' \
+              --description '{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}' --name '{{.NAME}}' \
+              {{.PROJECT_TYPE}} --tag "$KEYWORDS"
+            git add --all
+            git commit --quiet -m "🎂 Birth" -n
+            git push --quiet -u --no-progress gitlab master
+            .config/log success 'Created new GitLab repository - `https://gitlab.com/{{.GITLAB_PATH}}`'
           fi
         ignore_error: true
     sources:
+      - .variables.json
       - package.json
     preconditions:
       - sh: '[ "{{.DESCRIPTION}}" != "null" ]'
@@ -185,21 +263,38 @@ tasks:
       - sh: '[ "{{.NAME}}" != "null" ]'
         msg: The `.blueprint.name` variable in `package.json` must be set.
 
+  gitlab:ids:
+    deps:
+      - :install:software:glab
+      - :install:software:jq
+      - gitlab:create
+    cmds:
+      - |
+        API_RES="$(glab api projects/:fullpath)"
+        PROJECT_ID="$(echo "$API_RES" | jq '.id')"
+        TMP="$(mktemp)" && jq --arg projectId "$PROJECT_ID" '.blueprint.gitlab_project_id = $projectId' package.json > "$TMP"
+        mv "$TMP" package.json
+        GROUP_ID="$(echo "$API_RES" | jq '.namespace.id')"
+        TMP="$(mktemp)" && jq --arg groupId "$GROUP_ID" '.blueprint.gitlab_group_id = $groupId' package.json > "$TMP"
+        mv "$TMP" package.json
+
   gitlab:integrations:
     deps:
-      - gitlab:integrations:github
+      - gitlab:create
+    run: once
+    cmds:
+      - task: gitlab:integrations:github
 
   gitlab:integrations:github:
     deps:
       - :install:software:glab
       - :install:software:jq
-    env:
-      GITHUB_REPO:
-        sh: jq -r '.blueprint.repository.github' package.json
     cmds:
       - |
+        GITHUB_REPO="$(jq -r '.blueprint.repository.github' package.json)"
         if [ ! -z "$GITLAB_TOKEN" ] && [ ! -z "$GITHUB_TOKEN" ]; then
           glab api projects/:fullpath/integrations/github -X PUT -f token="$GITHUB_TOKEN" -f repository_url="$GITHUB_REPO" --silent
+          .config/log success 'Ensured GitLab'\''s GitHub integration is activated'
         fi
 
   gitlab:mirror:
@@ -217,15 +312,17 @@ tasks:
         sh: glab api projects/:fullpath/remote_mirrors | jq '. | length'
     cmds:
       - >
-        if [ ! -z "$GITLAB_TOKEN" ] && [ ! -z "$GITHUB_TOKEN" ]; then
-          if [[ "{{.PUSH_MIRROR_COUNT}}" == '0' ]]; then
+        if [ -n "$GITLAB_TOKEN" ] && [ -n "$GITHUB_TOKEN" ]; then
+          if [ "{{.PUSH_MIRROR_COUNT}}" == '0' ]; then
             glab api projects/:fullpath/remote_mirrors --method POST --header "Content-Type: application/json" \
               -f "url=https://{{.GITHUB_USER}}:$GITHUB_TOKEN@github.com/{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}.git" \
-              -f 'enabled=true'
+              -f 'enabled=true' > /dev/null
+            .config/log success 'Successfully set up push mirroring from GitLab to GitHub'
           fi
           curl -s -H 'Content-Type: application/json' -H "Authorization: Bearer $GITLAB_TOKEN" -X PUT --data \
             "{\"mirror\": true, \"import_url\": \"https://{{.GITHUB_USER}}:$GITHUB_TOKEN@github.com/{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}.git\"}" \
             'https://gitlab.com/api/v4/projects/{{.GITLAB_REPO_ID}}' > /dev/null
+          .config/log success 'Ensured pull mirroring from GitHub to GitLab is set up on GitLab'
         fi
     sources:
       - package.json
@@ -236,19 +333,12 @@ tasks:
       - :install:software:jq
       - gitlab:create
     vars:
-      GITHUB_SLUG:
-        sh: jq -r '.name' package.json | sed 's/.*\///'
-      GITLAB_REPO_ID:
-        sh: glab api projects/:fullpath | jq -r '.id'
       PIPELINE_COUNT:
         sh: jq -r '.gitlab_pipelines | length' .variables.json
-    env:
-      PIPELINES:
-        sh: jq -r '.gitlab_pipelines' .variables.json
-      PIPELINE_RES:
-        sh: glab api projects/:fullpath/pipeline_schedules
     cmds:
-      - >
+      - |
+        PIPELINES="$(jq -r '.gitlab_pipelines' .variables.json)"
+        PIPELINE_RES="$(glab api projects/:fullpath/pipeline_schedules)"
         if [ ! -z "$GITLAB_TOKEN" ]; then
           for INDEX in {1..{{.PIPELINE_COUNT}}}; do
             PIPELINE_INDEX="$((INDEX - 1))"
@@ -259,36 +349,39 @@ tasks:
             if (! echo "$PIPELINE_RES" | grep "$DESC") > /dev/null; then
               glab api projects/:fullpath/pipeline_schedules -X POST -f active="$ACTIVE" -f description="$DESC" -f ref="$REF" \
                 -f cron="$CRON" -f cron_timezone='{{.TIMEZONE}}' --silent
-              true success 'Pipeline with description of `$DESC` successfully added'
+              if [ "$DESC" != 'null' ]; then .config/log success "Pipeline with description of '${DESC}' successfully added"; fi
             else
-              true log 'Pipeline with description of `'"$DESC"'` already added'
+              if [ "$DESC" != 'null' ]; then .config/log info "Pipeline with description of '${DESC}' already added"; fi
             fi
           done
         else
-          true warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab pipelines cannot be updated via the API.'
+          .config/log warn 'The `'"GITLAB_TOKEN"'` environment variable is not set so the GitLab pipelines cannot be updated via the API.'
         fi
     sources:
       - .variables.json
       - package.json
 
   gitlab:pipelines:clear:
-    env:
-      TMP:
-        sh: mktemp
+    deps:
+      - gitlab:create
     cmds:
       - |
+        TMP="$(mktemp)"
         glab api projects/:id/pipeline_schedules -X GET > "$TMP"
         for PIPELINE_ID in $(jq -r '.[].id' "$TMP"); do
           glab api projects/:fullpath/pipeline_schedules/"$PIPELINE_ID" -X DELETE
         done
+        .config/log info 'Cleared pipeline schedules on GitLab'
     preconditions:
       - sh: '[ ! -z "$GITLAB_TOKEN" ]'
         msg: The `GITLAB_TOKEN` environment variable must be set to run this task
 
   gitlab:update:
     deps:
+      - gitlab:branches
       - gitlab:mirror
       - gitlab:integrations
+      - gitlab:ids
       - gitlab:pipelines
       - gitlab:update:meta
       - gitlab:wiki
@@ -317,21 +410,21 @@ tasks:
         sh: if [[ $(jq -r '.private' package.json) == 'true' ]]; then echo 'private'; else echo 'public'; fi
       TEST_COVERAGE_REGEX:
         sh: jq -r '.build_coverage_regex' .variables.json | sed 's/^null$//'
-    env:
-      KEYWORDS:
-        sh: jq -r '.keywords | tostring' package.json | sed 's/\[//' | sed 's/\]//' | sed 's/"//g'
     cmds:
       - |
+        KEYWORDS="$(jq -r '.keywords | tostring' package.json | sed 's/\[//' | sed 's/\]//' | sed 's/"//g')"
         if [ ! -z "$GITLAB_TOKEN" ]; then
           PROJECT_ID="$(glab api projects/:fullpath -X PUT -f build_coverage_regex="{{.TEST_COVERAGE_REGEX}}" \
           -f wiki_enabled={{.GITLAB_WIKI}} -f visibility="{{.PROJECT_TYPE}}" -f topics="$KEYWORDS" | jq '.id')"
           curl -s -H 'Content-Type: application/json' -H "Authorization: Bearer $GITLAB_TOKEN" -X PUT --data \
-          '{"description": "🔥👉 {{.DESCRIPTION}} 🚀", "issues_template": "{{.ISSUES_TEMPLATE}}", "name": "{{.NAME}}"}' \
+          '{"description": "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}", "issues_template": "{{.ISSUES_TEMPLATE}}", "name": "{{.NAME}}"}' \
           "https://gitlab.com/api/v4/projects/$PROJECT_ID" > /dev/null
+          .config/log success 'Ensured GitLab metadata is up-to-date'
         else
-          true warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository cannot be updated via the API.'
+          .config/log warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository cannot be updated via the API.'
         fi
     sources:
+      - .variables.json
       - package.json
     preconditions:
       - sh: '[ "{{.DESCRIPTION}}" != "null" ]'
@@ -352,8 +445,9 @@ tasks:
       - |
         if [ ! -z "$GITLAB_TOKEN" ]; then
           glab api projects/:fullpath/services/external-wiki -X PUT -f external_wiki_url="{{.DOCS_URL}}" --silent
+          .config/log success 'Ensured GitLab'\''s wiki settings are up-to-date'
         else
-          true warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository external wiki cannot be updated via the API.'
+          .config/log warn 'The `GITLAB_TOKEN` environment variable is not set so the GitLab repository external wiki cannot be updated via the API.'
         fi
     sources:
       - .variables.json
@@ -364,6 +458,7 @@ tasks:
         msg: The `.group` variable in `.variables.json` must be set.
 
   remotes:
+    run: once
     deps:
       - :install:software:git
       - :install:software:jq
@@ -383,6 +478,7 @@ tasks:
       GITLAB_REPO:
         sh: jq -r '.blueprint.repository.gitlab' package.json | sed 's/^https:\/\//git@/' | sed 's/gitlab.com\//gitlab.com:/'
     cmds:
+      - git init
       - |
         if [ ! -z "$GITLAB_REPO" ]; then
           if git config remote.origin.url > /dev/null; then
@@ -413,6 +509,7 @@ tasks:
           git remote set-url --add --push all "${GITHUB_REPO}.git"
           git remote set-url --add --push all "${GITLAB_REPO}.git"
         fi
+      - .config/log success 'Added Git remotes'
     status:
       - '[[ "$(git config remote.all.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
       - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
@@ -469,5 +566,16 @@ tasks:
             rm -rf "$MODULE_PATH"
           done
         else
-          true info 'This task does not run unless there is a `.gitmodules` file in the current directory'
+          .config/log info 'This task does not run unless there is a `.gitmodules` file in the current directory'
         fi
+
+  update:
+    cmds:
+      - task: gitlab:create
+      - task: github:create
+      - task: update:continue
+
+  update:continue:
+    deps:
+      - gitlab:update
+      - github:update

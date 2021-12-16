@@ -47,6 +47,7 @@ tasks:
 
   shared:
     cmds:
+      - git pull
       - task: :upstream:shared:copy
       - task: :upstream:shared:variables
       - task: :upstream:shared:template
@@ -55,34 +56,12 @@ tasks:
 
   template:
     cmds:
-      - task: template:handlebars
-      - task: template:hbs
+      - task: template:liquidjs
 
-  template:handlebars:
+  template:liquidjs:
     deps:
       - :install:modules:local
-      - :install:npm:hbs
-    cmds:
-      - |
-        function handlebars() {
-          FILE="$1"
-          TMP="$(mktemp)"
-          {{.NPX_HANDLE}}hbs --data .variables.json --helper ./.config/hbs.cjs "$FILE" --stdout > "$TMP"
-          mv "$TMP" "${FILE%.*}"
-          rm "$FILE"
-        }
-        find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.handlebars' | while read FILE; do
-          handlebars "$FILE" &
-        done
-        find .config -type f -name '*.handlebars' | while read FILE; do
-          handlebars "$FILE" &
-        done
-        wait
-
-  template:hbs:
-    deps:
-      - :install:modules:local
-      - :install:npm:hbs
+      - :install:npm:liquidjs
     vars:
       PYTHON_BREW_NOTICE: In order for this file to be generated, the customPyPiPackageName needs to be specified in the
         blueprint section of package.json and the PyPi package needs to be installed on the system.
@@ -91,10 +70,10 @@ tasks:
         sh: mktemp
     cmds:
       - |
-        if [ '{{.REPOSITORY_TYPE}}' == 'python' ] && [ -f '.config/brew/python.hbs.rb' ]; then
+        if [ '{{.REPOSITORY_TYPE}}' == 'python' ] && [ -f '.config/brew/python.rb.liquid' ]; then
           BINARY_NAME="$(jq -r '.customPyPiPackageName' .variables.json)"
           if [ "$BINARY_NAME" == 'null' ] || ! type "$BINARY_NAME" &> /dev/null; then
-            echo "{{.PYTHON_BREW_NOTICE}}" > .config/brew/python.hbs.rb
+            echo "{{.PYTHON_BREW_NOTICE}}" > .config/brew/python.rb.liquid
           fi
         fi
       - cp package.json package.json.bak
@@ -103,13 +82,13 @@ tasks:
           FILE="$1"
           TMP="$(mktemp)"
           {{.NPX_HANDLE}}hbs --data .variables.json --helper ./.config/hbs.cjs "$FILE" --stdout > "$TMP"
-          mv "$TMP" "${FILE//.hbs}"
+          mv "$TMP" "${FILE//.liquid}"
           rm "$FILE"
         }
-        find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.hbs.*' | while read FILE; do
+        find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid' | while read FILE; do
           handlebars "$FILE" &
         done
-        find .config -type f -name '*.hbs.*' | while read FILE; do
+        find .config -type f -name '*.liquid' | while read FILE; do
           handlebars "$FILE" &
         done
         wait
@@ -137,6 +116,8 @@ tasks:
     deps:
       - :install:software:jq
     env:
+      FILE_INPUT:
+        sh: if [ -f '{{.INPUT_FILE}}' ]; then echo {{.INPUT_FILE}}; else echo ".variables.json"; fi
       TMP:
         sh: mktemp
     cmds:
@@ -145,7 +126,7 @@ tasks:
         --arg poetry "$(jq -r '.keywords | join("\", \"")' package.json | sed 's/$/"/' | sed 's/^/"/')"
         --arg encoded "$(jq -r '.blueprint.repository.gitlab' package.json | sed 's/https:\/\/gitlab.com\///' | sed 's/\//%252F/g')"
         -S '. = (. * ($blueprint | fromjson)) | .version = $version | .poetryKeywords = $poetry | .gitlab_encoded_path = $encoded'
-        '{{.INPUT_FILE}}' > "$TMP"
+        "$FILE_INPUT" > "$TMP"
       - mv "$TMP" {{.OUTPUT_FILE}}
       - |
         if [ '{{.REPOSITORY_TYPE}}' == 'ansible' ] && [ -f meta/main.yml ]; then

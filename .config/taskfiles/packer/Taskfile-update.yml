@@ -8,16 +8,13 @@ tasks:
   descriptions:
     deps:
       - :install:software:jq
-    env:
-      DESCRIPTION_TEMPLATE:
-        sh: jq -r '.description_template' '{{.VARIABLES_PATH}}'
-      TMP:
-        sh: mktemp
-      VERSION_DESCRIPTION:
-        sh: jq -r '.version_description' '{{.VARIABLES_PATH}}'
     cmds:
-      - jq --arg a "$DESCRIPTION_TEMPLATE" --arg b "$VERSION_DESCRIPTION" '.variables.description = $a | .variables.version_description = $b'
-        {{.TEMPLATE_FILE}} > "$TMP"
+      - |
+        DESCRIPTION_TEMPLATE="$(jq -r '.description_template' '{{.VARIABLES_PATH}}')"
+        VERSION_DESCRIPTION="$(jq -r '.version_description' '{{.VARIABLES_PATH}}')"
+        TMP="$(mktemp)"
+        jq --arg a "$DESCRIPTION_TEMPLATE" --arg b "$VERSION_DESCRIPTION" '.variables.description = $a
+        | .variables.version_description = $b' {{.TEMPLATE_FILE}} > "$TMP"
       - mv "$TMP" {{.TEMPLATE_FILE}}
     sources:
       - '{{.TEMPLATE_FILE}}'
@@ -62,14 +59,12 @@ tasks:
         sh: cut -d '.' -f 1 <<< {{.ISO_VERSION}}
       MINOR_VERSION:
         sh: cut -d '.' -f 2 <<< {{.ISO_VERSION}}
-    env:
-      TEMPLATE_JSON:
-        sh: jq -r '.' {{.TEMPLATE_FILE}}
-      TMP:
-        sh: mktemp
     cmds:
-      - jq -S --arg templatejson "$TEMPLATE_JSON" '.template_json = ($templatejson | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
-      - mv "$TMP" '{{.VARIABLES_PATH}}'
+      - |
+        TEMPLATE_JSON="$(jq -r '.' {{.TEMPLATE_FILE}})"
+        TMP="$(mktemp)"
+        jq -S --arg templatejson "$TEMPLATE_JSON" '.template_json = ($templatejson | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
+        mv "$TMP" '{{.VARIABLES_PATH}}'
       - task: variables:{{OS}}
     sources:
       - '{{.TEMPLATE_FILE}}'

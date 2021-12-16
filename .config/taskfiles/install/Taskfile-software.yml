@@ -31,14 +31,17 @@ tasks:
     cmds:
       - |
         if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
+          .config/log info "Homebrew is already installed"
           eval "$(~/.local/homebrew/bin/brew shellenv)"
         elif ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
           eval "$(~/.local/homebrew/bin/brew shellenv)"
+          .config/log info "Updating Homebrew"
           brew update --force --quiet
           chmod -R go-w "$(brew --prefix)/share/zsh"
+          .config/log success "Successfully installed Homebrew"
         fi
 
   brew:formulae:
@@ -96,11 +99,31 @@ tasks:
       - task: common:{{OS}}
 
   common:darwin:
+    cmds:
+      - task: common:darwin:xcode
+      - task: common:darwin:utils
+
+  common:darwin:utils:
+    deps:
+      - brew
+    cmds:
+      - .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
+      - brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
+      - .config/log success "Successfully installed GNU-compatibility tools"
+    status:
+      - type gcp > /dev/null
+      - type gfind > /dev/null
+      - type gsed > /dev/null
+      - type ggrep > /dev/null
+      - type gtar > /dev/null
+      - type ggawk > /dev/null
+
+  common:darwin:xcode:
     interactive: true
     cmds:
       - xcode-select --install
     status:
-      - xcode-select -p 2&>1 /dev/null
+      - xcode-select -p 1> /dev/null
 
   common:linux:
     vars:
@@ -121,7 +144,7 @@ tasks:
   common:linux:archlinux:
     interactive: true
     cmds:
-      - true warn "Archlinux support for Homebrew is not very well documented.. if this does not work and you can get it working, please open a PR :)"
+      - .config/log warn "Archlinux support for Homebrew is not very well documented.. if this does not work and you can get it working, please open a PR :)"
       - |
         sudo pacman update
         sudo pacman -S base-devel curl file git procps-ng
@@ -136,8 +159,8 @@ tasks:
     interactive: true
     cmds:
       - |
-        sudo apt-get update
-        sudo apt-get install build-essential curl file git procps
+        sudo apt-get -y update
+        sudo apt-get install -y build-essential curl file git procps
     status:
       - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
       - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
@@ -148,30 +171,76 @@ tasks:
   common:linux:redhat:
     interactive: true
     cmds:
+      - mkdir -p .cache
       - |
-        sudo yum groupinstall 'Development Tools'
-        sudo yum install curl file git procps-ng
+        if [ ! -f '.cache/yum-devtools-check-ran' ]; then
+          yum grouplist 'Development Tools' &> .cache/yum-devtools-check
+          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < .cache/yum-devtools-check > /dev/null)"
+          if [ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]; then
+            sudo yum groupinstall -y 'Development Tools'
+          fi
+          touch .cache/yum-devtools-check-ran
+        fi
+        if ! rpm --quiet --query curl file git procps-ng; then
+          sudo yum install -y curl file git procps-ng
+        fi
         if [ -f '/etc/os-release' ]; then
           source /etc/os-release
           if [ "$ID" == 'fedora' ] && [ "$VERSION_ID" -gt "29" ]; then
-            sudo yum install libxcrypt-compat
+            if ! rpm --quiet --query libxcrypt-compat; then
+              sudo yum -y install libxcrypt-compat
+            fi
           fi
         fi
-    status:
-      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep file || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep procps-ng || [[ "${container:=}" == "docker" ]]
 
   common:linux:unknown:
     cmds:
-      - true warn 'You are using an operating system that we do not directly support. Please make sure
+      - .config/log warn 'You are using an operating system that we do not directly support. Please make sure
         the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.'
 
   common:windows:
     cmds:
-      - true error "Windows is not supported. Try using a Windows WSL environment."
+      - .config/log error "Windows is not supported. Try using a Windows WSL environment."
       - exit 1
+
+  container-structure-test:
+    run: once
+    cmds:
+      - task: container-structure-test:{{OS}}
+
+  container-structure-test:darwin:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: container-structure-test
+
+  container-structure-test:linux:
+    cmds:
+      - curl -LO https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64
+      - chmod +x container-structure-test-linux-amd64
+      - mkdir -p $HOME/.local/bin
+      - export PATH=$PATH:$HOME/.local/bin
+      - mv container-structure-test-linux-amd64 $HOME/.local/bin/container-structure-test
+    status:
+      - type container-structure-test > /dev/null
+
+
+  container-structure-test:windows:
+    cmds:
+      - .config/log error "Windows is not supported. Try using a Windows WSL environment."
+      - exit 1
+
+  coreutils:
+    deps:
+      - brew
+    run: once
+    cmds:
+      - |
+        if [ '{{OS}}' == 'darwin' ] && ! type gsed > /dev/null; then
+          brew install coreutils
+        fi
+    status:
+      - '[ "{{OS}}" == "darwin" ] || type gsed > /dev/null'
 
   docker:
     run: once
@@ -235,6 +304,13 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: glab
+
+  grype:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: anchore/grype/grype
 
   go:
     run: once

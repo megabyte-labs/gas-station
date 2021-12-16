@@ -25,5 +25,5 @@ export function decorateSystem(name) {
     return `${chalk.green('●')} ${name}`
   }
 
-  return `${chalk.black('●')} ${name}`
+  return `${chalk.cyan('●')} ${name}`
 }

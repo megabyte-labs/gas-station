@@ -91,46 +91,50 @@ tasks:
 
   global:
     deps:
-      - :install:software:node
+      - global:package-manager
+    vars:
+      PACKAGE_BIN: '{{if index . "NPM_PACKAGE_BIN"}}{{.NPM_PACKAGE_BIN}}{{else}}{{.NPM_PACKAGE}}{{end}}'
+    run: when_changed
     cmds:
       - |
-        if [[ "${container:=}" != 'docker' ]]; then
-          if [ '{{.FORCE_INSTALL}}' ]; then
-            {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}@latest --force
-          else
-            {{if eq .NPX_HANDLE ""}}{{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}@latest{{else}}{{.NPX_PROGRAM}} -y {{.NPM_PACKAGE}}{{end}}
-          fi
-          true success 'The npm `{{.NPM_PACKAGE}}` package is installed'
+        if ! type {{.PACKAGE_BIN}} > /dev/null; then
+          . .config/log info 'Installing _NPM CLI_ package `{{.NPM_PACKAGE}}` globally'
+          {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}
         fi
     status:
-      - type {{if .NPM_PACKAGE_BIN}}{{.NPM_PACKAGE_BIN}}{{else}}{{.NPM_PACKAGE}}{{end}} &> /dev/null
+      - type {{.PACKAGE_BIN}} > /dev/null
 
   global:library:
-    deps:
-      - :install:software:node
-    cmds:
-      - |
-        function installLibrary() {
-            if ! npm list -g {{.NPM_PROGRAM}} 2&>1 /dev/null; then
-              {{if eq .NPX_HANDLE ""}}{{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}@latest{{else}}{{.NPX_PROGRAM}} -y {{.NPM_PACKAGE}}{{end}}
-            fi
-        }
-        if [[ "${container:=}" != 'docker' ]]; then
-          if [ '{{.FORCE_INSTALL}}' ]; then
-            {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}@latest --force
+    env:
+      PACKAGE_EXISTS:
+        sh: |
+          PACKAGE_PATH="$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*$//')/{{.NPM_PACKAGE}}/package.json"
+          if [ -f "$PACKAGE_PATH" ]; then
+            echo 'true'
           else
-            installLibrary &
+            echo 'false'
           fi
-          true success 'The npm `{{.NPM_PACKAGE}}` package is installed'
-        fi
-
-  hbs:
     run: once
     cmds:
-      - task: global
-        vars:
-          NPM_PACKAGE: hbs-cli
-          NPM_PACKAGE_BIN: hbs
+      - |
+        if [ "$PACKAGE_EXISTS" == 'false' ]; then
+          . .config/log info "Installing _NPM library_ package `{{.NPM_PACKAGE}}` globally"
+          {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}
+        fi
+    status:
+      - '[ "$PACKAGE_EXISTS" == "true" ]'
+
+  global:package-manager:
+    deps:
+      - :install:software:node
+    run: once
+    cmds:
+      - |
+        if ! type {{.NPM_PROGRAM}}; then
+          npm install -g {{.NPM_PROGRAM}}
+        fi
+    status:
+      - type {{.NPM_PROGRAM}} > /dev/null
 
   husky:
     run: once
@@ -159,6 +163,13 @@ tasks:
       - task: global
         vars:
           NPM_PACKAGE: lint-staged
+
+  liquidjs:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: liquidjs
 
   majestic:
     run: once
@@ -202,6 +213,13 @@ tasks:
       - task: global
         vars:
           NPM_PACKAGE: npm
+
+  ntl:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: ntl
 
   only-allow:
     run: once

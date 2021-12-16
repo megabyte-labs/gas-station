@@ -36,4 +36,4 @@ if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
 fi
 bash "$VALID_TASKFILE_SCRIPT"
 cd "$PROJECT_BASE_DIR" || exit
-task start
+if [ -z "$GITLAB_CI" ]; then task start; fi

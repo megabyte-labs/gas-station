@@ -1,18 +1,20 @@
 ---
 packer:validate:
-  allow_failure: true
+  stage: lint
   image:
     name: megabytelabs/packer:slim
     entrypoint: ['']
+  allow_failure: true
   rules:
     - if: $DO_CI == 'false'
       when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
     - exists:
         - '*template.json'
-  script:
-    - set -eo pipefail
-    - for TEMPLATE in *template.json; do packer validate "$TEMPLATE"; done
-  stage: lint
   variables:
     GIT_DEPTH: 1
     GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - set -eo pipefail
+    - for TEMPLATE in *template.json; do packer validate "$TEMPLATE"; done

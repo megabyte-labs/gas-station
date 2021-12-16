@@ -1,12 +1,6 @@
 ---
 fix:prettier:
-  before_script:
-    - git config pull.ff only
-    - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
-    - git config user.email "$GITLAB_CI_EMAIL"
-    - git config user.name "$GITLAB_CI_NAME"
-    - git checkout "$CI_COMMIT_REF_NAME"
-    - git pull origin "$CI_COMMIT_REF_NAME" --allow-unrelated-histories
+  stage: fix
   image:
     name: megabytelabs/prettier-write:slim
     entrypoint: ['']
@@ -24,6 +18,17 @@ fix:prettier:
     - if: $CI_PROJECT_PATH == 'megabyte-labs/common/shared'
       changes:
         - '**/*.{css,html,js,json,less,md,mjml,php,scss,sh,ts,xml,yml}'
+  variables:
+    GIT_DEPTH: 1
+    NODE_MODULES_PATH: /usr/local/lib/node_modules
+    PRETTIER_CONFIG: '@mblabs/prettier-config'
+  before_script:
+    - git config pull.ff only
+    - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - git config user.email "$GITLAB_CI_EMAIL"
+    - git config user.name "$GITLAB_CI_NAME"
+    - git checkout "$CI_COMMIT_REF_NAME"
+    - git pull origin "$CI_COMMIT_REF_NAME" --allow-unrelated-histories
   script:
     - set -eo pipefail
     - echo "***Prettier Configuration*** ---> $PRETTIER_CONFIG"
@@ -37,8 +42,3 @@ fix:prettier:
         git commit -m "automation(prettier-fix) Fixed formatting issues with Prettier on GitLab CI."
         git push origin "$CI_COMMIT_REF_NAME"
       fi
-  stage: fix
-  variables:
-    GIT_DEPTH: 1
-    NODE_MODULES_PATH: /usr/local/lib/node_modules
-    PRETTIER_CONFIG: '@mblabs/prettier-config'

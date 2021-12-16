@@ -1,12 +1,6 @@
 ---
 fix:standard:
-  before_script:
-    - git config pull.ff only
-    - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
-    - git config user.email "$GITLAB_CI_EMAIL"
-    - git config user.name "$GITLAB_CI_NAME"
-    - git checkout "$CI_COMMIT_REF_NAME"
-    - git pull origin "$CI_COMMIT_REF_NAME" --allow-unrelated-histories
+  stage: fix
   image:
     name: megabytelabs/standard:slim
     entrypoint: ['']
@@ -21,6 +15,15 @@ fix:standard:
     - if: $CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH
       changes:
         - '**/*.js'
+  variables:
+    GIT_DEPTH: 1
+  before_script:
+    - git config pull.ff only
+    - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - git config user.email "$GITLAB_CI_EMAIL"
+    - git config user.name "$GITLAB_CI_NAME"
+    - git checkout "$CI_COMMIT_REF_NAME"
+    - git pull origin "$CI_COMMIT_REF_NAME" --allow-unrelated-histories
   script:
     - set -eo pipefail
     - standard --fix
@@ -31,6 +34,3 @@ fix:standard:
         git commit -m "automation(standard-fix) Fixed formatting issues with Standard on GitLab CI."
         git push origin "$CI_COMMIT_REF_NAME"
       fi
-  stage: fix
-  variables:
-    GIT_DEPTH: 1

@@ -29,9 +29,6 @@ tasks:
       - |
         jq --arg collections "$COLLECTIONS" '.{{.COLLECTION_DEPS}} = ($collections | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
-    sources:
-      - '{{.VARIABLES_PATH}}'
-      - '{{.REQUIREMENTS_PATH}}'
 
   collection-dependencies:markdown:
     deps:
@@ -87,18 +84,15 @@ tasks:
       This task syncs the Ansible Galaxy tags found in `meta/main.yml` with the keywords in the `package.json`
       file. The Ansible Galaxy tags are capped to a maximum of 20 tags.
     env:
-      GALAXY_INFO:
-        sh: yq e -o=j meta/main.yml
       MERGED_TAGS:
         sh: jq -s --argjson galaxy "$(yq e -o=j '.galaxy_info.galaxy_tags' meta/main.yml)" '.[0].keywords + $galaxy | sort | unique' package.json
       MERGED_TAGS_LENGTH:
         sh: jq -s --argjson galaxy "$(yq e -o=j '.galaxy_info.galaxy_tags' meta/main.yml)" '.[0].keywords + $galaxy | sort | unique | length' package.json
-      OPTIONAL_TAGS:
-        sh: jq '.keywords' .config/common-keywords.json
-      TMP:
-        sh: mktemp
     cmds:
       - |
+        GALAXY_INFO="$(yq e -o=j meta/main.yml)"
+        OPTIONAL_TAGS="$(jq '.keywords' .config/common-keywords.json)"
+        TMP="$(mktemp)"
         RESULT="$MERGED_TAGS"
         if [ "$MERGED_TAGS_LENGTH" -gt 20 ]; then
           function updateList() {
@@ -112,14 +106,19 @@ tasks:
         fi
         jq -r --argjson result "$MERGED_TAGS" '.keywords = $result' package.json > "$TMP"
         mv "$TMP" package.json
-        {{.NPX_HANDLE}}prettier --write package.json
+        {{.NPX_HANDLE}}prettier --write package.json > /dev/null
         mkdir -p .cache/megabytelabs
         jq -n --argjson result "$RESULT" --argjson gi "$GALAXY_INFO" '$gi | .galaxy_info.galaxy_tags = $result' > .cache/megabytelabs/galaxy-meta.json
         yq eval -P .cache/megabytelabs/galaxy-meta.json > meta/main.yml
-      - '{{.NPX_HANDLE}}prettier --write meta/main.yml'
+      - '{{.NPX_HANDLE}}prettier --write meta/main.yml > /dev/null'
       - task fix:yaml:dashes -- meta/main.yml
 
   mod-ansible-autodoc:
+    cmds:
+      - task: mod-ansible-autodoc:generate
+      - task: mod-ansible-autodoc:variables
+
+  mod-ansible-autodoc:generate:
     deps:
       - :install:python:requirements
       - :install:software:jq
@@ -133,11 +132,11 @@ tasks:
       VARIABLES_DESCRIPTION:
         sh: jq -r '.autodoc_variables_description' '{{.VARIABLES_PATH}}'
     cmds:
-      - mod-ansible-autodoc --actions-title '## Features' --actions-description "$ACTIONS_DESCRIPTION"
+      - >
+        {{.PYTHON_HANDLE}}mod-ansible-autodoc --actions-title '## Features' --actions-description "$ACTIONS_DESCRIPTION"
         --tags-title '### Tags' --tags-description "$TAGS_DESCRIPTION" --todo-title '### TODO'
         --todo-description "$TODO_DESCRIPTION" --variables-title '## Variables' --variables-description
         "$VARIABLES_DESCRIPTION" --variable-example-comment-prefix '#💬'
-      - task: mod-ansible-autodoc:variables
       - mkdir -p .autodoc
       - mv ansible_actions.md ansible_tags.md ansible_todo.md ansible_variables.json ansible_variables.md .autodoc
     sources:
@@ -145,19 +144,16 @@ tasks:
       - defaults/**/*.yml
       - tasks/**/*.yml
       - vars/**/*.yml
-    preconditions:
-      - sh: 'type mod-ansible-autodoc &> /dev/null'
-        msg: The Python package `mod-ansible-autodoc` is missing.
 
   mod-ansible-autodoc:variables:
-    env:
-      ROLE_VARIABLES:
-        sh: jq -r '.role_variables' ansible_variables.json
-      TMP:
-        sh: mktemp
+    deps:
+      - :install:software:jq
     cmds:
-      - jq --arg vars "$ROLE_VARIABLES" '.role_variables = ($vars | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
-      - mv "$TMP" '{{.VARIABLES_PATH}}'
+      - |
+        ROLE_VARIABLES="$(jq -r '.role_variables' .autodoc/ansible_variables.json)"
+        TMP="$(mktemp)"
+        jq --arg vars "$ROLE_VARIABLES" '.role_variables = ($vars | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
+        mv "$TMP" '{{.VARIABLES_PATH}}'
 
   quickstart:
     deps:
@@ -167,12 +163,13 @@ tasks:
       INSTALLING:
         sh: if test -f install_in_progress; then echo 'true'; else echo 'false'; fi
     cmds:
-      - true info "Running the Ansible play locally"
+      - .config/log info "Running the Ansible play locally"
       - cp test/{{OS}}/inventory inventory
       - if [ ! -f ansible.cfg.bak ]; then cp ansible.cfg ansible.cfg.bak; fi
       - cp test/{{OS}}/ansible.cfg ansible.cfg
       - touch install_in_progress
-      - ansible-playbook --ask-sudo-pass{{if eq .INSTALLING 'false'}} --skip-tags "skip_on_init" playbooks/init.yml{{else}} main.yml{{end}}
+      - |
+        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass{{if eq .INSTALLING 'false'}} --skip-tags "skip_on_init" playbooks/init.yml{{else}} main.yml{{end}}
       - if [ -f ansible.cfg.bak ]; then mv ansible.cfg.bak ansible.cfg; fi
       - if [ -f inventory ]; then rm inventory; fi
 
@@ -180,11 +177,9 @@ tasks:
     deps:
       - :install:software:jq
       - :install:software:yq
-    env:
-      ROLES:
-        sh: yq eval '.roles' '{{.REQUIREMENTS_PATH}}'
     cmds:
       - |
+        ROLES="$(yq eval '.roles' '{{.REQUIREMENTS_PATH}}')"
         yq eval -o=json '.dependencies' '{{.META_PATH}}' | jq -rc '.[] .role' | while read ROLE_NAME; do
           if [[ ! "$ROLES" =~ "$ROLE_NAME" ]]; then
             yq eval -i -P '.roles = .roles + {"name": "'"$ROLE_NAME"'"}' '{{.REQUIREMENTS_PATH}}'
@@ -195,11 +190,9 @@ tasks:
           CLI_ARGS: '{{.REQUIREMENTS_PATH}}'
 
   update:galaxy-id:
-    env:
-      TMP:
-        sh: mktemp
     cmds:
       - |
+        TMP="$(mktemp)"
         PROJECT_ID="$(ansible-galaxy info '{{.ROLE_NAME}}' 2> /dev/null | grep -E 'id: [0-9]' | cut -d ' ' -f2)"
         if [ "$PROJECT_ID" ]; then
           jq --arg a "$PROJECT_ID" '.blueprint.ansible_galaxy_project_id = $a' package.json > "$TMP"

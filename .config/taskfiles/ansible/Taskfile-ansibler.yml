@@ -15,9 +15,6 @@ tasks:
     cmds:
       - task: compatibility-chart
       - task: tasks:{{.REPOSITORY_SUBTYPE}}
-    preconditions:
-      - sh: 'type ansibler &> /dev/null'
-        msg: '`ansibler` is not installed globally.'
 
   compatibility-chart:
     deps:
@@ -36,7 +33,9 @@ tasks:
     deps:
       - :install:python:requirements
     cmds:
-      - ansibler --generate-compatibility-chart --molecule-results-dir '{{.MOLECULE_RESULTS_PATH}}' --json-file .cache/compatibility-chart.json
+      - >
+        {{.PYTHON_HANDLE}}ansibler --generate-compatibility-chart --molecule-results-dir '{{.MOLECULE_RESULTS_PATH}}'
+        --json-file .cache/compatibility-chart.json
     sources:
       - '{{.MOLECULE_RESULTS_PATH}}/*'
     generates:
@@ -46,7 +45,8 @@ tasks:
     deps:
       - :install:python:requirements
     cmds:
-      - ansibler --populate-platforms --json-file .cache/compatibility-chart.json
+      - |
+        {{.PYTHON_HANDLE}}ansibler --populate-platforms --json-file .cache/compatibility-chart.json
     sources:
       - .cache/compatibility-chart.json
       - meta/main.yml
@@ -68,7 +68,8 @@ tasks:
     deps:
       - :install:python:requirements
     cmds:
-      - cmd: ansibler --role-dependencies --json-file .cache/role-dependencies.json
+      - cmd: |
+          {{.PYTHON_HANDLE}}ansibler --role-dependencies --json-file .cache/role-dependencies.json
         ignore_error: true
     sources:
       - '{{.REQUIREMENTS_PATH}}'

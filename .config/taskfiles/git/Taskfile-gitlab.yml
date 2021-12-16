@@ -25,29 +25,27 @@ tasks:
         BASE_PWD="$PWD"
         function execRepo() {
           REPO_DETAILS="$1"
-          REPO_URL="$(echo $REPO_DETAILS | sed 's/\s.*$//')"
-          REPO_PATH="$(echo $REPO_DETAILS | sed 's/^.*\s//')"
-          DIR_NAME="$(dirname $REPO_PATH)"
+          REPO_URL="$(echo "$REPO_DETAILS" | sed 's/   .*$//')"
+          REPO_PATH="$(echo "$REPO_DETAILS" | sed 's/^.*   //')"
+          DIR_NAME="$(dirname "$REPO_PATH")"
           mkdir -p "$DIR_NAME"
           if [ -d "$REPO_PATH" ]; then
             cd "$REPO_PATH"
-            git reset --hard HEAD
-            git clean -fxd
-            git pull origin master
+            git pull origin master || continue
             cd "$BASE_PWD"
           else
             git clone --depth=1 "$REPO_URL" "$REPO_PATH"
           fi
-          echo "Running bash command on $REPO_PATH"
+          .config/log info "Running bash command on $REPO_PATH"
           (
-            cd $REPO_PATH
-            {{index (splitList " ---- " .CLI_ARGS) 1}}
-            cd $BASE_PWD
+            cd "$REPO_PATH"
+            {{trimPrefix "'" (trimSuffix "'" (index (splitList " ---- " .CLI_ARGS) 1))}}
+            cd "$BASE_PWD"
           )
-          echo "Finished running bash command on $REPO_PATH"
+          .config/log info "Finished running bash command on $REPO_PATH"
         }
         cat {{.REPOSITORY_LIST}} | while IFS= read -r REPO_DETAILS; do
-          echo "Executing logic on $REPO_DETAILS"
+          .config/log info "Executing logic on $REPO_DETAILS"
           execRepo "$REPO_DETAILS" &
         done
         wait

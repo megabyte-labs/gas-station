@@ -6,12 +6,25 @@ tasks:
     deps:
       - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:descriptions{{else}}donothing{{end}}'
       - files
-      - :git:remotes
+      - :install:tslib
       - :python:requirementstxt
     cmds:
-      - task: all:docs
+      - task: all:continue
+
+  all:continue:
+    deps:
+      - :git:remotes
+      - all:docs
 
   all:docs:
+    cmds:
+      - |
+        {{if eq .REPOSITORY_TYPE "common"}}{{else}}{{if eq .REPOSITORY_TYPE "documentation"}}{{else}}
+        task common:update:all:docs:generate
+        wait
+        {{end}}{{end}}
+
+  all:docs:generate:
     deps:
       - contributing
       - readme
@@ -36,7 +49,8 @@ tasks:
       - task: markdown:scrub
         vars:
           SCRUB_FILE: docs/CONTRIBUTING.md
-      - '{{.NPX_HANDLE}}prettier --write docs/CONTRIBUTING.md'
+      - '{{.NPX_HANDLE}}prettier --write docs/CONTRIBUTING.md > /dev/null'
+      - .config/log success 'Successfully generated `docs/CONTRIBUTING.md`'
     sources:
       - docs/CONTRIBUTING.md
       - .config/docs/**/*
@@ -80,6 +94,7 @@ tasks:
       - :install:npm:remark
       - :install:npm:prettier
       - :install:npm:readme
+    # @desc_when [common/Taskfile-update.yml] subtype.cli
     desc: Build `man` page from the README.md file
     vars:
       MAN_TEMPLATE: '{{.REPOSITORY_SUBTYPE}}-blueprint-man.md'
@@ -87,7 +102,8 @@ tasks:
       - |
         if test -f ".config/docs/{{.MAN_TEMPLATE}}"; then
           {{.NPX_HANDLE}}readme generate --headingPrefix '{}' --silent --config .variables.json --input ".config/docs/{{.MAN_TEMPLATE}}" --output MAN.md
-          {{.NPX_HANDLE}}prettier --write MAN.md
+          {{.NPX_HANDLE}}prettier --write MAN.md > /dev/null
+          .config/log success 'Successfully generated the MAN.md'
           mkdir -p dist
           {{.NPX_HANDLE}}remark --use man MAN.md --output dist/man
           rm MAN.md
@@ -163,7 +179,8 @@ tasks:
         vars:
           SCRUB_FILE: README.md
       - task: ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:readme{{else}}donothing{{end}}'
-      - '{{.NPX_HANDLE}}prettier --write README.md'
+      - '{{.NPX_HANDLE}}prettier --write README.md > /dev/null'
+      - .config/log success 'Successfully generated the README.md'
     sources:
       - .autodoc/*
       - .config/docs/**/*
@@ -181,25 +198,14 @@ tasks:
       - task: project
 
   services:
-    deps:
-      - update
-    label: update:services
-    desc: Update elements of the repository that require API access
-    summary: |
-      # Update elements of the repository that require API access
-
-      This task will ensure that the git repositories and other services related to the
-      project are updated with the configurations.
-
-      **Example usage:**
-      `task common:update:services`
     cmds:
+      - task: :{{if eq .REPOSITORY_TYPE "project"}}donothing{{else}}start{{end}}
+      - task: update
       - task: services:repos
 
   services:repos:
     deps:
-      - :git:gitlab:update
-      - :git:github:update
+      - :git:update
 
   start:
     deps:
@@ -234,14 +240,9 @@ tasks:
 
   update:git:
     cmds:
-      - task: update:git:proceed
+      - task: :git:update
     status:
       - '[[ "${container:=}" == "docker" ]]'
-
-  update:git:proceed:
-    deps:
-      - :git:github:update
-      - :git:gitlab:update
 
   variables:
     deps:

@@ -7,6 +7,9 @@ vars:
 
 tasks:
   boilerplate:
+    env:
+      PATH:
+        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - |
         if [ "$(jq -r '.blueprint.boilerplate' package.json)" == 'true' ]; then
@@ -22,9 +25,9 @@ tasks:
         done
         GREP="$(echo $GREP | sed 's/\\|$//')"
         if ! ls -la | grep "$GREP" &> /dev/null; then
-          true info "Adding boilerplate code since there are no overlapping files"
+          .config/log info "Adding boilerplate code since there are no overlapping files"
           cp -rT .boilerplate .
-          true success "Added boilerplate code"
+          .config/log success "Scaffolded the project with boilerplate code!"
         fi
       - rm -rf .boilerplate
 
@@ -39,6 +42,9 @@ tasks:
       - rm -rf ./{{.SHARED_FOLDER}}/.git
 
   copy:
+    env:
+      PATH:
+        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - cp -rT {{.SHARED_FOLDER}}/_generated_/common .
       - cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
@@ -81,11 +87,10 @@ tasks:
         fi
 
   save:common:keywords:
-    env:
-      KEYWORDS:
-        sh: jq -r '.keywords' package.hbs.json
     cmds:
-      - jq -n --arg keywords "$KEYWORDS" '.keywords = ($keywords | fromjson | unique)' > .config/common-keywords.hbs.json
+      - |
+        KEYWORDS="$(jq -r '.keywords' package.json.liquid)"
+        jq -n --arg keywords "$KEYWORDS" '.keywords = ($keywords | fromjson | unique)' > .config/common-keywords.json.liquid
 
   template:
     cmds:

@@ -50,7 +50,7 @@ tasks:
       to your regular `git commit -m` command to bypass the pre-commit hook.
     cmds:
       - . ./.config/husky/pre-commit
-      - true info "Initiating the commit dialog"
+      - .config/log info "Initiating the commit dialog"
       - exec < /dev/tty && git cz --hook || true
 
   husky:
@@ -61,13 +61,13 @@ tasks:
       - :install:npm:husky
     cmds:
       - task: husky:install
-      - task common:husky:permissions &
+      - task: husky:permissions
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
   husky:ci:
     cmds:
-      - task common:husky:permissions &
+      - task: husky:permissions
     status:
       - '[[ "${container:=}" != "docker" ]]'
 
@@ -77,9 +77,9 @@ tasks:
     cmds:
       - |
         if [ -d .git ] && [ "${container:=}" != 'docker' ]; then
-          {{.NPX_HANDLE}}husky install .config/husky
+          {{.NPX_HANDLE}}husky install .config/husky > /dev/null
         else
-          true warn 'Cannot run `husky install` because there is no `.git/` folder (or this is a Docker container)'
+          .config/log warn 'Cannot run `husky install` because there is no `.git/` folder (or this is a Docker container)'
         fi
     status:
       - '[ ! -d .git ] || [[ "${container:=} == "docker" ]]'
@@ -87,6 +87,8 @@ tasks:
   husky:permissions:
     cmds:
       - |
+        chmod +x .config/log
+        if [ -f .config/log ]; then chmod +x .config/log; fi
         find ./.config/husky/* -maxdepth 0 -type f | while read PATHH; do
           chmod +x "$PATHH"
         done
@@ -199,7 +201,7 @@ tasks:
 
   shell:prompt:
     deps:
-      - :install:modules:prompt
+      - :install:modules:local
     interactive: true
     env:
       WORKDIR:

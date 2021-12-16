@@ -16,14 +16,15 @@ tasks:
 
   local:test:
     deps:
-      - :ansible:symlink:{{.REPOSITORY_SUBTYPE}}
+      - :symlink:{{.REPOSITORY_SUBTYPE}}
       - :install:python:requirements
     cmds:
-      - true info "Testing Ansible playbook locally"
+      - .config/log info "Testing Ansible playbook locally"
       - cp test/{{OS}}/inventory inventory
       - if [ ! -f ansible.cfg.bak ]; then cp ansible.cfg ansible.cfg.bak; fi
       - cp test/{{OS}}/ansible.cfg ansible.cfg
-      - ansible-playbook --ask-sudo-pass test/{{OS}}/test.yml
+      - |
+        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass test/{{OS}}/test.yml
       - mv ansible.cfg.bak ansible.cfg
       - rm inventory
 
@@ -49,11 +50,19 @@ tasks:
       `task ansible:test:molecule:docker:matrix`
     cmds:
       - |
-        SCENARIO="docker"
+        SCENARIO="Linux"
         if grep -Ril 'community.general.snap:' ./tasks; then
-          SCENARIO="docker-snap"
+          SCENARIO="Snap"
         fi
-        molecule test -s "$SCENARIO"
+        MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s docker
+
+  molecule:docker:cli:
+    deps:
+      - :install:python:requirements
+      - :install:software:docker
+      - :install:software:sshpass
+    cmds:
+      - MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker
 
   molecule:docker:matrix:
     deps:
@@ -66,11 +75,30 @@ tasks:
     cmds:
       - mkdir -p molecule/.results
       - |
-        SCENARIO="docker"
+        SCENARIO="Linux"
         if grep -Ril 'community.general.snap:' ./tasks; then
-          SCENARIO="docker-snap"
+          SCENARIO="Snap"
         fi
-        PY_COLORS=0 molecule test -s "$SCENARIO" 2>&1 | tee "molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt"
+        PY_COLORS=0 MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s "$SCENARIO" 2>&1 | tee "molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt"
+
+  molecule:docker:prompt:
+    interactive: true
+    deps:
+      - :install:modules:local
+    cmds:
+      - node .config/scripts/prompts/molecule/docker.js
+
+  molecule:ssh:cli:
+    deps:
+      - :install:python:requirements
+    cmds:
+      - molecule test -s remote
+
+  molecule:ssh:prompt:
+    deps:
+      - :install:local:modules
+    cmds:
+      - node .config/scripts/prompts/molecule/ssh.js
 
   molecule:virtualbox:
     deps:
@@ -96,7 +124,17 @@ tasks:
       # yamllint disable-line rule:truthy
       OBJC_DISABLE_INITIALIZE_FORK_SAFETY: YES
     cmds:
-      - molecule test
+      - |
+        {{.PYTHON_HANDLE}}molecule test
+
+  molecule:virtualbox:cli:
+    deps:
+      - :install:python:requirements
+      - :install:software:sshpass
+      - :install:software:vagrant
+      - :install:software:virtualbox
+    cmds:
+      - MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test
 
   molecule:virtualbox:converge:
     deps:
@@ -116,17 +154,17 @@ tasks:
       `task test:molecule`
 
       **Example usage bypassing prompt:**
-      `task test:molecule -- archlinux`
+      `task test:molecule -- Archlinux`
 
       ## Available scenarios:
 
-      * archlinux
-      * centos
-      * debian
-      * fedora
-      * macos
-      * ubuntu
-      * windows
+      * Archlinux
+      * CentOS
+      * Debian
+      * Fedora
+      * macOS
+      * Ubuntu
+      * Windows
     env:
       # yamllint disable-line rule:truthy
       OBJC_DISABLE_INITIALIZE_FORK_SAFETY: YES
@@ -136,19 +174,14 @@ tasks:
   molecule:virtualbox:converge:cli:
     cmds:
       - |
-        SCENARIO='{{.CLI_ARGS}}-desktop'
-        if test -d "molecule/$SCENARIO"; then
-          molecule converge -s "$SCENARIO"
-        else
-          true error "The `$SCENARIO` scenario is not present in the `molecule/` folder"
-        fi
+        MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge
 
   molecule:virtualbox:converge:prompt:
     interactive: true
     deps:
-      - :install:modules:prompt
+      - :install:modules:local
     cmds:
-      - node .config/scripts/prompts/molecule-desktop.js
+      - node .config/scripts/prompts/molecule/desktop.js
 
   molecule:virtualbox:matrix:
     deps:
@@ -161,7 +194,19 @@ tasks:
         sh: date '+%Y-%m-%d'
     cmds:
       - mkdir -p molecule/.results
-      - PY_COLORS=0 molecule test | tee 'molecule/.results/{{.MOLECULE_DATE}}-default.txt'
+      - PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test | tee 'molecule/.results/{{.MOLECULE_DATE}}-default.txt'
+
+  molecule:virtualbox:prompt:
+    deps:
+      - :install:modules:local
+    cmds:
+      - node .config/scripts/prompts/molecule/virtualbox.js
+
+  prompt:
+    deps:
+      - :install:modules:local
+    cmds:
+      - node .config/scripts/prompts/molecule/molecule.js
 
   vagrant:
     deps:
@@ -210,7 +255,7 @@ tasks:
 
   vagrant:prompt:
     deps:
-      - :install:modules:prompt
+      - :install:modules:local
     interactive: true
     cmds:
       - node .config/scripts/prompts/vagrant-up.js

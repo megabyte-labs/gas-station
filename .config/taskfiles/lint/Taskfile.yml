@@ -3,8 +3,7 @@ version: '3'
 
 vars:
   ANSIBLE_LINT_CONFIG: .config/ansible-lint.yml
-  COMMITLINT_CONFIG: .config/commitlint.config.cjs
-  CSPELL_CONFIG: .config/.cspell.json
+  CSPELL_CONFIG: .config/cspell.json
   FLAKE8_CONFIG: .config/flake8.toml
   PRETTIERIGNORE_CONFIG: .config/prettierignore
   SHELLCHECK_EXCLUDE: SC1091
@@ -39,7 +38,18 @@ tasks:
 
       For more information, see [Ansible Lint's GitHub page](https://github.com/ansible-community/ansible-lint).
     cmds:
-      - poetry run ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}
+      - '{{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}'
+
+  any:
+    deps:
+      - :install:python:requirements
+    desc: Generic linting of files for things like destroyed-symlinks, merge conflicts, etc.
+    cmds:
+      - '{{.PYTHON_HANDLE}}blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}check-merge-conflict {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}check-added-large-files {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}check-symlinks {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}destroyed-symlinks {{.CLI_ARGS}}'
 
   commit:
     deps:
@@ -54,7 +64,15 @@ tasks:
       **Example:**
       `task lint:commit -- 'My commit message'`
     cmds:
-      - if [ ! -z '{{.CLI_ARGS}}' ]; then commitlint -e '{{.CLI_ARGS}}' --config {{.COMMITLINT_CONFIG}}; fi
+      - |
+        if [ ! -z '{{.CLI_ARGS}}' ] && [ '{{.CLI_ARGS}}' != '.git/MERGE_MSG' ]; then
+          cp '{{.CLI_ARGS}}' '{{.CLI_ARGS}}.bak'
+          TMP="$(mktemp)"
+          COMMIT_MSG_NOEMOJI="$(sed 's/^..//' < '{{.CLI_ARGS}}' | xargs)"
+          echo "$COMMIT_MSG_NOEMOJI" | {{.NPX_PACKAGE}} commitlint
+        elif [ '{{.CLI_ARGS}}' == '.git/MERGE_MSG' ]; then
+          .config/log info 'Bypassing commitlint since the message is a merge message'
+        fi
     status:
       - '[[ -z "{{.CLI_ARGS}}" ]]'
     preconditions:
@@ -68,7 +86,7 @@ tasks:
     summary: |
       # Lint Dockerfiles using Hadolint
 
-      Hadolint is a linter for Dockerfiles. This task uses Hadolint to reportrue warnings
+      Hadolint is a linter for Dockerfiles. This task uses Hadolint to report warnings
       and suggestions so that the project is using best practices and is less likely to
       have errors. The task uses Docker to run an ultra-compact container that includes
       Hadolint. Installing Hadolint is done at runtime. The task scans for all files that
@@ -131,7 +149,7 @@ tasks:
       - :install:modules:local
       - :install:npm:eslint
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts --cache
+      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
   lint-staged:
@@ -220,9 +238,9 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
-          poetry run flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
+          {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
         {{else}}
-          poetry run flake8 --config {{.FLAKE8_CONFIG}} .
+          {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} .
         {{end}}
 
   shell:
@@ -268,7 +286,7 @@ tasks:
     summary: |
       # Check for spelling errors in staged files
 
-      Use cspell to check for possible spelling errors using the configuration stored in `.common/.cspell.json`.
+      Use cspell to check for possible spelling errors using the configuration stored in `.config/cspell.json`.
 
       This task is utilized by the pre-commit hook. For more information about cspell, see the
       [cspell NPM page](https://www.npmjs.com/package/cspell).
@@ -287,19 +305,30 @@ tasks:
 
   spelling:cli:
     cmds:
-      - cmd: '{{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}}'
+      - cmd: |
+          set -e
+          EXIT_CODE=0
+          {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}} || EXIT_CODE=$?
+          if [ "$EXIT_CODE" != '0' ]; then
+            .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
+          fi
         ignore_errors: true
 
   spelling:staged:
     deps:
       - :install:npm:cspell
       - :install:software:git
-    env:
-      STAGED_FILES: git diff --cached --name-only
     cmds:
       - cmd: |
-          if [ '{{.STAGED_FILES}}' ]; then
-            {{.NPX_HANDLE}}cspell --no-summary --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} "$STAGED_FILES"
+          STAGED_FILES="$(git diff --cached --name-only)"
+          if [ -n "$STAGED_FILES" ]; then
+            set -e
+            EXIT_CODE=0
+            # Must not quote $STAGED_FILES
+            {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} $STAGED_FILES || EXIT_CODE=$?
+            if [ "$EXIT_CODE" != '0' ]; then
+              .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
+            fi
           fi
         ignore_errors: true
 
@@ -319,7 +348,8 @@ tasks:
       **Example scanning specific file:**
       `task lint:toml -- myfile.toml`
     cmds:
-      - poetry run check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        {{.PYTHON_HANDLE}}check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   vagrant:
     deps:
@@ -352,7 +382,8 @@ tasks:
       **Example scanning specific file:**
       `task lint:xml -- myfile.xml`
     cmds:
-      - poetry run check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        {{.PYTHON_HANDLE}}check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   yaml:
     deps:
@@ -379,4 +410,5 @@ tasks:
 
       For more information, see the [YAML Lint GitHub page](https://github.com/adrienverge/yamllint).
     cmds:
-      - poetry run yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        {{.PYTHON_HANDLE}}yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}

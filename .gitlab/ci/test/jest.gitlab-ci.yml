@@ -1,5 +1,26 @@
 ---
 test:jest:unit:
+  stage: test
+  image: megabytelabs/jest:slim
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
+    - exists:
+        - 'src/**/*.spec.ts'
+  needs: []
+  variables:
+    GIT_DEPTH: 1
+
+  cache:
+    key: megabytelabs
+    paths:
+      - node_modules/
+  before_script:
+    - task ci:before:npm
+  script:
+    - task npm:test:ci
   artifacts:
     paths:
       - coverage/
@@ -7,25 +28,6 @@ test:jest:unit:
       cobertura: coverage/cobertura-coverage.xml
       junit: junit.xml
     when: always
-  before_script:
-    - task ci:before:npm
-  cache:
-    key: megabytelabs
-    paths:
-      - node_modules/
-  image: megabytelabs/jest:slim
-  needs: []
-  rules:
-    - if: $DO_CI == 'false'
-      when: never
-    - exists:
-        - 'src/**/*.spec.ts'
-  script:
-    - task npm:test:ci
-  stage: test
-  variables:
-    GIT_DEPTH: 1
-
 pages:
   stage: deploy
   only:

@@ -5,4 +5,4 @@
 # @description
 #   This is a placeholder for now.
 
-. .config/log info "Preparing release.."
+.config/log info "Preparing release.."

@@ -90,12 +90,11 @@ tasks:
       SLIM_SIZE:
         sh: 'docker manifest inspect -v "{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
           | awk "{$1=$1/(1024^2); print $1,\"MB\";}"'
-    env:
-      TMP:
-        sh: mktemp
     cmds:
-      - jq --arg a "{{.SLIM_SIZE}}" '.blueprint.slim_size = $a' package.json > "$TMP"
-      - mv "$TMP" package.json
+      - |
+        TMP="$(mktemp)"
+        jq --arg a "{{.SLIM_SIZE}}" '.blueprint.slim_size = $a' package.json > "$TMP"
+        mv "$TMP" package.json
       - task: :common:update:update
     status:
       - '[[ "{{.PREVIOUS_SLIM_SIZE}}" == "{{.SLIM_SIZE}}" ]]'

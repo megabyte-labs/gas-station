@@ -23,9 +23,9 @@ tasks:
       - task: prose:config
       - |
         {{if .CLI_ARGS}}
-          poetry run proselint {{.CLI_ARGS}}
+          {{.PYTHON_HANDLE}}proselint {{.CLI_ARGS}}
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \) -print0 | xargs -0 -r -n1 poetry run proselint
+          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \) -print0 | xargs -0 -r -n1 poetry run {{.PYTHON_HANDLE}}proselint
         {{end}}
       - task: prose:config:restore
 
@@ -33,7 +33,7 @@ tasks:
     cmds:
       - |
         if [ -f ~/.config/proselint/config ]; then
-          true info 'Backing up `proselint` from `~/.config/proselint/config` to `~/.config/proselint/config.backup`'
+          .config/log info 'Backing up `proselint` from `~/.config/proselint/config` to `~/.config/proselint/config.backup`'
           mv ~/.config/proselint/config ~/.config/proselint/config.backup
         fi
       - mkdir -p ~/.config/proselint
@@ -43,6 +43,6 @@ tasks:
     cmds:
       - |
         if [ -f ~/.config/proselint/config.backup ]; then
-          true info "Restoring original Proselint configuration"
+          .config/log info "Restoring original Proselint configuration"
           mv ~/.config/proselint/config.backup ~/.config/proselint/config
         fi

@@ -27,6 +27,10 @@ tasks:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache --cache-location .cache/eslintcache
         --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
+  js:
+    cmds:
+      - task: eslint
+
   json:
     deps:
       - :install:modules:local
@@ -68,8 +72,8 @@ tasks:
     cmds:
       - |
         function misc() {
-          poetry run fix-byte-order-marker "$1" &
-          poetry run mixed-line-ending --fix=lf "$1" &
+          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1" &
+          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1" &
         }
         {{if .CLI_ARGS}}
           misc '{{.CLI_ARGS}}'
@@ -158,9 +162,9 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
-          poetry run black {{.CLI_ARGS}}
+          {{.PYTHON_HANDLE}}black {{.CLI_ARGS}}
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \) -print0 | xargs -0 -r -n1 poetry run black
+          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \) -print0 | xargs -0 -r -n1 {{.PYTHON_HANDLE}}black
         {{end}}
 
   shell:
@@ -179,7 +183,7 @@ tasks:
       to automatically apply Shellcheck's recommendations. It only runs on files that are not in the
       `IGNORED_FOLDERS` variable in `Taskfile.yml`.
 
-      This task is experimental. It may work to get rid of the Shellcheck lintrue errors but the code
+      This task is experimental. It may work to get rid of the Shellcheck lin.config/log errors but the code
       should still be tested since it might break things. Ideally, you should apply Shellcheck's
       recommendations manually.
 

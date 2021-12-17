@@ -15,8 +15,6 @@ tasks:
     run: once
     cmds:
       - task: brew:{{OS}}
-    status:
-      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
 
   brew:cask:
     deps:
@@ -31,15 +29,27 @@ tasks:
     cmds:
       - |
         if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
+          .config/log info "Homebrew is already installed"
           eval "$(~/.local/homebrew/bin/brew shellenv)"
         elif ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
           eval "$(~/.local/homebrew/bin/brew shellenv)"
+          .config/log info "Updating Homebrew"
           brew update --force --quiet
           chmod -R go-w "$(brew --prefix)/share/zsh"
+          .config/log success "Successfully installed Homebrew"
         fi
+      - task: brew:utils
+    status:
+      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type gcp > /dev/null
+      - type gfind > /dev/null
+      - type gsed > /dev/null
+      - type ggrep > /dev/null
+      - type gtar > /dev/null
+      - type ggawk > /dev/null
 
   brew:formulae:
     deps:
@@ -85,6 +95,14 @@ tasks:
           brew update --force --quiet
           ensureSource "$SHELL_PROFILE"
         fi
+    status:
+      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  brew:utils:
+    cmds:
+      - .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
+      - brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
+      - .config/log success "Successfully installed GNU-compatibility tools"
 
   brew:windows:
     cmds:
@@ -96,9 +114,14 @@ tasks:
       - task: common:{{OS}}
 
   common:darwin:
-    interactive: true
     cmds:
+      - task: common:darwin:xcode
+
+  common:darwin:xcode:
+    cmds:
+      - .config/log info "Installing xcode-select"
       - xcode-select --install
+      - .config/log success "Successfully installed xcode-select"
     status:
       - xcode-select -p 1> /dev/null
 
@@ -201,7 +224,6 @@ tasks:
     status:
       - type container-structure-test > /dev/null
 
-
   container-structure-test:windows:
     cmds:
       - .config/log error "Windows is not supported. Try using a Windows WSL environment."
@@ -282,19 +304,19 @@ tasks:
         vars:
           FORMULAE: glab
 
-  grype:
-    run: once
-    cmds:
-      - task: brew:formulae
-        vars:
-          FORMULAE: anchore/grype/grype
-
   go:
     run: once
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: go
+
+  grype:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: anchore/grype/grype
 
   jq:
     run: once

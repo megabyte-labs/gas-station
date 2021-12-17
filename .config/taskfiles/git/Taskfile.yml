@@ -117,6 +117,7 @@ tasks:
         PROJECT_ID="$(gh repo view --json id | jq -r '.id')"
         TMP="$(mktemp)" && jq --arg projectId "$PROJECT_ID" '.blueprint.github_id = $projectId' package.json > "$TMP"
         mv "$TMP" package.json
+        .config/log success 'Added GitHub project ID to package.json'
 
   github:update:
     deps:
@@ -277,6 +278,7 @@ tasks:
         GROUP_ID="$(echo "$API_RES" | jq '.namespace.id')"
         TMP="$(mktemp)" && jq --arg groupId "$GROUP_ID" '.blueprint.gitlab_group_id = $groupId' package.json > "$TMP"
         mv "$TMP" package.json
+        .config/log success 'Added GitLab project ID to package.json'
 
   gitlab:integrations:
     deps:
@@ -478,18 +480,20 @@ tasks:
         sh: jq -r '.blueprint.repository.gitlab' package.json | sed 's/^https:\/\//git@/' | sed 's/gitlab.com\//gitlab.com:/'
     run: once
     cmds:
-      - git init
+      - git init -q
       - |
         if [ ! -z "$GITLAB_REPO" ]; then
           if git config remote.origin.url > /dev/null; then
             git remote set-url origin "${GITLAB_REPO}.git"
           else
             git remote add origin "${GITLAB_REPO}.git"
+            .config/log success 'Added git remote named `origin`'
           fi
           if git config remote.gitlab.url > /dev/null; then
             git remote set-url gitlab "${GITLAB_REPO}.git"
           else
             git remote add gitlab "${GITLAB_REPO}.git"
+            .config/log success 'Added git remote named `gitlab`'
           fi
         fi
       - |
@@ -498,6 +502,7 @@ tasks:
             git remote set-url github "${GITHUB_REPO}.git"
           else
             git remote add github "${GITHUB_REPO}.git"
+            .config/log success 'Added git remote named `github`'
           fi
         fi
       - |
@@ -508,8 +513,8 @@ tasks:
           git remote add all "${GITLAB_REPO}.git"
           git remote set-url --add --push all "${GITHUB_REPO}.git"
           git remote set-url --add --push all "${GITLAB_REPO}.git"
+          .config/log success 'Added git remote named `all`'
         fi
-      - .config/log success 'Added Git remotes'
     status:
       - '[[ "$(git config remote.all.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
       - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
@@ -565,6 +570,7 @@ tasks:
             rm -rf "{{.ROOT_GIT}}./.git/modules/$CONFIG_PATH"
             rm -rf "$MODULE_PATH"
           done
+          .config/log success "Successfully removed the project's submodules"
         else
           .config/log info 'This task does not run unless there is a `.gitmodules` file in the current directory'
         fi

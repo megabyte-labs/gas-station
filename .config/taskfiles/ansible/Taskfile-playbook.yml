@@ -16,7 +16,7 @@ tasks:
       }
       ```
     vars:
-      DOC_IDS: '@binary,@brew,@cask,@chrome,@gem,@helm,@hostapp,@htpc,@npm,@pypi,@vscode'
+      DOC_IDS: '@binary,@brew,@cask,@chrome,@firefox,@gem,@helm,@npm,@pypi,@vscode'
     cmds:
       - |
         function populateChartVar() {
@@ -32,7 +32,8 @@ tasks:
           done
           CHART="${CHART}]"
           TMP_CHART="$(mktemp)"
-          jq --arg chart "$CHART" --arg key "${2}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP_CHART"
+          KEY="$(echo $2 | sed 's/^@//')"
+          jq --arg chart "$CHART" --arg key "${KEY}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP_CHART"
           mv "$TMP_CHART" .variables.json
         }
         TMP="$(mktemp)"
@@ -41,6 +42,7 @@ tasks:
         for ID in {{replace "," " " .DOC_IDS}}; do
           populateChartVar "$TMP" "$ID"
         done
+        .config/log success 'Finished scanning for documentation comments'
 
   environment:
     # @desc_when [ansible/Taskfile-playbook.yml] ansible/playbook
@@ -71,6 +73,7 @@ tasks:
             else
               rm -f $ITEM
               ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
+              .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
             fi
           done
         {{end}}
@@ -89,6 +92,7 @@ tasks:
             else
               rm -f $ITEM
               ln -s "./environments/$ENVIRONMENT/$ITEM" "$ITEM"
+              .config/log success "Successfully symlinked `$ITEM` from ./environments/$ENVIRONMENT/$ITEM"
             fi
           done
         fi
@@ -137,11 +141,16 @@ tasks:
       files that are not meant to be shared. The remote is named `private`.
     run: once
     cmds:
-      - git init
+      - git init -q
       - |
         for ROLE_RELATIVE_PATH in roles/*/*; do
           ROLE_FOLDER="$(basename $ROLE_RELATIVE_PATH)"
           ROLE_HTTPS_REPO="$(jq -r '.blueprint.repository.gitlab' $ROLE_RELATIVE_PATH/package.json)"
           ROLE_SSH_REPO="$(echo $ROLE_HTTPS_REPO | sed 's/https:\/\/gitlab.com\//git@gitlab.com:/' | sed 's/$/.git/')"
-          git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+          if git config "remote.${ROLE_FOLDER}.url" > /dev/null; then
+            git remote set-url "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+          else
+            git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+          fi
         done
+        .config/log success 'Added git remotes for all the roles in the ./roles folder'

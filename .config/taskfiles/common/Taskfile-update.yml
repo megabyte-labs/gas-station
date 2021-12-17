@@ -44,6 +44,7 @@ tasks:
       CONTRIB_TEMPLATE: .config/docs/blueprint-contributing.md
     cmds:
       - mkdir -p docs
+      - .config/log info 'Generating `docs/CONTRIBUTING.md` using document partials'
       - >
         {{.NPX_HANDLE}}readme generate --silent --headingPrefix '{}' --config .variables.json
         --input "{{.CONTRIB_TEMPLATE}}" --output docs/CONTRIBUTING.md
@@ -75,6 +76,7 @@ tasks:
         {{if eq .REPOSITORY_SUBTYPE "ci-pipeline"}}
           if [[ "{{.FIRST_LINE}}" == *"debian"* ]] || [[ "{{.FIRST_LINE}}" == *"ubuntu"* ]]; then
             cp .config/initctl initctl
+            .config/log info 'Added initctl faker file to repository root'
           fi
         {{end}}
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
@@ -104,9 +106,10 @@ tasks:
         if test -f ".config/docs/{{.MAN_TEMPLATE}}"; then
           {{.NPX_HANDLE}}readme generate --headingPrefix '{}' --silent --config .variables.json --input ".config/docs/{{.MAN_TEMPLATE}}" --output MAN.md
           {{.NPX_HANDLE}}prettier --write MAN.md > /dev/null
-          .config/log success 'Successfully generated the MAN.md'
+          .config/log info 'Generated MAN.md'
           mkdir -p dist
           {{.NPX_HANDLE}}remark --use man MAN.md --output dist/man
+          .config/log success 'Converted MAN.md to man page located in `dist/man`'
           rm MAN.md
         fi
     sources:
@@ -156,6 +159,7 @@ tasks:
             git checkout "$DEFAULT_BRANCH"
             git pull origin "$DEFAULT_BRANCH" --ff-only || true
           done
+          .config/log success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
         fi
     status:
       - '! ls .modules/*/ > /dev/null 2>&1'
@@ -181,7 +185,7 @@ tasks:
           SCRUB_FILE: README.md
       - task: ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:readme{{else}}donothing{{end}}'
       - '{{.NPX_HANDLE}}prettier --write README.md > /dev/null'
-      - .config/log success 'Successfully generated the README.md'
+      - .config/log success 'Generated README.md successfully'
     sources:
       - .autodoc/*
       - .config/docs/**/*

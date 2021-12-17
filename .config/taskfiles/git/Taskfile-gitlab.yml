@@ -42,7 +42,7 @@ tasks:
             {{trimPrefix "'" (trimSuffix "'" (index (splitList " ---- " .CLI_ARGS) 1))}}
             cd "$BASE_PWD"
           )
-          .config/log info "Finished running bash command on $REPO_PATH"
+          .config/log success "Finished running bash command on $REPO_PATH"
         }
         cat {{.REPOSITORY_LIST}} | while IFS= read -r REPO_DETAILS; do
           .config/log info "Executing logic on $REPO_DETAILS"
@@ -78,6 +78,7 @@ tasks:
     cmds:
       - glab api "groups/{{urlquery .CLI_ARGS}}" | jq -r '.projects[] | .ssh_url_to_repo + "   " + .path_with_namespace' >> {{.REPOSITORY_LIST}}
       - |
+        .config/log info 'Recursively acquiring repository details from subgroups'
         SUBGROUPS="$(glab api groups/{{urlquery .CLI_ARGS}}/subgroups | jq -r '.[] | .full_path')"
         echo "$SUBGROUPS"
         if [ -n "$SUBGROUPS" ]; then

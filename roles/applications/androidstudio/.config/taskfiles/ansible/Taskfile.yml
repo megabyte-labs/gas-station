@@ -1,0 +1,262 @@
+---
+version: '3'
+
+vars:
+  COLLECTION_DEPS: collection_dependencies
+  MAIN_TASKS_PATH: tasks/main.yml
+  META_PATH: meta/main.yml
+  MOLECULE_RESULTS_PATH: molecule/.results
+  REQUIREMENTS_PATH: requirements.yml
+  ROLE_NAME: '{{.GALAXY_NAMESPACE}}.{{.GALAXY_ROLE_NAME}}'
+  SAMPLE_PROJECT: https://github.com/ProfessorManhattan/ansible-snapd
+  VARIABLES_PATH: .variables.json
+
+tasks:
+  collection-dependencies:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
+    env:
+      COLLECTIONS:
+        sh: jq --arg collections "$(yq eval -o=json '.collections' {{.REQUIREMENTS_PATH}})" '.{{.COLLECTION_DEPS}} = ($collections | fromjson) |
+          .{{.COLLECTION_DEPS}}[] | "<a href=\"" + .source + "/" + (.name | split(".") | join("/")) + "\" title=\"" + .name +
+          " collection on Ansible Galaxy\" target=\"_blank\"><img alt=\"" + .name + " Ansible Galaxy badge\"
+          src=\"https://img.shields.io/badge/Ansible%20Galaxy-" + .name + "-000000?logo=ansible&logoColor=white&style=for-the-badge\"></a>"'
+          -r  {{.VARIABLES_PATH}} | jq --raw-input --slurp 'split("\n") | .[0:((. | length) - 1)]'
+      TMP:
+        sh: mktemp
+    cmds:
+      - |
+        jq --arg collections "$COLLECTIONS" '.{{.COLLECTION_DEPS}} = ($collections | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
+        mv "$TMP" '{{.VARIABLES_PATH}}'
+
+  collection-dependencies:markdown:
+    deps:
+      - :install:software:jq
+    vars:
+      COLLECTION_LENGTH:
+        sh: jq -r '.{{.COLLECTION_DEPS}} | length' '{{.VARIABLES_PATH}}'
+      FILE_PATH: .autodoc/{{.COLLECTION_DEPS}}.md
+    env:
+      MULTIPLE_COLLECTION_TEXT: "### Galaxy Collections\n\nThis role is dependent on multiple Ansible Galaxy collections.
+        The collections along with a links to their source are listed below.\n\n{{\"{{\"}}{{.COLLECTION_DEPS}}{{\"}}\"}}"
+      SINGLE_COLLECTION_TEXT: "### Galaxy Collection\n\nThis role is dependent on the following Ansible Galaxy
+        collection:\n\n{{\"{{\"}}{{.COLLECTION_DEPS}}{{\"}}\"}}"
+    cmds:
+      - mkdir -p '{{dir .FILE_PATH}}'
+      - |
+        {{if (eq .COLLECTION_LENGTH "0")}}
+          echo '' > '{{.FILE_PATH}}'
+        {{else if (eq .COLLECTION_LENGTH "1")}}
+          echo "$SINGLE_COLLECTION_TEXT" > '{{.FILE_PATH}}'
+        {{else}}
+          echo "$MULTIPLE_COLLECTION_TEXT" > '{{.FILE_PATH}}'
+        {{end}}
+    sources:
+      - '{{.FILE_PATH}}'
+      - '{{.VARIABLES_PATH}}'
+
+  galaxy:requirements:
+    run: once
+    cmds:
+      - task: galaxy:requirements:install
+    sources:
+      - requirements.yml
+    preconditions:
+      - sh: test -f requirements.yml
+        msg: The requirements.yml file is missing! It should be present even if it is empty (which should almost never be the case).
+
+  galaxy:requirements:install:
+    cmds:
+      - cmd: ansible-galaxy install -r requirements.yml --ignore-errors
+        ignore_error: true
+    status:
+      - '[[ "${container:=}" == "docker" ]]'
+
+  keywords:sync:
+    deps:
+      - :install:npm:prettier
+      - :install:software:jq
+      - :install:software:yq
+    summary: |
+      # Sync Galaxy Tags with `package.json` Keywords
+
+      This task syncs the Ansible Galaxy tags found in `meta/main.yml` with the keywords in the `package.json`
+      file. The Ansible Galaxy tags are capped to a maximum of 20 tags.
+    env:
+      MERGED_TAGS:
+        sh: jq -s --argjson galaxy "$(yq e -o=j '.galaxy_info.galaxy_tags' meta/main.yml)" '.[0].keywords + $galaxy | sort | unique' package.json
+      MERGED_TAGS_LENGTH:
+        sh: jq -s --argjson galaxy "$(yq e -o=j '.galaxy_info.galaxy_tags' meta/main.yml)" '.[0].keywords + $galaxy | sort | unique | length' package.json
+    cmds:
+      - |
+        GALAXY_INFO="$(yq e -o=j meta/main.yml)"
+        OPTIONAL_TAGS="$(jq '.keywords' .config/common-keywords.json)"
+        TMP="$(mktemp)"
+        RESULT="$MERGED_TAGS"
+        if [ "$MERGED_TAGS_LENGTH" -gt 20 ]; then
+          function updateList() {
+            REMOVE_KEY="$(jq -n --argjson optional "$OPTIONAL_TAGS" '$optional['"$1"']')"
+            RESULT="$(jq -n --argjson remove "$REMOVE_KEY" --argjson jq "$RESULT" '$jq | del(.[] | select(. == $remove))')"
+          }
+          LOOP_COUNT="$((MERGED_TAGS_LENGTH-20))"
+          for i in $(seq "$LOOP_COUNT"); do
+            updateList "$i"
+          done
+        fi
+        jq -r --argjson result "$MERGED_TAGS" '.keywords = $result' package.json > "$TMP"
+        mv "$TMP" package.json
+        {{.NPX_HANDLE}}prettier --write package.json > /dev/null
+        mkdir -p .cache/megabytelabs
+        jq -n --argjson result "$RESULT" --argjson gi "$GALAXY_INFO" '$gi | .galaxy_info.galaxy_tags = $result' > .cache/megabytelabs/galaxy-meta.json
+        yq eval -P .cache/megabytelabs/galaxy-meta.json > meta/main.yml
+      - '{{.NPX_HANDLE}}prettier --write meta/main.yml > /dev/null'
+      - task fix:yaml:dashes -- meta/main.yml
+
+  mod-ansible-autodoc:
+    cmds:
+      - task: mod-ansible-autodoc:generate
+      - task: mod-ansible-autodoc:variables
+
+  mod-ansible-autodoc:generate:
+    deps:
+      - :install:python:requirements
+      - :install:software:jq
+    env:
+      ACTIONS_DESCRIPTION:
+        sh: jq -r '.autodoc_actions_description' '{{.VARIABLES_PATH}}'
+      TAGS_DESCRIPTION:
+        sh: jq -r '.autodoc_tags_description' '{{.VARIABLES_PATH}}'
+      TODO_DESCRIPTION:
+        sh: jq -r '.autodoc_todo_description' '{{.VARIABLES_PATH}}'
+      VARIABLES_DESCRIPTION:
+        sh: jq -r '.autodoc_variables_description' '{{.VARIABLES_PATH}}'
+    cmds:
+      - >
+        {{.PYTHON_HANDLE}}mod-ansible-autodoc --actions-title '## Features' --actions-description "$ACTIONS_DESCRIPTION"
+        --tags-title '### Tags' --tags-description "$TAGS_DESCRIPTION" --todo-title '### TODO'
+        --todo-description "$TODO_DESCRIPTION" --variables-title '## Variables' --variables-description
+        "$VARIABLES_DESCRIPTION" --variable-example-comment-prefix '#💬'
+      - mkdir -p .autodoc
+      - mv ansible_actions.md ansible_tags.md ansible_todo.md ansible_variables.json ansible_variables.md .autodoc
+    sources:
+      - '{{.VARIABLES_PATH}}'
+      - defaults/**/*.yml
+      - tasks/**/*.yml
+      - vars/**/*.yml
+
+  mod-ansible-autodoc:variables:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        ROLE_VARIABLES="$(jq -r '.role_variables' .autodoc/ansible_variables.json)"
+        TMP="$(mktemp)"
+        jq --arg vars "$ROLE_VARIABLES" '.role_variables = ($vars | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
+        mv "$TMP" '{{.VARIABLES_PATH}}'
+
+  quickstart:
+    deps:
+      - :ansible:symlink:{{.REPOSITORY_SUBTYPE}}
+      - :install:python:requirements
+    vars:
+      INSTALLING:
+        sh: if test -f install_in_progress; then echo 'true'; else echo 'false'; fi
+    cmds:
+      - .config/log info "Running the Ansible play locally"
+      - cp test/{{OS}}/inventory inventory
+      - if [ ! -f ansible.cfg.bak ]; then cp ansible.cfg ansible.cfg.bak; fi
+      - cp test/{{OS}}/ansible.cfg ansible.cfg
+      - touch install_in_progress
+      - |
+        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass{{if eq .INSTALLING 'false'}} --skip-tags "skip_on_init" playbooks/init.yml{{else}} main.yml{{end}}
+      - if [ -f ansible.cfg.bak ]; then mv ansible.cfg.bak ansible.cfg; fi
+      - if [ -f inventory ]; then rm inventory; fi
+
+  sync:requirements:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
+    cmds:
+      - |
+        ROLES="$(yq eval '.roles' '{{.REQUIREMENTS_PATH}}')"
+        yq eval -o=json '.dependencies' '{{.META_PATH}}' | jq -rc '.[] .role' | while read ROLE_NAME; do
+          if [[ ! "$ROLES" =~ "$ROLE_NAME" ]]; then
+            yq eval -i -P '.roles = .roles + {"name": "'"$ROLE_NAME"'"}' '{{.REQUIREMENTS_PATH}}'
+          fi
+        done
+      - task: :fix:yaml:dashes
+        vars:
+          CLI_ARGS: '{{.REQUIREMENTS_PATH}}'
+
+  update:galaxy-id:
+    cmds:
+      - |
+        TMP="$(mktemp)"
+        PROJECT_ID="$(ansible-galaxy info '{{.ROLE_NAME}}' 2> /dev/null | grep -E 'id: [0-9]' | cut -d ' ' -f2)"
+        if [ "$PROJECT_ID" ]; then
+          jq --arg a "$PROJECT_ID" '.blueprint.ansible_galaxy_project_id = $a' package.json > "$TMP"
+          mv "$TMP" package.json
+        fi
+    status:
+      - jq -e 'has("blueprint.ansible_galaxy_project_id")' package.json
+
+  update:variables:
+    cmds:
+      - task: :ansible:ansibler:ansibler
+      - task: update:variables:descriptions
+
+  update:variables:descriptions:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
+    vars:
+      ALT_PREFIX: This repository is the home of an [Ansible](https://www.ansible.com/) role that
+      DESCRIPTION:
+        sh: yq e '.galaxy_info.description' '{{.META_PATH}}'
+      DESCRIPTION_LOWER: '{{lower (trunc 1 .DESCRIPTION)}}{{substr 1 (len .DESCRIPTION) .DESCRIPTION}}'
+      SUBHEADER_PREFIX: An Ansible role that
+    env:
+      ALT: '{{.ALT_PREFIX}} {{.DESCRIPTION_LOWER}}'
+      GALAXY_INFO:
+        sh: yq e -o=json '.galaxy_info' '{{.META_PATH}}'
+      SUBHEADER: '{{.SUBHEADER_PREFIX}} {{.DESCRIPTION_LOWER}}'
+      TMP:
+        sh: mktemp
+    cmds:
+      - jq -S --arg alt "$ALT" --arg galaxyinfo "$GALAXY_INFO" --arg subheader "$SUBHEADER" '.alternative_description = $alt |
+        .galaxy_info = ($galaxyinfo | fromjson) | .subheader_description = $subheader' '{{.VARIABLES_PATH}}' > "$TMP"
+      - mv "$TMP" '{{.VARIABLES_PATH}}'
+    sources:
+      - '.common/variables.{{.REPOSITORY_SUBTYPE}}.json'
+      - '{{.META_PATH}}'
+      - package.json
+    preconditions:
+      - sh: 'type jq &> /dev/null'
+        msg: jq is not installed.
+      - sh: 'type yq &> /dev/null'
+        msg: yq is not installed.
+      - sh: 'test -f "{{.META_PATH}}"'
+        msg: 'The `{{.META_PATH}}` file is missing. A properly populated `{{.META_PATH}}` is required. You can find an
+          example of one at {{.SAMPLE_PROJECT}}.'
+      - sh: 'test -f "{{.VARIABLES_PATH}}"'
+        msg: 'The `{{.VARIABLES_PATH}}` file is missing!'
+
+  update:variables:playbook:
+    cmds:
+      - task: :ansible:playbook:docs
+
+  vault:lint:file:
+    summary: |
+      # Check for unencrypted Ansible Vault files
+
+      This task is leveraged by `lint-staged` to ensure that any file that matches `**/*vault.yml` is encrypted
+      with Ansible Vault.
+    cmds:
+      - |
+        head -1 '{{.CLI_ARGS}}' | grep --quiet '^\$ANSIBLE_VAULT;' || {
+          if [ -s '{{.CLI_ARGS}}' ]; then
+            echo '`{{.CLI_ARGS}}` is not encrypted. All files matching `**/*vault.yml` should be encrypted by `ansible-vault`.'
+            exit 1
+          fi
+        }

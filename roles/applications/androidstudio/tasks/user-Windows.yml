@@ -1,0 +1,68 @@
+---
+- name: 'Ensure {{ sdk_location }}/cmdline-tools directory exists'
+  become_user: '{{ user.username }}'
+  ansible.windows.win_file:
+    path: '{{ sdk_location }}/cmdline-tools'
+    state: directory
+  when: install_cmdlinetools
+
+- name: Ensure older version of cmdline-tools is removed
+  become_user: '{{ user.username }}'
+  ansible.windows.win_file:
+    path: '{{ sdk_location }}/cmdline-tools/latest'
+    state: absent
+  when: install_cmdlinetools
+
+- name: Ensure commandline-tools is up-to-date
+  become_user: '{{ user.username }}'
+  community.windows.win_unzip:
+    dest: '{{ sdk_location }}/cmdline-tools'
+    remote_src: true
+    src: '%TEMP%\cmdline-tools.zip'
+  when: install_cmdlinetools
+
+- name: Rename commandline-tools directory after extraction
+  become_user: '{{ user.username }}'
+  ansible.windows.win_command: cmd.exe /C move {{ sdk_location }}\cmdline-tools\cmdline-tools {{ sdk_location }}\cmdline-tools\latest
+  when: install_cmdlinetools
+
+- name: Fetch the list of available SDKs and Tools
+  become_user: '{{ user.username }}'
+  ansible.windows.win_command: cmd.exe /C {{ sdk_location }}\cmdline-tools\latest\bin\sdkmanager.bat --list
+  register: sdk_list
+  when: android_sdks | length == 0
+
+- name: Find the latest version of SDKs and Tools
+  become_user: '{{ user.username }}'
+  set_fact:
+    build_tools_version: ["{{ sdk_list.stdout_lines | regex_findall('build-tools;\\d*\\.\\d*\\.\\d* ') | last | trim }}"]
+    emulator_version: [emulator]
+    patcher_version: ["{{ sdk_list.stdout_lines | regex_findall('patcher;v\\d*') | last }}"]
+    platform_tools_version: [platform-tools]
+    platforms_version: ["{{ sdk_list.stdout_lines | regex_findall('platforms;android-\\d{2,}') | last }}"]
+    sources_version: ["{{ sdk_list.stdout_lines | regex_findall('sources;android-\\d*') | last }}"]
+  when: android_sdks | length == 0
+
+- name: Ensure SDKs and Tools are installed # noqa 301
+  become_user: '{{ user.username }}'
+  ansible.windows.win_command: |
+    cmd.exe /C echo y|{{ sdk_location }}\cmdline-tools\latest\bin\sdkmanager --install {{ item }}
+  loop: '{{ android_sdks +
+    build_tools_version | default([]) +
+    platforms_version | default([]) +
+    sources_version | default([]) +
+    patcher_version | default([]) +
+    emulator_version | default([]) +
+    platform_tools_version | default([]) }}'
+
+# @action Ensures configured Android SDKs are present
+# Updates `PATH` on Windows systems
+- name: Ensure Tools are added to PATH
+  become_user: '{{ user.username }}'
+  ansible.windows.win_path:
+    elements:
+      - "{{ sdk_location }}\\cmdline-tools\\latest\\bin"
+      - "{{ sdk_location }}\\platform-tools"
+      - "{{ sdk_location }}\\tools"
+      - "{{ sdk_location }}\\tools\\bin"
+    scope: user

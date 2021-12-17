@@ -1,0 +1,414 @@
+---
+version: '3'
+
+vars:
+  ANSIBLE_LINT_CONFIG: .config/ansible-lint.yml
+  CSPELL_CONFIG: .config/cspell.json
+  FLAKE8_CONFIG: .config/flake8.toml
+  PRETTIERIGNORE_CONFIG: .config/prettierignore
+  SHELLCHECK_EXCLUDE: SC1091
+  YAMLLINT_CONFIG: .config/yamllint.yml
+
+tasks:
+  all:
+    deps:
+      - '{{.REPOSITORY_TYPE}}'
+      - prettier
+      - :lint:markdown:markdown
+      - :lint:prose:prose
+      - shellcheck
+      - yaml
+    desc: Lint with all available linters
+
+  ansible:
+    deps:
+      - :symlink:{{.REPOSITORY_SUBTYPE}}
+      - :install:python:requirements
+    desc: Lint Ansible projects using Ansible Lint
+    summary: |
+      # Lint an Ansible project using Ansible Lint
+
+      This task lints the project using Ansible Lint which will scan the project and report design
+      patterns that can possibly be improved. It can be used on both playbooks and roles. The
+      configuration for Ansible Lint is stored in the root of the project in a file titled
+      `.ansible-lint`. This configuration file is shared between all of our Ansible projects
+      so any changes to it need to be made to the upstream Ansible common file repository. Because of
+      this, it probably makes more sense to to disable rules (when absolutely necessary) using the
+      [syntax described in this link](https://ansible-lint.readthedocs.io/en/latest/rules.html#false-positives-skipping-rules).
+
+      For more information, see [Ansible Lint's GitHub page](https://github.com/ansible-community/ansible-lint).
+    cmds:
+      - '{{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}'
+
+  any:
+    deps:
+      - :install:python:requirements
+    desc: Generic linting of files for things like destroyed-symlinks, merge conflicts, etc.
+    cmds:
+      - '{{.PYTHON_HANDLE}}blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}check-merge-conflict {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}check-added-large-files {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}check-symlinks {{.CLI_ARGS}}'
+      - '{{.PYTHON_HANDLE}}destroyed-symlinks {{.CLI_ARGS}}'
+
+  commit:
+    deps:
+      - :install:modules:local
+      - :install:npm:commitlint
+    summary: |
+      # Lint a commit message
+
+      This task will lint a commit message with `commitlint`. It requires that the commit message be passed as
+      an argument to this task.
+
+      **Example:**
+      `task lint:commit -- 'My commit message'`
+    cmds:
+      - |
+        if [ ! -z '{{.CLI_ARGS}}' ] && [ '{{.CLI_ARGS}}' != '.git/MERGE_MSG' ]; then
+          cp '{{.CLI_ARGS}}' '{{.CLI_ARGS}}.bak'
+          TMP="$(mktemp)"
+          COMMIT_MSG_NOEMOJI="$(sed 's/^..//' < '{{.CLI_ARGS}}' | xargs)"
+          echo "$COMMIT_MSG_NOEMOJI" | {{.NPX_PACKAGE}} commitlint
+        elif [ '{{.CLI_ARGS}}' == '.git/MERGE_MSG' ]; then
+          .config/log info 'Bypassing commitlint since the message is a merge message'
+        fi
+    status:
+      - '[[ -z "{{.CLI_ARGS}}" ]]'
+    preconditions:
+      - sh: '[ ! -z "{{.CLI_ARGS}}" ]'
+        msg: 'A CLI argument must be passed to this task. See `task lint:commit --summary` for details.'
+
+  docker:
+    deps:
+      - :install:software:docker
+    desc: Lint Dockerfiles using Hadolint (requires Docker)
+    summary: |
+      # Lint Dockerfiles using Hadolint
+
+      Hadolint is a linter for Dockerfiles. This task uses Hadolint to report warnings
+      and suggestions so that the project is using best practices and is less likely to
+      have errors. The task uses Docker to run an ultra-compact container that includes
+      Hadolint. Installing Hadolint is done at runtime. The task scans for all files that
+      are named either `Dockerfile` or `Dockerfile.j2`. On top of reporting suggestions
+      for adhereing to Docker best-practices, Hadolint also leverages Shellcheck to report
+      possible errors in the shell logic used by the Dockerfile.
+
+      **If the Dockerfile is named something other than `Dockerfile` or `Dockerfile.j2`, you
+      can manually run Hadolint by running:**
+      `docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim CustomDockerfileName`
+
+      **This task will ignore files in the following directories (and possibly more):**
+        * .cache        * .husky        * node_modules
+        * .common       * .modules      * test
+        * .git          * .task         * venv
+
+      **Example scanning the whole project:**
+      `task lint:docker`
+
+      **Example scanning single file:**
+      `task lint:docker -- CustomDockerfile`
+
+      For more information, see [Hadolint's GitHub page](https://github.com/hadolint/hadolint).
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS}}
+        {{else}}
+          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name Dockerfile -o \
+            -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 docker run -v "$PWD:/work" -w /work \
+            megabytelabs/hadolint:slim
+        {{end}}
+
+  eslint:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Lint with `eslint`
+    summary: |
+      # Lint with `eslint`
+
+      This task will lint the project or a specific pattern of files with `eslint`. It is capable of
+      linting JSON, YML, JS, TS, and HTML as long as the correct `package.json` dependencies are
+      installed. By default, all projects have the libraries necessary for linting JSON, TOML, and YML.
+
+      **Example linting entire project:**
+      `task lint:eslint`
+
+      **Example linting specific file:**
+      `task lint:eslint -- my_file.ts`
+
+      **Example linting specific pattern of files:**
+      `task lint:eslint -- '**/*.js'`
+    cmds:
+      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+
+  js:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    cmds:
+      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+
+  lint-staged:
+    deps:
+      - :install:modules:global
+      - :install:modules:local
+      - :install:python:requirements
+    cmds:
+      - '{{.NPX_HANDLE}}lint-staged'
+
+  packer:
+    deps:
+      - :install:software:packer
+    desc: Validate the Packer templates ending with `template.json`
+    summary: |
+      # Validate Packer templates
+
+      This task will loop through all the Packer templates ending with `template.json`
+      in the root of this project and report any errors that the templates might have.
+      Alternatively, you can scan a single file (see example below).
+
+      **Example scanning for all files ending with `template.json` in the root directory:**
+      `task lint:packer`
+
+      **Example scanning single file:**
+      `task lint:packer -- filename.json`
+
+      For more information on `packer validate`, see the [Packer website](https://www.packer.io/docs/commands/validate).
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          packer validate {{.CLI_ARGS}}
+        {{else}}
+          for TEMPLATE in *template.json; do
+            packer validate "$TEMPLATE"
+          done
+        {{end}}
+
+  prettier:
+    deps:
+      - :install:modules:local
+      - :install:npm:prettier
+    desc: Lint formatting using Prettier
+    summary: |
+      # Report formatting errors with Prettier
+
+      This task will run Prettier on the project and list the possible fixes without automatically
+      applying the fixes. It will report mistakes like inconsistent indent lengths, trailing spaces,
+      and more. Prettier will use the configuration specified in the `package.json` file under the
+      `prettier` key.
+
+      If this command is incompatible with a file then you can add the file to the `.prettierignore`
+      file.
+
+      For more information, see [Prettier's website](https://prettier.io/).
+    cmds:
+      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+
+  python:
+    deps:
+      - :install:python:requirements
+    label: lint:python
+    desc: Lint Python files using Flake8
+    summary: |
+      # Lint Python files using Flake8
+
+      Flake8 is a Python library that lints Python projects (or projects that may include Python files).
+      It is a combination of several Python linters like PyFlakes and pycodestyle. This task will run
+      `flake8` using the configuration found in the `.flake8` file in the root of this project.
+
+      The `.flake8` file is a common file shared across many of our repositories so if changes are made to
+      it then the changes need to be made to the appropriate common file repository [here](https://gitlab.com/megabyte-labs/common).
+      Because of this, it might make more sense to add a comment to lines that you wish to be ignored by flake8.
+      For instance, you can ignore rule E234 by adding a comment at the end of the line that looks like, "# noqa: E234".
+
+      _NOTE: In order to maintain our strict quality standards, disabling Flake8 rules should only be done
+      when absolutely necessary._
+
+      **Example scanning all files:**
+      `task lint:python`
+
+      **Example scanning specific file:**
+      `task lint:python -- myfile.py`
+
+      For more information, see [Flake8's GitHub page](https://github.com/PyCQA/flake8).
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
+        {{else}}
+          {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} .
+        {{end}}
+
+  shell:
+    cmds:
+      - task: shellcheck
+      - task: prettier
+
+  shellcheck:
+    deps:
+      - :install:npm:shellcheck
+    desc: Report possible errors in shell scripts
+    summary: |
+      # Report possible errors in shell scripts using Shellcheck
+
+      Shellcheck is a tool that reports warnings and suggestions for shell (e.g. bash) scripts. This task
+      can scan the project for files ending with `.sh` or `.sh.j2` and runs Shellcheck on them. Files in
+      the following folders are ignored:
+
+        * .cache        * .husky
+        * .git          * node_modules
+        * .husky        * slim_test
+
+      **Example scanning all files:**
+      `task lint:scripts`
+
+      **Example scanning specific file:**
+      `task lint:scripts -- myfile.sh`
+
+      For more information, see [Shellcheck's GitHub page](https://github.com/koalaman/shellcheck).
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} {{.CLI_ARGS}}
+        {{else}}
+          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.sh' -o -name '*.sh.j2' \) \
+          -print0 | xargs -0 -r -n1 {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}}
+        {{end}}
+
+  spelling:
+    deps:
+      - :install:npm:cspell
+    desc: Checks for spelling errors in staged files
+    summary: |
+      # Check for spelling errors in staged files
+
+      Use cspell to check for possible spelling errors using the configuration stored in `.config/cspell.json`.
+
+      This task is utilized by the pre-commit hook. For more information about cspell, see the
+      [cspell NPM page](https://www.npmjs.com/package/cspell).
+
+      **Example scanning all staged files:**
+      `task lint:spelling`
+
+      **Example scanning specific file:**
+      `task lint:spelling -- myfile.sh`
+
+      **Although this task only analyzes staged files, you can manually run cspell, for example, on all JavaScript
+      files by running:**
+      `npx cspell '**/*.js'`
+    cmds:
+      - task: spelling:{{if .CLI_ARGS}}cli{{else}}staged{{end}}
+
+  spelling:cli:
+    cmds:
+      - cmd: |
+          set -e
+          EXIT_CODE=0
+          {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}} || EXIT_CODE=$?
+          if [ "$EXIT_CODE" != '0' ]; then
+            .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
+          fi
+        ignore_errors: true
+
+  spelling:staged:
+    deps:
+      - :install:npm:cspell
+      - :install:software:git
+    cmds:
+      - cmd: |
+          STAGED_FILES="$(git diff --cached --name-only)"
+          if [ -n "$STAGED_FILES" ]; then
+            set -e
+            EXIT_CODE=0
+            # Must not quote $STAGED_FILES
+            {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} $STAGED_FILES || EXIT_CODE=$?
+            if [ "$EXIT_CODE" != '0' ]; then
+              .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
+            fi
+          fi
+        ignore_errors: true
+
+  toml:
+    deps:
+      - :install:python:requirements
+    desc: Lint TOML files
+    summary: |
+      # Lint TOML files
+
+      This task verifies the syntax of TOML documents using the `check-toml` module from the
+      Python `pre-commit-hook` library.
+
+      **Example scanning all '**/*.toml' files:**
+      `task lint:toml`
+
+      **Example scanning specific file:**
+      `task lint:toml -- myfile.toml`
+    cmds:
+      - |
+        {{.PYTHON_HANDLE}}check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  vagrant:
+    deps:
+      - :install:software:vagrant
+    desc: Validate the Vagrantfile
+    summary: |
+      # Validate the Vagrantfile
+
+      This task is an alias for `vagrant validate`. Vagrant's `validate` command
+      will ensure the Vagrantfile in the root of this repository has no errors and
+      is using valid syntax.
+
+      For more information on `vagrant validate`, see the [Vagrant website](https://www.vagrantup.com/docs/cli/validate).
+    cmds:
+      - vagrant validate
+
+  xml:
+    deps:
+      - :install:python:requirements
+    desc: Lint XML files
+    summary: |
+      # Lint XML files
+
+      This task verifies the syntax of XML documents using the `check-xml` module from
+      the Python `pre-commit-hook` library.
+
+      **Example scanning all '**/*.xml' files:**
+      `task lint:xml`
+
+      **Example scanning specific file:**
+      `task lint:xml -- myfile.xml`
+    cmds:
+      - |
+        {{.PYTHON_HANDLE}}check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  yaml:
+    deps:
+      - :install:python:requirements
+    desc: Lint .yml files using YAML Lint
+    summary: |
+      # Lint YML files using YAML Lint
+
+      YAML Lint is a general purpose linter tool that reports suggestions for `.yml`
+      files. It checks for syntax validity as well as cosmetic problems like line
+      lengths, trailing spaces, and indentation. The configuration file is in the root
+      of the repository in the file named `.yamllint`. The `.yamllint` file is shared
+      across all of our projects so if you need to make changes to get rid of warnings
+      it will generally make more sense to disable YAML Lint for a single line using the
+      [method described here](https://github.com/adrienverge/yamllint#features).
+
+      _NOTE: Disabling YAML Lint rules should only be done when absolutely necessary._
+
+      **Example scanning all '**/*.yml' files:**
+      `task lint:yaml`
+
+      **Example scanning specific file:**
+      `task lint:yaml -- myfile.sh`
+
+      For more information, see the [YAML Lint GitHub page](https://github.com/adrienverge/yamllint).
+    cmds:
+      - |
+        {{.PYTHON_HANDLE}}yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}

@@ -1,0 +1,44 @@
+---
+- name: 'Ensure {{ app_name }} is installed'
+  community.general.snap:
+    classic: true
+    name: android-studio
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Determine whether or not the latest version of commandline-tools is already installed
+  set_fact:
+    install_cmdlinetools: "{{ (ansible_local.cmdlinetools is not defined) or \
+      ((ansible_local.cmdlinetools is defined) and \
+      (ansible_local['cmdlinetools']['settings']['version'] != cmdline_tools_file_name | regex_replace('commandlinetools-linux-(\\d*).*', '\\1'))) }}"
+
+- get_url:
+    checksum: 'sha256:{{ cmdline_tools_checksum }}'
+    dest: '/tmp/{{ cmdline_tools_file_name }}'
+    url: 'https://dl.google.com/android/repository/{{ cmdline_tools_file_name }}'
+  when: install_cmdlinetools
+  name: Ensure commandline-tools archive is downloaded
+
+- name: Run generic Linux tasks
+  include_tasks: user-Linux.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: 'Save meta information about the version of {{ app_name }} that was installed'
+  community.general.ini_file:
+    backup: true
+    mode: 0644
+    no_extra_spaces: true
+    option: version
+    path: /etc/ansible/facts.d/cmdlinetools.fact
+    section: settings
+    value: "{{ cmdline_tools_file_name | regex_replace('commandlinetools-linux-(\\d*).*', '\\1') }}"
+  when: install_cmdlinetools

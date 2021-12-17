@@ -1,0 +1,90 @@
+---
+- name: 'Ensure {{ sdk_location }}/cmdline-tools directory exists'
+  become_user: '{{ user.username }}'
+  file:
+    mode: 0700
+    path: '{{ sdk_location }}/cmdline-tools'
+    state: directory
+  when: install_cmdlinetools
+
+- name: Ensure older version of cmdline-tools is removed
+  become_user: '{{ user.username }}'
+  file:
+    path: '{{ sdk_location }}/cmdline-tools/latest'
+    state: absent
+  when: install_cmdlinetools
+
+- name: Ensure commandline-tools is up-to-date
+  become_user: '{{ user.username }}'
+  unarchive:
+    dest: '{{ sdk_location }}/cmdline-tools'
+    remote_src: true
+    src: '/tmp/{{ cmdline_tools_file_name }}'
+  when: install_cmdlinetools
+
+- name: Rename commandline-tools directory after extraction
+  become_user: '{{ user.username }}'
+  command: 'mv {{ sdk_location }}/cmdline-tools/cmdline-tools {{ sdk_location }}/cmdline-tools/latest'
+  when: install_cmdlinetools
+
+- name: Fetch the list of available SDKs and Tools
+  become_user: '{{ user.username }}'
+  command: '{{ sdk_location }}/cmdline-tools/latest/bin/sdkmanager --list'
+  register: sdk_list
+  when: android_sdks | length == 0
+
+- name: Find the latest version of SDKs and Tools
+  become_user: '{{ user.username }}'
+  set_fact:
+    build_tools_version: ["{{ sdk_list.stdout_lines | regex_findall('build-tools;\\d*\\.\\d*\\.\\d* ') | last | trim }}"]
+    emulator_version: [emulator]
+    patcher_version: ["{{ sdk_list.stdout_lines | regex_findall('patcher;v\\d*') | last }}"]
+    platform_tools_version: [platform-tools]
+    platforms_version: ["{{ sdk_list.stdout_lines | regex_findall('platforms;android-\\d{2,}') | last }}"]
+    sources_version: ["{{ sdk_list.stdout_lines | regex_findall('sources;android-\\d*') | last }}"]
+  when: android_sdks | length == 0
+
+- name: Ensure SDKs and Tools are installed # noqa 301
+  become_user: '{{ user.username }}'
+  shell: |
+    set -o pipefail
+    echo 'y' | {{ sdk_location }}/cmdline-tools/latest/bin/sdkmanager --install "{{ item }}"
+  args:
+    executable: /bin/bash
+  loop: '{{ android_sdks +
+    build_tools_version | default([]) +
+    platforms_version | default([]) +
+    sources_version | default([]) +
+    patcher_version | default([]) +
+    emulator_version | default([]) +
+    platform_tools_version | default([]) }}'
+
+# @action Ensures configured Android SDKs are present
+# Updates `~/.bashrc` to include SDK tools in `PATH` on Linux systems
+- name: Ensure Tools are added to Bash PATH
+  become_user: '{{ user.username }}'
+  blockinfile:
+    block: |
+      export PATH="$PATH:{{ sdk_location }}/cmdline-tools/latest/bin"
+      export PATH="$PATH:{{ sdk_location }}/platform-tools"
+      export PATH="$PATH:{{ sdk_location }}/tools/bin"
+      export PATH="$PATH:{{ sdk_location }}/tools"
+    create: true
+    marker: '# {mark} ANSIBLE MANAGED BLOCK for Android Studio'
+    mode: 0644
+    path: ~/.bashrc
+
+# @action Ensures configured Android SDKs are present
+# Updates `~/.zshrc` to include SDK tools in `PATH` on Linux systems
+- name: Ensure Tools are added to ZSH PATH
+  become_user: '{{ user.username }}'
+  blockinfile:
+    block: |
+      export PATH="$PATH:{{ sdk_location }}/cmdline-tools/latest/bin"
+      export PATH="$PATH:{{ sdk_location }}/platform-tools"
+      export PATH="$PATH:{{ sdk_location }}/tools/bin"
+      export PATH="$PATH:{{ sdk_location }}/tools"
+    create: true
+    marker: '# {mark} ANSIBLE MANAGED BLOCK for Android Studio'
+    mode: 0644
+    path: ~/.zshrc

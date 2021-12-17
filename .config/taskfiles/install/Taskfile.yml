@@ -32,11 +32,9 @@ tasks:
     cmds:
       - |
         PKGS="$(yq eval '.tasks[].cmds[0].vars.NPM_PACKAGE' .config/taskfiles/install/Taskfile-npm.yml | tr '\n' ' ')"
-        for PKG in "$PKGS"; do
-          if ! type "$PKG" > /dev/null; then
+        for PKG in $PKGS; do
+          if [ -f "$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*//')/$PKG" ]; then
             LIST="$LIST $PKG"
-          else
-            .config/log info "$PKG is already installed"
           fi
         done
         .config/log info "Installing the following NPM packages globally - $LIST"

@@ -144,13 +144,17 @@ tasks:
       - git init -q
       - |
         for ROLE_RELATIVE_PATH in roles/*/*; do
-          ROLE_FOLDER="$(basename $ROLE_RELATIVE_PATH)"
-          ROLE_HTTPS_REPO="$(jq -r '.blueprint.repository.gitlab' $ROLE_RELATIVE_PATH/package.json)"
-          ROLE_SSH_REPO="$(echo $ROLE_HTTPS_REPO | sed 's/https:\/\/gitlab.com\//git@gitlab.com:/' | sed 's/$/.git/')"
-          if git config "remote.${ROLE_FOLDER}.url" > /dev/null; then
-            git remote set-url "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+          if [ -f "${ROLE_RELATIVE_PATH}/package.json" ]; then
+            ROLE_FOLDER="$(basename $ROLE_RELATIVE_PATH)"
+            ROLE_HTTPS_REPO="$(jq -r '.blueprint.repository.gitlab' $ROLE_RELATIVE_PATH/package.json)"
+            ROLE_SSH_REPO="$(echo $ROLE_HTTPS_REPO | sed 's/https:\/\/gitlab.com\//git@gitlab.com:/' | sed 's/$/.git/')"
+            if git config "remote.${ROLE_FOLDER}.url" > /dev/null; then
+              git remote set-url "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            else
+              git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            fi
           else
-            git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            .config/log warn "${ROLE_RELATIVE_PATH}/package.json is missing!"
           fi
         done
-        .config/log success 'Added git remotes for all the roles in the ./roles folder'
+        .config/log success 'Finished adding git remotes for the roles in the ./roles folder'

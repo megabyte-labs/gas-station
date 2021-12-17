@@ -7,5 +7,12 @@ This project incorporates design patterns from the [Megabyte Labs](https://megab
 3. Be prepared by implementing development features before they are necessary (within reason)
 4. Maximize developer efficiency
 5. Improve developer onboarding by providing the tools necessary to adhere to the design patterns of the ecosystem with minimal oversight
+6. Serve and provide an example of a bleeding-edge, production-ready full-stack development platform
 
-## Automation
+## Language Support
+
+There are currently boilerplates and templates written in the following languages:
+
+* TypeScript (primary language)
+* Python
+* Go

@@ -50,31 +50,22 @@ tasks:
       - copy:project:subtype
 
   copy:common:
-    env:
-      PATH:
-        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
-      - cp -rT ./{{.SHARED_FOLDER}}/common/ .
+      - cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} ./{{.SHARED_FOLDER}}/common/ .
       - task: :common:husky:permissions
 
   copy:project:
-    env:
-      PATH:
-        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
-      - cp -rT ./{{.SHARED_FOLDER}}/common ./{{.COMMON_FOLDER}}
+      - cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} ./{{.SHARED_FOLDER}}/common{{if eq OS "darwin"}}/{{end}} ./{{.COMMON_FOLDER}}
       - if [ ! -d project ]; then mkdir project; fi
-      - cp -rT project ./{{.COMMON_FOLDER}}
+      - cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} project{{if eq OS "darwin"}}/{{end}} ./{{.COMMON_FOLDER}}
 
   copy:project:subtype:
-    env:
-      PATH:
-        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - |
         for FOLDER in project-*/; do
           SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
-          cp -rT "$FOLDER" "./{{.COMMON_FOLDER}}-$SUBTYPE"
+          cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} "$FOLDER{{if eq OS "darwin"}}/{{end}}" "./{{.COMMON_FOLDER}}-$SUBTYPE"
         done
 
   merge:

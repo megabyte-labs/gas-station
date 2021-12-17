@@ -7,9 +7,6 @@ vars:
 
 tasks:
   boilerplate:
-    env:
-      PATH:
-        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - |
         if [ "$(jq -r '.blueprint.boilerplate' package.json)" == 'true' ]; then
@@ -26,7 +23,7 @@ tasks:
         GREP="$(echo $GREP | sed 's/\\|$//')"
         if ! ls -la | grep "$GREP" &> /dev/null; then
           .config/log info "Adding boilerplate code since there are no overlapping files"
-          cp -rT .boilerplate .
+          cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} .boilerplate{{if eq OS "darwin"}}/{{end}} .
           .config/log success "Scaffolded the project with boilerplate code!"
         fi
       - rm -rf .boilerplate
@@ -42,12 +39,9 @@ tasks:
       - rm -rf ./{{.SHARED_FOLDER}}/.git
 
   copy:
-    env:
-      PATH:
-        sh: "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
-      - cp -rT {{.SHARED_FOLDER}}/_generated_/common .
-      - cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
+      - cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} {{.SHARED_FOLDER}}/_generated_/common{{if eq OS "darwin"}}/{{end}} .
+      - cp {{if eq OS "darwin"}}-rf{{else}}-rT{{end}} {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}}{{if eq OS "darwin"}}/{{end}} .
       - task: :common:husky:permissions
       - task: save:common:keywords
 

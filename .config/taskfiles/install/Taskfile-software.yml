@@ -31,17 +31,14 @@ tasks:
     cmds:
       - |
         if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
-          .config/log info "Homebrew is already installed"
           eval "$(~/.local/homebrew/bin/brew shellenv)"
         elif ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
           eval "$(~/.local/homebrew/bin/brew shellenv)"
-          .config/log info "Updating Homebrew"
           brew update --force --quiet
           chmod -R go-w "$(brew --prefix)/share/zsh"
-          .config/log success "Successfully installed Homebrew"
         fi
 
   brew:formulae:
@@ -99,26 +96,6 @@ tasks:
       - task: common:{{OS}}
 
   common:darwin:
-    cmds:
-      - task: common:darwin:xcode
-      - task: common:darwin:utils
-
-  common:darwin:utils:
-    deps:
-      - brew
-    cmds:
-      - .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
-      - brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
-      - .config/log success "Successfully installed GNU-compatibility tools"
-    status:
-      - type gcp > /dev/null
-      - type gfind > /dev/null
-      - type gsed > /dev/null
-      - type ggrep > /dev/null
-      - type gtar > /dev/null
-      - type ggawk > /dev/null
-
-  common:darwin:xcode:
     interactive: true
     cmds:
       - xcode-select --install

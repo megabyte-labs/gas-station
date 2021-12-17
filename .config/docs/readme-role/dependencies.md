@@ -7,7 +7,13 @@ if type poetry &> /dev/null; then poetry install --no-root; else pip3 install -r
 ansible-galaxy install -r requirements.yml
 ```
 
-Alternatively, you can simply run `bash .config/scripts/start.sh` if you are new to Ansible and do not mind the development requirements also being installed.
+Alternatively, you can simply run `bash .config/scripts/start.sh` if you are new to Ansible and do not mind the development requirements also being installed. This is the easy way of making sure that everything works properly.
+
+### Python
+
+Although the only tool necessary to run this play on a standard machine is Ansible (a Python package), we include several other Python dependencies that are required for specialized use cases and development. The table below details these packages:
+
+{{ python_role_dependencies }}
 
 ### Galaxy Roles
 

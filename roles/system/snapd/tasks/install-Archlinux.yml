@@ -1,0 +1,68 @@
+---
+- name: Ensure that the dependencies are installed
+  community.general.pacman:
+    name: '{{ pkg_dependencies }}'
+    update_cache: true
+    state: present
+
+- name: Check if snapd is installed
+  stat:
+    path: /var/lib/snapd/snap
+  register: snap_stat
+
+- name: Install snapd if not already installed
+  block:
+    - name: Ensure to create a temporary directory for snapd source files
+      file:
+        path: '{{ temp_directory }}'
+        state: directory
+        mode: '0770'
+
+    - name: Ensure that snapd repo is cloned # noqa 401
+      become: false
+      git:
+        repo: '{{ snapd_aur_repo_url }}'
+        dest: '{{ temp_directory }}'
+        clone: true
+
+    # @action Ensures Snap is installed
+    # Builds Snap from source on Archlinux
+    - name: Ensure snapd is installed
+      become: false
+      command: makepkg -sic --noconfirm
+      args:
+        chdir: '{{ temp_directory }}'
+        creates: /var/lib/snapd/snap
+
+    - name: Enable and start the snapd systemd unit
+      systemd:
+        name: snapd.socket
+        state: started
+        enabled: true
+
+    - name: Create a link to enable classic snap support
+      file:
+        src: /var/lib/snapd/snap
+        dest: /snap
+        state: link
+
+    - name: Restart systemd-udevd
+      ansible.builtin.systemd:
+        name: systemd-udevd
+        state: restarted
+
+    - name: Restart snapd.seeded.service
+      ansible.builtin.systemd:
+        name: snapd.seeded.service
+        state: restarted
+
+    - name: Ensure snap core is installed
+      community.general.snap:
+        name: core
+        state: present
+  when: not snap_stat.stat.exists
+  always:
+    - name: Ensure to remove the temporary directory created for snapd source files
+      file:
+        path: '{{ temp_directory }}'
+        state: absent

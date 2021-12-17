@@ -1,0 +1,29 @@
+---
+- name: Ensure snapd is installed
+  apt:
+    name: snapd
+    state: present
+    update_cache: true
+  register: snapd
+
+- name: Ensure snap dependencies are installed
+  apt:
+    name: '{{ snap_dependencies }}'
+    state: present
+
+- name: Ensure snap is started and enabled on boot
+  ansible.builtin.systemd:
+    enabled: true
+    name: snapd
+    state: started
+
+- name: Reload udev # noqa 503
+  ansible.builtin.service:
+    name: udev
+    state: restarted
+  when: snapd.changed
+
+- name: Ensure snap core is installed
+  community.general.snap:
+    name: core
+    state: present

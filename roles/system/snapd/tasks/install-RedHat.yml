@@ -1,0 +1,41 @@
+---
+- name: Ensure snapd is present
+  yum:
+    name: snapd
+    state: present
+    enablerepo: epel
+  register: snapd
+
+- name: Ensure snap dependencies are installed
+  yum:
+    name: '{{ snap_dependencies }}'
+    state: present
+
+- name: Enable and start the snapd systemd unit
+  systemd:
+    name: snapd.socket
+    state: started
+    enabled: true
+
+- name: Create a link to enable classic snap support
+  file:
+    src: /var/lib/snapd/snap
+    dest: /snap
+    state: link
+
+- name: Restart systemd-udevd # noqa 503
+  ansible.builtin.systemd:
+    name: systemd-udevd
+    state: restarted
+  when: snapd.changed
+
+- name: Restart snapd.seeded.service # noqa 503
+  ansible.builtin.systemd:
+    name: snapd.seeded.service
+    state: restarted
+  when: snapd.changed
+
+- name: Ensure snap core is installed
+  community.general.snap:
+    name: core
+    state: present

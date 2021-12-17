@@ -1,0 +1,66 @@
+---
+- name: Include variables based on the operating system
+  include_vars: '{{ ansible_os_family }}.yml'
+  when: ansible_os_family != 'Windows'
+
+# @action Ensures Homebrew is installed
+# Checks to make sure Homebrew is not already installed
+- name: Register Homebrew bin path information
+  stat:
+    path: '{{ homebrew_bin_path }}'
+  register: brew_bin
+  when: ansible_os_family != 'Windows'
+
+# @action Ensures Homebrew is installed
+# Installs Homebrew on macOS and Linux
+- name: Install Homebrew
+  become: true
+  block:
+    - include_tasks: 'install-{{ ansible_os_family }}.yml'
+  when:
+    - ansible_os_family != 'Windows'
+    - not brew_bin.stat.exists
+
+# @action Ensures Homebrew is installed
+# Ensures the `.bashrc` file correctly adds Homebrew to the `PATH` variable
+- name: Ensure .bashrc includes Homebrew (Linux) # Revisit: Add the equivalent to Mac OS X and Windows
+  include_tasks: bashrc-Linux.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: ansible_system == 'Linux'
+
+# @action Installs Homebrew packages
+# Installs a configurable list of Homebrew packages (via the `homebrew_packages` variable)
+- name: Ensure Homebrew packages are installed and up-to-date
+  community.general.homebrew:
+    name: '{{ package.name }}'
+    path: '{{ homebrew_bin_path }}'
+    state: present
+    update_homebrew: true
+    upgrade_all: true
+  loop: '{{ homebrew_packages | default([]) }}'
+  loop_control:
+    label: '{{ package.name }}'
+    loop_var: package
+  when:
+    - package.when | default(true)
+    - ansible_os_family != 'Windows'
+
+# @action Installs Homebrew packages
+# Installs a configurable list of Homebrew casks on macOS (via the `homebrew_casks` variable)
+- name: Ensure Homebrew casks are installed and up-to-date
+  community.general.homebrew_cask:
+    name: '{{ package.name }}'
+    path: '{{ homebrew_bin_path }}'
+    state: present
+    update_homebrew: true
+    upgrade_all: true
+  loop: '{{ homebrew_casks | default([]) }}'
+  loop_control:
+    label: '{{ package.name }}'
+    loop_var: package
+  when:
+    - package.when | default(true)
+    - ansible_os_family == 'Darwin'

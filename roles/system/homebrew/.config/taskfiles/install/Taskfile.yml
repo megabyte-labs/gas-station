@@ -1,0 +1,115 @@
+---
+version: '3'
+
+tasks:
+  install-doctor:
+    cmds:
+      - |
+        if ! type {{.SOFTWARE}} &> /dev/null; then
+          .config/log info 'Using https://install.doctor to install `{{.SOFTWARE}}`'
+          curl -sS https://install.doctor/{{.SOFTWARE}} | bash
+        fi
+    status:
+      - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  modules:global:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+    run: once
+    cmds:
+      - task: :install:npm:commitizen
+      - task: :install:npm:commitlint
+      - task: :install:npm:cz-emoji
+      - task: :install:npm:cspell
+      - task: :install:npm:eslint
+      - task: :install:npm:git-notify
+      - task: :install:npm:liquidjs
+      - task: :install:npm:husky
+      - task: :install:npm:lint-staged
+      - task: :install:npm:prettier
+      - task: :install:npm:readme
+      - task: :install:npm:remark
+      - task: :install:npm:shellcheck
+      - task: :install:npm:standard-version
+      - task: :install:npm:yarnhook
+    status:
+      - '[[ "${container:=}" == "docker" ]]'
+
+  modules:local:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM_LOCAL}}
+      - :install:npm:cz-emoji
+    run: once
+    cmds:
+      - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
+        ignore_error: true
+      - task: modules:local:sync
+    sources:
+      - package.json
+
+  modules:local:sync:
+    cmds:
+      - |
+        PACKAGE_LIST=""
+        REFRESH_PACKAGES="false"
+        function updateAvailable() {
+          LATEST="$(npm view $1 version)"
+          LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
+          COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
+          if [ "$COMPARE" == '-1' ]; then
+            .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
+            REFRESH_PACKAGES="true"
+          fi
+        }
+        chmod +x .config/log
+        chmod +x .config/scripts/lib/semver-compare.sh
+        for PATTERN in {{.NPM_KEEP_UPDATED}}; do
+          find ./node_modules/$PATTERN -maxdepth 0 | while read PATHH; do
+            if [ -f "$PATHH/package.json" ]; then
+              PKG="$(echo $PATHH | sed 's/.\/node_modules\///')"
+              PACKAGE_LIST="$PACKAGE_LIST ${PKG}@latest"
+              updateAvailable "$PKG" &
+            fi
+          done
+        done
+        wait
+        if [ "$REFRESH_PACKAGES" == 'true' ]; then
+          .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
+          {{.NPM_PROGRAM_LOCAL}} update "$PACKAGE_LIST"
+        else
+          .config/log info "NPM packages configured to sync with latest version are all up-to-date"
+        fi
+
+  modules:prompt:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+    run: once
+    cmds:
+      - npm install chalk inquirer signale
+    sources:
+      - .config/scripts/prompts/**
+
+  tslib:
+    env:
+      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
+        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
+        install tslib.
+    run: once
+    cmds:
+      - |
+        if [ -f 'tsconfig.json' ]; then
+          if [ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]; then
+            if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
+              .config/log info '{{.TSLIB_MSG}}'
+            else
+              .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
+              {{.NPM_PROGRAM}} install --save tslib@latest
+              .config/log success 'Successfully installed `tslib`'
+            fi
+          else
+            task install:modules:local:sync:package -- "tslib"
+          fi
+        fi
+    sources:
+      - package.json
+      - tsconfig.json

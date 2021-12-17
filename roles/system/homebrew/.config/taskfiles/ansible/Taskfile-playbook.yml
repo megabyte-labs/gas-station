@@ -1,0 +1,123 @@
+---
+version: '3'
+
+tasks:
+  docs:
+    deps:
+      - :install:npm:leasot
+    summary: |
+      ```shell
+      # @description Processes leasot data and returns .variables.json data including charts written in @appnest/readme format
+      #
+      # @arg $1 The file that the leasot JSON was written to
+      # @arg $2 The tag being processed
+      function populateChartVar() {
+        ...
+      }
+      ```
+    vars:
+      DOC_IDS: '@binary,@brew,@cask,@chrome,@gem,@helm,@hostapp,@htpc,@npm,@pypi,@vscode'
+    cmds:
+      - |
+        function populateChartVar() {
+          CHART='[["Package", "Description"],'
+          jq --arg tag "$(echo $2 | tr '[a-z]' '[A-Z]')" -r '.[] | select(.tag == $tag) | .
+          | del(. ["file", "ref", "line", "tag"]) | .text' "$1" | while read COMMENT; do
+            if [ "$CHART" != '[' ]; then
+              CHART="${CHART},"
+            fi
+            LINK="$(echo $COMMENT | sed 's/ - .*//')"
+            DESCRIPTION="$(echo $COMMENT | sed 's/.* - //')"
+            CHART="${CHART}[\"**$LINK\**",\"$DESCRIPTION\"]"
+          done
+          CHART="${CHART}]"
+          TMP="$(mktemp)"
+          jq --arg chart "$CHART" --arg key "${2}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP"
+          mv "$TMP" .variables.json
+        }
+        TMP="$(mktemp)"
+        leasot --tags '{{.DOC_IDS}}' --reporter json './environments/prod/group_vars/**/*.yml' > "$TMP"
+        VARIABLES_JSON="$(jq '.' .variables.json)"
+        for ID in {{replace "," " " .DOC_IDS}}; do
+          populateChartVar "$TMP" "$ID"
+        done
+
+  environment:
+    # @desc_when [ansible/Taskfile-playbook.yml] ansible/playbook
+    desc: Prompts for which environment to use and then symlinks to it
+    summary: |
+      # Switch environments using an interactive dialogue
+
+      Ansible does not really provide any great ways to switch between environments (or sets of
+      `host_vars/`, `group_vars/` etc.). If you place all the files and folders you wish to constitute
+      as an environment inside a folder named as the name of the environment then you can use
+      this task to handle the symlinking and switching between environments.
+
+      **Example of opening the interactive prompt:**
+      `task ansible:environment`
+
+      **You can directly switch enironments to `environments/prod/` by running:**
+      `task ansible:environment -- prod`
+    cmds:
+      - task: environment:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}
+
+  environment:cli:
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          for ITEM in environments/{{.CLI_ARGS}}/*; do
+            if [ -d "$ITEM" ] || [ -f "$ITEM" ]; then
+              .config/log info "Skipping environments/{{.CLI_ARGS}}/$ITEM because it already exists as a file/folder in the root of the project."
+            else
+              rm -f $ITEM
+              ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
+            fi
+          done
+        {{end}}
+
+  environment:prompt:
+    deps:
+      - :install:modules:local
+    interactive: true
+    cmds:
+      - |
+        ENVIRONMENT="$(node .config/scripts/prompts/environment.js)"
+        if [ ! -z "$ENVIRONMENT" ]; then
+          for ITEM in "environments/$ENVIRONMENT/*"; do
+            if [ -d "$ITEM" ] || [ -f "$ITEM" ]; then
+              .config/log info 'Skipping `environments/'"$ENVIRONMENT/$ITEM"'` because it already exists as a file/folder in the root of the project.'
+            else
+              rm -f $ITEM
+              ln -s "./environments/$ENVIRONMENT/$ITEM" "$ITEM"
+            fi
+          done
+        fi
+    status:
+      - '[[ -z "{{.CLI_ARGS}}" ]]'
+
+    preconditions:
+      - sh: test -d node_modules
+        msg: This task has dependencies in the `node_modules` folder which is missing.
+
+  find-missing:
+    # @desc_when [ansible/Taskfile-playbook.yml] ansible/playbook
+    desc: Find roles that are missing files
+    summary: |
+      # Find roles that are missing any given file
+
+      This task scans through all the folders in the roles/ directory and checks
+      for the presence of a file that you pass in through the CLI.
+
+      **Example usage:**
+      `task find-missing -- logo.png`
+
+      The example above will look through all the folders two levels deep (e.g. `./roles/tools/nmap`,
+      `./roles/system/snapd`) in the roles folder and display any roles that are missing the file.
+    cmds:
+      - |
+        FILES=$(find ./roles -mindepth 2 -maxdepth 2 -type d '!' -exec test -e "{}/{{.CLI_ARGS}}" ';' -print)
+        .config/log info 'Found '"$(echo "$FILES" | wc -l | xargs)"' roles missing {{.CLI_ARGS}}'
+        echo "$FILES"
+    preconditions:
+      - sh: test -d roles
+        msg: The `roles/` folder is missing. Is the project set up right?

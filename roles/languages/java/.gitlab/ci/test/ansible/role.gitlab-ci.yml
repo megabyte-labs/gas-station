@@ -1,0 +1,43 @@
+---
+test:molecule:linux:
+  stage: test
+  image:
+    name: megabytelabs/molecule:slim
+    entrypoint: ['']
+  services:
+    - docker:20.10.7-dind
+  parallel:
+    matrix:
+      - OPERATING_SYSTEM: archlinux
+      - OPERATING_SYSTEM: centos
+      - OPERATING_SYSTEM: debian
+      - OPERATING_SYSTEM: fedora
+      - OPERATING_SYSTEM: ubuntu
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_COMMIT_TITLE =~ /^(automation|chore).*/
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'test/linux'
+    - if: $CI_PIPELINE_SOURCE == 'schedule' || $CI_PIPELINE_SOURCE == 'web'
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master'
+      changes:
+        - '{defaults,files,handlers,meta,molecule,tasks,templates,vars}/**'
+        - ansible.cfg
+        - poetry.lock
+        - pyproject.toml
+        - requirements.yml
+  variables:
+    DOCKER_CERT_PATH: $DOCKER_TLS_CERTDIR/client
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_TLS_VERIFY: 1
+    GIT_DEPTH: 1
+  script:
+    - SCENARIO="linux"
+    - SNAP_REFERENCES="$(grep -Ril 'community.general.snap:' ./tasks)"
+    - if [ "$SNAP_REFERENCES" ]; then SCENARIO="snap"; fi
+    - echo "***Molecule Scenario*** ---> $SCENARIO"
+    - MOLECULE_GROUP="$SCENARIO" molecule test -s docker

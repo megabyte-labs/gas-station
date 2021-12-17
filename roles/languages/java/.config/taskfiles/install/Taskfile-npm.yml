@@ -1,0 +1,348 @@
+---
+version: '3'
+
+tasks:
+  autocannon:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: autocannon
+
+  clinic:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: clinic
+
+  codecov:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: codecov
+
+  commitizen:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          FORCE_INSTALL: true
+          NPM_PACKAGE: commitizen
+          NPM_PACKAGE_BIN: git-cz
+
+  commitlint:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: '@commitlint/cli'
+          NPM_PACKAGE_BIN: commitlint
+
+  cspell:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: cspell
+
+  cz-emoji:
+    run: once
+    cmds:
+      - task: global:library
+        vars:
+          NPM_PACKAGE: cz-emoji
+
+  depcheck:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: depcheck
+
+  esbuild:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: esbuild
+
+  eslint:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: eslint
+
+  esprint:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: esprint
+
+  git-notify:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: git-notify
+
+  global:
+    deps:
+      - global:package-manager
+    vars:
+      PACKAGE_BIN: '{{if index . "NPM_PACKAGE_BIN"}}{{.NPM_PACKAGE_BIN}}{{else}}{{.NPM_PACKAGE}}{{end}}'
+    run: when_changed
+    cmds:
+      - |
+        if ! type {{.PACKAGE_BIN}} > /dev/null; then
+          . .config/log info 'Installing _NPM CLI_ package `{{.NPM_PACKAGE}}` globally'
+          {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}
+        fi
+    status:
+      - type {{.PACKAGE_BIN}} > /dev/null
+
+  global:library:
+    env:
+      PACKAGE_EXISTS:
+        sh: |
+          PACKAGE_PATH="$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*$//')/{{.NPM_PACKAGE}}/package.json"
+          if [ -f "$PACKAGE_PATH" ]; then
+            echo 'true'
+          else
+            echo 'false'
+          fi
+    run: once
+    cmds:
+      - |
+        if [ "$PACKAGE_EXISTS" == 'false' ]; then
+          . .config/log info "Installing _NPM library_ package `{{.NPM_PACKAGE}}` globally"
+          {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}
+        fi
+    status:
+      - '[ "$PACKAGE_EXISTS" == "true" ]'
+
+  global:package-manager:
+    deps:
+      - :install:software:node
+    run: once
+    cmds:
+      - |
+        if ! type {{.NPM_PROGRAM}}; then
+          npm install -g {{.NPM_PROGRAM}}
+        fi
+    status:
+      - type {{.NPM_PROGRAM}} > /dev/null
+
+  husky:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: husky
+
+  jest:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: jest
+
+  leasot:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: leasot
+
+  lint-staged:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: lint-staged
+
+  liquidjs:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: liquidjs
+
+  majestic:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: majestic
+
+  markdown-link-check:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: markdown-link-check
+
+  ndb:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: ndb
+
+  nest:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: '@nestjs/cli'
+          NPM_PACKAGE_BIN: nest
+
+  nodemon:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: nodemon
+
+  npm:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: npm
+
+  ntl:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: ntl
+
+  only-allow:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: only-allow
+
+  open-cli:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: open-cli
+
+  pkg:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: pkg
+
+  pnpm:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: pnpm
+      - pnpm import
+    status:
+      - type pnpm &> /dev/null
+
+  prettier:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: prettier
+
+  readme:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: '@appnest/readme'
+          NPM_PACKAGE_BIN: readme
+
+  remark:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: remark-cli
+          NPM_PACKAGE_BIN: remark
+
+  sharp:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: sharp-cli
+          NPM_PACKAGE_BIN: sharp
+
+  shellcheck:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: shellcheck
+
+  snyk:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: snyk
+
+  standard:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: standard
+
+  standard-version:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: standard-version
+
+  tinypng:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: tinypng-cli
+          NPM_PACKAGE_BIN: tinypng
+
+  ts-node:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: ts-node
+
+  typedoc:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: typedoc
+
+  typesync:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: typesync
+
+  yarnhook:
+    run: once
+    cmds:
+      - task: global
+        vars:
+          NPM_PACKAGE: yarnhook

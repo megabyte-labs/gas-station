@@ -102,6 +102,26 @@ tasks:
     sources:
       - .config/scripts/prompts/**
 
+  pipx:global:
+    deps:
+      - :install:software:pipx
+      - :install:software:yq
+    vars:
+      PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
+        mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
+        proselint python-vagrant pywinrm
+    cmds:
+      - |
+        for PKG of {{.PIPX_PACKAGES}}; do
+          if ! type "$PKG" > /dev/null; then
+            .config/log info "Ensuring $PKG is installed"
+            pipx install "$PKG" &
+          else
+            .config/log info "$PKG is already installed"
+          fi
+        done
+        wait
+        .config/log success 'Successfully preloaded commonly used Python packages'
   tslib:
     env:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
@@ -126,24 +146,3 @@ tasks:
     sources:
       - package.json
       - tsconfig.json
-
-  pipx:global:
-    deps:
-      - :install:software:pipx
-      - :install:software:yq
-    vars:
-      PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
-        mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
-        proselint python-vagrant pywinrm
-    cmds:
-      - |
-        for PKG of {{.PIPX_PACKAGES}}; do
-          if ! type "$PKG" > /dev/null; then
-            .config/log info "Ensuring $PKG is installed"
-            pipx install "$PKG" &
-          else
-            .config/log info "$PKG is already installed"
-          fi
-        done
-        wait
-        .config/log success 'Successfully preloaded commonly used Python packages'

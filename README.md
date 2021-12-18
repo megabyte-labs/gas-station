@@ -617,17 +617,17 @@ The available Helm charts that this playbook completely handles the set up for a
 
 | Package                                                                                                | Description                                                                                                                        |
 | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **[HashiCorp Consul](https://artifacthub.io/packages/helm/hashicorp/consul)**                          | Description                                                                                                                        |
 | **[Grafana](https://artifacthub.io/packages/helm/grafana/grafana)**                                    | Description                                                                                                                        |
 | **[GitLab Runner](https://artifacthub.io/packages/helm/gitlab/gitlab-runner)**                         | Deploys an instance of GitLab runner to a Kubernetes cluster. GitLab runner allows you to attach computers to GitLab CI workflows. |
+| **[HashiCorp Consul](https://artifacthub.io/packages/helm/hashicorp/consul)**                          | Description                                                                                                                        |
+| **[HashiCorp Vault](https://artifacthub.io/packages/helm/hashicorp/vault)**                            | Description                                                                                                                        |
+| **[HashiCorp Waypoint](https://artifacthub.io/packages/helm/hashicorp/waypoint)**                      | Description                                                                                                                        |
 | **[Kubernetes Dashboard](https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard)**    | Description                                                                                                                        |
 | **[Minio](https://artifacthub.io/packages/helm/bitnami/minio)**                                        | Description                                                                                                                        |
 | **[Nexus Repository Manager](https://artifacthub.io/packages/helm/sonatype/nexus-repository-manager)** | Description                                                                                                                        |
 | **[Rancher](https://artifacthub.io/packages/helm/rancher-stable/rancher)**                             | Description                                                                                                                        |
 | **[UniFi](https://artifacthub.io/packages/helm/k8s-at-home/unifi)**                                    | Description                                                                                                                        |
-| **[Vault](https://artifacthub.io/packages/helm/hashicorp/vault)**                                      | Description                                                                                                                        |
 | **[Velero](https://artifacthub.io/packages/helm/vmware-tanzu/velero)**                                 | Description                                                                                                                        |
-| **[Waypoint](https://artifacthub.io/packages/helm/hashicorp/waypoint)**                                | Description                                                                                                                        |
 
 ### Host Applications
 

@@ -4,7 +4,7 @@ import inquirer from 'inquirer'
 import * as fs from 'node:fs'
 import signale from 'signale'
 import { decorateFiles } from './lib/decorate-files.js'
-import { logInstructions, LOG_DECORATOR_REGEX } from './lib/log.js'
+import { logInstructions } from './lib/log.js'
 
 const fatalErrorMessage = 'The logger encountered a fatal error!'
 
@@ -55,13 +55,7 @@ async function promptForEnvironment() {
       type: 'list'
     }
   ])
-
-  const DECORATION_LENGTH = 2
-
-  const environment = response.environment
-    .replace(LOG_DECORATOR_REGEX, '')
-    .slice(DECORATION_LENGTH)
-
+  const environment = response.environment.replace('◼ ', '')
   // eslint-disable-next-line sonarjs/cognitive-complexity
   const elements = fs.readdirSync(`environments/${environment}/`).map((element) => {
     return new Promise((resolve) => {

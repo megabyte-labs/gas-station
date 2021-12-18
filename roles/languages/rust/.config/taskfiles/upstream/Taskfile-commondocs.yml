@@ -1,0 +1,32 @@
+---
+version: '3'
+
+vars:
+  COMMON_FILES_URL: https://gitlab.com/megabyte-labs/common/shared.git
+  COMMON_FOLDER: .common
+
+tasks:
+  clean: rm -rf {{.COMMON_FOLDER}}
+
+  clone:
+    cmds:
+      - rm -rf {{.COMMON_FOLDER}}
+      - git clone --depth=1 {{.COMMON_FILES_URL}} {{.COMMON_FOLDER}}
+      - rm -rf {{.COMMON_FOLDER}}/.git
+
+  copy:
+    env:
+      PATH:
+        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+    cmds:
+      - cp -rT ./{{.COMMON_FOLDER}}/common/ .
+      - task: :common:husky:permissions
+      - mv {{.COMMON_FOLDER}}/.gitlab-ci.yml .gitlab-ci.yml
+
+  template:
+    cmds:
+      - task: :upstream:variables
+        vars:
+          INPUT_FILE: common.json
+          OUTPUT_FILE: ./.variables.json
+      - task: :upstream:template

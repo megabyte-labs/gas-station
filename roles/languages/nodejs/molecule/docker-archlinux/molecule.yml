@@ -2,20 +2,19 @@
 dependency:
   name: galaxy
   options:
-    role-file: requirements.yml
     requirements-file: requirements.yml
+    role-file: requirements.yml
 driver:
   name: docker
 platforms:
-  - name: Archlinux-Latest
+  - command: /sbin/init
     image: megabytelabs/ansible-molecule-archlinux:latest
-    command: /sbin/init
+    name: Archlinux-Latest
+    pre_build_image: true
+    privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    pre_build_image: true
 provisioner:
-  name: ansible
   connection_options:
     ansible_connection: docker
     ansible_password: ansible
@@ -24,17 +23,12 @@ provisioner:
     group_vars:
       all:
         docker_molecule_test: true
+  name: ansible
   options:
     vvv: true
   playbooks:
     converge: converge.yml
-verifier:
-  name: ansible
 scenario:
-  create_sequence:
-    - dependency
-    - create
-    - prepare
   check_sequence:
     - dependency
     - cleanup
@@ -49,6 +43,10 @@ scenario:
     - create
     - prepare
     - converge
+  create_sequence:
+    - dependency
+    - create
+    - prepare
   destroy_sequence:
     - dependency
     - cleanup
@@ -67,3 +65,5 @@ scenario:
     - verify
     - cleanup
     - destroy
+verifier:
+  name: ansible

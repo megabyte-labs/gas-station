@@ -10,7 +10,17 @@ if [[ -d "$PWD/roles" ]]; then
     cp ~/gas-station/roles/applications/androidstudio/Taskfile.yml .
     rm -rf .config
     cp -rf ~/testy .config
-    yq e '.dependencies' meta/main.yml >> ~/gas-station/total
+        TMP="$(mktemp)"
+    DIRRR="$(basename $PWD)"
+    GITHUBY="https://github.com/ProfessorManhattan/ansible-$DIRRR"
+    GITLABY="https://gitlab.com/megabyte-labs/ansible-roles/$DIRRR"
+		jq --arg dirrr "$DIRRR" --arg githuby "$GITHUBY" --arg gitlaby "$GITLABY" '.type = "module" | .blueprint.group = "ansible" | .blueprint.subgroup = "role" | .blueprint.slug = $dirrr | .blueprint.repository.github = $githuby | .blueprint.repository.gitlab = $gitlaby' package.json > "$TMP"
+		mv "$TMP" package.json
+		yq e -i '.galaxy_info.namespace = "professormanhattan"' meta/main.yml
+    yq e -i '.galaxy_info.min_ansible_version = 2.10' meta/main.yml
+    yq e -i '.galaxy_info.license = "license (MIT)"' meta/main.yml
+    yq e -i '.galaxy_info.company = "Megabyte Labs"' meta/main.yml
+    yq e -i '.galaxy_info.author = "ProfessorManhattan"' meta/main.yml
 	done
 else
 	echo "ERROR: This script should be run from the root of the repository where the roles directory resides."

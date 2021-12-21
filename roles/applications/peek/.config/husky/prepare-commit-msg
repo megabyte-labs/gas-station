@@ -9,16 +9,10 @@
 if [ -f "$(dirname "$0")/_/husky.sh" ]; then
   . "$(dirname "$0")/_/husky.sh"
   chmod +x .config/log
-  if ! ps -o args= $PPID | grep -E -q ' -n | -n$'; then
-    if [ "$2" != 'merge' ]; then
-      if ps -o args= $PPID | grep -E -q ' --no-verify' ; then
-        .config/log info 'This git hook is configured to run even when --no-verify is used. In order to bypass this prompt, use the -n flag instead.'
-      fi
-      .config/log info 'Opening a `git commit` dialog'
-      exec < /dev/tty && pnpx git-cz --hook || true
-    fi
-  else
-    .config/log warn 'Bypassing `prepare-commit-msg` git hook because the -n flag was present'
+  if [ "$2" != 'merge' ]; then
+    .config/log info 'This git hook is configured to run even when --no-verify is used. In order to bypass this prompt, use the -n flag instead.'
+    .config/log info 'Opening a `git commit` dialog'
+    exec < /dev/tty && pnpx git-cz --hook || true
   fi
 else
   .config/log warn 'Husky pre-commit hooks are currently not properly setup.'

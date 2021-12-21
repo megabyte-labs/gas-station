@@ -68,13 +68,10 @@ tasks:
       - |
         {{if .CLI_ARGS}}
           for ITEM in environments/{{.CLI_ARGS}}/*; do
-            if [ -d "$ITEM" ] || [ -f "$ITEM" ]; then
-              .config/log info "Skipping environments/{{.CLI_ARGS}}/$ITEM because it already exists as a file/folder in the root of the project."
-            else
-              rm -f $ITEM
-              ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
-              .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
-            fi
+            ITEM="$(echo $ITEM | sed 's/.*\///')"
+            rm -f $ITEM
+            ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
+            .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
           done
         {{end}}
 
@@ -83,19 +80,7 @@ tasks:
       - :install:modules:local
     interactive: true
     cmds:
-      - |
-        ENVIRONMENT="$(node .config/scripts/prompts/environment.js)"
-        if [ ! -z "$ENVIRONMENT" ]; then
-          for ITEM in "environments/$ENVIRONMENT/*"; do
-            if [ -d "$ITEM" ] || [ -f "$ITEM" ]; then
-              .config/log info 'Skipping `environments/'"$ENVIRONMENT/$ITEM"'` because it already exists as a file/folder in the root of the project.'
-            else
-              rm -f $ITEM
-              ln -s "./environments/$ENVIRONMENT/$ITEM" "$ITEM"
-              .config/log success "Successfully symlinked `$ITEM` from ./environments/$ENVIRONMENT/$ITEM"
-            fi
-          done
-        fi
+      - node .config/scripts/prompts/environment.js
     status:
       - '[[ -z "{{.CLI_ARGS}}" ]]'
 

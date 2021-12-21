@@ -36,8 +36,11 @@ test:molecule:linux:
     DOCKER_TLS_VERIFY: 1
     GIT_DEPTH: 1
   script:
-    - SCENARIO="linux"
-    - SNAP_REFERENCES="$(grep -Ril 'community.general.snap:' ./tasks)"
-    - if [ "$SNAP_REFERENCES" ]; then SCENARIO="snap"; fi
-    - echo "***Molecule Scenario*** ---> $SCENARIO"
+    - |
+      if [ "$CI_COMMIT_BRANCH" == 'test/linux' ]; then
+        git pull origin master
+        git push origin "$CI_COMMIT_BRANCH"
+      fi
+    - SCENARIO="Linux"
+    - if [ "$(grep -Ril 'community.general.snap:' ./tasks)" ]; then SCENARIO="Snap"; fi
     - MOLECULE_GROUP="$SCENARIO" molecule test -s docker

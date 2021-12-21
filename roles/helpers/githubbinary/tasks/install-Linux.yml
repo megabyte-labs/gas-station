@@ -39,7 +39,6 @@
       set_fact:
         archive_names: "{{ (gh_binary_latest_release_tag.json.assets | \
           selectattr('name','match',binary_name + '.*(?i)arm.*' if 'arm' in ansible_machine | lower else '((?!(?i)arm).)*$')) | map(attribute='name') }}"
-      when: install_gh_binary
 
     - name: Find the list of extensions based on preferred_install_method provided
       set_fact:
@@ -63,7 +62,6 @@
         bash -c ". {{ role_path }}/files/release_info.sh; find_file_name \"{{ archive_names | join(' ') }}\" {{ ansible_system | lower }} \
         {{ (binary_name.split('-'))[0] }} \"{{ preferred_install_method_extn }}\""
       register: archive_name
-      when: install_gh_binary
       delegate_to: localhost
 
     - name: "Find Checksum URL(s) for {{ binary_name }} installer"
@@ -71,7 +69,6 @@
         checksum_urls: "{{ (gh_binary_latest_release_tag.json.assets | selectattr('name','match','.*(?i)checksum.*')) \
           | map(attribute='browser_download_url') }}"
       when:
-        - install_gh_binary
         - archive_name.stdout | length > 0
         - not (archive_name.stdout | regex_search('(?i)(dmg|AppImage)'))
 
@@ -79,9 +76,7 @@
       shell: |
         bash -c ". {{ role_path }}/files/release_info.sh; find_checksum \"{{ checksum_urls | join(' ') }}\" {{ archive_name.stdout | replace('NO_EXTN','') }}"
       register: archive_checksum
-      when:
-        - install_gh_binary
-        - checksum_urls is defined and checksum_urls | length > 0
+      when: checksum_urls is defined and checksum_urls | length > 0
       delegate_to: localhost
 
     - name: "Find Checksum URL(s) for {{ binary_name }} installer (AppImage or DMG)"
@@ -90,7 +85,6 @@
           | selectattr('name','match','.*latest-' + ((ansible_system == 'Linux') | ternary('linux','mac')) + '+\\.yml')) \
           | map(attribute='browser_download_url') | join('') }}"
       when:
-        - install_gh_binary
         - archive_name.stdout | length > 0
         - archive_name.stdout | regex_search('(?i)(dmg|AppImage)')
 
@@ -99,18 +93,14 @@
         url: "{{ checksum_urls_yml }}"
         return_content: true
       register: appimage_checksum_content
-      when:
-        - install_gh_binary
-        - checksum_urls_yml is defined and checksum_urls_yml | length > 0
+      when: checksum_urls_yml is defined and checksum_urls_yml | length > 0
 
     - name: "Find Checksum of {{ binary_name }} installer (AppImage or DMG)"
       set_fact:
         archive_checksum_appimage: "{{ (appimage_checksum_content.content | from_yaml).files | selectattr('url','equalto',archive_name.stdout) \
           | map(attribute='sha512') }}"
       register: appimage_checksum
-      when:
-        - install_gh_binary
-        - checksum_urls_yml is defined and checksum_urls_yml | length > 0
+      when: checksum_urls_yml is defined and checksum_urls_yml | length > 0
 
     - name: "Acquire {{ binary_name }}'s latest installer"
       get_url:
@@ -123,6 +113,7 @@
         - install_gh_binary
         - archive_name.stdout | length > 0
         - "'dmg' not in archive_name.stdout"
+        - not user_local_install or (user_local_install and not (archive_name.stdout | regex_search('(?i)(tar|zip|NO_EXTN)')))
 
     - name: "Ensure {{ binary_name }} is installed (DEB)"
       apt:
@@ -156,14 +147,27 @@
         - archive_name.stdout | length > 0
         - "'AppImage' in archive_name.stdout"
 
+    - name: "Ensure {{ binary_name }} is installed to user folder (sudoless)"
+      include_tasks: user-Linux.yml
+      loop: "{{ user_configs }}"
+      loop_control:
+        label: "{{ user.username }}"
+        loop_var: user
+      when:
+        - user_local_install
+        - (user.system is not defined) or ((user.system is defined) and (not user.system))
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip|NO_EXTN)')
+
     - name: Find the files contained in the archive
       unarchive:
         src: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout }}"
-        dest: /usr/local/bin
+        dest: /tmp
         remote_src: true
         list_files: true
       register: list_archive_files
       when:
+        - not user_local_install
         - install_gh_binary
         - archive_name.stdout | length > 0
         - archive_name.stdout | regex_search('(?i)(tar|zip)')
@@ -180,6 +184,7 @@
           - LICENSE*
           - CHANGELOG*
       when:
+        - not user_local_install
         - install_gh_binary
         - archive_name.stdout | length > 0
         - archive_name.stdout | regex_search('(?i)(tar|zip)')
@@ -194,6 +199,7 @@
         recurse: true
       register: executable_link
       when:
+        - not user_local_install
         - install_gh_binary
         - list_archive_files.files is defined and ((list_archive_files.files | join(',') | regex_search('(?i)(pak|so|tpl|\\.1)')) or
             ('zip' in archive_name.stdout and list_archive_files.files | length > 1))
@@ -204,6 +210,7 @@
         dest: "/usr/local/bin/{{ (executable_link.files[0].path).split('/')[-1] }}"
         state: link
       when:
+        - not user_local_install
         - install_gh_binary
         - executable_link.files is defined and executable_link.files | length > 0
 
@@ -214,6 +221,7 @@
         remote_src: true
         mode: 0755
       when:
+        - not user_local_install
         - install_gh_binary
         - archive_name.stdout | length > 0
         - "'NO_EXTN' in archive_name.stdout"

@@ -1,4 +1,4 @@
-/* eslint-disable security/detect-non-literal-fs-filename */
+/* eslint-disable security/detect-non-literal-fs-filename, max-lines-per-function */
 
 import inquirer from 'inquirer'
 import * as fs from 'node:fs'
@@ -58,9 +58,7 @@ async function promptForEnvironment() {
 
   const DECORATION_LENGTH = 2
 
-  const environment = response.environment
-    .replace(LOG_DECORATOR_REGEX, '')
-    .slice(DECORATION_LENGTH)
+  const environment = response.environment.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH)
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   const elements = fs.readdirSync(`environments/${environment}/`).map((element) => {

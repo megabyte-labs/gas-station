@@ -124,6 +124,12 @@ tasks:
       TMP:
         sh: mktemp
     cmds:
+      - |
+        if [ "$(jq '.keywords' package.json)" == 'null' ]; then
+          TMP_KEYWORDS="$(mktemp)"
+          jq '.keywords = []' package.json > "$TMP_KEYWORDS"
+          mv "$TMP_KEYWORDS" package.json
+        fi
       - jq --arg blueprint "$(jq -r '.blueprint' package.json | sed 's/^null$/{}/')"
         --arg version "$(jq -r '.version' package.json | sed 's/^null$/0.0.1/')"
         --arg poetry "$(jq -r '.keywords | join("\", \"")' package.json | sed 's/$/"/' | sed 's/^/"/')"

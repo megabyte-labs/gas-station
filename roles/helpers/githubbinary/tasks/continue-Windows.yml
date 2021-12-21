@@ -86,6 +86,19 @@
       when:
         - install_gh_binary
         - archive_name.stdout | length > 0
+        - not user_local_install or (user_local_install and archive_name.stdout | regex_search('(?i)(setup|installer)'))
+
+    - name: "Ensure {{ binary_name }} is installed to user folder"
+      include_tasks: user-Windows.yml
+      loop: "{{ user_configs }}"
+      loop_control:
+        label: "{{ user.username }}"
+        loop_var: user
+      when:
+        - user_local_install
+        - (user.system is not defined) or ((user.system is defined) and (not user.system))
+        - archive_name.stdout | length > 0
+        - not (archive_name.stdout | regex_search('(?i)(setup|installer)'))
 
     - name: "Ensure {{ binary_name }} is installed"
       community.windows.win_unzip:
@@ -93,6 +106,7 @@
         dest: "C:/Program Files/{{ binary_name }}"
         delete_archive: true
       when:
+        - not user_local_install
         - install_gh_binary
         - archive_name.stdout | length > 0
         - "'NO_EXTN' not in archive_name.stdout"
@@ -103,8 +117,8 @@
         src: "C:/Program Files/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
         dest: "C:/Program Files/{{ binary_name }}/{{ binary_name }}"
         remote_src: true
-        mode: 0755
       when:
+        - not user_local_install
         - install_gh_binary
         - archive_name.stdout | length > 0
         - "'NO_EXTN' in archive_name.stdout"

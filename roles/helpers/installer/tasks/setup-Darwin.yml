@@ -16,6 +16,39 @@
   failed_when: "'No available formula or cask with the name' not in brew_result.msg and 'already installed' not in brew_result.msg and \
     'Package installed' not in brew_result.msg"
 
+- name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
+  shell: |
+    {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
+    {{ software_package[software_item]['go'] }}
+    {%- else -%}
+    go get {{ software_package[software_item]['go'] }}
+    {%- endif -%}
+  environment:
+    GOPATH: "{{ '/home/' + ansible_user + '/.local/go' }}"
+  register: go_result
+  when:
+    - "'go' in available_methods"
+    - "'No available formula or cask with the name' in brew_result.msg or brew_result.skipped is defined or \
+        ((brew_result.changed and brew_result.failed) and (not brew_result.changed))"
+  failed_when: false
+
+- name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
+  shell: |
+    {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
+    {{ software_package[software_item]['cargo'] }}
+    {%- else -%}
+    cargo install {{ software_package[software_item]['cargo'] }}
+    {%- endif -%}
+  args:
+    executable: /bin/bash
+  register: cargo_result
+  when:
+    - "'cargo' in available_methods"
+    - "'No available formula or cask with the name' in brew_result.msg or brew_result.skipped is defined or \
+        ((brew_result.changed and brew_result.failed) and (not brew_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+  failed_when: false
+
 - name: "Ensure {{ software_item }} is installed (Binary)"
   get_url:
     url: "{{ software_package[software_item]['binary'] }}"
@@ -25,6 +58,8 @@
     - "'binary' in available_methods"
     - "'No available formula or cask with the name' in brew_result.msg or brew_result.skipped is defined or \
         ((brew_result.changed and brew_result.failed) and (not brew_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
   register: binary_result
   failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
 
@@ -38,5 +73,7 @@
     - "'github' in available_methods"
     - "'No available formula or cask with the name' in brew_result.msg or brew_result.skipped is defined or \
         ((brew_result.changed and brew_result.failed) and (not brew_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
     - "binary_result.msg is defined and 'Request failed' in binary_result.msg or binary_result.skipped is defined or \
         ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"

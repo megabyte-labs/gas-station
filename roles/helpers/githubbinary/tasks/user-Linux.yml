@@ -5,6 +5,7 @@
     mode: 0700
     path: ~/Applications
     state: directory
+  when: "'AppImage' in archive_name.stdout"
 
 - name: "Ensure {{ binary_name }}'s AppImage is copied"
   become_user: "{{ user.username }}"
@@ -13,3 +14,162 @@
     dest: ~/Applications
     mode: 0700
     remote_src: true
+  when: "'AppImage' in archive_name.stdout"
+
+- name: "Ensure {{ binary_name }} is installed to user folder (sudoless)"
+  block:
+    - name: Ensure Megabyte Labs configuration directory exists
+      become_user: "{{ user.username }}"
+      file:
+        mode: 0700
+        path: ~/.config/megabytelabs
+        state: directory
+
+    - name: Ensure Megabyte Labs configuration directory exists
+      become_user: "{{ user.username }}"
+      file:
+        mode: 0700
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - ~/.local/src/{{ binary_name }}
+        - ~/.local/bin/
+
+    - name: "Check if {{ binary_name }} has configuration stored in ~/.config/megabytelabs/{{ binary_name }}"
+      become_user: "{{ user.username }}"
+      stat:
+        path: "~/.config/megabytelabs/{{ binary_name }}"
+      register: binary_local_config
+
+    - name: "Detect previously installed {{ binary_name }} version"
+      become_user: "{{ user.username }}"
+      command: cat {{ binary_name }}
+      args:
+        chdir: ~/.config/megabytelabs
+      changed_when: false
+      register: current_binary_local_version
+      when: binary_local_config.stat.exists
+
+    - name: "Determine whether or not the latest version of {{ binary_name }} is already installed"
+      become_user: "{{ user.username }}"
+      set_fact:
+        install_binary_locally: "{{ (current_binary_local_version.skipped | default(false)) or \
+          ((not current_binary_local_version.skipped | default(false)) and \
+          (current_binary_local_version.stdout != gh_binary_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+    - name: "Acquire {{ binary_name }}'s latest installer"
+      become_user: "{{ user.username }}"
+      get_url:
+        url: "https://github.com/{{ repo_user }}/{{ binary_name }}/releases/download/{{ gh_binary_latest_release_tag.json.tag_name }}/\
+          {{ archive_name.stdout | replace('NO_EXTN','') }}"
+        dest: "~/.local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        checksum: "{{ 'sha256:' + archive_checksum.stdout if (archive_checksum.stdout is defined and archive_checksum.stdout | length > 0) else omit }}"
+      when:
+        - install_binary_locally
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip|NO_EXTN)')
+
+    - name: Find the files contained in the archive
+      become_user: "{{ user.username }}"
+      unarchive:
+        src: "~/.local/src/{{ binary_name }}/{{ archive_name.stdout }}"
+        dest: /tmp
+        remote_src: true
+        list_files: true
+      register: list_archive_files
+      when:
+        - user_local_install
+        - install_binary_locally
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip)')
+
+    - name: "Ensure {{ binary_name }} is installed (Archive)"
+      become_user: "{{ user.username }}"
+      unarchive:
+        src: "~/.local/src/{{ binary_name }}/{{ archive_name.stdout }}"
+        dest: "{{ '~/.local/src/' + binary_name if ((list_archive_files.files | join(',') | regex_search('(?i)(pak|so|tpl|\\.1)')) or \
+          ('zip' in archive_name.stdout and list_archive_files.files | length > 1)) else '~/.local/bin' }}"
+        remote_src: true
+        extra_opts: "{{ '--strip-components=1' if ('/' in list_archive_files.files | join(',') and 'tar' in archive_name.stdout) else omit }}"
+        exclude:
+          - README*
+          - LICENSE*
+          - CHANGELOG*
+      when:
+        - user_local_install
+        - install_binary_locally
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip)')
+
+    - name: "Find executable name for {{ binary_name }} to link (Archive installation)"
+      become_user: "{{ user.username }}"
+      find:
+        paths: "~/.local/src/{{ binary_name }}"
+        depth: 2
+        file_type: file
+        use_regex: true
+        patterns: "{{ '^(?i)' + (binary_name.split('-'))[0] + '$' }}"
+        recurse: true
+      register: executable_link
+      when:
+        - user_local_install
+        - install_binary_locally
+        - list_archive_files.files is defined and ((list_archive_files.files | join(',') | regex_search('(?i)(pak|so|tpl|\\.1)')) or
+            ('zip' in archive_name.stdout and list_archive_files.files | length > 1))
+
+    - name: "Ensure {{ binary_name }} is linked (Archive installation)"
+      become_user: "{{ user.username }}"
+      file:
+        src: "{{ executable_link.files[0].path }}"
+        dest: "~/.local/bin/{{ (executable_link.files[0].path).split('/')[-1] }}"
+        state: link
+      when:
+        - user_local_install
+        - install_binary_locally
+        - executable_link.files is defined and executable_link.files | length > 0
+
+    - name: "Ensure {{ binary_name }} is installed (Binary)"
+      become_user: "{{ user.username }}"
+      copy:
+        src: "~/.local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        dest: ~/.local/bin/{{ (binary_name.split('-'))[0] }}
+        remote_src: true
+        mode: 0700
+      when:
+        - user_local_install
+        - install_binary_locally
+        - archive_name.stdout | length > 0
+        - "'NO_EXTN' in archive_name.stdout"
+
+    - name: "Save meta information about the version of {{ binary_name }} that was installed"
+      become_user: "{{ user.username }}"
+      copy:
+        dest: ~/.config/megabytelabs/{{ binary_name }}
+        mode: 0600
+        content: |
+          {{ gh_binary_latest_release_tag.json.tag_name  | replace('v','') }}
+      when: install_binary_locally
+
+    - name: "Ensure {{ binary_name }} installer is removed"
+      become_user: "{{ user.username }}"
+      file:
+        path: "~/.local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        state: absent
+      when:
+        - install_binary_locally
+        - archive_name.stdout | length > 0
+
+    - name: Ensure PATH is updated for the user
+      become_user: "{{ user.username }}"
+      lineinfile:
+        path: ~/.bashrc
+        regexp: 'export PATH=$PATH:$HOME/.local/bin'
+        line: 'export PATH=$PATH:$HOME/.local/bin'
+
+  when: "'AppImage' not in archive_name.stdout"
+  always:
+    - name: Reset variables
+      set_fact:
+        current_binary_local_version: ""
+        binary_local_config: ""
+        install_binary_locally: ""

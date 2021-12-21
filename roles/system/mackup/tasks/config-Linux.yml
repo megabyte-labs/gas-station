@@ -1,0 +1,56 @@
+---
+- name: Check if ~/.mackup.cfg exists
+  become_user: "{{ user.username }}"
+  stat:
+    path: ~/.mackup.cfg
+  register: mackup_exists
+
+- name: Create initial Mackup config
+  become_user: "{{ user.username }}"
+  copy:
+    dest: ~/.mackup.cfg
+    content: |
+      [storage]
+      engine = file_system
+      path = .config
+      directory = mackup
+    mode: 0600
+  when: not mackup_exists.stat.exists
+
+- name: Find supported applications # noqa 301
+  become_user: "{{ user.username }}"
+  command: mackup list
+  register: mackup_list
+
+- name: Ensure ~/.mackup.cfg is configured
+  become_user: "{{ user.username }}"
+  template:
+    src: mackup.cfg.j2
+    dest: ~/.mackup.cfg
+    mode: 0700
+    backup: true
+
+- name: Ensure ~/.mackup folder exists
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/.mackup
+    state: directory
+    mode: 0700
+  when: mackup_custom_settings | length > 0
+
+- name: Ensure custom configurations are saved
+  become_user: "{{ user.username }}"
+  copy:
+    dest: "~/.mackup/{{ mackup_app.name | lower }}.cfg"
+    content: |
+      [application]
+      name = {{ mackup_app.name }}
+
+      [configuration_files]
+      {{ mackup_app.settings }}
+    mode: 0600
+  loop: "{{ mackup_custom_settings }}"
+  loop_control:
+    label: "{{ mackup_app.name }}"
+    loop_var: mackup_app
+  when: mackup_custom_settings | length > 0

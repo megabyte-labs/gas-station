@@ -38,7 +38,9 @@ tasks:
 
       For more information, see [Ansible Lint's GitHub page](https://github.com/ansible-community/ansible-lint).
     cmds:
-      - '{{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}'
+      - |
+        .config/log info 'Linting the project with ansible-lint'
+        {{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}
 
   any:
     deps:
@@ -69,6 +71,7 @@ tasks:
           cp '{{.CLI_ARGS}}' '{{.CLI_ARGS}}.bak'
           TMP="$(mktemp)"
           COMMIT_MSG_NOEMOJI="$(sed 's/^..//' < '{{.CLI_ARGS}}' | xargs)"
+          .config/log info 'Linting commit message (with emoji stripped)'
           echo "$COMMIT_MSG_NOEMOJI" | {{.NPX_PACKAGE}} commitlint
         elif [ '{{.CLI_ARGS}}' == '.git/MERGE_MSG' ]; then
           .config/log info 'Bypassing commitlint since the message is a merge message'
@@ -112,6 +115,7 @@ tasks:
       For more information, see [Hadolint's GitHub page](https://github.com/hadolint/hadolint).
     cmds:
       - |
+        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}all Dockerfiles{{end}} with a Hadolint Docker image'
         {{if .CLI_ARGS}}
           docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS}}
         {{else}}
@@ -141,16 +145,22 @@ tasks:
       **Example linting specific pattern of files:**
       `task lint:eslint -- '**/*.js'`
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache
-        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - >
+        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint'
+
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   js:
     deps:
       - :install:modules:local
       - :install:npm:eslint
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
-        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - >
+        .config/log info 'Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}JavaScript/TypeScript files{{end}} with ESLint'
+
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   lint-staged:
     deps:
@@ -158,7 +168,9 @@ tasks:
       - :install:modules:local
       - :install:python:requirements
     cmds:
-      - '{{.NPX_HANDLE}}lint-staged'
+      - |
+        .config/log info 'Linting changed files'
+        {{.NPX_HANDLE}}lint-staged
 
   packer:
     deps:
@@ -181,9 +193,11 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
+          .config/log info 'Validating the {{.CLI_ARGS}} Packer template'
           packer validate {{.CLI_ARGS}}
         {{else}}
           for TEMPLATE in *template.json; do
+            .config/log info "Validating the $TEMPLATE Packer template"
             packer validate "$TEMPLATE"
           done
         {{end}}
@@ -206,7 +220,9 @@ tasks:
 
       For more information, see [Prettier's website](https://prettier.io/).
     cmds:
-      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with Prettier'
+        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   python:
     deps:
@@ -238,8 +254,10 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
+          .config/log info 'Linting {{.CLI_ARGS}} with flake8'
           {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
         {{else}}
+          .config/log info 'Linting the project with flake8'
           {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} .
         {{end}}
 
@@ -272,6 +290,7 @@ tasks:
       For more information, see [Shellcheck's GitHub page](https://github.com/koalaman/shellcheck).
     cmds:
       - |
+        .config/log info 'Linting with Shellcheck'
         {{if .CLI_ARGS}}
           {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} {{.CLI_ARGS}}
         {{else}}
@@ -308,6 +327,7 @@ tasks:
       - cmd: |
           set -e
           EXIT_CODE=0
+          .config/log info 'Running a spell-check with `cspell`'
           {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}} || EXIT_CODE=$?
           if [ "$EXIT_CODE" != '0' ]; then
             .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
@@ -324,6 +344,7 @@ tasks:
           if [ -n "$STAGED_FILES" ]; then
             set -e
             EXIT_CODE=0
+            .config/log info 'Running a spell-check on staged files with `cspell`'
             # Must not quote $STAGED_FILES
             {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} $STAGED_FILES || EXIT_CODE=$?
             if [ "$EXIT_CODE" != '0' ]; then
@@ -349,6 +370,7 @@ tasks:
       `task lint:toml -- myfile.toml`
     cmds:
       - |
+        .config/log info 'Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid TOML{{else}}the project'\''s TOML files are valid{{end}}'
         {{.PYTHON_HANDLE}}check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   vagrant:
@@ -364,7 +386,9 @@ tasks:
 
       For more information on `vagrant validate`, see the [Vagrant website](https://www.vagrantup.com/docs/cli/validate).
     cmds:
-      - vagrant validate
+      - |
+        .config/log info 'Validating the Vagrantfile'
+        vagrant validate
 
   xml:
     deps:
@@ -383,6 +407,7 @@ tasks:
       `task lint:xml -- myfile.xml`
     cmds:
       - |
+        .config/log info 'Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid XML{{else}}the project contains only valid XML{{end}}'
         {{.PYTHON_HANDLE}}check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   yaml:
@@ -411,4 +436,5 @@ tasks:
       For more information, see the [YAML Lint GitHub page](https://github.com/adrienverge/yamllint).
     cmds:
       - |
+        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with `yamllint`'
         {{.PYTHON_HANDLE}}yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}

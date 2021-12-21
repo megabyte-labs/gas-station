@@ -16,31 +16,33 @@ tasks:
       }
       ```
     vars:
-      DOC_IDS: '@binary,@brew,@cask,@chrome,@gem,@helm,@hostapp,@htpc,@npm,@pypi,@vscode'
+      DOC_IDS: '@binary,@brew,@cask,@chrome,@firefox,@gem,@helm,@npm,@pypi,@vscode'
     cmds:
       - |
         function populateChartVar() {
-          CHART='[["Package", "Description"],'
+          CHART='[["Package", "Description"]'
           jq --arg tag "$(echo $2 | tr '[a-z]' '[A-Z]')" -r '.[] | select(.tag == $tag) | .
           | del(. ["file", "ref", "line", "tag"]) | .text' "$1" | while read COMMENT; do
             if [ "$CHART" != '[' ]; then
               CHART="${CHART},"
             fi
             LINK="$(echo $COMMENT | sed 's/ - .*//')"
-            DESCRIPTION="$(echo $COMMENT | sed 's/.* - //')"
-            CHART="${CHART}[\"**$LINK\**",\"$DESCRIPTION\"]"
+            DESCRIPTION="$(echo $COMMENT | sed 's/.* - //' | sed 's/\"/\\\"/g')"
+            CHART="${CHART}[\"**$LINK**\",\"$DESCRIPTION\"]"
           done
           CHART="${CHART}]"
-          TMP="$(mktemp)"
-          jq --arg chart "$CHART" --arg key "${2}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP"
-          mv "$TMP" .variables.json
+          TMP_CHART="$(mktemp)"
+          KEY="$(echo $2 | sed 's/^@//')"
+          jq --arg chart "$CHART" --arg key "${KEY}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP_CHART"
+          mv "$TMP_CHART" .variables.json
         }
         TMP="$(mktemp)"
-        leasot --tags '{{.DOC_IDS}}' --reporter json './environments/prod/group_vars/**/*.yml' > "$TMP"
+        leasot --tags '{{.DOC_IDS}}' --reporter json './environments/prod/group_vars/**/*.yml' > "$TMP" || true
         VARIABLES_JSON="$(jq '.' .variables.json)"
         for ID in {{replace "," " " .DOC_IDS}}; do
           populateChartVar "$TMP" "$ID"
         done
+        .config/log success 'Finished scanning for documentation comments'
 
   environment:
     # @desc_when [ansible/Taskfile-playbook.yml] ansible/playbook
@@ -66,12 +68,10 @@ tasks:
       - |
         {{if .CLI_ARGS}}
           for ITEM in environments/{{.CLI_ARGS}}/*; do
-            if [ -d "$ITEM" ] || [ -f "$ITEM" ]; then
-              .config/log info "Skipping environments/{{.CLI_ARGS}}/$ITEM because it already exists as a file/folder in the root of the project."
-            else
-              rm -f $ITEM
-              ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
-            fi
+            ITEM="$(echo $ITEM | sed 's/.*\///')"
+            rm -f $ITEM
+            ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
+            .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
           done
         {{end}}
 
@@ -80,18 +80,7 @@ tasks:
       - :install:modules:local
     interactive: true
     cmds:
-      - |
-        ENVIRONMENT="$(node .config/scripts/prompts/environment.js)"
-        if [ ! -z "$ENVIRONMENT" ]; then
-          for ITEM in "environments/$ENVIRONMENT/*"; do
-            if [ -d "$ITEM" ] || [ -f "$ITEM" ]; then
-              .config/log info 'Skipping `environments/'"$ENVIRONMENT/$ITEM"'` because it already exists as a file/folder in the root of the project.'
-            else
-              rm -f $ITEM
-              ln -s "./environments/$ENVIRONMENT/$ITEM" "$ITEM"
-            fi
-          done
-        fi
+      - node .config/scripts/prompts/environment.js
     status:
       - '[[ -z "{{.CLI_ARGS}}" ]]'
 
@@ -121,3 +110,36 @@ tasks:
     preconditions:
       - sh: test -d roles
         msg: The `roles/` folder is missing. Is the project set up right?
+
+  remotes:
+    deps:
+      - :install:software:git
+      - :install:software:jq
+    summary: |
+      # Ensures each role is added as a remote
+
+      This task cycles through all the roles in the `/roles` folder and ensures
+      they are added as remotes. This helps with managing the git trees used
+      for combining the many role repositories into the playbook mono-repository.
+
+      It also adds a remote for a private submodule that is intended to store
+      files that are not meant to be shared. The remote is named `private`.
+    run: once
+    cmds:
+      - git init -q
+      - |
+        for ROLE_RELATIVE_PATH in roles/*/*; do
+          if [ -f "${ROLE_RELATIVE_PATH}/package.json" ]; then
+            ROLE_FOLDER="$(basename $ROLE_RELATIVE_PATH)"
+            ROLE_HTTPS_REPO="$(jq -r '.blueprint.repository.gitlab' $ROLE_RELATIVE_PATH/package.json)"
+            ROLE_SSH_REPO="$(echo $ROLE_HTTPS_REPO | sed 's/https:\/\/gitlab.com\//git@gitlab.com:/' | sed 's/$/.git/')"
+            if git config "remote.${ROLE_FOLDER}.url" > /dev/null; then
+              git remote set-url "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            else
+              git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            fi
+          else
+            .config/log warn "${ROLE_RELATIVE_PATH}/package.json is missing!"
+          fi
+        done
+        .config/log success 'Finished adding git remotes for the roles in the ./roles folder'

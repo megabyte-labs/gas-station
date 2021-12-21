@@ -20,11 +20,11 @@ tasks:
     cmds:
       - |
         if [ "$CI_COMMIT_REF_NAME" == 'synchronize' ]; then
-          git checkout master
-          git pull origin master
+          git checkout -q master
+          git pull -q origin master
         else
-          git checkout "$CI_COMMIT_REF_NAME"
-          git pull origin "$CI_COMMIT_REF_NAME"
+          git checkout -q "$CI_COMMIT_REF_NAME"
+          git pull -q origin "$CI_COMMIT_REF_NAME"
         fi
 
   commit:
@@ -37,7 +37,7 @@ tasks:
       - |
         if [[ $(git status --porcelain) ]]; then
           git commit -m "⤵️ automation(synchronize) Applying changes from upstream repository."
-          git push -o ci.skip origin master
+          git push -q -o ci.skip origin master
         fi
 
   commit:config:
@@ -63,13 +63,13 @@ tasks:
     cmds:
       - >
         git submodule foreach 'git config user.email "$GITLAB_CI_EMAIL"; git config user.name "$GITLAB_CI_NAME";
-        git checkout master; git pull origin master --ff-only'
+        git checkout -q master; git pull -q origin master --ff-only'
 
   synchronize:
     cmds:
       - git checkout -b synchronize || git checkout synchronize
       - git reset --hard HEAD
-      - git pull origin master
-      - git push -o ci.skip origin synchronize --force
+      - git pull -q origin master
+      - git push -q -o ci.skip origin synchronize --force
       - curl -s --request POST --form "token=${CI_JOB_TOKEN}" --form ref=master --form "variables[PIPELINE_SOURCE]=$PIPELINE_SOURCE"
         "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/trigger/pipeline"

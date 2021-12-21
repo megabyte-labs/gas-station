@@ -2,12 +2,24 @@
 version: '3'
 
 tasks:
+  brewfile:
+    deps:
+      - :install:software:brew
+    cmds:
+      - |
+        .config/log info 'Installing software bundle defined in `.config/Brewfile`'
+        brew tap Homebrew/bundle
+        cd .config
+        brew bundle
+        .config/log success 'Successfully installed common dependencies defined in `.config/Brewfile`'
+
   install-doctor:
     cmds:
       - |
         if ! type {{.SOFTWARE}} &> /dev/null; then
-          .config/log info 'Using https://install.doctor to install `{{.SOFTWARE}}`'
+          .config/log info 'Installing `{{.SOFTWARE}}` via `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
           curl -sS https://install.doctor/{{.SOFTWARE}} | bash
+          .config/log success 'Successfully installed `{{.SOFTWARE}}`'
         fi
     status:
       - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
@@ -15,23 +27,21 @@ tasks:
   modules:global:
     deps:
       - :install:npm:{{.NPM_PROGRAM}}
+      - :install:software:yq
     run: once
     cmds:
-      - task: :install:npm:commitizen
-      - task: :install:npm:commitlint
-      - task: :install:npm:cz-emoji
-      - task: :install:npm:cspell
-      - task: :install:npm:eslint
-      - task: :install:npm:git-notify
-      - task: :install:npm:liquidjs
-      - task: :install:npm:husky
-      - task: :install:npm:lint-staged
-      - task: :install:npm:prettier
-      - task: :install:npm:readme
-      - task: :install:npm:remark
-      - task: :install:npm:shellcheck
-      - task: :install:npm:standard-version
-      - task: :install:npm:yarnhook
+      - |
+        PKGS="$(yq eval '.tasks[].cmds[0].vars.NPM_PACKAGE' .config/taskfiles/install/Taskfile-npm.yml | tr '\n' ' ')"
+        for PKG in $PKGS; do
+          if [ -f "$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*//')/$PKG" ]; then
+            LIST="$LIST $PKG"
+          fi
+        done
+        if [ -n "$LIST" ]; then
+          .config/log info "Installing the following NPM packages globally - $LIST"
+          npm install -g $LIST
+        fi
+        .config/log success 'Finished preloading global NPM packages'
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
@@ -41,9 +51,11 @@ tasks:
       - :install:npm:cz-emoji
     run: once
     cmds:
+      - .config/log info 'Installing local NPM dependencies'
       - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
         ignore_error: true
       - task: modules:local:sync
+      - .config/log success 'Successfully installed local NPM dependencies'
     sources:
       - package.json
 
@@ -76,6 +88,7 @@ tasks:
         if [ "$REFRESH_PACKAGES" == 'true' ]; then
           .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
           {{.NPM_PROGRAM_LOCAL}} update "$PACKAGE_LIST"
+          .config/log success "Successfully ensured the following NPM packages are the latest version - `$PACKAGE_LIST`"
         else
           .config/log info "NPM packages configured to sync with latest version are all up-to-date"
         fi
@@ -89,6 +102,26 @@ tasks:
     sources:
       - .config/scripts/prompts/**
 
+  pipx:global:
+    deps:
+      - :install:software:pipx
+      - :install:software:yq
+    vars:
+      PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
+        mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
+        proselint python-vagrant pywinrm
+    cmds:
+      - |
+        for PKG of {{.PIPX_PACKAGES}}; do
+          if ! type "$PKG" > /dev/null; then
+            .config/log info "Ensuring $PKG is installed"
+            pipx install "$PKG" &
+          else
+            .config/log info "$PKG is already installed"
+          fi
+        done
+        wait
+        .config/log success 'Successfully preloaded commonly used Python packages'
   tslib:
     env:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions

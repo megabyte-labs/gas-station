@@ -30,14 +30,20 @@ tasks:
       - :install:modules:local
       - :install:npm:esbuild
     cmds:
-      - node .config/esbuild/bundled.js
+      - |
+        .config/log info 'Running `esbuild` with bundle script (`./.config/esbuild/bundled.js`)'
+        node .config/esbuild/bundled.js
+        .config/log success 'Finished running `esbuild` with bundle script'
 
   build:esbuild:minified:
     deps:
       - :install:modules:local
       - :install:npm:esbuild
     cmds:
-      - node .config/esbuild/minified.js
+      - |
+        .config/log info 'Running `esbuild` with minify script (`./.config/esbuild/minified.js`)'
+        node .config/esbuild/minified.js
+        .config/log success 'Finished running `esbuild` with minify script'
 
   build:fpm:
     deps:
@@ -112,22 +118,31 @@ tasks:
           NPM_PACKAGE_VERSION: '{{.NPM_PACKAGE_VERSION}}'
           SYSTEM: source
     cmds:
-      - gzip -9 {{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-source-all.tar
+      - |
+        gzip -9 {{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-source-all.tar
+        .config/log success 'Running gzip on `{{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-source-all.tar`'
 
   build:fpm:compile:
     deps:
       - :install:software:fpm
     cmds:
-      - '{{.NPX_HANDLE}}fpm -s npm -t {{.FPM_TARGET}}
+      - >
+        .config/log info 'Compiling {{.ARCHITECTURE}} {{.FPM_TARGET}} binary with FPM for {{.NPM_PACKAGE_NAME}}, version {{.NPM_PACKAGE_VERSION}}'
+
+        {{.NPX_HANDLE}}fpm -s npm -t {{.FPM_TARGET}}
         -p {{.BINARY_BUILD_FOLDER}}/{{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-{{.SYSTEM}}-{{.ARCHITECTURE}}.{{.FILE_EXTENSION}}
-        --architecture {{.ARCHITECTURE}} .'
+        --architecture {{.ARCHITECTURE}} .
+
+        .config/log success 'Finished compiling {{.ARCHITECTURE}} {{.FPM_TARGET}} binary with FPM for {{.NPM_PACKAGE_NAME}}, version {{.NPM_PACKAGE_VERSION}}'
 
   build:nest:
     deps:
       - :install:modules:local
       - :install:npm:nest
     cmds:
-      - '{{.NPX_HANDLE}}nest build'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}nest build`'
+        {{.NPX_HANDLE}}nest build
       - task: build:nest:after
 
   build:nest:after:
@@ -140,7 +155,10 @@ tasks:
       - :install:modules:local
       - :install:npm:pkg
     cmds:
-      - '{{.NPX_HANDLE}}pkg package.json'
+      - |
+        .config/log info 'Generating standalone executables for macOS, Linux, and Windows using pkg'
+        {{.NPX_HANDLE}}pkg package.json
+        .config/log success 'Finished generating standalone executables'
 
   build:release: 'true'
 
@@ -169,7 +187,10 @@ tasks:
       - :install:software:jq
     desc: Remove unused dependencies
     cmds:
-      - "{{.NPX_HANDLE}}depcheck --json | jq -r '.dependencies[]' | xargs -n1 npm uninstall --save"
+      - |
+        .config/log info 'Uninstalling unused dependencies in package.json'
+        {{.NPX_HANDLE}}depcheck --json | jq -r '.dependencies[]' | xargs -n1 {{.NPM_PROGRAM_LOCAL}} uninstall --save
+        .config/log success 'Finished uninstalling unused dependencies in package.json'
 
   preinstall:
     deps:
@@ -183,14 +204,18 @@ tasks:
       - :install:npm:nest
     desc: Run the application
     cmds:
-      - '{{.NPX_HANDLE}}nest start'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}nest start`'
+        {{.NPX_HANDLE}}nest start
 
   start:debug:
     deps:
       - :install:modules:local
       - :install:npm:nest
     cmds:
-      - '{{.NPX_HANDLE}}nest start --watch'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}nest start --watch`'
+        {{.NPX_HANDLE}}nest start --watch
 
   start:inspect:
     deps:
@@ -200,14 +225,18 @@ tasks:
       - :install:npm:ts-node
     desc: Run the application in `watch` mode and open DevTools
     cmds:
-      - '{{.NPX_HANDLE}}ndb nest start --watch'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}ndb nest start --watch`'
+        {{.NPX_HANDLE}}ndb nest start --watch
 
   start:inspect:legacy:
     deps:
       - :install:modules:local
       - :install:npm:nest
     cmds:
-      - '{{.NPX_HANDLE}}nest start --debug --watch'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}nest start --debug --watch`'
+        {{.NPX_HANDLE}}nest start --debug --watch
 
   start:prod:
     deps:
@@ -216,7 +245,9 @@ tasks:
     desc: Run the application in `production` mode
     cmds:
       - task: build
-      - node dist/main
+      - |
+        .config/log info 'Running `node dist/main`'
+        node dist/main
 
   start:prod:inspect:
     deps:
@@ -224,7 +255,9 @@ tasks:
       - :install:npm:nest
     desc: Run the application in `production` and `watch` mode and open DevTools
     cmds:
-      - '{{.NPX_HANDLE}}ndb nodemon'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}ndb nodemon`'
+        {{.NPX_HANDLE}}ndb nodemon
 
   test:
     deps:
@@ -232,14 +265,18 @@ tasks:
       - :install:npm:jest
     desc: Run the unit tests for an NPM project
     cmds:
-      - '{{.NPX_HANDLE}}jest'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}jest`'
+        {{.NPX_HANDLE}}jest
 
   test:ci:
     deps:
       - :install:modules:local
       - :install:npm:jest
     cmds:
-      - '{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit`'
+        {{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit
 
   test:coverage:
     deps:
@@ -247,7 +284,9 @@ tasks:
       - :install:npm:jest
     desc: Generate code coverage assets
     cmds:
-      - '{{.NPX_HANDLE}}jest --coverage'
+      - |
+        .config/log info 'Generating code coverage assets by running `{{.NPX_HANDLE}}jest --coverage`'
+        {{.NPX_HANDLE}}jest --coverage
 
   test:dashboard:
     deps:
@@ -255,7 +294,9 @@ tasks:
       - :install:npm:majestic
     desc: Run and manage test cases from a web interface (powered by `majestic`)
     cmds:
-      - '{{.NPX_HANDLE}}majestic --debug'
+      - |
+        .config/log info 'Launching web interface for debugging test cases by running `{{.NPX_HANDLE}}majestic --debug`'
+        {{.NPX_HANDLE}}majestic --debug
 
   test:debug:
     deps:
@@ -263,7 +304,9 @@ tasks:
       - :install:npm:jest
     desc: Debug tests in `watch` mode
     cmds:
-      - '{{.NPX_HANDLE}}jest --watch'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}jest --watch`'
+        {{.NPX_HANDLE}}jest --watch
 
   test:e2e: 'true'
 
@@ -276,11 +319,16 @@ tasks:
       - :install:npm:ts-node
     desc: Debug tests with DevTools in `watch` mode
     cmds:
-      - '{{.NPX_HANDLE}}ndb nodemon --config .common/nodemon-jest.json'
+      - |
+        .config/log info 'Running `{{.NPX_HANDLE}}ndb nodemon --config .common/nodemon-jest.json` to enable debugging with DevTools in watch mode'
+        {{.NPX_HANDLE}}ndb nodemon --config .common/nodemon-jest.json
 
   typesync:
     deps:
       - :install:npm:typesync
     desc: Install missing type definitions
     cmds:
-      - '{{.NPX_HANDLE}}typesync'
+      - |
+        .config/log info 'Installing missing type definitions with `typesync`'
+        {{.NPX_HANDLE}}typesync
+        .config/log success 'Successfully installed missing type definitions with `typesync`'

@@ -1,29 +1,41 @@
 import inquirer from 'inquirer'
 import { execSync } from 'node:child_process'
-import { decorateSystem } from '../lib/decorate-system.js'
-import { logInstructions, LOG_DECORATOR_REGEX } from '../lib/log.js'
+import { info, logInstructions } from '../lib/log.js'
 
 /**
- * Prompts the user for the operating system they wish to launch and test the
- * Ansible play against.
+ * Prompts the user for details required for provisioning via SSH
  *
  * @returns {string} The operating system string, lowercased
  */
-async function promptForDesktop() {
-  const choices = ['Archlinux', 'CentOS', 'Debian', 'Fedora', 'macOS', 'Ubuntu', 'Windows']
-  const choicesDecorated = choices.map((choice) => decorateSystem(choice))
+async function promptForSSHDetails() {
   const response = await inquirer.prompt([
     {
-      choices: choicesDecorated,
-      message: 'Which desktop operating system would you like to test the Ansible play against?',
-      name: 'operatingSystem',
-      type: 'list'
+      message: "What is the target's IP address or FQDN?",
+      name: 'host',
+      type: 'input'
+    },
+    {
+      default: 'ansible',
+      message: 'What is the username of a user that has both sudo privileges and SSH?',
+      name: 'user',
+      type: 'input'
+    },
+    {
+      default: 'ansible',
+      message: "What is the user's sudo password?",
+      name: 'password',
+      type: 'password'
+    },
+    {
+      default: '22',
+      message: 'What port should the SSH connection be made over?',
+      name: 'port',
+      type: 'input'
     }
   ])
+  info('SSH connection details acquired')
 
-  const DECORATION_LENGTH = 2
-
-  return response.operatingSystem.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH)
+  return response
 }
 
 /**
@@ -37,8 +49,12 @@ async function run() {
       ' and password. Before running this test, you should ensure that you can already connect to the machine' +
       ' via SSH (i.e. the ~/.ssh keys should already be set up).'
   )
-  const environment = await promptForDesktop()
-  execSync(`task ansible:test:molecule:virtualbox:converge:cli -- ${environment}`, { stdio: 'inherit' })
+  const details = await promptForSSHDetails()
+  execSync(
+    `TEST_HOST=${details.host} TEST_PASSWORD=${details.password} TEST_PORT=${details.port}
+    TEST_SSH_USER=${details.user} TEST_USER=${details.user} task ansible:test:molecule:ssh:cli`,
+    { stdio: 'inherit' }
+  )
 }
 
 run()

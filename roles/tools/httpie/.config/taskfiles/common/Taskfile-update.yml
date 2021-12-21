@@ -6,20 +6,29 @@ tasks:
     deps:
       - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:descriptions{{else}}donothing{{end}}'
       - files
-      - :git:remotes
       - :install:tslib
       - :python:requirementstxt
     cmds:
-      - task: all:docs
+      - task: all:continue
+
+  all:continue:
+    deps:
+      - :git:remotes
+      - ':{{if eq .REPOSITORY_SUBTYPE "playbook"}}ansible:playbook:remotes{{else}}donothing{{end}}'
+      - all:docs
 
   all:docs:
     cmds:
       - |
         {{if eq .REPOSITORY_TYPE "common"}}{{else}}{{if eq .REPOSITORY_TYPE "documentation"}}{{else}}
-        task common:update:contributing &
-        task common:update:readme &
+        task common:update:all:docs:generate
         wait
         {{end}}{{end}}
+
+  all:docs:generate:
+    deps:
+      - contributing
+      - readme
 
   ansible:
     deps:
@@ -35,13 +44,15 @@ tasks:
       CONTRIB_TEMPLATE: .config/docs/blueprint-contributing.md
     cmds:
       - mkdir -p docs
+      - .config/log info 'Generating `docs/CONTRIBUTING.md` using document partials'
       - >
         {{.NPX_HANDLE}}readme generate --silent --headingPrefix '{}' --config .variables.json
         --input "{{.CONTRIB_TEMPLATE}}" --output docs/CONTRIBUTING.md
       - task: markdown:scrub
         vars:
           SCRUB_FILE: docs/CONTRIBUTING.md
-      - '{{.NPX_HANDLE}}prettier --write docs/CONTRIBUTING.md'
+      - '{{.NPX_HANDLE}}prettier --write docs/CONTRIBUTING.md > /dev/null'
+      - .config/log success 'Successfully generated `docs/CONTRIBUTING.md`'
     sources:
       - docs/CONTRIBUTING.md
       - .config/docs/**/*
@@ -65,6 +76,7 @@ tasks:
         {{if eq .REPOSITORY_SUBTYPE "ci-pipeline"}}
           if [[ "{{.FIRST_LINE}}" == *"debian"* ]] || [[ "{{.FIRST_LINE}}" == *"ubuntu"* ]]; then
             cp .config/initctl initctl
+            .config/log info 'Added initctl faker file to repository root'
           fi
         {{end}}
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
@@ -93,9 +105,11 @@ tasks:
       - |
         if test -f ".config/docs/{{.MAN_TEMPLATE}}"; then
           {{.NPX_HANDLE}}readme generate --headingPrefix '{}' --silent --config .variables.json --input ".config/docs/{{.MAN_TEMPLATE}}" --output MAN.md
-          {{.NPX_HANDLE}}prettier --write MAN.md
+          {{.NPX_HANDLE}}prettier --write MAN.md > /dev/null
+          .config/log info 'Generated MAN.md'
           mkdir -p dist
           {{.NPX_HANDLE}}remark --use man MAN.md --output dist/man
+          .config/log success 'Converted MAN.md to man page located in `dist/man`'
           rm MAN.md
         fi
     sources:
@@ -145,6 +159,7 @@ tasks:
             git checkout "$DEFAULT_BRANCH"
             git pull origin "$DEFAULT_BRANCH" --ff-only || true
           done
+          .config/log success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
         fi
     status:
       - '! ls .modules/*/ > /dev/null 2>&1'
@@ -156,7 +171,7 @@ tasks:
   readme:
     deps:
       - ':{{if eq .REPOSITORY_TYPE "ansible"}}ansible:collection-dependencies:markdown{{else}}donothing{{end}}'
-      - ':{{if eq .REPOSITORY_TYPE "ansible"}}ansible:mod-ansible-autodoc{{else}}donothing{{end}}'
+      - ':{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:mod-ansible-autodoc{{else}}donothing{{end}}'
       - :install:npm:prettier
       - :install:npm:readme
     vars:
@@ -169,7 +184,8 @@ tasks:
         vars:
           SCRUB_FILE: README.md
       - task: ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:readme{{else}}donothing{{end}}'
-      - '{{.NPX_HANDLE}}prettier --write README.md'
+      - '{{.NPX_HANDLE}}prettier --write README.md > /dev/null'
+      - .config/log success 'Generated README.md successfully'
     sources:
       - .autodoc/*
       - .config/docs/**/*
@@ -194,8 +210,7 @@ tasks:
 
   services:repos:
     deps:
-      - :git:gitlab:update
-      - :git:github:update
+      - :git:update
 
   start:
     deps:
@@ -230,14 +245,9 @@ tasks:
 
   update:git:
     cmds:
-      - task: update:git:proceed
+      - task: :git:update
     status:
       - '[[ "${container:=}" == "docker" ]]'
-
-  update:git:proceed:
-    deps:
-      - :git:github:update
-      - :git:gitlab:update
 
   variables:
     deps:

@@ -24,8 +24,11 @@ tasks:
       VERSION:
         sh: jq -r '.version' package.json
     cmds:
-      - docker build --build-arg BUILD_DATE="{{.BUILD_DATE}}" --build-arg REVISION="{{.REVISION}}" --build-arg VERSION="{{.VERSION}}"
+      - |
+        .config/log info 'Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)'
+        docker build --build-arg BUILD_DATE="{{.BUILD_DATE}}" --build-arg REVISION="{{.REVISION}}" --build-arg VERSION="{{.VERSION}}"
         --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}} .
+        .config/log success 'Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`'
     sources:
       - Dockerfile
       - package.json
@@ -59,7 +62,10 @@ tasks:
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
     cmds:
-      - docker-slim build --tag '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim' {{.SLIM_COMMAND}} '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest'
+      - |
+        .config/log info 'Building Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`'
+        docker-slim build --tag '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim' {{.SLIM_COMMAND}} '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest'
+        .config/log success 'Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`'
     sources:
       - Dockerfile
       - package.json
@@ -73,7 +79,7 @@ tasks:
     deps:
       - :install:npm:prettier
     cmds:
-      - '{{.NPX_HANDLE}}prettier --write slim.report.json'
+      - '{{.NPX_HANDLE}}prettier --write slim.report.json > /dev/null'
     sources:
       - slim.report.json
 

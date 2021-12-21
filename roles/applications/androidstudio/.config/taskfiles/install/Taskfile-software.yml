@@ -15,38 +15,55 @@ tasks:
     run: once
     cmds:
       - task: brew:{{OS}}
-    status:
-      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
 
   brew:cask:
     deps:
       - brew
     run: when_changed
     cmds:
-      - brew install --cask {{.CASK}}
+      - |
+        .config/log info 'Installing the `{{.CASK}}` Homebrew cask'
+        brew install --cask {{.CASK}}
+        .config/log success 'Successfully installed the `{{.CASK}}` Homebrew cask'
     status:
       - type {{.CASK}} &> /dev/null || [[ "${container:=}" == "docker" ]]
 
   brew:darwin:
     cmds:
       - |
+        .config/log info 'Ensuring Homebrew is installed and available'
         if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
+          .config/log info "Homebrew is already installed"
           eval "$(~/.local/homebrew/bin/brew shellenv)"
         elif ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
           eval "$(~/.local/homebrew/bin/brew shellenv)"
+          .config/log info "Updating Homebrew"
           brew update --force --quiet
           chmod -R go-w "$(brew --prefix)/share/zsh"
+          .config/log success "Successfully installed Homebrew"
         fi
+      - task: brew:utils
+    status:
+      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type gcp > /dev/null
+      - type gfind > /dev/null
+      - type gsed > /dev/null
+      - type ggrep > /dev/null
+      - type gtar > /dev/null
+      - type ggawk > /dev/null
 
   brew:formulae:
     deps:
       - brew
     run: when_changed
     cmds:
-      - brew install {{.FORMULAE}}
+      - |
+        .config/log info 'Installing the `{{.FORMULAE}}` Homebrew package'
+        brew install {{.FORMULAE}}
+        .config/log success 'Successfully installed the `{{.FORMULAE}}` Homebrew package'
     status:
       - type {{.FORMULAE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
 
@@ -54,6 +71,7 @@ tasks:
     run: once
     cmds:
       - |
+        .config/log info 'Ensuring Homebrew is installed and available'
         function ensureSource() {
           if ! (grep "/bin/brew shellenv" < cat "$1" &> /dev/null); then
             echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
@@ -85,10 +103,27 @@ tasks:
           brew update --force --quiet
           ensureSource "$SHELL_PROFILE"
         fi
+    status:
+      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  brew:utils:
+    cmds:
+      - |
+        .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
+        brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
+        .config/log success "Successfully installed GNU-compatibility tools"
 
   brew:windows:
     cmds:
       - task: common:windows
+
+  codeclimate:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: codeclimate/formulae/codeclimate
+    status:
+      - type codeclimate > /dev/null
 
   common:
     run: once
@@ -96,9 +131,15 @@ tasks:
       - task: common:{{OS}}
 
   common:darwin:
-    interactive: true
     cmds:
-      - xcode-select --install
+      - task: common:darwin:xcode
+
+  common:darwin:xcode:
+    cmds:
+      - |
+        .config/log info "Installing xcode-select"
+        xcode-select --install
+        .config/log success "Successfully installed xcode-select"
     status:
       - xcode-select -p 1> /dev/null
 
@@ -136,6 +177,7 @@ tasks:
     interactive: true
     cmds:
       - |
+        .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
         sudo apt-get -y update
         sudo apt-get install -y build-essential curl file git procps
     status:
@@ -148,23 +190,25 @@ tasks:
   common:linux:redhat:
     interactive: true
     cmds:
-      - mkdir -p .cache
+      - mkdir -p "$HOME/.config/mblabs"
       - |
-        if [ ! -f '.cache/yum-devtools-check-ran' ]; then
-          yum grouplist 'Development Tools' &> .cache/yum-devtools-check
-          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < .cache/yum-devtools-check > /dev/null)"
+        if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+          yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
           if [ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]; then
             sudo yum groupinstall -y 'Development Tools'
           fi
-          touch .cache/yum-devtools-check-ran
+          touch "$HOME/.config/mblabs/yum-devtools-check-ran"
         fi
         if ! rpm --quiet --query curl file git procps-ng; then
+          .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
           sudo yum install -y curl file git procps-ng
         fi
         if [ -f '/etc/os-release' ]; then
           source /etc/os-release
           if [ "$ID" == 'fedora' ] && [ "$VERSION_ID" -gt "29" ]; then
             if ! rpm --quiet --query libxcrypt-compat; then
+              .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
               sudo yum -y install libxcrypt-compat
             fi
           fi
@@ -198,6 +242,7 @@ tasks:
       - mkdir -p $HOME/.local/bin
       - export PATH=$PATH:$HOME/.local/bin
       - mv container-structure-test-linux-amd64 $HOME/.local/bin/container-structure-test
+      - .config/log info 'Added container-structure-test to ~/.local/bin - ensure "$HOME/.local/bin" is in the PATH variable'
     status:
       - type container-structure-test > /dev/null
 
@@ -213,7 +258,9 @@ tasks:
     cmds:
       - |
         if [ '{{OS}}' == 'darwin' ] && ! type gsed > /dev/null; then
+          .config/log info 'Installing GNU compatibility tools (i.e. `coreutils`)'
           brew install coreutils
+          .config/log success 'Successfully installed GNU compatibility tools (i.e. `coreutils`)'
         fi
     status:
       - '[ "{{OS}}" == "darwin" ] || type gsed > /dev/null'
@@ -247,6 +294,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: goodwithtech/r/dockle
+    status:
+      - type dockle > /dev/null
 
   exiftool:
     run: once
@@ -294,6 +343,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: anchore/grype/grype
+    status:
+      - type grype > /dev/null
 
   jq:
     run: once
@@ -308,6 +359,36 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: node
+
+  pipx:
+    run: once
+    cmds:
+      - task: pipx:{{OS}}
+    status:
+      - type pipx > /dev/null
+
+  pipx:darwin:
+    deps:
+      - brew
+    cmds:
+      - .config/log info 'Installing pipx and running `pipx ensurepath`'
+      - brew install pipx
+      - pipx ensurepath
+      - .config/log success 'Successfully installed pipx'
+
+  pipx:linux:
+    deps:
+      - :install:software:python
+    cmds:
+      - .config/log info 'Installing pipx and running `pipx ensurepath`'
+      - python3 -m pip install --user pipx
+      - python3 -m pipx ensurepath
+      - .config/log success 'Successfully installed pipx'
+
+  pipx:windows:
+    cmds:
+      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
+      - exit 1
 
   poetry:
     run: once
@@ -336,6 +417,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: hudochenkov/sshpass/sshpass
+    status:
+      - type sshpass > /dev/null
 
   tokei:
     run: once
@@ -350,6 +433,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: aquasecurity/trivy/trivy
+    status:
+      - type trivy > /dev/null
 
   vagrant:
     cmds:

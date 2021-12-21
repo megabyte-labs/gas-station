@@ -60,6 +60,7 @@ tasks:
     cmds:
       - curl -s https://gitlab.com/megabyte-labs/common/shared/-/raw/master/package.json > package-reference.json
       - |
+        .config/log info 'Ensuring package.json has shared settings'
         DEPS="$(jq -s '.[0].dependencies // {} * .[1].dependencies // {}' package-reference.json package.json)"
         DEV_DEPS="$(jq -s '.[0].devDependencies // {} * .[1].devDependencies // {}' package-reference.json package.json)"
         OPT_DEPS="$(jq -s '.[0].optionalDependencies // {} * .[1].optionalDependencies // {}' package-reference.json package.json)"
@@ -71,6 +72,7 @@ tasks:
           | fromjson) | .optionalDependencies = ($optDeps | fromjson) | .eslintConfig.extends = $eslint
           | .prettier = $prettier' package.json > "$TMP"
         mv "$TMP" package.json
+        .config/log success 'Successfully "primed" package.json'
       - rm package-reference.json
 
   update:taskfile:
@@ -78,6 +80,7 @@ tasks:
       - :install:software:yq
     cmds:
       - |
+        .config/log info 'Ensuring Taskfile.yml has correct variables'
         GROUP="$(jq -r '.blueprint.group' package.json)"
         SUBGROUP="$(jq -r '.blueprint.subgroup' package.json)"
         TASK_GROUP="$(yq eval '.vars.REPOSITORY_TYPE' Taskfile.yml)"
@@ -99,3 +102,4 @@ tasks:
           UPSTREAM='upstream:docs'
         fi
         yq e -i ".tasks.start.cmds[0].task = \"$UPSTREAM\"" Taskfile.yml
+        .config/log success 'Successfully ensured Taskfile.yml has correct variables'

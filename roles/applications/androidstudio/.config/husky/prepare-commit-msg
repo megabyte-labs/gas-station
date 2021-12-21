@@ -1,5 +1,4 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
 
 # @file .config/husky/prepare-commit-msg
 # @brief A git hook script for the `prepare-commit-msg` hook. Add the `-n` flag to bypass.
@@ -7,16 +6,14 @@
 # @arg $2 string The type of the `prepare-commit-msg` event. For a `git pull origin master`
 #   command, the event type is 'merge'.
 
-chmod +x .config/log
-
-if ! ps -o args=$PPID | grep -E -q ' -n | -n$'; then
+if [ -f "$(dirname "$0")/_/husky.sh" ]; then
+  . "$(dirname "$0")/_/husky.sh"
+  chmod +x .config/log
   if [ "$2" != 'merge' ]; then
-    if ps -o args=$PPID | grep -E -q ' --no-verify' ; then
-      .config/log info 'This git hook is configured to run even when --no-verify is used. In order to bypass this prompt, use the -n flag instead.'
-    fi
+    .config/log info 'This git hook is configured to run even when --no-verify is used. In order to bypass this prompt, use the -n flag instead.'
     .config/log info 'Opening a `git commit` dialog'
     exec < /dev/tty && pnpx git-cz --hook || true
   fi
 else
-  .config/log warn 'Bypassing `prepare-commit-msg` git hook because the -n flag was present'
+  .config/log warn 'Husky pre-commit hooks are currently not properly setup.'
 fi

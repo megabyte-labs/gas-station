@@ -8,11 +8,16 @@ if [[ -d "$PWD/roles" ]]; then
 		echo "Changing directory to $FOLDER"
 		cd "$FOLDER" || exit
 		TMP="$(mktemp)"
-		jq '.type = "module"' package.json > "$TMP"
+    DIRRR="$(basename $PWD)"
+    GITHUBY="https://github.com/ProfessorManhattan/ansible-$DIRRR"
+    GITLABY="https://gitlab.com/megabyte-labs/ansible-roles/$DIRRR"
+		jq --arg dirrr "$DIRRR" --arg githuby "$GITHUBY" --arg gitlaby "$GITLABY" '.type = "module" | .blueprint.group = "ansible" | .blueprint.subgroup = "role" | .slug = $dirrr | .repository.github = $githuby | .repository.gitlab = $gitlaby' package.json > "$TMP"
 		mv "$TMP" package.json
 		yq e -i '.galaxy_info.namespace = "professormanhattan"' meta/main.yml
-    cp ~/ansible/megabyte-labs/ansible-roles/androidstudio/Taskfile.yml .
-    cp -rf ~/ansible/megabyte-labs/ansible-roles/androidstudio/.config .
+    cp ~/gas-station/roles/applications/androidstudio/Taskfile.yml .
+    rm -rf .config
+    cp -rf ~/testy .config
+    yq e '.dependencies' meta/main.yml >> ~/gas-station/total
 	done
 else
 	echo "ERROR: This script should be run from the root of the repository where the roles directory resides."

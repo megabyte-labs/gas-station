@@ -24,6 +24,7 @@ tasks:
       - if [ ! -f ansible.cfg.bak ]; then cp ansible.cfg ansible.cfg.bak; fi
       - cp test/{{OS}}/ansible.cfg ansible.cfg
       - |
+        .config/log info 'Prompting for sudo password (required)'
         {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass test/{{OS}}/test.yml
       - mv ansible.cfg.bak ansible.cfg
       - rm inventory
@@ -53,8 +54,12 @@ tasks:
         SCENARIO="Linux"
         if grep -Ril 'community.general.snap:' ./tasks; then
           SCENARIO="Snap"
+          .config/log warn 'Running Docker Molecule tests on the Docker containers that are compatible with `snap` since the role has references to `snap`'
+        else
+          .config/log info 'Running full Docker Molecule test'
         fi
         MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s docker
+        .config/log success 'Finished running Docker Molecule test'
 
   molecule:docker:cli:
     deps:
@@ -62,7 +67,10 @@ tasks:
       - :install:software:docker
       - :install:software:sshpass
     cmds:
-      - MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker
+      - |
+        .config/log info 'Running Docker Molecule test on containers in the `{{.CLI_ARGS}}` group'
+        MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker
+        .config/log success 'Finished running the `{{.CLI_ARGS}}` Docker Molecule test'
 
   molecule:docker:matrix:
     deps:
@@ -78,8 +86,13 @@ tasks:
         SCENARIO="Linux"
         if grep -Ril 'community.general.snap:' ./tasks; then
           SCENARIO="Snap"
+          .config/log warn 'Running Docker Molecule tests on the Docker containers that are compatible with `snap` since the role has references to `snap`'
+        else
+          .config/log info 'Running full Docker Molecule test'
         fi
+        .config/log info 'Piping results to `molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt` for compatibility chart data'
         PY_COLORS=0 MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s "$SCENARIO" 2>&1 | tee "molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt"
+        .config/log success 'Finished running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt`'
 
   molecule:docker:prompt:
     interactive: true
@@ -125,7 +138,9 @@ tasks:
       OBJC_DISABLE_INITIALIZE_FORK_SAFETY: YES
     cmds:
       - |
+        .config/log info 'Running full VirtualBox Molecule E2E test'
         {{.PYTHON_HANDLE}}molecule test
+        .config/log success 'Finished running full VirtualBox Molecule E2E test'
 
   molecule:virtualbox:cli:
     deps:
@@ -134,7 +149,10 @@ tasks:
       - :install:software:vagrant
       - :install:software:virtualbox
     cmds:
-      - MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test
+      - |
+        .config/log info 'Running VirtualBox Molecule test on platforms in the `{{.CLI_ARGS}}` group'
+        MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test
+        .config/log success 'Finished running `{{.CLI_ARGS}}` VirtualBox Molecule test'
 
   molecule:virtualbox:converge:
     deps:
@@ -174,7 +192,9 @@ tasks:
   molecule:virtualbox:converge:cli:
     cmds:
       - |
+        .config/log info 'Running `{{.CLI_ARGS}}` VirtualBox Molecule converge play - this will leave the VirtualBox instance open for inspection'
         MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge
+        .config/log success 'Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play - you are encouraged to inspect the VM'
 
   molecule:virtualbox:converge:prompt:
     interactive: true
@@ -194,7 +214,10 @@ tasks:
         sh: date '+%Y-%m-%d'
     cmds:
       - mkdir -p molecule/.results
-      - PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test | tee 'molecule/.results/{{.MOLECULE_DATE}}-default.txt'
+      - |
+        .config/log info 'Running full E2E test with VirtualBox - results will be saved to `molecule/.results/{{.MOLECULE_DATE}}-default.txt`'
+        PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test | tee 'molecule/.results/{{.MOLECULE_DATE}}-default.txt'
+        .config/log success 'Finished running full E2E test - `molecule/.results/{{.MOLECULE_DATE}}-default.txt` contains the results'
 
   molecule:virtualbox:prompt:
     deps:
@@ -251,7 +274,9 @@ tasks:
 
   vagrant:cli:
     cmds:
-      - vagrant up {{.CLI_ARGS}}
+      - |
+        .config/log info 'Running `vagrant up {{.CLI_ARGS}}`'
+        vagrant up {{.CLI_ARGS}}
 
   vagrant:prompt:
     deps:

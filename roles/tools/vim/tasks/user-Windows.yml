@@ -17,3 +17,22 @@
   become_user: "{{ user.username }}"
   ansible.windows.win_shell: 'vim +"PlugInstall --sync" +qa'
   when: not plugin_stat.stat.exists
+
+- name: Ensure '%USERPROFILE%/vimfiles/colors/' folder is created
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\vimfiles\colors'
+    state: directory
+
+- name: Ensure Themer theme file is copied
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    src: themer.vim
+    dest: '%USERPROFILE%\vimfiles\colors\themer.vim'
+
+- name: Ensure Themer theme is configured as default
+  become_user: "{{ user.username }}"
+  community.windows.win_lineinfile:
+    path: '%USERPROFILE%\_vimrc'
+    regex: '^colorscheme'
+    line: 'colorscheme themer'

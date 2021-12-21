@@ -46,6 +46,7 @@ tasks:
       - :install:software:python
     run: once
     cmds:
+      - task: requirements:poetry:prereqs
       - task: requirements:poetry
       - task: :{{if eq .REPOSITORY_TYPE "ansible"}}ansible:galaxy:requirements{{else}}donothing{{end}}
     status:
@@ -65,3 +66,18 @@ tasks:
     preconditions:
       - sh: test -f pyproject.toml
         msg: The `pyproject.toml` file is missing!
+
+  requirements:poetry:prereqs:
+    vars:
+      GCC5_MISSING_MESSAGE: It looks like your system is missing gcc-5 but gcc is available. You will be prompted
+        for a password to run `sudo ln -s /bin/gcc /bin/gcc-5`
+    cmds:
+      - |
+        if ! which gcc-5 > /dev/null; then
+          if which gcc; then
+            .config/log info '{{.GCC5_MISSING_MESSAGE}}'
+            sudo ln -s /bin/gcc /bin/gcc-5
+          else
+            .config/log warn '`gcc` is missing.'
+          fi
+        fi

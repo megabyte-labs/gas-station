@@ -1,0 +1,33 @@
+---
+dist: focal
+os: linux
+language: python
+python:
+  - "3.8"
+git:
+  submodules: false
+
+jobs:
+  include:
+    - name: Ubuntu 20.04 (ARM64)
+      os: linux
+      dist: focal
+      arch: arm64
+      language: python
+      python:
+        - 3.8
+      before_install:
+        - python --version
+        - pip3 install ansible
+        - ansible --version
+        - ansible-galaxy install -r requirements.yml
+      script:
+        - cp tests/ansible.cfg ansible.cfg
+        - cp tests/inventory inventory
+        - cp tests/test.yml main.yml
+        - ROLE_FOLDER=$(basename "$PWD")
+        - sed -i "s/mackup/${ROLE_FOLDER}/g" main.yml
+        - ansible-playbook main.yml
+
+notifications:
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/

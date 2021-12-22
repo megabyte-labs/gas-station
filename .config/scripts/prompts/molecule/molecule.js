@@ -15,8 +15,8 @@ async function promptForTestType() {
   const DECORATION_LENGTH = 2
 
   const descriptionMap = [
-    'VirtualBox (Headless)',
-    'VirtualBox (Desktop)',
+    'Headless VirtualBox',
+    'Desktop VirtualBox',
     'Docker',
     'Google Cloud Platform',
     'Local',
@@ -86,11 +86,11 @@ async function run() {
   const testType = await promptForTestType()
   if (testType.includes('local')) {
     execSync(`task ansible:test:local`, { stdio: 'inherit' })
-  } else if (testType.includes('(headless)')) {
+  } else if (testType.includes('headless')) {
     execSync(`task ansible:test:molecule:virtualbox:prompt`, { stdio: 'inherit' })
   } else if (testType.includes('docker')) {
     execSync(`task ansible:test:molecule:docker:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('(desktop)')) {
+  } else if (testType.includes('desktop')) {
     execSync(`task ansible:test:molecule:virtualbox:converge:prompt`, { stdio: 'inherit' })
   } else if (testType.includes('ssh')) {
     execSync(`task ansible:test:molecule:ssh:prompt`, { stdio: 'inherit' })

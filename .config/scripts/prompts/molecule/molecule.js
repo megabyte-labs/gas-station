@@ -18,9 +18,9 @@ async function promptForTestType() {
     'VirtualBox (Headless)',
     'VirtualBox (Desktop)',
     'Docker',
+    'Google Cloud Platform',
     'Local',
-    'SSH',
-    'Google Cloud Platform'
+    'SSH'
   ]
   const choices = execSync(`yq eval -o=j '.description' molecule/*/molecule.yml`)
     .toString()

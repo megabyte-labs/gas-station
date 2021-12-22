@@ -14,7 +14,14 @@ const MENU_ENTRY_TITLE_WIDTH = 24
 async function promptForTestType() {
   const DECORATION_LENGTH = 2
 
-  const descriptionMap = ['VirtualBox (Headless)', 'VirtualBox (Desktop)', 'Docker', 'Local', 'SSH']
+  const descriptionMap = [
+    'VirtualBox (Headless)',
+    'VirtualBox (Desktop)',
+    'Docker',
+    'Local',
+    'SSH',
+    'Google Cloud Platform'
+  ]
   const choices = execSync(`yq eval -o=j '.description' molecule/*/molecule.yml`)
     .toString()
     .split('\n')
@@ -69,6 +76,13 @@ async function run() {
     '\nRuns the Ansible play on a remote machine after connecting via SSH. This requires that you' +
       ' already have the SSH credentials configured (i.e. ~/.ssh is setup).'
   )
+  logRaw(chalk.bold('6. Google Cloud Platform'))
+  logRaw(
+    '\nProvisions Google Cloud Platform instances and tests the Ansible play on them. This test requires' +
+      ' that you have access to a GCP account and that the proper credentials are in place. For help,' +
+      ' see [this guide](https://github.com/ProfessorManhattan/molecule-ansible-google-cloud/blob/master/README.md).' +
+      ' Without the environment variables mentioned in the guide set, this task will fail.'
+  )
   const testType = await promptForTestType()
   if (testType.includes('local')) {
     execSync(`task ansible:test:local`, { stdio: 'inherit' })
@@ -80,6 +94,8 @@ async function run() {
     execSync(`task ansible:test:molecule:virtualbox:converge:prompt`, { stdio: 'inherit' })
   } else if (testType.includes('ssh')) {
     execSync(`task ansible:test:molecule:ssh:prompt`, { stdio: 'inherit' })
+  } else if (testType.includes('google')) {
+    execSync(`task ansible:test:molecule:gcp`, { stdio: 'inherit' })
   }
 }
 

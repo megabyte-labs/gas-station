@@ -101,6 +101,55 @@ tasks:
     cmds:
       - node .config/scripts/prompts/molecule/docker.js
 
+  molecule:gcp:
+    deps:
+      - :install:python:requirements
+      - :install:software:gcloud
+    cmds:
+      - task: molecule:gcp:preconditions
+      - |
+        .config/log info 'Running Google Cloud Platform Molecule test'
+        {{.PYTHON_HANDLE}}molecule test -s gcp
+        .config/log success 'Finished running Google Cloud Platform Molecule test'
+
+  molecule:gcp:matrix:
+    deps:
+      - :install:modules:local
+      - :install:software:gcloud
+    vars:
+      MOLECULE_DATE:
+        sh: date '+%Y-%m-%d'
+    cmds:
+      - task: molecule:gcp:preconditions
+      - mkdir -p molecule/.results
+      - |
+        .config/log info 'Piping results to `molecule/.results/{{.MOLECULE_DATE}}-gcp.txt` for compatibility chart data'
+        PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test -s gcp 2>&1 | tee "molecule/.results/{{.MOLECULE_DATE}}-gcp.txt"
+        .config/log success 'Finished running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-gcp.txt`'
+      - |
+        RESULTS="molecule/.results/{{.MOLECULE_DATE}}-gcp.txt"
+        PLATFORM_LENGTH="$(yq e '.platforms | length' molecule/gcp/molecule.yml)"
+        INDEX=0
+        while [ $INDEX -lt $PLATFORM_LENGTH ]; do
+          NAME="$(yq e '.platforms['$INDEX'].name' molecule/gcp/molecule.yml)"
+          ALIAS="$(yq e '.platforms['$INDEX'].alias' molecule/gcp/molecule.yml)"
+          sed -i -- 's/'"$NAME"'/'"$ALIAS"'/g' "$RESULTS"
+          INDEX=$((INDEX+1))
+        done
+
+  molecule:gcp:preconditions:
+    preconditions:
+      - sh: '[ -n "$GCE_SERVICE_ACCOUNT_EMAIL" ]'
+        msg: The GCE_SERVICE_ACCOUNT_EMAIL environment variable must be set (e.g. export
+          GCE_SERVICE_ACCOUNT_EMAIL=molecule@megabyte-labs.iam.gserviceaccount.com).
+      - sh: '[ -n "$GCE_CREDENTIALS_FILE" ]'
+        msg: The GCE_CREDENTIALS_FILE environment variable must be set and pointing to the GCP
+          service account JSON key (e.g. export GCE_CREDENTIALS_FILE=~/.config/gcp.json).
+      - sh: test -f "$GCE_CREDENTIALS_FILE"
+        msg: The GCE_CREDENTIALS_FILE environment variable is defined but is not pointing to a file that exists.
+      - sh: '[ -n "$GCE_PROJECT_ID" ]'
+        msg: The GCE_PROJECT_ID environment variable must be set (e.g. export GCE_PROJECT_ID=megabyte-labs)
+
   molecule:ssh:cli:
     deps:
       - :install:python:requirements

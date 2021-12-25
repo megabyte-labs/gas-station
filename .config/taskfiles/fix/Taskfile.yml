@@ -72,15 +72,17 @@ tasks:
     cmds:
       - |
         function misc() {
-          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1" &
-          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1" &
+          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1"
+          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1"
         }
         {{if .CLI_ARGS}}
           misc '{{.CLI_ARGS}}'
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f -print0 | xargs -0 -r -n1 misc
+          while read PATHH; do
+            misc "$PATHH" &
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f)
+          wait
         {{end}}
-        wait
 
   packer:
     deps:
@@ -276,10 +278,11 @@ tasks:
         {{if .CLI_ARGS}}
           yamlDashes '{{.CLI_ARGS}}'
         {{else}}
-          for YML_FILE in `find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.yml' -o -name '*.yaml' \)`; do
+          while read YML_FILE; do
             yamlDashes "$YML_FILE" &
-          done
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.yml' -o -name '*.yaml' \))
           wait
+        {{end}}
         {{end}}
 
   yaml:order:

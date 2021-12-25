@@ -38,6 +38,8 @@ async function promptForDesktop() {
 
 /**
  * Main script logic
+ *
+ * @returns {Promise} Promise that resolves to an execSync
  */
 async function run() {
   logInstructions(
@@ -50,7 +52,13 @@ async function run() {
       ' be the latest version.'
   )
   const environment = await promptForDesktop()
-  execSync(`task ansible:test:molecule:virtualbox:converge:cli -- ${environment}`, { stdio: 'inherit' })
+  // eslint-disable-next-line functional/no-try-statement
+  try {
+    return execSync(`task ansible:test:molecule:virtualbox:converge:cli -- ${environment}`, { stdio: 'inherit' })
+  } catch {
+    // eslint-disable-next-line no-process-exit
+    return process.exit(1)
+  }
 }
 
 run()

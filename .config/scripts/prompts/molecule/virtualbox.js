@@ -37,6 +37,8 @@ async function promptForGroup() {
 
 /**
  * Main script logic
+ *
+ * @returns {Promise} Promise that resolves to an execSync
  */
 async function run() {
   logInstructions(
@@ -48,7 +50,13 @@ async function run() {
       ' of this type of test have the final say.'
   )
   const group = await promptForGroup()
-  execSync(`task ansible:test:molecule:virtualbox:cli -- ${group}`, { stdio: 'inherit' })
+  // eslint-disable-next-line functional/no-try-statement
+  try {
+    return execSync(`task ansible:test:molecule:virtualbox:cli -- ${group}`, { stdio: 'inherit' })
+  } catch {
+    // eslint-disable-next-line no-process-exit
+    return process.exit(1)
+  }
 }
 
 run()

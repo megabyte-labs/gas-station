@@ -1,0 +1,43 @@
+---
+- name: Ensure rng-tools is installed
+  package:
+    name: rng-tools
+    state: present
+  when: (ansible_kernel.split('-'))[0] < "5.6"
+
+- name: Configure urandom
+  lineinfile:
+    path: /etc/default/rng-tools
+    line: 'HRNGDEVICE=/dev/urandom'
+    create: true
+    mode: 0600
+  when: (ansible_kernel.split('-'))[0] < "5.6"
+
+- name: Ensure libpam-pwquality is installed
+  apt:
+    name: libpam-pwquality
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure PAM is configured
+  lineinfile:
+    path: /etc/pam.d/common-password
+    regex: '^(password\s+requisite\s+pam_pwquality.so)(.*)$'
+    line: 'password        requisite                       pam_pwquality.so retry=3 minlen=10 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 maxrepeat=3
+      gecoschec'
+    create: true
+    backup: true
+    mode: 0644
+
+- name: Udpate fstab to secure /proc
+  lineinfile:
+    path: /etc/fstab
+    line: 'proc     /proc     proc     defaults,hidepid=2     0     0'
+    backup: true
+    mode: 0644
+
+- name: Ensure /proc is remounted
+  ansible.posix.mount:
+    path: /proc
+    opts: hidepid=2
+    state: remounted

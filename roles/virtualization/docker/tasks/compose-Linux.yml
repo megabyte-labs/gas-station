@@ -1,24 +1,44 @@
 ---
 - name: Install Docker Compose on x86_64 system
   block:
-    - name: Check current docker-compose version.
+    - name: Check current docker-compose version
       command: docker-compose --version
       register: docker_compose_current_version
       changed_when: false
       failed_when: false
-    - name: Delete existing docker-compose version if it's different.
+    - name: "Detect the latest docker_compose version"
+      uri:
+        url: https://api.github.com/repos/docker/compose/releases/latest
+      register: docker_compose_latest_release_tag
+    - name: "Determine whether or not the latest version of docker_compose is already installed"
+      set_fact:
+        install_update_compose: "{{ docker_compose_current_version.stdout is not defined \
+          or (docker_compose_current_version.stdout is defined and \
+          (docker_compose_latest_release_tag.json.tag_name | replace('v','')) not in docker_compose_current_version.stdout) }}"
+    - name: Remove older docker-compose version
       file:
         path: "{{ docker_compose_path }}"
         state: absent
-      when:
-        - docker_compose_current_version.stdout is defined
-        - docker_compose_version not in docker_compose_current_version.stdout
-    - name: Install Docker Compose (if configured).
+      when: install_update_compose
+    - name: "Fetch CHECKSUMS file of docker_compose installer"
+      uri:
+        url: https://github.com/docker/compose/releases/download/{{ docker_compose_latest_release_tag.json.tag_name }}/docker-compose-Linux-x86_64.sha256
+        return_content: true
+      register: docker_compose_checksum_file
+      when: install_update_compose
+    - name: "Find the Checksum of docker_compose installer"
+      set_fact:
+        docker_compose_checksum: "{{ docker_compose_checksum_file.content | regex_search('.*docker-compose-linux-x86_64') | \
+          regex_replace('  docker-compose-linux-x86_64','') }}"
+      when: install_update_compose
+    - name: Install Docker Compose (if configured)
       become: true
       get_url:
-        url: https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64
+        url: https://github.com/docker/compose/releases/download/{{ docker_compose_latest_release_tag.json.tag_name }}/docker-compose-Linux-x86_64
         dest: "{{ docker_compose_path }}"
+        checksum: "sha256:{{ docker_compose_checksum }}"
         mode: 0755
+      when: install_update_compose
   when: ansible_architecture == 'x86_64'
 
 - name: Install Docker Compose on non-x86_64 system

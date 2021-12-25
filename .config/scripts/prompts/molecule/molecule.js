@@ -15,8 +15,8 @@ async function promptForTestType() {
   const DECORATION_LENGTH = 2
 
   const descriptionMap = [
-    'Headless VirtualBox',
-    'Desktop VirtualBox',
+    'VirtualBox:Headless',
+    'VirtualBox:Desktop',
     'Docker',
     'Google Cloud Platform',
     'Local',
@@ -32,7 +32,7 @@ async function promptForTestType() {
     )
   const choicesDecorated = choices.map((choice) => ({
     name: choice,
-    short: choice.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+    short: choice.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
   }))
   const response = await inquirer.prompt([
     {
@@ -52,9 +52,9 @@ async function promptForTestType() {
 // eslint-disable-next-line max-statements, require-jsdoc
 async function run() {
   logInstructions('Molecule Test', 'There are currently five different options for running Molecule tests.\n\n')
-  logRaw(chalk.bold('1. VirtualBox-Headless:'))
+  logRaw(chalk.bold('1. VirtualBox:Headless:'))
   logRaw('\nRuns tests using VirtualBox headless VMs. It is the test type used to generate the compatibility chart.\n')
-  logRaw(chalk.bold('2. VirtualBox-Desktop:'))
+  logRaw(chalk.bold('2. VirtualBox:Desktop:'))
   logRaw(
     '\nRuns tests using a VirtualBox desktop version VM. Use this type of test' +
       ' to run the Ansible play and then open the VirtualBox VM to smoke test the software.\n'
@@ -84,17 +84,17 @@ async function run() {
       ' Without the environment variables mentioned in the guide set, this task will fail.'
   )
   const testType = await promptForTestType()
-  if (testType.includes('local')) {
+  if (testType.includes('Local')) {
     execSync(`task ansible:test:local`, { stdio: 'inherit' })
-  } else if (testType.includes('headless')) {
+  } else if (testType.includes('Headless')) {
     execSync(`task ansible:test:molecule:virtualbox:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('docker')) {
+  } else if (testType.includes('Docker')) {
     execSync(`task ansible:test:molecule:docker:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('desktop')) {
+  } else if (testType.includes('Desktop')) {
     execSync(`task ansible:test:molecule:virtualbox:converge:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('ssh')) {
+  } else if (testType.includes('SSH')) {
     execSync(`task ansible:test:molecule:ssh:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('google')) {
+  } else if (testType.includes('Google')) {
     execSync(`task ansible:test:molecule:gcp`, { stdio: 'inherit' })
   }
 }

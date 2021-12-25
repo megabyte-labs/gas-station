@@ -21,7 +21,7 @@ async function promptForGroup() {
   )
   const choicesDecorated = choices.map((choice) => ({
     name: choice,
-    short: choice.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+    short: choice.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
   }))
   const response = await inquirer.prompt([
     {
@@ -32,7 +32,7 @@ async function promptForGroup() {
     }
   ])
 
-  return response.group.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+  return response.group.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
 }
 
 /**

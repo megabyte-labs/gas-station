@@ -1,0 +1,15 @@
+---
+- name: Ensure smbd is started # noqa 301
+  command: launchctl load -w /System/Library/LaunchDaemons/com.apple.smbd.plist
+
+- name: Configure SMB File sharing # noqa 305 503
+  shell: "sharing -a {{ share.path }} -n {{ share.id }} -g {{ '001' if share.public else '000' }}"
+  loop: "{{ samba_shares }}"
+  loop_control:
+    label: "{{ share.id }}"
+    loop_var: share
+  when:
+    - samba_allowed_hosts is defined
+    - samba_netbios_name is defined
+    - samba_workgroup is defined
+    - samba_shares is defined

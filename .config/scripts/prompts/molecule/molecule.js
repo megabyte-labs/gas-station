@@ -43,7 +43,7 @@ async function promptForTestType() {
     }
   ])
 
-  return response.testType.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+  return response.testType.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
 }
 
 /**

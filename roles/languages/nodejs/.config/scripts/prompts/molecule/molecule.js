@@ -48,8 +48,10 @@ async function promptForTestType() {
 
 /**
  * Main script logic
+ *
+ * @returns {Promise} Promise that resolves to an execSync call that runs a Taskfile.yml task
  */
-// eslint-disable-next-line max-statements, require-jsdoc
+// eslint-disable-next-line max-statements, require-jsdoc, max-lines-per-function
 async function run() {
   logInstructions('Molecule Test', 'There are currently five different options for running Molecule tests.\n\n')
   logRaw(chalk.bold('1. VirtualBox:Headless:'))
@@ -84,18 +86,28 @@ async function run() {
       ' Without the environment variables mentioned in the guide set, this task will fail.'
   )
   const testType = await promptForTestType()
-  if (testType.includes('Local')) {
-    execSync(`task ansible:test:local`, { stdio: 'inherit' })
-  } else if (testType.includes('Headless')) {
-    execSync(`task ansible:test:molecule:virtualbox:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('Docker')) {
-    execSync(`task ansible:test:molecule:docker:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('Desktop')) {
-    execSync(`task ansible:test:molecule:virtualbox:converge:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('SSH')) {
-    execSync(`task ansible:test:molecule:ssh:prompt`, { stdio: 'inherit' })
-  } else if (testType.includes('Google')) {
-    execSync(`task ansible:test:molecule:gcp`, { stdio: 'inherit' })
+
+  // eslint-disable-next-line functional/no-try-statement
+  try {
+    if (testType.includes('Local')) {
+      return execSync(`task ansible:test:molecule:local`, { stdio: 'inherit' })
+    } else if (testType.includes('Headless')) {
+      return execSync(`task ansible:test:molecule:virtualbox:prompt`, { stdio: 'inherit' })
+    } else if (testType.includes('Docker')) {
+      return execSync(`task ansible:test:molecule:docker:prompt`, { stdio: 'inherit' })
+    } else if (testType.includes('Desktop')) {
+      return execSync(`task ansible:test:molecule:virtualbox:converge:prompt`, { stdio: 'inherit' })
+    } else if (testType.includes('SSH')) {
+      return execSync(`task ansible:test:molecule:ssh:prompt`, { stdio: 'inherit' })
+    } else if (testType.includes('Google')) {
+      return execSync(`task ansible:test:molecule:gcp`, { stdio: 'inherit' })
+    }
+
+    // eslint-disable-next-line no-process-exit
+    return process.exit(1)
+  } catch {
+    // eslint-disable-next-line no-process-exit
+    return process.exit(1)
   }
 }
 

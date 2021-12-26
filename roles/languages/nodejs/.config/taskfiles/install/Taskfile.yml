@@ -75,7 +75,7 @@ tasks:
         }
         chmod +x .config/log
         chmod +x .config/scripts/lib/semver-compare.sh
-        for PATTERN in {{.NPM_KEEP_UPDATED}}; do
+        for PATTERN in {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.NPM_KEEP_UPDATED}}{{end}}; do
            while read PATHH; do
             if [ -f "$PATHH/package.json" ]; then
               PKG="$(echo $PATHH | sed 's/.\/node_modules\///')"
@@ -94,7 +94,11 @@ tasks:
           {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
           .config/log success 'Successfully updated to the following - `'"$PACKAGE_LIST"'`'
         else
+          {{if .CLI_ARGS}}
+          .config/log info '`{{.CLI_ARGS}}` is already the latest version'
+          {{else}}
           .config/log info "NPM packages configured to sync with latest version are all up-to-date"
+          {{end}}
         fi
 
   modules:prompt:
@@ -145,7 +149,7 @@ tasks:
               .config/log success 'Successfully installed `tslib`'
             fi
           else
-            task install:modules:local:sync:package -- "tslib"
+            task install:modules:local:sync -- "tslib"
           fi
         fi
     sources:

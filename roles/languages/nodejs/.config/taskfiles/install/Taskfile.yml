@@ -62,33 +62,37 @@ tasks:
   modules:local:sync:
     cmds:
       - |
-        PACKAGE_LIST=""
-        REFRESH_PACKAGES="false"
+        TMP_REFRESH="$(mktemp)"
+        TMP_LIST="$(mktemp)"
         function updateAvailable() {
           LATEST="$(npm view $1 version)"
           LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
           COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
           if [ "$COMPARE" == '-1' ]; then
             .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
-            REFRESH_PACKAGES="true"
+            echo "true" > "$TMP_REFRESH"
           fi
         }
         chmod +x .config/log
         chmod +x .config/scripts/lib/semver-compare.sh
         for PATTERN in {{.NPM_KEEP_UPDATED}}; do
-          find ./node_modules/$PATTERN -maxdepth 0 | while read PATHH; do
+           while read PATHH; do
             if [ -f "$PATHH/package.json" ]; then
               PKG="$(echo $PATHH | sed 's/.\/node_modules\///')"
-              PACKAGE_LIST="$PACKAGE_LIST ${PKG}@latest"
+              PACKAGE_LIST="$(cat "$TMP_LIST") ${PKG}@latest"
+              echo "$PACKAGE_LIST" > "$TMP_LIST"
               updateAvailable "$PKG" &
             fi
-          done
+          done < <(find ./node_modules/$PATTERN -maxdepth 0)
         done
         wait
+        PACKAGE_LIST="$(cat "$TMP_LIST")"
+        REFRESH_PACKAGES="$(cat $TMP_REFRESH)"
         if [ "$REFRESH_PACKAGES" == 'true' ]; then
+          PACKAGE_LIST="$(echo $PACKAGE_LIST | sed 's/^.//')"
           .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
-          {{.NPM_PROGRAM_LOCAL}} update "$PACKAGE_LIST"
-          .config/log success "Successfully ensured the following NPM packages are the latest version - `$PACKAGE_LIST`"
+          {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
+          .config/log success 'Successfully updated to the following - `'"$PACKAGE_LIST"'`'
         else
           .config/log info "NPM packages configured to sync with latest version are all up-to-date"
         fi
@@ -112,7 +116,7 @@ tasks:
         proselint python-vagrant pywinrm
     cmds:
       - |
-        for PKG of {{.PIPX_PACKAGES}}; do
+        for PKG in {{.PIPX_PACKAGES}}; do
           if ! type "$PKG" > /dev/null; then
             .config/log info "Ensuring $PKG is installed"
             pipx install "$PKG" &
@@ -122,6 +126,7 @@ tasks:
         done
         wait
         .config/log success 'Successfully preloaded commonly used Python packages'
+
   tslib:
     env:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions

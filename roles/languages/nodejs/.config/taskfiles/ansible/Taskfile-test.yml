@@ -29,6 +29,11 @@ tasks:
       - mv ansible.cfg.bak ansible.cfg
       - rm inventory
 
+  molecule:dependencies:
+    cmds:
+      - ansible-galaxy install --ignore-errors -r requirements.yml
+      - task: :symlink:{{.REPOSITORY_SUBTYPE}}
+
   molecule:docker:
     deps:
       - :install:python:requirements
@@ -59,7 +64,11 @@ tasks:
           .config/log info 'Running full Docker Molecule test'
         fi
         MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s docker
-        .config/log success 'Finished running Docker Molecule test'
+        if [ $? != '0' ]; then
+          .config/log error 'Molecule test finished with errors'
+        else
+          .config/log success 'Successfully ran Docker Molecule test'
+        fi
 
   molecule:docker:cli:
     deps:
@@ -70,7 +79,11 @@ tasks:
       - |
         .config/log info 'Running Docker Molecule test on containers in the `{{.CLI_ARGS}}` group'
         MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker
-        .config/log success 'Finished running the `{{.CLI_ARGS}}` Docker Molecule test'
+        if [ $? != '0' ]; then
+          .config/log error 'The `{{.CLI_ARGS}}` Docker Molecule test finished with errors'
+        else
+          .config/log success 'Successfully ran the `{{.CLI_ARGS}}` Docker Molecule test'
+        fi
 
   molecule:docker:matrix:
     deps:
@@ -92,7 +105,11 @@ tasks:
         fi
         .config/log info 'Piping results to `molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt` for compatibility chart data'
         PY_COLORS=0 MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s "$SCENARIO" 2>&1 | tee "molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt"
-        .config/log success 'Finished running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt`'
+        if [ $? != '0' ]; then
+          .config/log error 'There were errors while running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt`'
+        else
+          .config/log success 'Finished running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-$SCENARIO.txt`'
+        fi
 
   molecule:docker:prompt:
     interactive: true
@@ -110,7 +127,11 @@ tasks:
       - |
         .config/log info 'Running Google Cloud Platform Molecule test'
         {{.PYTHON_HANDLE}}molecule test -s gcp
-        .config/log success 'Finished running Google Cloud Platform Molecule test'
+        if [ $? != '0' ]; then
+          .config/log error 'Finished running the Google Cloud Platform Molecule test (with errors)'
+        else
+          .config/log success 'Finished running Google Cloud Platform Molecule test'
+        fi
 
   molecule:gcp:matrix:
     deps:
@@ -125,7 +146,11 @@ tasks:
       - |
         .config/log info 'Piping results to `molecule/.results/{{.MOLECULE_DATE}}-gcp.txt` for compatibility chart data'
         PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test -s gcp 2>&1 | tee "molecule/.results/{{.MOLECULE_DATE}}-gcp.txt"
-        .config/log success 'Finished running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-gcp.txt`'
+        if [ $? != '0' ]; then
+          .config/log error 'Errors encountered while running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-gcp.txt`'
+        else
+          .config/log success 'Finished running the test - results are available at `molecule/.results/{{.MOLECULE_DATE}}-gcp.txt`'
+        fi
       - |
         RESULTS="molecule/.results/{{.MOLECULE_DATE}}-gcp.txt"
         PLATFORM_LENGTH="$(yq e '.platforms | length' molecule/gcp/molecule.yml)"
@@ -150,15 +175,36 @@ tasks:
       - sh: '[ -n "$GCE_PROJECT_ID" ]'
         msg: The GCE_PROJECT_ID environment variable must be set (e.g. export GCE_PROJECT_ID=megabyte-labs)
 
+  molecule:local:
+    cmds:
+      - node .config/scripts/prompts/molecule/local.js
+
+  molecule:local:test:
+    cmds:
+      - |
+        .config/log info 'Running Molecule test locally'
+        {{.PYTHON_HANDLE}}molecule test -s local
+        if [ $? != '0' ]; then
+          .config/log error 'There was an error while running the Molecule test locally'
+        else
+          .config/log success 'The local Molecule test was successful!'
+        fi
+
   molecule:ssh:cli:
     deps:
       - :install:python:requirements
     cmds:
-      - molecule test -s remote
+      - |
+        molecule test -s remote
+        if [ $? != '0' ]; then
+          .config/log error 'Errors encountered while running the remote Molecule test'
+        else
+          .config/log success 'Successfully ran the Molecule test on the SSH target'
+        fi
 
   molecule:ssh:prompt:
     deps:
-      - :install:local:modules
+      - :install:modules:local
     cmds:
       - node .config/scripts/prompts/molecule/ssh.js
 
@@ -189,7 +235,11 @@ tasks:
       - |
         .config/log info 'Running full VirtualBox Molecule E2E test'
         {{.PYTHON_HANDLE}}molecule test
-        .config/log success 'Finished running full VirtualBox Molecule E2E test'
+        if [ $? != '0' ]; then
+          .config/log error 'Errors were encountered while running the full VirtualBox Molecule E2E test'
+        else
+          .config/log success 'Finished running full VirtualBox Molecule E2E test'
+        fi
 
   molecule:virtualbox:cli:
     deps:
@@ -201,7 +251,11 @@ tasks:
       - |
         .config/log info 'Running VirtualBox Molecule test on platforms in the `{{.CLI_ARGS}}` group'
         MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test
-        .config/log success 'Finished running `{{.CLI_ARGS}}` VirtualBox Molecule test'
+        if [ $? != '0' ]; then
+          .config/log error 'Errors encountered while running the `{{.CLI_ARGS}}` VirtualBox Molecule test'
+        else
+          .config/log success 'Finished running `{{.CLI_ARGS}}` VirtualBox Molecule test'
+        fi
 
   molecule:virtualbox:converge:
     deps:
@@ -243,7 +297,11 @@ tasks:
       - |
         .config/log info 'Running `{{.CLI_ARGS}}` VirtualBox Molecule converge play - this will leave the VirtualBox instance open for inspection'
         MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge
-        .config/log success 'Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play - you are encouraged to inspect the VM'
+        if [ $? != '0' ]; then
+          .config/log error 'Errors were encountered while running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play'
+        else
+          .config/log success 'Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play - you are encouraged to inspect the VM'
+        fi
 
   molecule:virtualbox:converge:prompt:
     interactive: true
@@ -266,7 +324,11 @@ tasks:
       - |
         .config/log info 'Running full E2E test with VirtualBox - results will be saved to `molecule/.results/{{.MOLECULE_DATE}}-default.txt`'
         PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test | tee 'molecule/.results/{{.MOLECULE_DATE}}-default.txt'
-        .config/log success 'Finished running full E2E test - `molecule/.results/{{.MOLECULE_DATE}}-default.txt` contains the results'
+        if [ $? != '0' ]; then
+          .config/log error 'Errors were encountered while running the full E2E test - see `molecule/.results/{{.MOLECULE_DATE}}-default.txt` for details'
+        else
+          .config/log success 'Finished running full E2E test - `molecule/.results/{{.MOLECULE_DATE}}-default.txt` contains the results'
+        fi
 
   molecule:virtualbox:prompt:
     deps:

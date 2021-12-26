@@ -117,11 +117,11 @@ tasks:
           )
           .config/log success "Finished running bash command on $REPO_PATH"
         }
-        cat {{.REPOSITORY_LIST}} | while IFS= read -r REPO_DETAILS; do
+        cat {{.REPOSITORY_LIST}} | (while IFS= read -r REPO_DETAILS; do
           .config/log info "Executing logic on $REPO_DETAILS"
           execRepo "$REPO_DETAILS" &
         done
-        wait
+        wait)
 
   group:exec:prompt:
     interactive: true
@@ -153,13 +153,12 @@ tasks:
       - |
         .config/log info 'Recursively acquiring repository details from subgroups'
         SUBGROUPS="$(glab api groups/{{urlquery .CLI_ARGS}}/subgroups | jq -r '.[] | .full_path')"
-        echo "$SUBGROUPS"
         if [ -n "$SUBGROUPS" ]; then
-          echo "$SUBGROUPS" | while IFS= read -r SUBGROUP; do
+          echo "$SUBGROUPS" | (while IFS= read -r SUBGROUP; do
             task {{.TASK}} -- "$SUBGROUP" &
           done
+          wait)
         fi
-        wait
 
   ids:
     deps:

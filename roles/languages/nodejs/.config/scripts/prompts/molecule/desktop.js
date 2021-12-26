@@ -22,7 +22,7 @@ async function promptForDesktop() {
   )
   const choicesDecorated = choices.map((choice) => ({
     name: choice,
-    short: choice.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+    short: choice.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
   }))
   const response = await inquirer.prompt([
     {
@@ -33,11 +33,13 @@ async function promptForDesktop() {
     }
   ])
 
-  return response.operatingSystem.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+  return response.operatingSystem.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
 }
 
 /**
  * Main script logic
+ *
+ * @returns {Promise} Promise that resolves to an execSync
  */
 async function run() {
   logInstructions(
@@ -50,7 +52,13 @@ async function run() {
       ' be the latest version.'
   )
   const environment = await promptForDesktop()
-  execSync(`task ansible:test:molecule:virtualbox:converge:cli -- ${environment}`, { stdio: 'inherit' })
+  // eslint-disable-next-line functional/no-try-statement
+  try {
+    return execSync(`task ansible:test:molecule:virtualbox:converge:cli -- ${environment}`, { stdio: 'inherit' })
+  } catch {
+    // eslint-disable-next-line no-process-exit
+    return process.exit(1)
+  }
 }
 
 run()

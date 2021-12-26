@@ -21,7 +21,7 @@ async function promptForGroup() {
   )
   const choicesDecorated = choices.map((choice) => ({
     name: choice,
-    short: choice.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+    short: choice.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
   }))
   const response = await inquirer.prompt([
     {
@@ -32,11 +32,13 @@ async function promptForGroup() {
     }
   ])
 
-  return response.group.replace(LOG_DECORATOR_REGEX, '').toLowerCase().slice(DECORATION_LENGTH).split(' ')[0]
+  return response.group.replace(LOG_DECORATOR_REGEX, '').slice(DECORATION_LENGTH).split(' ')[0]
 }
 
 /**
  * Main script logic
+ *
+ * @returns {Promise} Promise that resolves to an execSync
  */
 async function run() {
   logInstructions(
@@ -48,7 +50,13 @@ async function run() {
       ' of this type of test have the final say.'
   )
   const group = await promptForGroup()
-  execSync(`task ansible:test:molecule:virtualbox:cli -- ${group}`, { stdio: 'inherit' })
+  // eslint-disable-next-line functional/no-try-statement
+  try {
+    return execSync(`task ansible:test:molecule:virtualbox:cli -- ${group}`, { stdio: 'inherit' })
+  } catch {
+    // eslint-disable-next-line no-process-exit
+    return process.exit(1)
+  }
 }
 
 run()

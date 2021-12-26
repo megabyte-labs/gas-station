@@ -167,7 +167,10 @@ tasks:
         {{if .CLI_ARGS}}
           {{.PYTHON_HANDLE}}black {{.CLI_ARGS}}
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \) -print0 | xargs -0 -r -n1 {{.PYTHON_HANDLE}}black
+          while read PATHH; do
+            {{.PYTHON_HANDLE}}black "$PATHH" &
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \))
+          wait
         {{end}}
 
   shell:

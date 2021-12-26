@@ -37,7 +37,7 @@ tasks:
       - |
         function compressImage() {
           if exiftool "$1" &> /dev/null; then
-            if (exiftool "$1" | grep Comment | grep tinypng-compressed) &> /dev/null; then
+            if (exiftool "$1" | grep Comment | grep tinypng-compressed) > /dev/null; then
               .config/log info '`'"$1"'` has already been compressed by TinyPNG'
             else
               if [ -f ~/.tinypng ]; then
@@ -46,7 +46,7 @@ tasks:
                 {{.NPX_HANDLE}}tinypng -k "{{.TINYPNG_API_KEY}}" "$1"
               fi
               .config/log "Adding 'tinypng-compressed' as a comment in the EXIF data"
-              exiftool -comment="tinypng-compressed" "$1"
+              exiftool -overwrite_original -comment="tinypng-compressed" "$1"
               .config/log success "Successfully compressed $1"
             fi
           else
@@ -60,7 +60,7 @@ tasks:
       - |
         function compressImage() {
           if exiftool "$1" &> /dev/null; then
-            if (exiftool "$1" | grep Comment | grep tinypng-compressed) &> /dev/null; then
+            if (exiftool "$1" | grep Comment | grep tinypng-compressed) > /dev/null; then
               .config/log info '`'"$1"'` has already been compressed by TinyPNG'
             else
               if [ -f ~/.tinypng ]; then
@@ -69,15 +69,16 @@ tasks:
                 {{.NPX_HANDLE}}tinypng -k "{{.TINYPNG_API_KEY}}" "$1"
               fi
               .config/log "Adding 'tinypng-compressed' as a comment in the EXIF data"
-              exiftool -comment="tinypng-compressed" "$1"
+              exiftool -overwrite_original -comment="tinypng-compressed" "$1"
               .config/log success "Successfully compressed $1"
             fi
           else
             .config/log error 'Failed to extract EXIF data from `$1` so the compression is being skipped'
           fi
         }
-        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.jpg' -o -name '*.png' \) -print0 |
-          xargs -0 -r -n1 compressImage
+        while read PATHH; do
+          compressImage "$PATHH"
+        done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.jpg' -o -name '*.png' \))
     sources:
       - '**/*.(jpg|png)'
 
@@ -112,6 +113,6 @@ tasks:
           .config/log success "Successfully resized ${ARGS_ARRAY[2]}"
         fi
     status:
-      - 'exiftool "${ARGS_ARRAY[2]}" | grep "Image Size" | grep "${ARGS_ARRAY[0]}x${ARGS_ARRAY[1]}'
+      - 'exiftool "${ARGS_ARRAY[2]}" | grep "Image Size" | grep "${ARGS_ARRAY[0]}x${ARGS_ARRAY[1]}"'
 
   resize:default: .config/log info "Interactive dialog coming eventually.."

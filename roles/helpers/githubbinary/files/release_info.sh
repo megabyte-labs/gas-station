@@ -6,10 +6,10 @@
 #----------------------------------------------------------------------------------------#
 
 find_file_name() {
-  ALL_NAMES=( $1 )
+  IFS=" " read -r -a ALL_NAMES <<< "$1"
   OS_FAMILY=$2
   BINARY_NAME=$3
-  PREFERRED_FORMAT=( $4 )
+  IFS=" " read -r -a PREFERRED_FORMAT <<< "$4"
 
   # Define the OS based Regex to be added to the final regex
   LINUX_REGEX="linux"
@@ -28,32 +28,33 @@ find_file_name() {
   if [[ $OS_FAMILY == 'linux' ]]; then
     OS_REGEX="$LINUX_REGEX"
     NON_OS_REGEX="^((?!$MAC_REGEX)(?!$WINDOWS_REGEX).)*$"
-    [[ -z "${PREFERRED_FORMAT[@]}" ]] && EXTN_REGEX=("${LINUX_EXTN_DEFAULT[@]}") || EXTN_REGEX=("${PREFERRED_FORMAT[@]}")
+    [[ -z "${PREFERRED_FORMAT[*]}" ]] && EXTN_REGEX=("${LINUX_EXTN_DEFAULT[@]}") || EXTN_REGEX=("${PREFERRED_FORMAT[@]}")
   elif [[ $OS_FAMILY == 'darwin' ]]; then
     OS_REGEX="$MAC_REGEX"
     NON_OS_REGEX="^((?!$LINUX_REGEX)(?!$WINDOWS_REGEX).)*$"
-    [[ -z "${PREFERRED_FORMAT[@]}" ]] && EXTN_REGEX=("${MAC_EXTN_DEFAULT[@]}") || EXTN_REGEX=("${PREFERRED_FORMAT[@]}")
+    [[ -z "${PREFERRED_FORMAT[*]}" ]] && EXTN_REGEX=("${MAC_EXTN_DEFAULT[@]}") || EXTN_REGEX=("${PREFERRED_FORMAT[@]}")
   elif [[ $OS_FAMILY == 'win32nt' ]]; then
     NO_EXTN_REGEX="^$BINARY_NAME((?!(\.[a-zA-Z]{2,3})).)*(\.exe)+$"
     OS_REGEX="$WINDOWS_REGEX"
     NON_OS_REGEX="^((?!$MAC_REGEX)(?!$LINUX_REGEX).)*$"
-    [[ -z "${PREFERRED_FORMAT[@]}" ]] && EXTN_REGEX=("${WINDOWS_EXTN_DEFAULT[@]}") || EXTN_REGEX=("${PREFERRED_FORMAT[@]}")
+    [[ -z "${PREFERRED_FORMAT[*]}" ]] && EXTN_REGEX=("${WINDOWS_EXTN_DEFAULT[@]}") || EXTN_REGEX=("${PREFERRED_FORMAT[@]}")
   fi
 
   # Check if the provided list of files has files without extension. If so, install that
   # file (precompiled binary)
   # If not, find the appropriate archive/installer that will then be used by the ansible playbook
-  NO_EXTN_FILES=( $(printf '%s\n' "${ALL_NAMES[@]}" | grep -Po $NO_EXTN_REGEX) )
+  mapfile -t NO_EXTN_FILES < <(printf '%s\n' "${ALL_NAMES[@]}" | grep -Po "$NO_EXTN_REGEX")
+
   if [[ ${#NO_EXTN_FILES[@]} -gt 0 ]]; then
     OS_FILTER_REGEX=".*(?i)$OS_REGEX.*"
-    FILTERED_LIST=$(printf '%s\n' "${NO_EXTN_FILES[@]}" | grep -Po $OS_FILTER_REGEX)
+    FILTERED_LIST=$(printf '%s\n' "${NO_EXTN_FILES[@]}" | grep -Po "$OS_FILTER_REGEX")
 
-    FILE_REGEX="(?i)$BINARY_NAME[-_a-zA-Z]*[-v]{0,1}((\d*\.)*\d*[-_]{0,1}(?i)$OS_REGEX)[-_]{0,1}((arm|amd|x86_|x){0,1}64){0,1}$"
+    FILE_REGEX="(?i)${BINARY_NAME}[-_a-zA-Z]*[-v]{0,1}((\d*\.)*\d*[-_]{0,1}(?i)$OS_REGEX)[-_]{0,1}((arm|amd|x86_|x){0,1}64){0,1}$"
     if [[ $OS_FAMILY == 'win32nt' ]]; then
       FILE_REGEX=${FILE_REGEX%%"\$"}".exe$"
     fi
-    FILE_NAME=$(printf '%s\n' "${FILTERED_LIST[@]}" | grep -Po $FILE_REGEX)
-    echo 'NO_EXTN'$FILE_NAME
+    FILE_NAME=$(printf '%s\n' "${FILTERED_LIST[@]}" | grep -Po "$FILE_REGEX")
+    echo 'NO_EXTN'"$FILE_NAME"
   else
     # If a preferred installation method is provided, check if a matching file name is
     # available. If none if available, use the `DEFAULT` list of extensions and find an
@@ -62,7 +63,7 @@ find_file_name() {
 
     # If not preference is provided, iterate over the `DEFAULT` list. The value of `count`
     # is set to 1 in this case, 0 otherwise
-    if [[ -z "${PREFERRED_FORMAT[@]}" ]]; then
+    if [[ -z "${PREFERRED_FORMAT[*]}" ]]; then
       count=1
     else
       count=0
@@ -72,9 +73,9 @@ find_file_name() {
       # Iterate through the list of extensions defined to find matching file names
       declare -a FILE_NAMES
       for rgx in "${EXTN_REGEX[@]}"; do
-        if [[ -z $FILE_NAMES ]]; then
+        if [[ -z "${FILE_NAMES[*]}" ]]; then
           FILE_NAMES=$(printf '%s\n' "${ALL_NAMES[@]}" | grep -Po ".*(?i)$rgx$")
-          FILE_NAMES=( ${FILE_NAMES// /\n} )
+            mapfile -t FILE_NAMES <<< "${FILE_NAMES// /\n}"
         fi
       done
 
@@ -87,17 +88,17 @@ find_file_name() {
       # this will match them before going to the 4th regex (which will remove all names and
       # that has to be avoided). In cases where there is no 'musl' it will just send the filtered
       # list as is to be filtered by the OS_REGEX
-      FILTER_REGEX=( "^((?!32).)*$" "([^(?i)ppc](arm|amd|x86_|x){0,1}64)" musl $OS_REGEX )
+      FILTER_REGEX=( "^((?!32).)*$" "([^(?i)ppc](arm|amd|x86_|x){0,1}64)" musl "$OS_REGEX" )
 
       for frgx in "${FILTER_REGEX[@]}"; do
         if [[ "${#FILE_NAMES[@]}" -gt 1 ]]; then
           FILE_NAMES_TMP=$(printf '%s\n' "${FILE_NAMES[@]}" | grep -Po "^.*((?i)$frgx)+.*$")
           if [[ "$frgx" == 'musl' ]]; then
-            if [[ -z "${FILE_NAMES_TMP[@]}" ]]; then
+            if [[ -z "${FILE_NAMES_TMP[*]}" ]]; then
               continue
             fi
           fi
-          FILE_NAMES=( ${FILE_NAMES_TMP// /\n} )
+          mapfile -t FILE_NAMES <<< "${FILE_NAMES_TMP// /\n}"
         fi
       done
 
@@ -112,7 +113,7 @@ find_file_name() {
 }
 
 find_checksum() {
-  ALL_URLS=( $1 )
+  IFS=" " read -r -a ALL_URLS <<< "$1"
   ARCHIVE_NAME=$2
 
   # Check if there are 2 URLs. This is the case in one GitHub Repository, which publishes
@@ -128,11 +129,11 @@ find_checksum() {
     CHECKSUM_ARCHIVE="${BASH_REMATCH[0]}"
     echo "${CHECKSUM_ARCHIVE//[[:blank:]]*$ARCHIVE_NAME/}"
   elif [[ ${#ALL_URLS[@]} -eq 2 ]]; then
-    CHECKSUMS=$(curl -Ls $(printf '%s\n' "${ALL_URLS[@]}" | grep -Po '.*checksums*$'))
-    CHECKSUMS_INFO=$(curl -Ls $(printf '%s\n' "${ALL_URLS[@]}" | grep -Po '.*(hash|order|info).*$'))
+    CHECKSUMS=$(curl -Ls "$(printf '%s\n' "${ALL_URLS[@]}" | grep -Po '.*checksums*$')")
+    CHECKSUMS_INFO=$(curl -Ls "$(printf '%s\n' "${ALL_URLS[@]}" | grep -Po '.*(hash|order|info).*$')")
 
     HASH_INDEX=$(echo "$CHECKSUMS_INFO" | grep -nP '(SHA256|SHA-256)' | cut -d: -f 1)
-    HASH=$(echo "$CHECKSUMS" | grep "$ARCHIVE_NAME " | cut -d ' ' -f $(( $HASH_INDEX*2+1 )))
+    HASH=$(echo "$CHECKSUMS" | grep "$ARCHIVE_NAME " | cut -d ' ' -f $(( HASH_INDEX*2+1 )))
     echo "$HASH"
   fi
 }

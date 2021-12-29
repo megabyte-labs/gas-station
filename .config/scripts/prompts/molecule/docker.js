@@ -54,7 +54,7 @@ async function run() {
   // eslint-disable-next-line functional/no-try-statement
   try {
     return execSync(
-      `ANSIBLE_ENABLE_TASK_DEBUGGER=true task ansible:test:molecule:virtualbox:converge:cli -- \
+      `ANSIBLE_ENABLE_TASK_DEBUGGER=true task ansible:test:molecule:docker:cli -- \
       ${group}`,
       { stdio: 'inherit' }
     )

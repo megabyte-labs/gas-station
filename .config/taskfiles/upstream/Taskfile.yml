@@ -67,9 +67,11 @@ tasks:
       - :install:software:git
     cmds:
       - |
-        if [ ! -n "$(grep "^gitlab.com " ~/.ssh/known_hosts)" ] || [[ "${container:=}" == "docker" ]]; then
+        if ([ -f "$HOME/.ssh/known_hosts" ] && [ ! -n "$(grep "^gitlab.com " "$HOME/.ssh/known_hosts")" ]) || [[ "${container:=}" == "docker" ]]; then
           if [ -z "$GITLAB_CI" ]; then
-            ssh-keyscan gitlab.com >> ~/.ssh/known_hosts 2> /dev/null
+            if [ -d "$HOME/.ssh" ]; then
+              ssh-keyscan gitlab.com >> "$HOME/.ssh/known_hosts" 2> /dev/null
+            fi
             git config url."https://gitlab.com/".insteadOf git@gitlab.com:
           fi
         fi

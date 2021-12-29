@@ -43,12 +43,12 @@ fi
 # @description Ensures Task is installed and properly configured and then runs the `start` task
 if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
   bash "$INSTALL_TASK_SCRIPT"
+  SHELL_PROFILE_PATH="$(cat "$TMP_PROFILE_PATH")"
+  # shellcheck disable=SC1090
+  source "$SHELL_PROFILE_PATH"
 fi
 bash "$VALID_TASKFILE_SCRIPT"
 cd "$PROJECT_BASE_DIR" || exit
-SHELL_PROFILE_PATH="$(cat "$TMP_PROFILE_PATH")"
-# shellcheck disable=SC1090
-source "$SHELL_PROFILE_PATH"
 if [ -z "$GITLAB_CI" ]; then
   task start
   if [ -f .config/log ]; then

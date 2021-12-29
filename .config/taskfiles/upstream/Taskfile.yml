@@ -35,6 +35,7 @@ tasks:
 
   project:
     cmds:
+      - task: pull
       - task: :upstream:project:clone
       - task: :upstream:project:copy
       - task: :upstream:project:clean
@@ -50,6 +51,7 @@ tasks:
 
   project:scaffold-only:
     cmds:
+      - task: pull
       - task: :upstream:project:clone
       - task: :upstream:project:copy
       - task: :upstream:project:clean
@@ -60,9 +62,25 @@ tasks:
       - SKIP_UPLOADING=true task common:update:update
       - task: :fix:eslint
 
+  pull:
+    deps:
+      - :install:software:git
+    cmds:
+      - |
+        if [ ! -n "$(grep "^gitlab.com " ~/.ssh/known_hosts)" ] || [[ "${container:=}" == "docker" ]]; then
+          if [ -z "$GITLAB_CI" ]; then
+            ssh-keyscan gitlab.com >> ~/.ssh/known_hosts 2> /dev/null
+            git config url."https://gitlab.com/".insteadOf git@gitlab.com:
+          fi
+        fi
+      - cmd: git pull --ff-only
+        ignore_error: true
+      - cmd: git config --unset url."https://gitlab.com/".insteadOf
+        ignore_error: true
+
   shared:
     cmds:
-      - git pull
+      - task: pull
       - task: :upstream:shared:copy
       - task: :upstream:shared:variables
       - task: :upstream:shared:template

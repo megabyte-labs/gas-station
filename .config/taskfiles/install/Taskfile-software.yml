@@ -41,7 +41,10 @@ tasks:
         .config/log info 'Ensuring Homebrew is installed and available'
         if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
           .config/log info "Homebrew is already installed"
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
+          .config/log error 'Homebrew is not being correctly sourced'
+          .config/log info 'Ensure your ~/.profile or equivalent is correctly sourcing Homebrew. Ensure the following line is present:\n'
+          .config/log info '`eval "$(~/.local/homebrew/bin/brew shellenv)"`'
+          exit 1
         elif ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
@@ -51,6 +54,9 @@ tasks:
           brew update --force --quiet
           chmod -R go-w "$(brew --prefix)/share/zsh"
           .config/log success "Successfully installed Homebrew"
+          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
+          .config/log info 'Please close/open the terminal and re-run the same command to continue'
+          exit 1
         fi
       - task: brew:utils
     status:
@@ -100,8 +106,11 @@ tasks:
             ;;
         esac
         if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
           ensureSource "$SHELL_PROFILE"
+          .config/log info 'Homebrew was added to your ~/.profile or equivalent'
+          .config/log warn 'The terminal session needs to be reloaded'
+          .config/log info 'Close and re-open the terminal and re-run the same command to continue'
+          exit 1
         elif ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
@@ -109,6 +118,9 @@ tasks:
           eval "$(~/.local/homebrew/bin/brew shellenv)"
           brew update --force --quiet
           ensureSource "$SHELL_PROFILE"
+          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
+          .config/log info 'Please close/open the terminal and re-run the same command to continue'
+          exit 1
         fi
     status:
       - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
@@ -144,7 +156,8 @@ tasks:
   common:darwin:xcode:
     cmds:
       - |
-        .config/log info "Installing xcode-select"
+        .config/log info "Installing xcode-select.. You might be prompted for a password"
+        .config/log info 'Running `xcode-select --install`'
         xcode-select --install
         .config/log success "Successfully installed xcode-select"
     status:
@@ -234,32 +247,9 @@ tasks:
   container-structure-test:
     run: once
     cmds:
-      - task: container-structure-test:{{OS}}
-
-  container-structure-test:darwin:
-    cmds:
       - task: brew:formulae
         vars:
           FORMULAE: container-structure-test
-
-  container-structure-test:linux:
-    cmds:
-      - curl -LO https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64
-      - chmod +x container-structure-test-linux-amd64
-      - mkdir -p $HOME/.local/bin
-      - export PATH=$PATH:$HOME/.local/bin
-      - mv container-structure-test-linux-amd64 $HOME/.local/bin/container-structure-test
-      - task: :install:path:add
-        vars:
-          PATH_STRING: .local/bin
-      - .config/log info 'Added container-structure-test to ~/.local/bin - ensure "$HOME/.local/bin" is in the PATH variable'
-    status:
-      - type container-structure-test > /dev/null
-
-  container-structure-test:windows:
-    cmds:
-      - .config/log error "Windows is not supported. Try using a Windows WSL environment."
-      - exit 1
 
   coreutils:
     deps:
@@ -286,6 +276,9 @@ tasks:
       - task: brew:cask
         vars:
           CASK: docker
+      - task: exit:notice:restart
+    status:
+      - type docker > /dev/null
 
   docker:linux:
     run: once
@@ -293,6 +286,9 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: docker
+      - task: exit:notice:restart
+    status:
+      - type docker > /dev/null
 
   docker:windows:
     cmds:
@@ -313,6 +309,18 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: exiftool
+
+  exit:notice:reload:
+    cmds:
+      - .config/log warn 'Software was installed that requires a terminal session reload'
+      - .config/log info 'Please close and re-open the terminal. Then, re-run the same command to continue.'
+      - exit 1
+
+  exit:notice:restart:
+    cmds:
+      - .config/log warn 'Software was installed that requires a system reboot'
+      - .config/log info 'Please reboot the system and re-run the same command after rebooting'
+      - exit 1
 
   gcloud:
     run: once
@@ -427,6 +435,9 @@ tasks:
     run: once
     cmds:
       - task: poetry:{{OS}}
+      - task: exit:notice:reload
+    status:
+      - type poetry > /dev/null
 
   poetry:darwin:
     run: once
@@ -527,6 +538,9 @@ tasks:
   virtualbox:
     cmds:
       - task: virtualbox:{{OS}}
+      - task: exit:notice:restart
+    status:
+      - type vboxmanage > /dev/null
 
   virtualbox:darwin:
     run: once
@@ -545,6 +559,9 @@ tasks:
   vmware:
     cmds:
       - task: vmware:{{OS}}
+      - task: exit:notice:restart
+    status:
+      - type vmware > /dev/null
 
   vmware:darwin:
     run: once

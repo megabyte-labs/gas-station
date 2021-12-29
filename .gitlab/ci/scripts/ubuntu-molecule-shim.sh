@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 sudo apt-get update -y
-sudo apt install -y apt-transport-https ca-certificates curl software-properties-common sshpass wget openssl git dirmngr gpg gawk
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common sshpass wget openssl git
 
 useradd -m -p "$(openssl passwd -1 password)" --groups sudo gitlab
 su -s /bin/bash gitlab

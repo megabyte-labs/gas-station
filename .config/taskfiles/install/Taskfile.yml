@@ -130,11 +130,10 @@ tasks:
               ;;
           esac
           if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
-            export PATH="$HOME/{{.PATH_STRING}}:$PATH"
             # shellcheck disable=SC2016
-            local PATH_STRING='\nexport PATH=$HOME/{{.PATH_STRING}}:$PATH'
+            local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
             if grep -L "$PATH_STRING" "$SHELL_PROFILE"; then
-              echo -e "$PATH_STRING" >> "$SHELL_PROFILE"
+              echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
             fi
           elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
@@ -189,9 +188,9 @@ tasks:
           esac
           if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
             # shellcheck disable=SC2016
-            local PROFILE_STRING='\n{{.PROFILE_STRING}}'
+            local PROFILE_STRING='{{.PROFILE_STRING}}'
             if grep -L "$PROFILE_STRING" "$SHELL_PROFILE"; then
-              echo -e "$PROFILE_STRING" >> "$SHELL_PROFILE"
+              echo -e "${PROFILE_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info 'Added `{{.PROFILE_STRING}}` to '"$SHELL_PROFILE"
             fi
           elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
@@ -213,7 +212,7 @@ tasks:
       - git clone https://github.com/ingydotnet/git-subrepo ~/.local/git-subrepo
       - task: profile:add
         vars:
-          PROFILE_STRING: ~/.local/git-subrepo/.rc
+          PROFILE_STRING: source ~/.local/git-subrepo/.rc
     status:
       - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
 

@@ -3,22 +3,22 @@
 sudo apt-get update -y
 sudo apt install -y apt-transport-https ca-certificates curl software-properties-common sshpass wget openssl git dirmngr gpg gawk
 
-useradd -m -p $(openssl passwd -1 password) --groups sudo gitlab
+useradd -m -p "$(openssl passwd -1 password)" --groups sudo gitlab
 su -s /bin/bash gitlab
-find . -print0 | xargs -0 sudo chown $USER:$USER
+find . -print0 | xargs -0 sudo chown "$USER":"$USER"
 
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
 sudo apt install -y docker-ce
-sudo usermod -aG docker ${USER}
+sudo usermod -aG docker "$USER"
 
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> ~/.profile
-source ~/.profile
+source "$HOME/.profile"
 
 git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
-echo '. $HOME/.asdf/asdf.sh' > ~/.profile
-. $HOME/.asdf/asdf.sh
+echo ". $HOME/.asdf/asdf.sh" > ~/.profile
+. "$HOME/.asdf/asdf.sh"
 
 sudo apt-get install -y curl dirmngr gpg gawk
 asdf plugin add nodejs

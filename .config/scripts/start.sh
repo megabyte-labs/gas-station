@@ -11,12 +11,18 @@
 
 set -eo pipefail
 
+# @description Ensure .config/log is executable
+if [ -f .config/log ]; then
+  chmod +x .config/log
+fi
+
 # @description Detect script paths
 BASH_SRC="$(dirname "${BASH_SOURCE[0]}")"
 SOURCE_PATH="$(cd "$BASH_SRC"; pwd -P)"
 PROJECT_BASE_DIR="$SOURCE_PATH/../.."
 INSTALL_PACKAGE_SCRIPT="$SOURCE_PATH/lib/package.sh"
 INSTALL_TASK_SCRIPT="$SOURCE_PATH/lib/task.sh"
+TMP_PROFILE_PATH="$(mktemp)"
 VALID_TASKFILE_SCRIPT="$SOURCE_PATH/lib/taskfile.sh"
 
 # @description Ensure basic dependencies are installed
@@ -37,4 +43,11 @@ if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
 fi
 bash "$VALID_TASKFILE_SCRIPT"
 cd "$PROJECT_BASE_DIR" || exit
-if [ -z "$GITLAB_CI" ]; then task start; fi
+source "$(cat $TMP_PROFILE_PATH)"
+if [ -z "$GITLAB_CI" ]; then
+  task start
+  if [ -f .config/log ]; then
+    .config/log info 'There may have been changes to your PATH variable. You may have to run:\n'
+    .config/log info '`source '"$(cat $TMP_PROFILE_PATH)"'`'
+  fi
+fi

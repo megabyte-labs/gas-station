@@ -1,6 +1,6 @@
 ---
 - name: Prepare connection and variables
-  hosts: all
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('all', true) }}"
   gather_facts: false
   roles:
     - roles/system/connect
@@ -16,19 +16,13 @@
   roles:
     - roles/misc/seconion
 
-- name: Reformat network
-  hosts: all:!pfsense:!seconion
-  roles:
-    - role: roles/misc/wipe
-      when: false
-
 - name: Setup VM controller and network
   hosts: maas
   roles:
     - roles/misc/maas
 
 - name: Configure systems with common settings and applications
-  hosts: all:!pfsense:!seconion
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('all:!pfsense:!seconion', true) }}"
   roles:
     - roles/system/dns
     # - roles/system/hosts
@@ -39,7 +33,7 @@
     - roles/services/sshtarpit
     - roles/system/fuse
     - roles/system/disks
-    - roles/tools/starship # Developer note - dotfiles role needs starship installed before it runs
+    - roles/tools/starship
     - roles/system/dotfiles
     - roles/system/vpn
     - roles/system/zsh
@@ -79,7 +73,7 @@
     - roles/system/warp
 
 - name: Install desktop software
-  hosts: desktop
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('desktop', true) }}"
   roles:
     - roles/languages/cocoapods
     - roles/virtualization/dockerpushrm
@@ -216,7 +210,7 @@
     - roles/tools/quasar
 
 - name: Finish configuring systems
-  hosts: all:!pfsense:!seconion
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('all:!pfsense:!seconion', true) }}"
   roles:
     # - roles/misc/easyengine
     # - roles/misc/hosthomepage

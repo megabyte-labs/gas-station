@@ -18,10 +18,17 @@ test:molecule:darwin:
     GIT_DEPTH: 1
   tags:
     - shared-macos-amd64
-  script:
+  before_script:
     - |
       if [ "$CI_COMMIT_BRANCH" == 'test/darwin' ]; then
         git pull origin master
         git push origin "$CI_COMMIT_BRANCH"
       fi
-    - bash test/darwin/test.sh
+    - bash .config/scripts/start.sh
+  script:
+    - task environment -- dev
+    - task ansible:test:molecule:local:test
+  artifacts:
+    when: always
+    reports:
+      junit: molecule/.results/junit/*.xml

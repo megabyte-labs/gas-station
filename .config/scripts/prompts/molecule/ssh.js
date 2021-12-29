@@ -63,6 +63,7 @@ async function run() {
     return execSync(
       `TEST_HOST=${details.host} TEST_PASSWORD=${details.password} TEST_BECOME_PASSWORD=${details.password} \
       TEST_PORT=${details.port} TEST_SSH_USER=${details.user} TEST_USER=${details.user} poetry run \
+      ANSIBLE_ENABLE_TASK_DEBUGGER=true \
       task ansible:test:molecule:ssh:cli`,
       { stdio: 'inherit' }
     )

@@ -85,7 +85,7 @@ async function run() {
       ' see [this guide](https://github.com/ProfessorManhattan/molecule-ansible-google-cloud/blob/master/README.md).' +
       ' Without the environment variables mentioned in the guide set, this task will fail.'
   )
-  logInstructions('Debugging', 'All of the tests below enable the built-in Ansible debugger.\n\n')
+  logInstructions('Debugging', 'All of the tests below (except GCP) enable the built-in Ansible debugger.\n\n')
   logRaw(
     'If a task fails, the STDOUT will freeze and you will be able to enter a few different commands.' +
       ' For example, if you enter "r", then Ansible will run the task again. For more information on the' +
@@ -97,7 +97,7 @@ async function run() {
   // eslint-disable-next-line functional/no-try-statement
   try {
     if (testType.includes('Local')) {
-      return execSync(`task ansible:test:molecule:local`, { stdio: 'inherit' })
+      return execSync(`ANSIBLE_ENABLE_TASK_DEBUGGER=true task ansible:test:molecule:local`, { stdio: 'inherit' })
     } else if (testType.includes('Headless')) {
       return execSync(`task ansible:test:molecule:virtualbox:prompt`, { stdio: 'inherit' })
     } else if (testType.includes('Docker')) {

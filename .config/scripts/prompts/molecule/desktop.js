@@ -54,7 +54,11 @@ async function run() {
   const environment = await promptForDesktop()
   // eslint-disable-next-line functional/no-try-statement
   try {
-    return execSync(`task ansible:test:molecule:virtualbox:converge:cli -- ${environment}`, { stdio: 'inherit' })
+    return execSync(
+      `ANSIBLE_ENABLE_TASK_DEBUGGER=true task ansible:test:molecule:virtualbox:converge:cli \
+      -- ${environment}`,
+      { stdio: 'inherit' }
+    )
   } catch {
     // eslint-disable-next-line no-process-exit
     return process.exit(1)

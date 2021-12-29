@@ -1,0 +1,19 @@
+---
+- name: 'Ensure {{ app_name }} is installed'
+  chocolatey.chocolatey.win_chocolatey:
+    name:
+      - rust
+      - rustup.install
+    state: "{{ app_state | default('present') }}"
+
+- name: 'Ensure {{ app_name }} is installed'
+  ansible.windows.win_shell: |
+    rustup toolchain install stable-msvc
+
+- name: Run generic Windows tasks
+  include_tasks: config-Windows.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

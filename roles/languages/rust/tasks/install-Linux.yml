@@ -1,0 +1,51 @@
+---
+- name: 'Ensure {{ app_name }} is setup'
+  become_user: '{{ user.username }}'
+  command: rustup toolchain install stable
+  environment:
+    PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+  args:
+    creates: ~/.carrust/bin/rustc
+  register: rust_install
+  changed_when: "'unchanged' not in rust_install.stdout"
+  when: ansible_system == 'Linux'
+
+- name: 'Ensure {{ app_name }} is setup'
+  become_user: '{{ user.username }}'
+  command: rustup-init -y --no-update-default-toolchain
+  environment:
+    PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:{{ ansible_env.PATH }}'
+  args:
+    creates: ~/.cargo/env
+  when: ansible_system == 'Darwin'
+
+# @action Ensures Rust shell completions are set-up
+# Sets up bash and zsh completions on macOS/Linux
+- name: Ensure directories to store completions file exists
+  become_user: '{{ user.username }}'
+  file:
+    path: '{{ item }}'
+    mode: 0700
+    state: directory
+  loop:
+    - ~/.local/share/bash-completion
+    - ~/.local/share/bash-completion/completions
+    - ~/.zfunc
+
+- name: Ensure rustup Bash completions file exists # noqa 301 303
+  become_user: '{{ user.username }}'
+  shell: "rustup completions bash > {{ '~/.local/share/bash-completion/completions/rustup' if ansible_system == 'Linux' \
+    else '$(brew --prefix)/etc/bash_completion.d/rustup.bash-completion' }}"
+  environment:
+    PATH: '~/.cargo/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+  args:
+    creates: "{{ '~/.local/share/bash-completion/completions/rustup' if ansible_system == 'Linux' \
+      else '$(brew --prefix)/etc/bash_completion.d/rustup.bash-completion' }}"
+
+- name: Ensure rustup ZSH completions file exists # noqa 301 303
+  become_user: '{{ user.username }}'
+  shell: rustup completions zsh > ~/.zfunc/_rustup
+  environment:
+    PATH: '~/.cargo/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+  args:
+    creates: ~/.zfunc/_rustup

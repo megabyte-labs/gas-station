@@ -1,0 +1,157 @@
+---
+version: '3'
+
+tasks:
+  brewfile:
+    deps:
+      - :install:software:brew
+    cmds:
+      - |
+        .config/log info 'Installing software bundle defined in `.config/Brewfile`'
+        brew tap Homebrew/bundle
+        cd .config
+        brew bundle
+        .config/log success 'Successfully installed common dependencies defined in `.config/Brewfile`'
+
+  install-doctor:
+    cmds:
+      - |
+        if ! type {{.SOFTWARE}} &> /dev/null; then
+          .config/log info 'Installing `{{.SOFTWARE}}` via `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
+          curl -sS https://install.doctor/{{.SOFTWARE}} | bash
+          .config/log success 'Successfully installed `{{.SOFTWARE}}`'
+        fi
+    status:
+      - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  modules:global:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+      - :install:software:yq
+    run: once
+    cmds:
+      - |
+        PKGS="$(yq eval '.tasks[].cmds[0].vars.NPM_PACKAGE' .config/taskfiles/install/Taskfile-npm.yml | tr '\n' ' ')"
+        for PKG in $PKGS; do
+          if [ -f "$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*//')/$PKG" ]; then
+            LIST="$LIST $PKG"
+          fi
+        done
+        if [ -n "$LIST" ]; then
+          .config/log info "Installing the following NPM packages globally - $LIST"
+          npm install -g $LIST
+        fi
+        .config/log success 'Finished preloading global NPM packages'
+    status:
+      - '[[ "${container:=}" == "docker" ]]'
+
+  modules:local:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM_LOCAL}}
+      - :install:npm:cz-emoji
+    run: once
+    cmds:
+      - .config/log info 'Installing local NPM dependencies'
+      - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
+        ignore_error: true
+      - task: modules:local:sync
+      - .config/log success 'Successfully installed local NPM dependencies'
+    sources:
+      - package.json
+
+  modules:local:sync:
+    cmds:
+      - |
+        TMP_REFRESH="$(mktemp)"
+        TMP_LIST="$(mktemp)"
+        function updateAvailable() {
+          LATEST="$(npm view $1 version)"
+          LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
+          COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
+          if [ "$COMPARE" == '-1' ]; then
+            .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
+            echo "true" > "$TMP_REFRESH"
+          fi
+        }
+        chmod +x .config/log
+        chmod +x .config/scripts/lib/semver-compare.sh
+        for PATTERN in {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.NPM_KEEP_UPDATED}}{{end}}; do
+           while read PATHH; do
+            if [ -f "$PATHH/package.json" ]; then
+              PKG="$(echo $PATHH | sed 's/.\/node_modules\///')"
+              PACKAGE_LIST="$(cat "$TMP_LIST") ${PKG}@latest"
+              echo "$PACKAGE_LIST" > "$TMP_LIST"
+              updateAvailable "$PKG" &
+            fi
+          done < <(find ./node_modules/$PATTERN -maxdepth 0)
+        done
+        wait
+        PACKAGE_LIST="$(cat "$TMP_LIST")"
+        REFRESH_PACKAGES="$(cat $TMP_REFRESH)"
+        if [ "$REFRESH_PACKAGES" == 'true' ]; then
+          PACKAGE_LIST="$(echo $PACKAGE_LIST | sed 's/^.//')"
+          .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
+          {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
+          .config/log success 'Successfully updated to the following - `'"$PACKAGE_LIST"'`'
+        else
+          {{if .CLI_ARGS}}
+          .config/log info '`{{.CLI_ARGS}}` is already the latest version'
+          {{else}}
+          .config/log info "NPM packages configured to sync with latest version are all up-to-date"
+          {{end}}
+        fi
+
+  modules:prompt:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+    run: once
+    cmds:
+      - npm install chalk inquirer signale
+    sources:
+      - .config/scripts/prompts/**
+
+  pipx:global:
+    deps:
+      - :install:software:pipx
+      - :install:software:yq
+    vars:
+      PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
+        mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
+        proselint python-vagrant pywinrm
+    cmds:
+      - |
+        for PKG in {{.PIPX_PACKAGES}}; do
+          if ! type "$PKG" > /dev/null; then
+            .config/log info "Ensuring $PKG is installed"
+            pipx install "$PKG" &
+          else
+            .config/log info "$PKG is already installed"
+          fi
+        done
+        wait
+        .config/log success 'Successfully preloaded commonly used Python packages'
+
+  tslib:
+    env:
+      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
+        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
+        install tslib.
+    run: once
+    cmds:
+      - |
+        if [ -f 'tsconfig.json' ]; then
+          if [ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]; then
+            if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
+              .config/log info '{{.TSLIB_MSG}}'
+            else
+              .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
+              {{.NPM_PROGRAM}} install --save tslib@latest
+              .config/log success 'Successfully installed `tslib`'
+            fi
+          else
+            task install:modules:local:sync -- "tslib"
+          fi
+        fi
+    sources:
+      - package.json
+      - tsconfig.json

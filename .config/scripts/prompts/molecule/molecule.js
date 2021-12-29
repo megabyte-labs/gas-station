@@ -85,6 +85,13 @@ async function run() {
       ' see [this guide](https://github.com/ProfessorManhattan/molecule-ansible-google-cloud/blob/master/README.md).' +
       ' Without the environment variables mentioned in the guide set, this task will fail.'
   )
+  logInstructions('Debugging', 'All of the tests below enable the built-in Ansible debugger.\n\n')
+  logRaw(
+    'If a task fails, the STDOUT will freeze and you will be able to enter a few different commands.' +
+      ' For example, if you enter "r", then Ansible will run the task again. For more information on the' +
+      ' Ansible debugger (including avvailable commands), see:' +
+      ' https://docs.ansible.com/ansible/latest/user_guide/playbooks_debugger.html#available-debug-commands.'
+  )
   const testType = await promptForTestType()
 
   // eslint-disable-next-line functional/no-try-statement

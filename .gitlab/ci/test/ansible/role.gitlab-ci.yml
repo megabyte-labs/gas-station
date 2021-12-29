@@ -31,13 +31,17 @@ test:molecule:linux:
         - requirements.yml
   needs: []
   variables:
+    DEBIAN_FRONTEND: noninteractive
     DOCKER_CERT_PATH: $DOCKER_TLS_CERTDIR/client
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: /certs
     DOCKER_TLS_VERIFY: 1
     GIT_DEPTH: 1
     OPTIMIZED_IMAGE: 'false'
+    TZ: America/New_York
   before_script:
+    - apt-get update -y
+    - apt-get install -y curl git
     - |
       if [ "$CI_COMMIT_BRANCH" == 'test/linux' ]; then
         git pull origin master
@@ -46,6 +50,7 @@ test:molecule:linux:
     - bash <(curl -sS https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/ubuntu-molecule-shim.sh)
     - bash .config/scripts/start.sh
   script:
+    - source ~/.profile
     - task ansible:test:molecule:docker:cli -- "$OPERATING_SYSTEM"
   artifacts:
     when: always

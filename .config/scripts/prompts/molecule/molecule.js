@@ -97,6 +97,7 @@ async function run() {
   // eslint-disable-next-line functional/no-try-statement
   try {
     if (testType.includes('Local')) {
+      // eslint-disable-next-line no-secrets/no-secrets
       return execSync(`ANSIBLE_ENABLE_TASK_DEBUGGER=true task ansible:test:molecule:local`, { stdio: 'inherit' })
     } else if (testType.includes('Headless')) {
       return execSync(`task ansible:test:molecule:virtualbox:prompt`, { stdio: 'inherit' })

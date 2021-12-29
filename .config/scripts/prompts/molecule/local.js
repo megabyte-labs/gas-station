@@ -41,6 +41,7 @@ async function run() {
   // eslint-disable-next-line functional/no-try-statement
   try {
     return execSync(
+      // eslint-disable-next-line no-secrets/no-secrets
       `ANSIBLE_ENABLE_TASK_DEBUGGER=true TEST_PASSWORD=${sudoPass} \
       task ansible:test:molecule:local:test`,
       { stdio: 'inherit' }

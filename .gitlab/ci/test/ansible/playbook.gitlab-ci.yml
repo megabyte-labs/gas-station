@@ -8,8 +8,11 @@ test:molecule:linux:
     - docker:20.10.7-dind
   parallel:
     matrix:
-      - OPERATING_SYSTEM: debian
-      - OPERATING_SYSTEM: ubuntu
+      - OPERATING_SYSTEM: ArchLinux
+      - OPERATING_SYSTEM: CentOS
+      - OPERATING_SYSTEM: Debian
+      - OPERATING_SYSTEM: Fedora
+      - OPERATING_SYSTEM: Ubuntu
   rules:
     - if: $DO_CI == 'false'
       when: never
@@ -28,10 +31,13 @@ test:molecule:linux:
     DOCKER_TLS_CERTDIR: /certs
     DOCKER_TLS_VERIFY: 1
     GIT_DEPTH: 1
-  script:
+  before_script:
     - |
       if [ "$CI_COMMIT_BRANCH" == 'test/linux' ]; then
         git pull origin master
         git push origin "$CI_COMMIT_BRANCH"
       fi
-    - MOLECULE_GROUP="Snap" molecule test -s docker
+    - bash .config/scripts/start.sh
+  script:
+    - task environment -- dev
+    - task ansible:test:molecule:docker:cli -- "$OPERATING_SYSTEM"

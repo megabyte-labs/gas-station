@@ -33,19 +33,13 @@ tasks:
         brew install --cask {{.CASK}}
         .config/log success 'Successfully installed the `{{.CASK}}` Homebrew cask'
     status:
-      - type {{.CASK}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type {{.CASK}} &> /dev/null
 
   brew:darwin:
     cmds:
       - |
         .config/log info 'Ensuring Homebrew is installed and available'
-        if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
-          .config/log info "Homebrew is already installed"
-          .config/log error 'Homebrew is not being correctly sourced'
-          .config/log info 'Ensure your ~/.profile or equivalent is correctly sourcing Homebrew. Ensure the following line is present:\n'
-          .config/log info '`eval "$(~/.local/homebrew/bin/brew shellenv)"`'
-          exit 1
-        elif ! type brew &> /dev/null; then
+        if ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
@@ -60,13 +54,7 @@ tasks:
         fi
       - task: brew:utils
     status:
-      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type gcp > /dev/null
-      - type gfind > /dev/null
-      - type gsed > /dev/null
-      - type ggrep > /dev/null
-      - type gtar > /dev/null
-      - type ggawk > /dev/null
+      - type brew &> /dev/null
 
   brew:formulae:
     deps:
@@ -78,7 +66,7 @@ tasks:
         brew install {{.FORMULAE}}
         .config/log success 'Successfully installed the `{{.FORMULAE}}` Homebrew package'
     status:
-      - type {{.FORMULAE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type {{.FORMULAE}} &> /dev/null
 
   brew:linux:
     run: once
@@ -86,7 +74,7 @@ tasks:
       - |
         .config/log info 'Ensuring Homebrew is installed and available'
         function ensureSource() {
-          if ! (grep "/bin/brew shellenv" < cat "$1" &> /dev/null); then
+          if ! (grep "/bin/brew shellenv" < "$1" &> /dev/null); then
             echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
           fi
         }
@@ -105,13 +93,7 @@ tasks:
             SHELL_PROFILE="${HOME}/.profile"
             ;;
         esac
-        if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
-          ensureSource "$SHELL_PROFILE"
-          .config/log info 'Homebrew was added to your ~/.profile or equivalent'
-          .config/log warn 'The terminal session needs to be reloaded'
-          .config/log info 'Close and re-open the terminal and re-run the same command to continue'
-          exit 1
-        elif ! type brew &> /dev/null; then
+        if ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
@@ -123,7 +105,7 @@ tasks:
           exit 1
         fi
     status:
-      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type brew &> /dev/null || [ "$OPTIMIZED_IMAGE" == 'true' ]
 
   brew:utils:
     cmds:
@@ -131,6 +113,13 @@ tasks:
         .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
         brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
         .config/log success "Successfully installed GNU-compatibility tools"
+    status:
+      - type gcp > /dev/null
+      - type gfind > /dev/null
+      - type gsed > /dev/null
+      - type ggrep > /dev/null
+      - type gtar > /dev/null
+      - type gawk > /dev/null
 
   brew:windows:
     cmds:
@@ -178,6 +167,8 @@ tasks:
           fi
     cmds:
       - task: common:linux:{{.LINUX_FAMILY}}
+    status:
+      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
 
   common:linux:archlinux:
     interactive: true
@@ -187,11 +178,11 @@ tasks:
         sudo pacman update
         sudo pacman -S base-devel curl file git procps-ng
     status:
-      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep base-devel || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep file || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep procps-ng || [[ "${container:=}" == "docker" ]]
+      - type curl &> /dev/null
+      - type git &> /dev/null
+      - ldconfig -p | grep base-devel
+      - ldconfig -p | grep file
+      - ldconfig -p | grep procps-ng
 
   common:linux:debian:
     interactive: true
@@ -201,11 +192,11 @@ tasks:
         sudo apt-get -y update
         sudo apt-get install -y build-essential curl file git procps
     status:
-      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - dpkg-query -l build-essential &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - dpkg-query -l file &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - dpkg-query -l procps &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type curl &> /dev/null
+      - type git &> /dev/null
+      - dpkg-query -l build-essential &> /dev/null
+      - dpkg-query -l file &> /dev/null
+      - dpkg-query -l procps &> /dev/null
 
   common:linux:redhat:
     interactive: true
@@ -451,6 +442,9 @@ tasks:
       - pipx
     cmds:
       - pipx install poetry
+      - task: :install:path:add
+        vars:
+          PATH_STRING: .local/pipx/venvs/poetry/bin
     status:
       - type poetry > /dev/null
 
@@ -460,6 +454,8 @@ tasks:
       - exit 1
 
   python:
+    deps:
+      - brew # bug fix
     run: once
     cmds:
       - task: python:{{OS}}

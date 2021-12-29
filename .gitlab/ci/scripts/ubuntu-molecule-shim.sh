@@ -12,6 +12,10 @@ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubun
 sudo apt install -y docker-ce
 sudo usermod -aG docker ${USER}
 
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> ~/.profile
+source ~/.profile
+
 git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
 echo '. $HOME/.asdf/asdf.sh' > ~/.profile
 . $HOME/.asdf/asdf.sh

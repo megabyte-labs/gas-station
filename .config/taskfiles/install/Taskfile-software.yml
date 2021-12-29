@@ -426,16 +426,53 @@ tasks:
   poetry:
     run: once
     cmds:
-      - task: brew:formulae
-        vars:
-          FORMULAE: poetry
+      - task: poetry:{{OS}}
 
-  python:
+  poetry:darwin:
     run: once
     cmds:
       - task: brew:formulae
         vars:
-          FORMULAE: python
+          FORMULAE: poetry
+
+  poetry:linux:
+    deps:
+      - pipx
+    cmds:
+      - pipx install poetry
+    status:
+      - type poetry > /dev/null
+
+  poetry:windows:
+    cmds:
+      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
+      - exit 1
+
+  python:
+    run: once
+    cmds:
+      - task: python:{{OS}}
+
+  python:darwin:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: python@3.10
+    status:
+      - type python3 > /dev/null
+
+  python:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: python
+
+  python:windows:
+    cmds:
+      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
+      - exit 1
 
   rsync:
     run: once

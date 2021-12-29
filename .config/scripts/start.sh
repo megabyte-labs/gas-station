@@ -18,7 +18,10 @@ fi
 
 # @description Detect script paths
 BASH_SRC="$(dirname "${BASH_SOURCE[0]}")"
-SOURCE_PATH="$(cd "$BASH_SRC"; pwd -P)"
+SOURCE_PATH="$(
+  cd "$BASH_SRC"
+  pwd -P
+)"
 PROJECT_BASE_DIR="$SOURCE_PATH/../.."
 INSTALL_PACKAGE_SCRIPT="$SOURCE_PATH/lib/package.sh"
 INSTALL_TASK_SCRIPT="$SOURCE_PATH/lib/task.sh"
@@ -43,11 +46,13 @@ if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
 fi
 bash "$VALID_TASKFILE_SCRIPT"
 cd "$PROJECT_BASE_DIR" || exit
-source "$(cat $TMP_PROFILE_PATH)"
+SHELL_PROFILE_PATH="$(cat "$TMP_PROFILE_PATH")"
+# shellcheck disable=SC1090
+source "$SHELL_PROFILE_PATH"
 if [ -z "$GITLAB_CI" ]; then
   task start
   if [ -f .config/log ]; then
     .config/log info 'There may have been changes to your PATH variable. You may have to run:\n'
-    .config/log info '`source '"$(cat $TMP_PROFILE_PATH)"'`'
+    .config/log info '`source '"$SHELL_PROFILE_PATH"'`'
   fi
 fi

@@ -26,7 +26,8 @@ bash "$INSTALL_PACKAGE_SCRIPT" "git"
 # @description Attempts to pull the latest changes if the folder is a git repository
 cd "$PROJECT_BASE_DIR" || exit
 if [ -d .git ] && type git &> /dev/null; then
-  git pull origin master --ff-only
+  HTTPS_VERSION="$(git remote get-url origin | sed 's/git@gitlab.com:/https:\/\/gitlab.com\//')"
+  git pull "$HTTPS_VERSION" master --ff-only
   git submodule update --init --recursive
 fi
 

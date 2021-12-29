@@ -110,6 +110,43 @@ tasks:
     sources:
       - .config/scripts/prompts/**
 
+  path:add:
+    cmds:
+      - |
+        function ensureLocalPath() {
+          case "${SHELL}" in
+            */bash*)
+              if [[ -r "${HOME}/.bash_profile" ]]; then
+                SHELL_PROFILE="${HOME}/.bash_profile"
+              else
+                SHELL_PROFILE="${HOME}/.profile"
+              fi
+              ;;
+            */zsh*)
+              SHELL_PROFILE="${HOME}/.zprofile"
+              ;;
+            *)
+              SHELL_PROFILE="${HOME}/.profile"
+              ;;
+          esac
+          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+            export PATH="$HOME/{{.PATH_STRING}}:$PATH"
+            # shellcheck disable=SC2016
+            local PATH_STRING='\nexport PATH=$HOME/{{.PATH_STRING}}:$PATH'
+            if grep -L "$PATH_STRING" "$SHELL_PROFILE"; then
+              echo -e "$PATH_STRING" >> "$SHELL_PROFILE"
+              .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
+            fi
+          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+            .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+          elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+            .config/log error "FreeBSD support not added yet" && exit 1
+          else
+            .config/log error "System type not recognized"
+          fi
+        }
+        ensureLocalPath
+
   pipx:global:
     deps:
       - :install:software:pipx
@@ -130,6 +167,55 @@ tasks:
         done
         wait
         .config/log success 'Successfully preloaded commonly used Python packages'
+
+  profile:add:
+    cmds:
+      - |
+        function addToProfile() {
+          case "${SHELL}" in
+            */bash*)
+              if [[ -r "${HOME}/.bash_profile" ]]; then
+                SHELL_PROFILE="${HOME}/.bash_profile"
+              else
+                SHELL_PROFILE="${HOME}/.profile"
+              fi
+              ;;
+            */zsh*)
+              SHELL_PROFILE="${HOME}/.zprofile"
+              ;;
+            *)
+              SHELL_PROFILE="${HOME}/.profile"
+              ;;
+          esac
+          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+            # shellcheck disable=SC2016
+            local PROFILE_STRING='\n{{.PROFILE_STRING}}'
+            if grep -L "$PROFILE_STRING" "$SHELL_PROFILE"; then
+              echo -e "$PROFILE_STRING" >> "$SHELL_PROFILE"
+              .config/log info 'Added `{{.PROFILE_STRING}}` to '"$SHELL_PROFILE"
+            fi
+          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+            .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+          elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+            .config/log error "FreeBSD support not added yet" && exit 1
+          else
+            .config/log error "System type not recognized"
+          fi
+        }
+        addToProfile
+
+  subrepo:
+    deps:
+      - :install:software:git
+    run: once
+    cmds:
+      - mkdir -p ~/.local/git-subrepo
+      - git clone https://github.com/ingydotnet/git-subrepo ~/.local/git-subrepo
+      - task: profile:add
+        vars:
+          PROFILE_STRING: ~/.local/git-subrepo/.rc
+    status:
+      - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
 
   tslib:
     env:

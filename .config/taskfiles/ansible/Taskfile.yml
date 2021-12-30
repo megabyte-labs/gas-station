@@ -127,11 +127,18 @@ tasks:
       - task: mod-ansible-autodoc:generate
       - task: mod-ansible-autodoc:variables
 
+  mod-ansible-autodoc:ansible-autodoc-fork:
+    cmds:
+      - task: :install:software:pipx
+      - pipx install ansible-autodoc-fork
+    status:
+      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
+
   mod-ansible-autodoc:generate:
     deps:
       - :install:python:requirements
       - :install:software:jq
-      - :install:software:pipx
+      - mod-ansible-autodoc:ansible-autodoc-fork
     env:
       ACTIONS_DESCRIPTION:
         sh: jq -r '.autodoc_actions_description' '{{.VARIABLES_PATH}}'
@@ -144,7 +151,6 @@ tasks:
       VARIABLES_DESCRIPTION:
         sh: jq -r '.autodoc_variables_description' '{{.VARIABLES_PATH}}'
     cmds:
-      - pipx install ansible-autodoc-fork
       - >
         .config/log info 'Compiling `mod-ansible-autodoc` documentation from comments in the play source files'
 

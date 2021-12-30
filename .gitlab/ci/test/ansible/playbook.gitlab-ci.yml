@@ -2,7 +2,7 @@
 test:molecule:linux:
   stage: test
   image:
-    name: megabytelabs/molecule:latest
+    name: megabytelabs/linux-molecule:latest
     entrypoint: ['']
   services:
     - docker:20.10.7-dind
@@ -25,6 +25,7 @@ test:molecule:linux:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master'
       changes:
         - main.yml
+  needs: []
   variables:
     DOCKER_CERT_PATH: $DOCKER_TLS_CERTDIR/client
     DOCKER_HOST: tcp://docker:2376
@@ -37,7 +38,6 @@ test:molecule:linux:
         git pull origin master
         git push origin "$CI_COMMIT_BRANCH"
       fi
-    - bash .config/scripts/start.sh
   script:
     - task environment -- dev
-    - task ansible:test:molecule:docker:cli -- "$OPERATING_SYSTEM"
+    - OPTIMIZED_IMAGE=false task ansible:test:molecule:docker:cli -- "$OPERATING_SYSTEM"

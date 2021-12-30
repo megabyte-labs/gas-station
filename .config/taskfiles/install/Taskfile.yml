@@ -12,6 +12,8 @@ tasks:
         cd .config
         brew bundle
         .config/log success 'Successfully installed common dependencies defined in `.config/Brewfile`'
+        .config/log warn 'A reboot is recommended'
+        .config/log info 'Some of the software you may have installed might require a reboot'
 
   install-doctor:
     cmds:
@@ -68,7 +70,7 @@ tasks:
           LATEST="$(npm view $1 version)"
           LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
           COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
-          if [ "$COMPARE" == '-1' ]; then
+          if [[ "$COMPARE" == '-1' ]]; then
             .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
             echo "true" > "$TMP_REFRESH"
           fi
@@ -88,7 +90,7 @@ tasks:
         wait
         PACKAGE_LIST="$(cat "$TMP_LIST")"
         REFRESH_PACKAGES="$(cat $TMP_REFRESH)"
-        if [ "$REFRESH_PACKAGES" == 'true' ]; then
+        if [[ "$REFRESH_PACKAGES" == 'true' ]]; then
           PACKAGE_LIST="$(echo $PACKAGE_LIST | sed 's/^.//')"
           .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
           {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
@@ -109,6 +111,42 @@ tasks:
       - npm install chalk inquirer signale
     sources:
       - .config/scripts/prompts/**
+
+  path:add:
+    cmds:
+      - |
+        function ensureLocalPath() {
+          case "${SHELL}" in
+            */bash*)
+              if [[ -r "${HOME}/.bash_profile" ]]; then
+                SHELL_PROFILE="${HOME}/.bash_profile"
+              else
+                SHELL_PROFILE="${HOME}/.profile"
+              fi
+              ;;
+            */zsh*)
+              SHELL_PROFILE="${HOME}/.zshrc"
+              ;;
+            *)
+              SHELL_PROFILE="${HOME}/.profile"
+              ;;
+          esac
+          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+            # shellcheck disable=SC2016
+            local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
+            if ! grep -L "$PATH_STRING" "$SHELL_PROFILE" > /dev/null; then
+              echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
+              .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
+            fi
+          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+            .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+          elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+            .config/log error "FreeBSD support not added yet" && exit 1
+          else
+            .config/log error "System type not recognized"
+          fi
+        }
+        ensureLocalPath
 
   pipx:global:
     deps:
@@ -131,6 +169,42 @@ tasks:
         wait
         .config/log success 'Successfully preloaded commonly used Python packages'
 
+  profile:add:
+    cmds:
+      - |
+        function addToProfile() {
+          case "${SHELL}" in
+            */bash*)
+              if [[ -r "${HOME}/.bash_profile" ]]; then
+                SHELL_PROFILE="${HOME}/.bash_profile"
+              else
+                SHELL_PROFILE="${HOME}/.profile"
+              fi
+              ;;
+            */zsh*)
+              SHELL_PROFILE="${HOME}/.zshrc"
+              ;;
+            *)
+              SHELL_PROFILE="${HOME}/.profile"
+              ;;
+          esac
+          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+            # shellcheck disable=SC2016
+            local PROFILE_STRING='{{.PROFILE_STRING}}'
+            if ! grep -L "$PROFILE_STRING" "$SHELL_PROFILE" > /dev/null; then
+              echo -e "${PROFILE_STRING}\n" >> "$SHELL_PROFILE"
+              .config/log info 'Added `{{.PROFILE_STRING}}` to '"$SHELL_PROFILE"
+            fi
+          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+            .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+          elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+            .config/log error "FreeBSD support not added yet" && exit 1
+          else
+            .config/log error "System type not recognized"
+          fi
+        }
+        addToProfile
+
   tslib:
     env:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
@@ -140,7 +214,7 @@ tasks:
     cmds:
       - |
         if [ -f 'tsconfig.json' ]; then
-          if [ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]; then
+          if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
             if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
               .config/log info '{{.TSLIB_MSG}}'
             else

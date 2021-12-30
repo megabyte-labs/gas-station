@@ -35,6 +35,7 @@ tasks:
 
   project:
     cmds:
+      - task: pull
       - task: :upstream:project:clone
       - task: :upstream:project:copy
       - task: :upstream:project:clean
@@ -48,8 +49,9 @@ tasks:
       - task: :git:push:all
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:galaxy:import{{else}}donothing{{end}}
 
-  project:skaffold-only:
+  project:scaffold-only:
     cmds:
+      - task: pull
       - task: :upstream:project:clone
       - task: :upstream:project:copy
       - task: :upstream:project:clean
@@ -57,12 +59,30 @@ tasks:
       - task: :upstream:project:boilerplate
       - task: :vscode:generate
       - task: :upstream:project:merge:package:overrides
-      - task: :common:update:update
+      - SKIP_UPLOADING=true task common:update:update
       - task: :fix:eslint
+
+  pull:
+    deps:
+      - :install:software:git
+    cmds:
+      - |
+        if ([ -f "$HOME/.ssh/known_hosts" ] && [ ! -n "$(grep "^gitlab.com " "$HOME/.ssh/known_hosts")" ]) || [[ "${container:=}" == "docker" ]]; then
+          if [ -z "$GITLAB_CI" ]; then
+            if [ -d "$HOME/.ssh" ]; then
+              ssh-keyscan gitlab.com >> "$HOME/.ssh/known_hosts" 2> /dev/null
+            fi
+            git config url."https://gitlab.com/".insteadOf git@gitlab.com:
+          fi
+        fi
+      - cmd: git pull --ff-only
+        ignore_error: true
+      - cmd: git config --unset url."https://gitlab.com/".insteadOf
+        ignore_error: true
 
   shared:
     cmds:
-      - git pull
+      - task: pull
       - task: :upstream:shared:copy
       - task: :upstream:shared:variables
       - task: :upstream:shared:template

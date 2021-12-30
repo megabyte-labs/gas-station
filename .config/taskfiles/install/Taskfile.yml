@@ -125,7 +125,7 @@ tasks:
               fi
               ;;
             */zsh*)
-              SHELL_PROFILE="${HOME}/.zprofile"
+              SHELL_PROFILE="${HOME}/.zshrc"
               ;;
             *)
               SHELL_PROFILE="${HOME}/.profile"
@@ -134,7 +134,7 @@ tasks:
           if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
             # shellcheck disable=SC2016
             local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
-            if grep -L "$PATH_STRING" "$SHELL_PROFILE"; then
+            if ! grep -L "$PATH_STRING" "$SHELL_PROFILE" > /dev/null; then
               echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
             fi
@@ -182,7 +182,7 @@ tasks:
               fi
               ;;
             */zsh*)
-              SHELL_PROFILE="${HOME}/.zprofile"
+              SHELL_PROFILE="${HOME}/.zshrc"
               ;;
             *)
               SHELL_PROFILE="${HOME}/.profile"
@@ -191,7 +191,7 @@ tasks:
           if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
             # shellcheck disable=SC2016
             local PROFILE_STRING='{{.PROFILE_STRING}}'
-            if grep -L "$PROFILE_STRING" "$SHELL_PROFILE"; then
+            if ! grep -L "$PROFILE_STRING" "$SHELL_PROFILE" > /dev/null; then
               echo -e "${PROFILE_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info 'Added `{{.PROFILE_STRING}}` to '"$SHELL_PROFILE"
             fi
@@ -212,6 +212,10 @@ tasks:
     cmds:
       - mkdir -p ~/.local/git-subrepo
       - git clone https://github.com/ingydotnet/git-subrepo ~/.local/git-subrepo
+      - |
+        if [[ '{{OS}}' == 'darwin' ]]; then
+          brew install bash
+        fi
       - task: profile:add
         vars:
           PROFILE_STRING: source ~/.local/git-subrepo/.rc

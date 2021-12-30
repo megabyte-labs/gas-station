@@ -70,14 +70,19 @@ tasks:
 
   requirements:poetry:prereqs:
     vars:
-      GCC5_MISSING_MESSAGE: It looks like your system is missing gcc-5 but gcc is available. You will be prompted
-        for a password to run `sudo ln -s /bin/gcc /bin/gcc-5`
+      GCC5_MISSING_MESSAGE: 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted
+        for a password to run:'
     cmds:
       - |
         if ! which gcc-5 > /dev/null; then
           if which gcc; then
-            .config/log info '{{.GCC5_MISSING_MESSAGE}}'
-            sudo ln -s /bin/gcc /bin/gcc-5
+            if [ -w /usr/local/bin ]; then
+              ln -s "$(which gcc)" /usr/local/bin/gcc-5
+            else
+              .config/log info '{{.GCC5_MISSING_MESSAGE}}'
+              .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+              sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+            fi
           else
             .config/log warn '`gcc` is missing.'
           fi

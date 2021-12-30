@@ -70,7 +70,7 @@ tasks:
           LATEST="$(npm view $1 version)"
           LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
           COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
-          if [ "$COMPARE" == '-1' ]; then
+          if [[ "$COMPARE" == '-1' ]]; then
             .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
             echo "true" > "$TMP_REFRESH"
           fi
@@ -90,7 +90,7 @@ tasks:
         wait
         PACKAGE_LIST="$(cat "$TMP_LIST")"
         REFRESH_PACKAGES="$(cat $TMP_REFRESH)"
-        if [ "$REFRESH_PACKAGES" == 'true' ]; then
+        if [[ "$REFRESH_PACKAGES" == 'true' ]]; then
           PACKAGE_LIST="$(echo $PACKAGE_LIST | sed 's/^.//')"
           .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
           {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
@@ -125,7 +125,7 @@ tasks:
               fi
               ;;
             */zsh*)
-              SHELL_PROFILE="${HOME}/.zprofile"
+              SHELL_PROFILE="${HOME}/.zshrc"
               ;;
             *)
               SHELL_PROFILE="${HOME}/.profile"
@@ -134,7 +134,7 @@ tasks:
           if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
             # shellcheck disable=SC2016
             local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
-            if grep -L "$PATH_STRING" "$SHELL_PROFILE"; then
+            if ! grep -L "$PATH_STRING" "$SHELL_PROFILE" > /dev/null; then
               echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
             fi
@@ -182,7 +182,7 @@ tasks:
               fi
               ;;
             */zsh*)
-              SHELL_PROFILE="${HOME}/.zprofile"
+              SHELL_PROFILE="${HOME}/.zshrc"
               ;;
             *)
               SHELL_PROFILE="${HOME}/.profile"
@@ -191,7 +191,7 @@ tasks:
           if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
             # shellcheck disable=SC2016
             local PROFILE_STRING='{{.PROFILE_STRING}}'
-            if grep -L "$PROFILE_STRING" "$SHELL_PROFILE"; then
+            if ! grep -L "$PROFILE_STRING" "$SHELL_PROFILE" > /dev/null; then
               echo -e "${PROFILE_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info 'Added `{{.PROFILE_STRING}}` to '"$SHELL_PROFILE"
             fi
@@ -205,20 +205,6 @@ tasks:
         }
         addToProfile
 
-  subrepo:
-    deps:
-      - :install:software:git
-    run: once
-    cmds:
-      - mkdir -p ~/.local/git-subrepo
-      - git clone https://github.com/ingydotnet/git-subrepo ~/.local/git-subrepo
-      - task: profile:add
-        vars:
-          PROFILE_STRING: source ~/.local/git-subrepo/.rc
-      - task: :install:software:exit:notice:reload
-    status:
-      - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
-
   tslib:
     env:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
@@ -228,7 +214,7 @@ tasks:
     cmds:
       - |
         if [ -f 'tsconfig.json' ]; then
-          if [ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]; then
+          if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
             if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
               .config/log info '{{.TSLIB_MSG}}'
             else

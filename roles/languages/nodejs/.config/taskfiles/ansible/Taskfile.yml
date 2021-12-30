@@ -127,13 +127,23 @@ tasks:
       - task: mod-ansible-autodoc:generate
       - task: mod-ansible-autodoc:variables
 
+  mod-ansible-autodoc:ansible-autodoc-fork:
+    cmds:
+      - task: :install:software:pipx
+      - pipx install ansible-autodoc-fork
+    status:
+      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
+
   mod-ansible-autodoc:generate:
     deps:
       - :install:python:requirements
       - :install:software:jq
+      - mod-ansible-autodoc:ansible-autodoc-fork
     env:
       ACTIONS_DESCRIPTION:
         sh: jq -r '.autodoc_actions_description' '{{.VARIABLES_PATH}}'
+      # PATH:
+      #   sh: echo "$PATH:$(poetry env info | grep 'Python   /' | sed 's/Python   //')"
       TAGS_DESCRIPTION:
         sh: jq -r '.autodoc_tags_description' '{{.VARIABLES_PATH}}'
       TODO_DESCRIPTION:

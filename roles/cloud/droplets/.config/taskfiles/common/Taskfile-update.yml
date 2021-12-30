@@ -22,7 +22,6 @@ tasks:
       - |
         {{if eq .REPOSITORY_TYPE "common"}}{{else}}{{if eq .REPOSITORY_TYPE "documentation"}}{{else}}
         task common:update:all:docs:generate
-        wait
         {{end}}{{end}}
 
   all:docs:generate:
@@ -62,7 +61,7 @@ tasks:
         msg: The CONTRIBUTING.md template file is not present at `.config/docs/blueprint-contributing.md`
       - sh: test -f .variables.json
         msg: The `.variables.json` file is not present.
-      - sh: type readme &> /dev/null
+      - sh: type readme > /dev/null
         msg: '`@appnest/readme` is not installed globally.'
 
   files:
@@ -132,7 +131,7 @@ tasks:
           REGEX: '{{.REGEX}}'
           SCRUB_FILE: '{{.SCRUB_FILE}}'
 
-  markdown:scrub:darwin: sed -i .bak 's^{{.REGEX}}^{{.DIVIDER_SRC}}^g' {{.SCRUB_FILE}} && rm {{.SCRUB_FILE}}.bak
+  markdown:scrub:darwin: /usr/bin/sed -i .bak 's^{{.REGEX}}^{{.DIVIDER_SRC}}^g' {{.SCRUB_FILE}} && rm {{.SCRUB_FILE}}.bak
 
   markdown:scrub:linux: sed -i 's^{{.REGEX}}^{{.DIVIDER_SRC}}^g' {{.SCRUB_FILE}}
 
@@ -247,7 +246,7 @@ tasks:
     cmds:
       - task: :git:update
     status:
-      - '[[ "${container:=}" == "docker" ]]'
+      - '[[ "${container:=}" == "docker" ]] || [[ "$SKIP_UPLOADING" == "true" ]]'
 
   variables:
     deps:

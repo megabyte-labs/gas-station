@@ -45,7 +45,7 @@ async function promptForShell() {
  */
 async function run() {
   logInstructions(
-    'Launch Docker Shell Environment',
+    'Launch a Docker Shell Environment',
     'Open a shell session quickly, safely, and easily using Docker.' +
       'Select an option from the prompt below to download and shell into a Docker environment.' +
       ' The environment will be automatically deleted after you exit the terminal session.'

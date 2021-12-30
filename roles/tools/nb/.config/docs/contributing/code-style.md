@@ -60,7 +60,7 @@ Say the application being installed is Android Studio. The dependency array shou
 ```yaml
 ---
 androidstudio_dependencies:
-  - nb
+  - ffmpeg
   - coolpackage
   - anotherpackage
 ```

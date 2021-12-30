@@ -23,8 +23,8 @@ git clone --depth=1 https://gitlab.com/megabyte-labs/common/shared.git common-sh
 mkdir -p .config
 rm -rf .config/taskfiles
 if [[ "$OSTYPE" == 'darwin'* ]]; then
-  cp -rf common-shared/common/.config/taskfiles/ .config/
-  cp -rf common-shared/common/.config/scripts/ .config/
+  cp -rf common-shared/common/.config/taskfiles .config
+  cp -rf common-shared/common/.config/scripts .config
 else
   cp -rT common-shared/common/.config/taskfiles .config/taskfiles
   cp -rT common-shared/common/.config/scripts .config/scripts
@@ -32,7 +32,7 @@ fi
 mkdir -p .gitlab
 rm -rf .gitlab/ci
 if [[ "$OSTYPE" == 'darwin'* ]]; then
-  cp -rf common-shared/common/.gitlab/ci/ .gitlab/
+  cp -rf common-shared/common/.gitlab/ci .gitlab
 else
   cp -rT common-shared/common/.gitlab/ci .gitlab/ci
 fi

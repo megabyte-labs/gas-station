@@ -88,7 +88,7 @@ tasks:
             fi
             ;;
           */zsh*)
-            SHELL_PROFILE="${HOME}/.zprofile"
+            SHELL_PROFILE="${HOME}/.zshrc"
             ;;
           *)
             SHELL_PROFILE="${HOME}/.profile"
@@ -106,14 +106,30 @@ tasks:
           exit 1
         fi
     status:
-      - type brew &> /dev/null || [ "$OPTIMIZED_IMAGE" == 'true' ]
+      - type brew &> /dev/null || [[ "$OPTIMIZED_IMAGE" == 'true' ]]
 
   brew:utils:
+    run: once
     cmds:
       - |
         .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
-        brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
+        brew install coreutils findutils gnu-sed grep gnu-tar gawk
         .config/log success "Successfully installed GNU-compatibility tools"
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/findutils/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/gnu-sed/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/grep/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/gnu-tar/libexec/gnubin
     status:
       - type gcp > /dev/null
       - type gfind > /dev/null
@@ -144,6 +160,9 @@ tasks:
       - task: common:darwin:xcode
 
   common:darwin:xcode:
+    vars:
+      CLT_STATUS:
+        sh: brew config | grep CLT
     cmds:
       - |
         .config/log info "Installing xcode-select.. You might be prompted for a password"
@@ -151,7 +170,7 @@ tasks:
         xcode-select --install
         .config/log success "Successfully installed xcode-select"
     status:
-      - xcode-select -p 1> /dev/null
+      - '[ "{{.CLT_STATUS}}" != "CLT: N/A" ]'
 
   common:linux:
     vars:
@@ -207,7 +226,7 @@ tasks:
         if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
           yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
           DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
-          if [ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]; then
+          if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
             sudo yum groupinstall -y 'Development Tools'
           fi
           touch "$HOME/.config/mblabs/yum-devtools-check-ran"
@@ -218,7 +237,7 @@ tasks:
         fi
         if [ -f '/etc/os-release' ]; then
           source /etc/os-release
-          if [ "$ID" == 'fedora' ] && [ "$VERSION_ID" -gt "29" ]; then
+          if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
             if ! rpm --quiet --query libxcrypt-compat; then
               .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
               sudo yum -y install libxcrypt-compat
@@ -254,8 +273,11 @@ tasks:
           brew install coreutils
           .config/log success 'Successfully installed GNU compatibility tools (i.e. `coreutils`)'
         fi
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
     status:
-      - '[ "{{OS}}" == "darwin" ] || type gsed > /dev/null'
+      - '[[ "{{OS}}" != "darwin" ]] && type gsed > /dev/null'
 
   docker:
     run: once
@@ -497,6 +519,15 @@ tasks:
           FORMULAE: hudochenkov/sshpass/sshpass
     status:
       - type sshpass > /dev/null
+
+  subrepo:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: git-subrepo
+    status:
+      - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
 
   tokei:
     run: once

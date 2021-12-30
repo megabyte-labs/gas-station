@@ -82,6 +82,7 @@ tasks:
         {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker -- --skip-tags skipdockertest || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'The `{{.CLI_ARGS}}` Docker Molecule test finished with errors'
+          exit 1
         else
           .config/log success 'Successfully ran the `{{.CLI_ARGS}}` Docker Molecule test'
         fi
@@ -110,6 +111,7 @@ tasks:
           tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt" || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'There were errors while running the test - results are available at `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt`'
+          exit 1
         else
           .config/log success 'Finished running the test - results are available at `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt`'
         fi
@@ -134,6 +136,7 @@ tasks:
         {{.PYTHON_HANDLE}}molecule test -s gcp || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'Finished running the Google Cloud Platform Molecule test (with errors)'
+          exit 1
         else
           .config/log success 'Finished running Google Cloud Platform Molecule test'
         fi
@@ -155,6 +158,7 @@ tasks:
         PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test -s gcp 2>&1 | tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt" || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'Errors encountered while running the test - results are available at `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt`'
+          exit 1
         else
           .config/log success 'Finished running the test - results are available at `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt`'
         fi
@@ -210,9 +214,11 @@ tasks:
       - |
         .config/log info 'Running Molecule test locally'
         EXIT_CODE=0
+        PATH="$(poetry env info | grep 'Python:   /' | sed 's/Python:   //' | sed 's/$/\/bin/'):$PATH" \
         {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s local || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'There was an error while running the Molecule test locally'
+          exit 1
         else
           .config/log success 'The local Molecule test was successful!'
         fi
@@ -240,6 +246,7 @@ tasks:
         {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s remote || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'Errors encountered while running the remote Molecule test'
+          exit 1
         else
           .config/log success 'Successfully ran the Molecule test on the SSH target'
         fi
@@ -285,6 +292,7 @@ tasks:
         {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'Errors encountered while running the `{{.CLI_ARGS}}` VirtualBox Molecule test'
+          exit 1
         else
           .config/log success 'Finished running `{{.CLI_ARGS}}` VirtualBox Molecule test'
         fi
@@ -331,6 +339,7 @@ tasks:
         {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge -s desktop || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'Errors were encountered while running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play'
+          exit 1
         else
           .config/log success 'Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play - you are encouraged to inspect the VM'
         fi
@@ -362,6 +371,7 @@ tasks:
         PY_COLORS=0 {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test | tee '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt' || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
           .config/log error 'Errors were encountered while running the full E2E test - see `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt` for details'
+          exit 1
         else
           .config/log success 'Finished running full E2E test - `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt` contains the results'
         fi

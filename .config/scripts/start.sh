@@ -26,8 +26,54 @@ PROJECT_BASE_DIR="$SOURCE_PATH/../.."
 INSTALL_PACKAGE_SCRIPT="$SOURCE_PATH/lib/package.sh"
 INSTALL_TASK_SCRIPT="$SOURCE_PATH/lib/task.sh"
 TMP_PROFILE_PATH="$(mktemp)"
-export TMP_PROFILE_PATH
 VALID_TASKFILE_SCRIPT="$SOURCE_PATH/lib/taskfile.sh"
+
+# @description Ensures ~/.local/bin is in the PATH variable on *nix machines and
+# exits with an error on unsupported OS types
+#
+# @example
+#   ensureLocalPath
+#
+# @set PATH string The updated PATH with a reference to ~/.local/bin
+# @set SHELL_PROFILE string The preferred profile
+#
+# @noarg
+#
+# @exitcode 0 If the PATH was appropriately updated or did not need updating
+# @exitcode 1+ If the OS is unsupported
+function ensureLocalPath() {
+  case "${SHELL}" in
+    */bash*)
+      if [[ -r "${HOME}/.bash_profile" ]]; then
+        SHELL_PROFILE="${HOME}/.bash_profile"
+      else
+        SHELL_PROFILE="${HOME}/.profile"
+      fi
+      ;;
+    */zsh*)
+      SHELL_PROFILE="${HOME}/.zshrc"
+      ;;
+    *)
+      SHELL_PROFILE="${HOME}/.profile"
+      ;;
+  esac
+  if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+    # shellcheck disable=SC2016
+    local PATH_STRING='PATH="$HOME/.local/bin:$PATH"'
+    if grep -L "$PATH_STRING" "$SHELL_PROFILE"; then
+      echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
+      echo "$SHELL_PROFILE" > "$TMP_PROFILE_PATH"
+      .config/log info "Updated the PATH variable to include ~/.local/bin in $SHELL_PROFILE"
+    fi
+  elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+    .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+  elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+    .config/log error "FreeBSD support not added yet" && exit 1
+  else
+    .config/log error "System type not recognized" && exit 1
+  fi
+}
+ensureLocalPath
 
 # @description Ensure basic dependencies are installed
 bash "$INSTALL_PACKAGE_SCRIPT" "curl"
@@ -45,14 +91,16 @@ fi
 if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
   bash "$INSTALL_TASK_SCRIPT"
   SHELL_PROFILE_PATH="$(cat "$TMP_PROFILE_PATH")"
-  # shellcheck disable=SC1090
-  source "$SHELL_PROFILE_PATH"
+  if [ -n "$SHELL_PROFILE_PATH" ]; then
+    # shellcheck disable=SC1090
+    source "$SHELL_PROFILE_PATH"
+  fi
 fi
 bash "$VALID_TASKFILE_SCRIPT"
 cd "$PROJECT_BASE_DIR" || exit
 if [ -z "$GITLAB_CI" ]; then
   task start
-  if [ -f .config/log ]; then
+  if [ -f .config/log ] && [ -n "$SHELL_PROFILE_PATH" ]; then
     .config/log info 'There may have been changes to your PATH variable. You may have to run:\n'
     .config/log info '`source '"$SHELL_PROFILE_PATH"'`'
   fi

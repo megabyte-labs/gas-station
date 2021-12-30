@@ -2,7 +2,7 @@
 test:molecule:linux:
   stage: test
   image:
-    name: megabytelabs/ansible-molecule-ubuntu-20.04:latest
+    name: megabytelabs/linux-molecule:latest
     entrypoint: ['']
   services:
     - docker:20.10.7-dind
@@ -33,16 +33,11 @@ test:molecule:linux:
     DOCKER_TLS_VERIFY: 1
     GIT_DEPTH: 1
   before_script:
-    - apt-get update -y
-    - apt-get install -y curl git tzdata
     - |
       if [ "$CI_COMMIT_BRANCH" == 'test/linux' ]; then
         git pull origin master
         git push origin "$CI_COMMIT_BRANCH"
       fi
-    - bash <(curl -sS https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/ubuntu-molecule-shim.sh)
-    - bash .config/scripts/start.sh
   script:
-    - source ~/.profile
     - task environment -- dev
     - OPTIMIZED_IMAGE=false task ansible:test:molecule:docker:cli -- "$OPERATING_SYSTEM"

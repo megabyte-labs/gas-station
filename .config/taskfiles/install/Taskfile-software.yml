@@ -108,11 +108,27 @@ tasks:
       - type brew &> /dev/null || [[ "$OPTIMIZED_IMAGE" == 'true' ]]
 
   brew:utils:
+    run: once
     cmds:
       - |
         .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
         brew install coreutils findutils gnu-sed grep gnu-tar gawk
         .config/log success "Successfully installed GNU-compatibility tools"
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/findutils/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/gnu-sed/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/grep/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/gnu-tar/libexec/gnubin
     status:
       - type gcp > /dev/null
       - type gfind > /dev/null
@@ -256,6 +272,9 @@ tasks:
           brew install coreutils
           .config/log success 'Successfully installed GNU compatibility tools (i.e. `coreutils`)'
         fi
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
     status:
       - '[[ "{{OS}}" != "darwin" ]] && type gsed > /dev/null'
 
@@ -499,6 +518,15 @@ tasks:
           FORMULAE: hudochenkov/sshpass/sshpass
     status:
       - type sshpass > /dev/null
+
+  subrepo:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: git-subrepo
+    status:
+      - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
 
   tokei:
     run: once

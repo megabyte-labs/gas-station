@@ -3,8 +3,8 @@
 sudo apt-get update -y
 sudo apt install -y apt-transport-https ca-certificates curl software-properties-common sshpass wget openssl git
 
-useradd -m -p "$(openssl passwd -1 password)" --groups sudo gitlab
-su -s /bin/bash gitlab
+useradd -m -p "$(openssl passwd -1 password)" --groups sudo crovax
+su -s /bin/bash crovax
 find . -print0 | xargs -0 sudo chown "$USER":"$USER"
 
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -

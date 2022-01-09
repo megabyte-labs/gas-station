@@ -10,12 +10,28 @@
 - name: Ensure ~/.config/autostart exists
   become_user: "{{ ansible_user }}"
   file:
-    path: "{{ item }}"
+    path: ~/.config/autostart
     state: directory
     mode: 0755
-  loop:
-    - ~/.config
-    - ~/.config/autostart
+  when: ansible_system == 'Linux'
+
+- name: Register display manager path
+  command: cat /etc/X11/default-display-manager
+  register: rb_display_man
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family == 'Debian'
+
+- name: Register display manager path (RedHat)
+  command: grep '/usr/s\?bin' /etc/systemd/system/display-manager.service
+  register: rb_display_man_rh
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family in ('RedHat', 'Archlinux')
+
+- name: Backup the display manager query
+  set_fact:
+    rb_display_manager: "{{ rb_display_man if rb_display_man.stdout is defined else rb_display_man_rh }}"
 
 - name: Copy ansible-installer.desktop to ~/.config/autostart (for continuing the installation after reboot)
   become_user: "{{ ansible_user }}"
@@ -23,6 +39,50 @@
     src: ansible-installer.desktop
     dest: ~/.config/autostart/ansible-installer.desktop
     mode: 0700
+  when:
+    - ansible_system == 'Linux'
+    - rb_display_manager.stdout is defined and rb_display_manager.stdout | regex_search('lightdm|gdm|sddm')
+
+- name: Copy the script that will be run upon reboot
+  become_user: "{{ ansible_user }}"
+  copy:
+    dest: ~/.config/ansible-continue.sh
+    content: |
+      function cleanup {
+        rm -f ~/.config/ansible-continue.sh
+        rm -f ~/.config/autostart/ansible-installer.desktop
+        crontab -r || echo $1
+        # rm -rf "$HOME/gas-station"
+      }
+      trap cleanup EXIT
+      cd "$HOME/gas-station"
+      ansible-playbook --ask-sudo-pass -i inventories/ main.yml
+    mode: 0700
+
+- name: Ensure cron/cronie is installed
+  package:
+    name: "{{ 'cron' if ansible_os_family == 'Debian' else 'cronie' }}"
+    state: present
+  when:
+    - ansible_system == 'Linux'
+    - "rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr"
+
+- name: Ensure cron/cronie service is enabled
+  service:
+    name: "{{ 'cron' if ansible_os_family == 'Debian' else ('crond' if ansible_os_family == 'RedHat' else 'cronie') }}"
+    enabled: true
+  when:
+    - ansible_system == 'Linux'
+    - "rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr"
+
+- name: Ensure cron job is setup
+  become_user: "{{ ansible_user }}"
+  cron:
+    name: ansible-continue
+    job: ~/.config/ansible-continue.sh
+    special_time: reboot
+    user: "{{ ansible_user }}"
+  when: "ansible_system == 'Darwin' or (rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr)"
 
 - name: Reboot # noqa 301
   command: reboot

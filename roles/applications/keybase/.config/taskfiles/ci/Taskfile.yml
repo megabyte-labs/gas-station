@@ -1,0 +1,75 @@
+---
+version: '3'
+
+tasks:
+  before:
+    deps:
+      - :install:software:git
+    cmds:
+      - task: commit:config
+      - task: checkout
+      - task: before:npm
+
+  before:npm:
+    deps:
+      - :install:software:node
+    cmds:
+      - pnpm config set store-dir .pnpm-store
+
+  checkout:
+    cmds:
+      - |
+        if [ "$CI_COMMIT_REF_NAME" == 'synchronize' ]; then
+          git checkout -q master
+          git pull -q origin master
+        else
+          git checkout -q "$CI_COMMIT_REF_NAME"
+          git pull -q origin "$CI_COMMIT_REF_NAME"
+        fi
+
+  commit:
+    deps:
+      - :install:software:git
+    cmds:
+      - task: commit:config
+      - git add --all
+      - git diff --cached "*"
+      - |
+        if [[ $(git status --porcelain) ]]; then
+          git commit -m "⤵️ automation(synchronize) Applying changes from upstream repository."
+          git push -q -o ci.skip origin master
+        fi
+
+  commit:config:
+    deps:
+      - :install:software:git
+    cmds:
+      - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+      - git config user.email "$GITLAB_CI_EMAIL"
+      - git config user.name "$GITLAB_CI_NAME"
+    preconditions:
+      - sh: '[[ ! -z "$GROUP_ACCESS_TOKEN" ]]'
+        msg: The `GROUP_ACCESS_TOKEN` GitLab CI variable must be set to an API key with priviledges to read/write to repositories.
+      - sh: '[[ ! -z "$GITLAB_CI_EMAIL" ]]'
+        msg: 'The `GITLAB_CI_EMAIL` GitLab CI variable must be set to the e-mail address you would like associated with
+          automated commits (e.g. "help@mydomain.com").'
+      - sh: '[[ ! -z "$GITLAB_CI_NAME" ]]'
+        msg: 'The `GITLAB_CI_NAME` GitLab CI variable must be set to the name you would like associated with automated commits
+          (e.g. "CI Automation").'
+
+  submodules:
+    deps:
+      - :install:software:git
+    cmds:
+      - >
+        git submodule foreach 'git config user.email "$GITLAB_CI_EMAIL"; git config user.name "$GITLAB_CI_NAME";
+        git checkout -q master; git pull -q origin master --ff-only'
+
+  synchronize:
+    cmds:
+      - git checkout -b synchronize || git checkout synchronize
+      - git reset --hard HEAD
+      - git pull -q origin master
+      - git push -q -o ci.skip origin synchronize --force
+      - curl -s --request POST --form "token=${CI_JOB_TOKEN}" --form ref=master --form "variables[PIPELINE_SOURCE]=$PIPELINE_SOURCE"
+        "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/trigger/pipeline"

@@ -1,0 +1,64 @@
+---
+version: '3'
+
+tasks:
+  build:
+    deps:
+      - :install:python:requirements
+    desc: Build the project
+    cmds:
+      - task: clean
+      - poetry build
+
+  build:binary:
+    deps:
+      - :install:python:requirements
+    desc: Build standalone binary
+    cmds:
+      - task: clean
+      - |
+        {{.PYTHON_HANDLE}}python -OO -m PyInstaller -F run.py
+
+  clean:
+    cmds:
+      - rm -rf build
+      - rm -rf dist
+
+  global:reset:
+    cmds:
+      - cmd: if type pip &> /dev/null; then pip uninstall -y -r <(pip freeze); fi
+        ignore_error: true
+      - cmd: if type pip3 &> /dev/null; then pip3 uninstall -y -r <(pip3 freeze); fi
+        ignore_error: true
+
+  publish:
+    deps:
+      - :install:python:requirements
+    desc: Publish the project to PyPi.org
+    cmds:
+      - poetry publish
+
+  requirementstxt:
+    deps:
+      - :install:python:requirements
+    desc: Generate the requirements.txt fallback file
+    cmds:
+      - mkdir -p .config
+      - poetry export -f requirements.txt --output .config/requirements.txt --without-hashes
+
+  run:
+    deps:
+      - :install:python:requirements
+    desc: Runs the project by calling `run.py`
+    cmds:
+      - |
+        {{.PYTHON_HANDLE}}python run.py
+
+  test:
+    deps:
+      - :install:python:requirements
+    desc: Runs tests with `pytest` after fixing and linting
+    cmds:
+      - task: :fix:python
+      - task: :lint:python
+      - task: :python:test:pytest

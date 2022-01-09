@@ -24,6 +24,14 @@
     - include_tasks: "autoupdate-{{ ansible_os_family }}.yml"
   when: security_autoupdate_enabled | bool
 
+- name: Configure tweaks
+  become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
+  block:
+    - include_tasks: "setup-{{ ansible_os_family }}.yml"
+  when: ansible_system == 'Darwin'
+
 - name: Configure RNG
   become: true
   become_user: "{{ ansible_user if ansible_os_family == 'Windows' }}"

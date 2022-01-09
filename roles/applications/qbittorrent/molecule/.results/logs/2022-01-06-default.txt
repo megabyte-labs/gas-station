@@ -1,0 +1,847 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.qbittorrent"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.qbittorrent"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  01:18:22 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  01:18:32 -0500 (0:00:09.518)       0:00:09.532 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  01:18:32 -0500 (0:00:00.373)       0:00:09.906 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  01:19:01 -0500 (0:00:29.184)       0:00:39.090 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  01:19:02 -0500 (0:00:00.188)       0:00:39.279 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Thursday 06 January 2022  01:19:02 -0500 (0:00:00.322)       0:00:39.602 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.18s
+Gathering Facts --------------------------------------------------------- 9.52s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.32s
+Populate instance config ------------------------------------------------ 0.19s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+
+playbook: /home/hawkwood/gas-station/roles/applications/qbittorrent/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  01:19:05 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  01:19:14 -0500 (0:00:09.543)       0:00:09.558 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Thursday 06 January 2022  01:19:15 -0500 (0:00:00.367)       0:00:09.925 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Thursday 06 January 2022  01:28:31 -0500 (0:09:16.548)       0:09:26.474 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/qbittorrent/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/qbittorrent/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Thursday 06 January 2022  01:28:32 -0500 (0:00:00.984)       0:09:27.458 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  01:28:32 -0500 (0:00:00.163)       0:09:27.622 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  01:28:34 -0500 (0:00:01.039)       0:09:28.662 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 556.55s
+Gathering Facts --------------------------------------------------------- 9.54s
+Dump instance config ---------------------------------------------------- 1.04s
+Populate instance config dict ------------------------------------------- 0.98s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.16s
+Playbook run took 0 days, 0 hours, 9 minutes, 28 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Thursday 06 January 2022  01:28:36 -0500 (0:00:00.028)       0:00:00.028 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  01:28:50 -0500 (0:00:14.218)       0:00:14.246 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 14.22s
+Playbook run took 0 days, 0 hours, 0 minutes, 14 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  01:28:52 -0500 (0:00:00.025)       0:00:00.025 ******
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Thursday 06 January 2022  01:28:55 -0500 (0:00:02.815)       0:00:02.841 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Thursday 06 January 2022  01:28:55 -0500 (0:00:00.127)       0:00:02.969 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-Stream-8]
+skipping: [CentOS-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Thursday 06 January 2022  01:28:56 -0500 (0:00:00.177)       0:00:03.146 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Thursday 06 January 2022  01:28:56 -0500 (0:00:00.142)       0:00:03.289 ******
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Thursday 06 January 2022  01:28:56 -0500 (0:00:00.161)       0:00:03.450 ******
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Thursday 06 January 2022  01:28:56 -0500 (0:00:00.144)       0:00:03.594 ******
+
+TASK [professormanhattan.qbittorrent : Include variables based on the operating system] ***
+Thursday 06 January 2022  01:28:56 -0500 (0:00:00.195)       0:00:03.790 ******
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.qbittorrent : include_tasks] **************************
+Thursday 06 January 2022  01:28:56 -0500 (0:00:00.178)       0:00:03.969 ******
+included: /home/hawkwood/gas-station/roles/applications/qbittorrent/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/applications/qbittorrent/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/applications/qbittorrent/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/applications/qbittorrent/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.qbittorrent : Ensure qBittorrent is installed] ********
+Thursday 06 January 2022  01:28:57 -0500 (0:00:00.206)       0:00:04.175 ******
+fatal: [ArchLinux-Latest]: FAILED! => changed=false
+  msg: |-
+    failed to install qbittorrent: warning: dependency cycle detected:
+    warning: mesa will be installed before its libglvnd dependency
+    warning: dependency cycle detected:
+    warning: harfbuzz will be installed before its freetype2 dependency
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from arch.mirror.constant.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from de.arch.mirror.kescher.at : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux.uk.mirror.allworldit.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.chaoticum.net : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux-br.com.br : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from asia.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.f4st.host : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux.za.mirror.allworldit.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.cyberbits.asia : Could not resolve host: mirror.cyberbits.asia
+    warning: too many errors from mirror.cyberbits.asia, skipping for the remainder of this transaction
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.theash.xyz : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr: |-
+    warning: dependency cycle detected:
+    warning: mesa will be installed before its libglvnd dependency
+    warning: dependency cycle detected:
+    warning: harfbuzz will be installed before its freetype2 dependency
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from arch.mirror.constant.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from de.arch.mirror.kescher.at : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux.uk.mirror.allworldit.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.chaoticum.net : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux-br.com.br : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from asia.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.f4st.host : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from archlinux.za.mirror.allworldit.com : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.cyberbits.asia : Could not resolve host: mirror.cyberbits.asia
+    warning: too many errors from mirror.cyberbits.asia, skipping for the remainder of this transaction
+    error: failed retrieving file 'llvm-libs-13.0.0-3-x86_64.pkg.tar.zst' from mirror.theash.xyz : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr_lines: <omitted>
+  stdout: |-
+    resolving dependencies...
+    looking for conflicting packages...
+
+    Packages (66) avahi-0.8+22+gfd482a7-1  boost-libs-1.76.0-2  double-conversion-3.1.5-2  fontconfig-2:2.13.94-1  freetype2-2.11.0-4  graphite-1:1.3.14-1  harfbuzz-3.1.2-1  hicolor-icon-theme-0.17-2  libcups-1:2.3.3op2-4  libdaemon-0.14-5  libdrm-2.4.109-1  libevdev-1.12.0-1  libglvnd-1.3.4-1  libgudev-237-1  libice-1.0.10-3  libinput-1.19.2-1  libjpeg-turbo-2.1.2-1  libomxil-bellagio-0.9.3-3  libpciaccess-0.16-2  libpng-1.6.37-3  libproxy-0.4.17-3  libsm-1.2.3-2  libtiff-4.3.0-1  libtorrent-rasterbar-1:1.2.14-1  libunwind-1.5.0-1  libusb-1.0.24-2  libwacom-1.12-1  libx11-1.7.2-1  libxau-1.0.9-3  libxcb-1.14-1  libxdamage-1.1.5-3  libxdmcp-1.1.3-3  libxext-1.3.4-3  libxfixes-6.0.0-1  libxi-1.8-1  libxkbcommon-1.3.1-1  libxkbcommon-x11-1.3.1-1  libxmu-1.1.3-2  libxrender-0.9.10-4  libxshmfence-1.3-2  libxt-1.2.1-1  libxxf86vm-1.1.4-4  llvm-libs-13.0.0-3  lm_sensors-1:3.6.0.r41.g31d1f125-1  md4c-0.4.8-1  mesa-21.2.5-1  mtdev-1.1.6-1  qt5-base-5.15.2+kde+r260-1  qt5-svg-5.15.2+kde+r13-1  shared-mime-info-2.0+115+gd74a913-1  tslib-1.22-1  vulkan-icd-loader-1.2.199-2  wayland-1.19.0-2  which-2.21-5  xcb-proto-1.14.1-3  xcb-util-0.4.0-3  xcb-util-image-0.4.0-3  xcb-util-keysyms-0.4.0-3  xcb-util-renderutil-0.3.9-3  xcb-util-wm-0.4.1-3  xdg-utils-1.1.3+19+g9816ebb-1  xkeyboard-config-2.34-1  xorg-xprop-1.2.5-1  xorg-xset-1.2.4-2  xorgproto-2021.5-1  qbittorrent-4.3.9-1
+
+    Total Download Size:    79.08 MiB
+    Total Installed Size:  358.60 MiB
+
+    :: Proceed with installation? [Y/n]
+    :: Retrieving packages...
+     llvm-libs-13.0.0-3-x86_64 downloading...
+    Errors occurred, no packages were upgraded.
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.qbittorrent : Ensure qBittorrent is installed] ********
+Thursday 06 January 2022  01:29:04 -0500 (0:00:07.739)       0:00:11.915 ******
+fatal: [CentOS-8]: FAILED! => changed=false
+  failures:
+  - No package qbittorrent available.
+  msg: Failed to install some of the specified packages
+  rc: 1
+  results: []
+fatal: [CentOS-Stream-8]: FAILED! => changed=false
+  failures:
+  - No package qbittorrent available.
+  msg: Failed to install some of the specified packages
+  rc: 1
+  results: []
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: No package matching 'qbittorrent' found available, installed or updated
+  rc: 126
+  results:
+  - No package matching 'qbittorrent' found available, installed or updated
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.qbittorrent : Ensure qBittorrent is installed] ********
+Thursday 06 January 2022  01:30:39 -0500 (0:01:34.419)       0:01:46.335 ******
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  msg: No package matching 'qbittorrent' is available
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=false
+  cache_update_time: 1635200926
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'qbittorrent'' failed: E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-12/libllvm12_12.0.0-3ubuntu1%7e21.04.2_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-12/libllvm12_12.0.0-3ubuntu1%7e21.04.2_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      adwaita-icon-theme at-spi2-core dbus-user-session dconf-gsettings-backend
+      dconf-service fontconfig fontconfig-config fonts-dejavu-core geoip-database
+      glib-networking glib-networking-common glib-networking-services
+      gsettings-desktop-schemas gtk-update-icon-cache hicolor-icon-theme
+      humanity-icon-theme libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data
+      libatspi2.0-0 libavahi-client3 libavahi-common-data libavahi-common3
+      libcairo-gobject2 libcairo2 libcolord2 libcups2 libdatrie1 libdconf1
+      libdeflate0 libdouble-conversion3 libdrm-amdgpu1 libdrm-intel1
+      libdrm-nouveau2 libdrm-radeon1 libegl-mesa0 libegl1 libepoxy0 libfontconfig1
+      libgbm1 libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common
+      libgeoip1 libgl1 libgl1-mesa-dri libglapi-mesa libglvnd0 libglx-mesa0
+      libglx0 libgraphite2-3 libgtk-3-0 libgtk-3-bin libgtk-3-common libharfbuzz0b
+      libice6 libinput-bin libinput10 libjbig0 libjpeg-turbo8 libjpeg8 liblcms2-2
+      libllvm12 libmd4c0 libmtdev1 libpango-1.0-0 libpangocairo-1.0-0
+      libpangoft2-1.0-0 libpciaccess0 libpcre2-16-0 libpixman-1-0 libproxy1v5
+      libqt5core5a libqt5dbus5 libqt5gui5 libqt5network5 libqt5svg5 libqt5widgets5
+      libqt5xml5 librest-0.7-0 librsvg2-2 librsvg2-common libsensors-config
+      libsensors5 libsm6 libsoup-gnome2.4-1 libsoup2.4-1 libthai-data libthai0
+      libtiff5 libtorrent-rasterbar10 libvulkan1 libwacom-bin libwacom-common
+      libwacom2 libwayland-client0 libwayland-cursor0 libwayland-egl1
+      libwayland-server0 libwebp6 libx11-6 libx11-data libx11-xcb1 libxau6
+      libxcb-dri2-0 libxcb-dri3-0 libxcb-glx0 libxcb-icccm4 libxcb-image0
+      libxcb-keysyms1 libxcb-present0 libxcb-randr0 libxcb-render-util0
+      libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1
+      libxcb-xfixes0 libxcb-xinerama0 libxcb-xinput0 libxcb-xkb1 libxcb1
+      libxcomposite1 libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxi6
+      libxinerama1 libxkbcommon-x11-0 libxkbcommon0 libxrandr2 libxrender1
+      libxshmfence1 libxtst6 libxxf86vm1 mesa-vulkan-drivers qt5-gtk-platformtheme
+      qttranslations5-l10n ubuntu-mono x11-common
+    Suggested packages:
+      colord cups-common geoip-bin gvfs liblcms2-utils qt5-image-formats-plugins
+      qtwayland5 librsvg2-bin lm-sensors libtorrent-rasterbar-dbg qbittorrent-dbg
+    The following NEW packages will be installed:
+      adwaita-icon-theme at-spi2-core dbus-user-session dconf-gsettings-backend
+      dconf-service fontconfig fontconfig-config fonts-dejavu-core geoip-database
+      glib-networking glib-networking-common glib-networking-services
+      gsettings-desktop-schemas gtk-update-icon-cache hicolor-icon-theme
+      humanity-icon-theme libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data
+      libatspi2.0-0 libavahi-client3 libavahi-common-data libavahi-common3
+      libcairo-gobject2 libcairo2 libcolord2 libcups2 libdatrie1 libdconf1
+      libdeflate0 libdouble-conversion3 libdrm-amdgpu1 libdrm-intel1
+      libdrm-nouveau2 libdrm-radeon1 libegl-mesa0 libegl1 libepoxy0 libfontconfig1
+      libgbm1 libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common
+      libgeoip1 libgl1 libgl1-mesa-dri libglapi-mesa libglvnd0 libglx-mesa0
+      libglx0 libgraphite2-3 libgtk-3-0 libgtk-3-bin libgtk-3-common libharfbuzz0b
+      libice6 libinput-bin libinput10 libjbig0 libjpeg-turbo8 libjpeg8 liblcms2-2
+      libllvm12 libmd4c0 libmtdev1 libpango-1.0-0 libpangocairo-1.0-0
+      libpangoft2-1.0-0 libpciaccess0 libpcre2-16-0 libpixman-1-0 libproxy1v5
+      libqt5core5a libqt5dbus5 libqt5gui5 libqt5network5 libqt5svg5 libqt5widgets5
+      libqt5xml5 librest-0.7-0 librsvg2-2 librsvg2-common libsensors-config
+      libsensors5 libsm6 libsoup-gnome2.4-1 libsoup2.4-1 libthai-data libthai0
+      libtiff5 libtorrent-rasterbar10 libvulkan1 libwacom-bin libwacom-common
+      libwacom2 libwayland-client0 libwayland-cursor0 libwayland-egl1
+      libwayland-server0 libwebp6 libx11-6 libx11-data libx11-xcb1 libxau6
+      libxcb-dri2-0 libxcb-dri3-0 libxcb-glx0 libxcb-icccm4 libxcb-image0
+      libxcb-keysyms1 libxcb-present0 libxcb-randr0 libxcb-render-util0
+      libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1
+      libxcb-xfixes0 libxcb-xinerama0 libxcb-xinput0 libxcb-xkb1 libxcb1
+      libxcomposite1 libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxi6
+      libxinerama1 libxkbcommon-x11-0 libxkbcommon0 libxrandr2 libxrender1
+      libxshmfence1 libxtst6 libxxf86vm1 mesa-vulkan-drivers qbittorrent
+      qt5-gtk-platformtheme qttranslations5-l10n ubuntu-mono x11-common
+    0 upgraded, 144 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 72.4 MB of archives.
+    After this operation, 304 MB of additional disk space will be used.
+    Get:1 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 libdouble-conversion3 amd64 3.1.5-6.1 [37.7 kB]
+    Get:2 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpcre2-16-0 amd64 10.36-2ubuntu5 [189 kB]
+    Get:3 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libqt5core5a amd64 5.15.2+dfsg-5ubuntu1 [1798 kB]
+    Get:4 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fonts-dejavu-core all 2.37-2build1 [1041 kB]
+    Get:5 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fontconfig-config all 2.13.1-4.2ubuntu3 [28.2 kB]
+    Get:6 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libfontconfig1 amd64 2.13.1-4.2ubuntu3 [116 kB]
+    Get:7 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fontconfig amd64 2.13.1-4.2ubuntu3 [171 kB]
+    Get:8 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libglvnd0 amd64 1.3.2-1 [51.8 kB]
+    Get:9 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-server0 amd64 1.18.0-2~exp1.1 [31.3 kB]
+    Get:10 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgbm1 amd64 21.0.3-0ubuntu0.3 [28.0 kB]
+    Get:11 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libglapi-mesa amd64 21.0.3-0ubuntu0.3 [26.8 kB]
+    Get:12 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-client0 amd64 1.18.0-2~exp1.1 [24.0 kB]
+    Get:13 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxau6 amd64 1:1.0.9-1build3 [7360 B]
+    Get:14 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxdmcp6 amd64 1:1.1.3-0ubuntu3 [10.3 kB]
+    Get:15 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb1 amd64 1.14-3ubuntu1 [45.3 kB]
+    Get:16 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-data all 2:1.7.0-2ubuntu0.1 [112 kB]
+    Get:17 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-6 amd64 2:1.7.0-2ubuntu0.1 [577 kB]
+    Get:18 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-xcb1 amd64 2:1.7.0-2ubuntu0.1 [7600 B]
+    Get:19 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-dri2-0 amd64 1.14-3ubuntu1 [6924 B]
+    Get:20 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-dri3-0 amd64 1.14-3ubuntu1 [6720 B]
+    Get:21 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-present0 amd64 1.14-3ubuntu1 [5556 B]
+    Get:22 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-sync1 amd64 1.14-3ubuntu1 [8900 B]
+    Get:23 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-xfixes0 amd64 1.14-3ubuntu1 [9288 B]
+    Get:24 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxshmfence1 amd64 1.3-1build2 [5168 B]
+    Get:25 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libegl-mesa0 amd64 21.0.3-0ubuntu0.3 [96.0 kB]
+    Get:26 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libegl1 amd64 1.3.2-1 [32.7 kB]
+    Get:27 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-glx0 amd64 1.14-3ubuntu1 [22.3 kB]
+    Get:28 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-shm0 amd64 1.14-3ubuntu1 [5588 B]
+    Get:29 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxext6 amd64 2:1.3.4-0ubuntu3 [28.9 kB]
+    Get:30 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxfixes3 amd64 1:5.0.3-2build1 [10.7 kB]
+    Get:31 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxxf86vm1 amd64 1:1.1.4-1build1 [10.2 kB]
+    Get:32 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libdrm-amdgpu1 amd64 2.4.105-3~21.04.1 [18.3 kB]
+    Get:33 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpciaccess0 amd64 0.16-1build2 [18.0 kB]
+    Get:34 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libdrm-intel1 amd64 2.4.105-3~21.04.1 [63.2 kB]
+    Get:35 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libdrm-nouveau2 amd64 2.4.105-3~21.04.1 [16.2 kB]
+    Get:36 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libdrm-radeon1 amd64 2.4.105-3~21.04.1 [20.0 kB]
+    Err:37 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libllvm12 amd64 1:12.0.0-3ubuntu1~21.04.2
+      404  Not Found [IP: 91.189.91.39 80]
+    Get:38 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsensors-config all 1:3.6.0-7 [5708 B]
+    Get:39 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsensors5 amd64 1:3.6.0-7 [25.8 kB]
+    Get:40 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libvulkan1 amd64 1.2.162.0-1 [97.2 kB]
+    Get:41 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgl1-mesa-dri amd64 21.0.3-0ubuntu0.3 [10.4 MB]
+    Get:42 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libglx-mesa0 amd64 21.0.3-0ubuntu0.3 [139 kB]
+    Get:43 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libglx0 amd64 1.3.2-1 [34.0 kB]
+    Get:44 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgl1 amd64 1.3.2-1 [87.3 kB]
+    Get:45 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgraphite2-3 amd64 1.3.14-1 [73.7 kB]
+    Get:46 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libharfbuzz0b amd64 2.7.4-1ubuntu1 [345 kB]
+    Get:47 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 x11-common all 1:7.7+22ubuntu1 [22.3 kB]
+    Get:48 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libice6 amd64 2:1.0.10-1 [40.2 kB]
+    Get:49 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libmtdev1 amd64 1.1.6-1build2 [13.9 kB]
+    Get:50 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwacom-common all 1.8-2ubuntu1 [48.6 kB]
+    Get:51 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwacom2 amd64 1.8-2ubuntu1 [20.6 kB]
+    Get:52 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libinput-bin amd64 1.16.4-3ubuntu2 [19.7 kB]
+    Get:53 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libinput10 amd64 1.16.4-3ubuntu2 [113 kB]
+    Get:54 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjpeg-turbo8 amd64 2.0.6-0ubuntu2 [117 kB]
+    Get:55 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjpeg8 amd64 8c-2ubuntu8 [2194 B]
+    Get:56 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 libmd4c0 amd64 0.4.7-1 [38.9 kB]
+    Get:57 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libqt5dbus5 amd64 5.15.2+dfsg-5ubuntu1 [202 kB]
+    Get:58 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libqt5network5 amd64 5.15.2+dfsg-5ubuntu1 [659 kB]
+    Get:59 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsm6 amd64 2:1.2.3-1 [16.1 kB]
+    Get:60 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-icccm4 amd64 0.4.1-1.1 [10.8 kB]
+    Get:61 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-util1 amd64 0.4.0-1 [10.2 kB]
+    Get:62 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-image0 amd64 0.4.0-1build1 [12.3 kB]
+    Get:63 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-keysyms1 amd64 0.4.0-1build1 [8452 B]
+    Get:64 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-randr0 amd64 1.14-3ubuntu1 [16.4 kB]
+    Get:65 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-render0 amd64 1.14-3ubuntu1 [14.8 kB]
+    Get:66 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-render-util0 amd64 0.3.9-1build1 [9912 B]
+    Get:67 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-shape0 amd64 1.14-3ubuntu1 [5932 B]
+    Get:68 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-xinerama0 amd64 1.14-3ubuntu1 [5272 B]
+    Get:69 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-xinput0 amd64 1.14-3ubuntu1 [29.5 kB]
+    Get:70 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-xkb1 amd64 1.14-3ubuntu1 [29.2 kB]
+    Get:71 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxkbcommon0 amd64 1.0.3-2 [99.2 kB]
+    Get:72 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxkbcommon-x11-0 amd64 1.0.3-2 [13.6 kB]
+    Get:73 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxrender1 amd64 1:0.9.10-1build2 [18.5 kB]
+    Get:74 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libqt5gui5 amd64 5.15.2+dfsg-5ubuntu1 [3372 kB]
+    Get:75 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libqt5widgets5 amd64 5.15.2+dfsg-5ubuntu1 [2358 kB]
+    Get:76 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 libqt5svg5 amd64 5.15.2-3 [134 kB]
+    Get:77 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 hicolor-icon-theme all 0.17-2 [9976 B]
+    Get:78 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf2.0-common all 2.42.2+dfsg-1build1 [4804 B]
+    Get:79 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdeflate0 amd64 1.7-1ubuntu1 [52.6 kB]
+    Get:80 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjbig0 amd64 2.1-3.1build1 [26.7 kB]
+    Get:81 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libwebp6 amd64 0.6.1-2ubuntu0.21.04.1 [184 kB]
+    Get:82 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libtiff5 amd64 4.2.0-1build1 [168 kB]
+    Get:83 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf-2.0-0 amd64 2.42.2+dfsg-1build1 [137 kB]
+    Get:84 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 gtk-update-icon-cache amd64 3.24.25-1ubuntu4.1 [28.7 kB]
+    Get:85 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 humanity-icon-theme all 0.6.15 [1250 kB]
+    Get:86 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 ubuntu-mono all 20.10-0ubuntu1 [147 kB]
+    Get:87 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 adwaita-icon-theme all 3.38.0-1ubuntu2 [3441 kB]
+    Get:88 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxi6 amd64 2:1.7.10-1build2 [29.7 kB]
+    Get:89 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatspi2.0-0 amd64 2.40.0-1 [69.9 kB]
+    Get:90 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxtst6 amd64 2:1.2.3-1build2 [13.0 kB]
+    Get:91 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 at-spi2-core amd64 2.40.0-1 [48.0 kB]
+    Get:92 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 dbus-user-session amd64 1.12.20-1ubuntu3 [9424 B]
+    Get:93 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdconf1 amd64 0.38.0-2 [37.2 kB]
+    Get:94 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 dconf-service amd64 0.38.0-2 [29.6 kB]
+    Get:95 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 dconf-gsettings-backend amd64 0.38.0-2 [22.9 kB]
+    Get:96 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 geoip-database all 20191224-3 [3030 kB]
+    Get:97 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libproxy1v5 amd64 0.4.17-1 [51.2 kB]
+    Get:98 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 glib-networking-common all 2.66.0-2 [4600 B]
+    Get:99 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 glib-networking-services amd64 2.66.0-2 [10.2 kB]
+    Get:100 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 gsettings-desktop-schemas all 3.38.0-1ubuntu1 [29.6 kB]
+    Get:101 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 glib-networking amd64 2.66.0-2 [58.4 kB]
+    Get:102 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatk1.0-data all 2.36.0-0ubuntu2 [3000 B]
+    Get:103 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatk1.0-0 amd64 2.36.0-0ubuntu2 [45.5 kB]
+    Get:104 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatk-bridge2.0-0 amd64 2.38.0-1build1 [58.9 kB]
+    Get:105 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libavahi-common-data amd64 0.8-5ubuntu3.1 [23.9 kB]
+    Get:106 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libavahi-common3 amd64 0.8-5ubuntu3.1 [21.9 kB]
+    Get:107 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libavahi-client3 amd64 0.8-5ubuntu3.1 [25.7 kB]
+    Get:108 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpixman-1-0 amd64 0.40.0-1build2 [236 kB]
+    Get:109 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcairo2 amd64 1.16.0-5ubuntu1 [589 kB]
+    Get:110 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcairo-gobject2 amd64 1.16.0-5ubuntu1 [17.4 kB]
+    Get:111 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 liblcms2-2 amd64 2.12~rc1-2 [143 kB]
+    Get:112 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcolord2 amd64 1.4.5-3 [135 kB]
+    Get:113 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcups2 amd64 2.3.3op2-3ubuntu3 [234 kB]
+    Get:114 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdatrie1 amd64 0.2.13-1ubuntu2 [19.4 kB]
+    Get:115 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libepoxy0 amd64 1.5.5-1build1 [191 kB]
+    Get:116 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf2.0-bin amd64 2.42.2+dfsg-1build1 [13.5 kB]
+    Get:117 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 libgeoip1 amd64 1.6.12-7 [70.5 kB]
+    Get:118 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libthai-data all 0.1.28-4 [134 kB]
+    Get:119 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libthai0 amd64 0.1.28-4 [18.0 kB]
+    Get:120 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpango-1.0-0 amd64 1.48.2-1build2 [169 kB]
+    Get:121 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpangoft2-1.0-0 amd64 1.48.2-1build2 [36.9 kB]
+    Get:122 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpangocairo-1.0-0 amd64 1.48.2-1build2 [25.2 kB]
+    Get:123 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsoup2.4-1 amd64 2.72.0-3 [266 kB]
+    Get:124 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsoup-gnome2.4-1 amd64 2.72.0-3 [6144 B]
+    Get:125 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 librest-0.7-0 amd64 0.8.1-1.1 [32.3 kB]
+    Get:126 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-cursor0 amd64 1.18.0-2~exp1.1 [10.4 kB]
+    Get:127 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-egl1 amd64 1.18.0-2~exp1.1 [5404 B]
+    Get:128 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcomposite1 amd64 1:0.4.5-1 [6976 B]
+    Get:129 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcursor1 amd64 1:1.2.0-2build2 [19.9 kB]
+    Get:130 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxdamage1 amd64 1:1.1.5-2 [6996 B]
+    Get:131 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxinerama1 amd64 2:1.1.4-2build2 [6768 B]
+    Get:132 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxrandr2 amd64 2:1.5.2-0ubuntu1 [18.5 kB]
+    Get:133 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgtk-3-common all 3.24.25-1ubuntu4.1 [236 kB]
+    Get:134 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgtk-3-0 amd64 3.24.25-1ubuntu4.1 [2654 kB]
+    Get:135 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgtk-3-bin amd64 3.24.25-1ubuntu4.1 [61.8 kB]
+    Get:136 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 libqt5xml5 amd64 5.15.2+dfsg-5ubuntu1 [112 kB]
+    Get:137 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 librsvg2-2 amd64 2.50.3+dfsg-1 [2456 kB]
+    Get:138 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 librsvg2-common amd64 2.50.3+dfsg-1 [14.8 kB]
+    Get:139 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 libtorrent-rasterbar10 amd64 1.2.9-0.2fakesync1build1 [1291 kB]
+    Get:140 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwacom-bin amd64 1.8-2ubuntu1 [5480 B]
+    Get:141 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 mesa-vulkan-drivers amd64 21.0.3-0ubuntu0.3 [4526 kB]
+    Get:142 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 qbittorrent amd64 4.2.5-0.1ubuntu1 [5680 kB]
+    Get:143 http://us.archive.ubuntu.com/ubuntu hirsute-updates/universe amd64 qt5-gtk-platformtheme amd64 5.15.2+dfsg-5ubuntu1 [116 kB]
+    Get:144 http://us.archive.ubuntu.com/ubuntu hirsute/universe amd64 qttranslations5-l10n all 5.15.2-2 [1576 kB]
+    Fetched 53.6 MB in 7s (8131 kB/s)
+  stdout_lines: <omitted>
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.qbittorrent : Ensure qBittorrent is installed] ********
+Thursday 06 January 2022  01:31:40 -0500 (0:01:01.554)       0:02:47.889 ******
+changed: [Windows-10]
+
+TASK [Ensure the qBittorrent shortcut is at the top level of the Start Menu] ***
+Thursday 06 January 2022  01:32:07 -0500 (0:00:26.313)       0:03:14.202 ******
+
+TASK [professormanhattan.startmenu : include_tasks] ****************************
+Thursday 06 January 2022  01:32:07 -0500 (0:00:00.076)       0:03:14.279 ******
+included: /home/hawkwood/gas-station/roles/helpers/startmenu/tasks/shortcut.yml for Windows-10
+
+TASK [professormanhattan.startmenu : Check if there is a start menu shortcut in the start menu shared folder] ***
+Thursday 06 January 2022  01:32:07 -0500 (0:00:00.066)       0:03:14.345 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.startmenu : Move the shortcut to the parent directory if it exists] ***
+Thursday 06 January 2022  01:32:09 -0500 (0:00:02.432)       0:03:16.777 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.startmenu : Remove the original folder] ***************
+Thursday 06 January 2022  01:32:11 -0500 (0:00:02.052)       0:03:18.830 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.startmenu : Check if there is a start menu shortcut in the user folder] ***
+Thursday 06 January 2022  01:32:13 -0500 (0:00:01.940)       0:03:20.771 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.startmenu : Move the shortcut to the parent directory if it exists (user start menu)] ***
+Thursday 06 January 2022  01:32:15 -0500 (0:00:02.257)       0:03:23.028 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Remove the original folder (user start menu)] ***
+Thursday 06 January 2022  01:32:16 -0500 (0:00:00.054)       0:03:23.083 ******
+ok: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-8                   : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-Stream-8            : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-10-Buster           : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Debian-9-Stretch           : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Fedora-33                  : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Fedora-34                  : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Fedora-35                  : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=10   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+
+Thursday 06 January 2022  01:32:17 -0500 (0:00:01.977)       0:03:25.060 ******
+===============================================================================
+professormanhattan.qbittorrent : Ensure qBittorrent is installed ------- 94.42s
+professormanhattan.qbittorrent : Ensure qBittorrent is installed ------- 61.55s
+professormanhattan.qbittorrent : Ensure qBittorrent is installed ------- 26.31s
+professormanhattan.qbittorrent : Ensure qBittorrent is installed -------- 7.74s
+Gathering Facts --------------------------------------------------------- 2.82s
+professormanhattan.startmenu : Check if there is a start menu shortcut in the start menu shared folder --- 2.43s
+professormanhattan.startmenu : Check if there is a start menu shortcut in the user folder --- 2.26s
+professormanhattan.startmenu : Move the shortcut to the parent directory if it exists --- 2.05s
+professormanhattan.startmenu : Remove the original folder (user start menu) --- 1.98s
+professormanhattan.startmenu : Remove the original folder --------------- 1.94s
+professormanhattan.qbittorrent : include_tasks -------------------------- 0.21s
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date --- 0.20s
+professormanhattan.qbittorrent : Include variables based on the operating system --- 0.18s
+professormanhattan.homebrew : Register Homebrew bin path information ---- 0.18s
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux) --- 0.16s
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date --- 0.14s
+professormanhattan.homebrew : include_tasks ----------------------------- 0.14s
+professormanhattan.homebrew : Include variables based on the operating system --- 0.13s
+Ensure the qBittorrent shortcut is at the top level of the Start Menu --- 0.08s
+professormanhattan.startmenu : include_tasks ---------------------------- 0.07s
+Playbook run took 0 days, 0 hours, 3 minutes, 25 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  01:32:20 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  01:32:32 -0500 (0:00:11.237)       0:00:11.251 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  01:32:32 -0500 (0:00:00.383)       0:00:11.634 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  01:35:08 -0500 (0:02:36.395)       0:02:48.030 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  01:35:09 -0500 (0:00:00.141)       0:02:48.172 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  01:35:09 -0500 (0:00:00.921)       0:02:49.093 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 156.40s
+Gathering Facts -------------------------------------------------------- 11.24s
+Dump instance config ---------------------------------------------------- 0.92s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.38s
+Populate instance config ------------------------------------------------ 0.14s
+Playbook run took 0 days, 0 hours, 2 minutes, 49 seconds

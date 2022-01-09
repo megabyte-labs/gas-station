@@ -1,0 +1,993 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.nginx"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.nginx"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  04:56:10 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  04:56:20 -0500 (0:00:09.546)       0:00:09.561 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  04:56:20 -0500 (0:00:00.371)       0:00:09.932 ********
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  04:56:49 -0500 (0:00:28.785)       0:00:38.718 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  04:56:49 -0500 (0:00:00.175)       0:00:38.893 ********
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  04:56:50 -0500 (0:00:00.336)       0:00:39.229 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.79s
+Gathering Facts --------------------------------------------------------- 9.55s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.34s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+playbook: /home/hawkwood/gas-station/roles/services/nginx/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  04:56:53 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  04:57:02 -0500 (0:00:09.612)       0:00:09.627 ********
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Friday 07 January 2022  04:57:03 -0500 (0:00:00.371)       0:00:09.998 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Friday 07 January 2022  05:06:41 -0500 (0:09:37.796)       0:09:47.795 ********
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/nginx/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/nginx/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Friday 07 January 2022  05:06:42 -0500 (0:00:01.051)       0:09:48.846 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  05:06:42 -0500 (0:00:00.219)       0:09:49.066 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  05:06:43 -0500 (0:00:00.938)       0:09:50.005 ********
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 577.80s
+Gathering Facts --------------------------------------------------------- 9.61s
+Populate instance config dict ------------------------------------------- 1.05s
+Dump instance config ---------------------------------------------------- 0.94s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.22s
+Playbook run took 0 days, 0 hours, 9 minutes, 50 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Friday 07 January 2022  05:06:45 -0500 (0:00:00.028)       0:00:00.028 ********
+ok: [Debian-9-Stretch]
+skipping: [Windows-10]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  05:06:59 -0500 (0:00:13.866)       0:00:13.894 ********
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 13.87s
+Playbook run took 0 days, 0 hours, 0 minutes, 13 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  05:07:01 -0500 (0:00:00.025)       0:00:00.025 ********
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-33]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Windows-10]
+
+TASK [certbot : Include variables based on the operating system] ***************
+Friday 07 January 2022  05:07:05 -0500 (0:00:03.778)       0:00:03.804 ********
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [certbot : include_tasks] *************************************************
+Friday 07 January 2022  05:07:05 -0500 (0:00:00.141)       0:00:03.945 ********
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-Windows.yml for Windows-10
+
+TASK [certbot : Run generic Linux tasks] ***************************************
+Friday 07 January 2022  05:07:05 -0500 (0:00:00.250)       0:00:04.196 ********
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-Linux.yml for ArchLinux-Latest
+
+TASK [certbot : Ensure Certbot and certbot-dns-cloudflare is installed] ********
+Friday 07 January 2022  05:07:05 -0500 (0:00:00.074)       0:00:04.271 ********
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: ModuleNotFoundError: No module named 'pkg_resources'
+fatal: [ArchLinux-Latest]: FAILED! => changed=false
+  msg: Failed to import the required Python library (setuptools) on ArchLinux-Latest's Python /usr/bin/python. Please read the module documentation and install it in the appropriate location. If the required library is installed, but Ansible is using the wrong Python interpreter, please consult the documentation on ansible_python_interpreter
+
+TASK [certbot : Run generic Linux tasks] ***************************************
+Friday 07 January 2022  05:07:06 -0500 (0:00:00.502)       0:00:04.773 ********
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [certbot : Ensure Certbot and certbot-dns-cloudflare is installed] ********
+Friday 07 January 2022  05:07:06 -0500 (0:00:00.112)       0:00:04.886 ********
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: ImportError: No module named pkg_resources
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: Failed to import the required Python library (setuptools) on CentOS-7's Python /usr/bin/python. Please read the module documentation and install it in the appropriate location. If the required library is installed, but Ansible is using the wrong Python interpreter, please consult the documentation on ansible_python_interpreter
+fatal: [CentOS-Stream-8]: FAILED! => changed=false
+  cmd:
+  - /usr/bin/pip3
+  - install
+  - certbot
+  - certbot-dns-cloudflare
+  msg: |-
+    stdout: Collecting certbot
+      Downloading https://files.pythonhosted.org/packages/bb/8d/2ce53ccdc50665f83f74117a175158172aa520778e987f0df4f7a4b17408/certbot-1.22.0-py2.py3-none-any.whl (270kB)
+    Collecting certbot-dns-cloudflare
+      Downloading https://files.pythonhosted.org/packages/a0/c5/3d91e926534835d4e2a36f1a86b3b3fd3677b6be3aa4e2b778f0eb3aef01/certbot_dns_cloudflare-1.22.0-py2.py3-none-any.whl
+    Collecting parsedatetime>=2.4 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/9d/a4/3dd804926a42537bf69fb3ebb9fd72a50ba84f807d95df5ae016606c976c/parsedatetime-2.6-py3-none-any.whl (42kB)
+    Collecting zope.component (from certbot)
+      Downloading https://files.pythonhosted.org/packages/36/79/3114deb9f4e6ff724868c200ceaba7b43df427d750315519fe91879afa9c/zope.component-5.0.1-py2.py3-none-any.whl (68kB)
+    Collecting zope.interface (from certbot)
+      Downloading https://files.pythonhosted.org/packages/67/67/8178e511cd4f0a481082aac1c0e2d64c520a5ee92ea8ce42d8297a4fca7e/zope.interface-5.4.0-cp36-cp36m-manylinux1_x86_64.whl (251kB)
+    Collecting ConfigArgParse>=0.9.3 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/af/cb/2a6620656f029b7b49c302853b433fac2c8eda9cbb5a3bc70b186b1b5b90/ConfigArgParse-1.5.3-py3-none-any.whl
+    Requirement already satisfied: setuptools>=39.0.1 in /usr/lib/python3.6/site-packages (from certbot)
+    Collecting josepy>=1.9.0 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/62/57/cc567c480deab2f1cba99b371eddffc3cb56ded2b6b97870740671d94627/josepy-1.11.0-py2.py3-none-any.whl
+    Collecting cryptography>=2.5.0 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/f9/4b/1cf8e281f7ae4046a59e5e39dd7471d46db9f61bb564fddbff9084c4334f/cryptography-36.0.1.tar.gz (572kB)
+        Complete output from command python setup.py egg_info:
+
+                =============================DEBUG ASSISTANCE==========================
+                If you are seeing an error here please try the following to
+                successfully install cryptography:
+
+                Upgrade to the latest pip and try again. This will fix errors for most
+                users. See: https://pip.pypa.io/en/stable/installing/#upgrading-pip
+                =============================DEBUG ASSISTANCE==========================
+
+        Traceback (most recent call last):
+          File "<string>", line 1, in <module>
+          File "/tmp/pip-build-5o245ur1/cryptography/setup.py", line 14, in <module>
+            from setuptools_rust import RustExtension
+        ModuleNotFoundError: No module named 'setuptools_rust'
+
+        ----------------------------------------
+
+    :stderr: WARNING: Running pip install with root privileges is generally not a good idea. Try `pip3 install --user` instead.
+    Command "python setup.py egg_info" failed with error code 1 in /tmp/pip-build-5o245ur1/cryptography/
+fatal: [CentOS-8]: FAILED! => changed=false
+  cmd:
+  - /usr/bin/pip3
+  - install
+  - certbot
+  - certbot-dns-cloudflare
+  msg: |-
+    stdout: Collecting certbot
+      Downloading https://files.pythonhosted.org/packages/bb/8d/2ce53ccdc50665f83f74117a175158172aa520778e987f0df4f7a4b17408/certbot-1.22.0-py2.py3-none-any.whl (270kB)
+    Collecting certbot-dns-cloudflare
+      Downloading https://files.pythonhosted.org/packages/a0/c5/3d91e926534835d4e2a36f1a86b3b3fd3677b6be3aa4e2b778f0eb3aef01/certbot_dns_cloudflare-1.22.0-py2.py3-none-any.whl
+    Collecting pytz (from certbot)
+      Downloading https://files.pythonhosted.org/packages/d3/e3/d9f046b5d1c94a3aeab15f1f867aa414f8ee9d196fae6865f1d6a0ee1a0b/pytz-2021.3-py2.py3-none-any.whl (503kB)
+    Requirement already satisfied: setuptools>=39.0.1 in /usr/lib/python3.6/site-packages (from certbot)
+    Collecting zope.component (from certbot)
+      Downloading https://files.pythonhosted.org/packages/36/79/3114deb9f4e6ff724868c200ceaba7b43df427d750315519fe91879afa9c/zope.component-5.0.1-py2.py3-none-any.whl (68kB)
+    Collecting acme>=1.22.0 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/f4/87/07ad0fa32502dc2a3a759c69cdc0327d234eb1e12dacb2d36c16162bdf46/acme-1.22.0-py2.py3-none-any.whl (46kB)
+    Collecting josepy>=1.9.0 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/62/57/cc567c480deab2f1cba99b371eddffc3cb56ded2b6b97870740671d94627/josepy-1.11.0-py2.py3-none-any.whl
+    Requirement already satisfied: configobj>=5.0.6 in /usr/lib/python3.6/site-packages (from certbot)
+    Collecting ConfigArgParse>=0.9.3 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/af/cb/2a6620656f029b7b49c302853b433fac2c8eda9cbb5a3bc70b186b1b5b90/ConfigArgParse-1.5.3-py3-none-any.whl
+    Collecting parsedatetime>=2.4 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/9d/a4/3dd804926a42537bf69fb3ebb9fd72a50ba84f807d95df5ae016606c976c/parsedatetime-2.6-py3-none-any.whl (42kB)
+    Collecting pyrfc3339 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/c1/7a/725f5c16756ec6211b1e7eeac09f469084595513917ea069bc023c40a5e2/pyRFC3339-1.1-py2.py3-none-any.whl
+    Collecting distro>=1.0.1 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/b3/8d/a0a5c389d76f90c766e956515d34c3408a1e18f60fbaa08221d1f6b87490/distro-1.6.0-py2.py3-none-any.whl
+    Collecting cryptography>=2.5.0 (from certbot)
+      Downloading https://files.pythonhosted.org/packages/f9/4b/1cf8e281f7ae4046a59e5e39dd7471d46db9f61bb564fddbff9084c4334f/cryptography-36.0.1.tar.gz (572kB)
+        Complete output from command python setup.py egg_info:
+
+                =============================DEBUG ASSISTANCE==========================
+                If you are seeing an error here please try the following to
+                successfully install cryptography:
+
+                Upgrade to the latest pip and try again. This will fix errors for most
+                users. See: https://pip.pypa.io/en/stable/installing/#upgrading-pip
+                =============================DEBUG ASSISTANCE==========================
+
+        Traceback (most recent call last):
+          File "<string>", line 1, in <module>
+          File "/tmp/pip-build-uft043i0/cryptography/setup.py", line 14, in <module>
+            from setuptools_rust import RustExtension
+        ModuleNotFoundError: No module named 'setuptools_rust'
+
+        ----------------------------------------
+
+    :stderr: WARNING: Running pip install with root privileges is generally not a good idea. Try `pip3 install --user` instead.
+    Command "python setup.py egg_info" failed with error code 1 in /tmp/pip-build-uft043i0/cryptography/
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [certbot : Ensure letsencrypt folder exists] ******************************
+Friday 07 January 2022  05:07:11 -0500 (0:00:04.585)       0:00:09.472 ********
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [certbot : Ensure certbot templates are available] ************************
+Friday 07 January 2022  05:07:11 -0500 (0:00:00.509)       0:00:09.982 ********
+skipping: [Fedora-33] => (item={'src': 'templates/dnscloudflare.ini.j2', 'dest': '/etc/letsencrypt/dnscloudflare.ini'})
+skipping: [Fedora-33] => (item={'src': 'templates/letsencryptcli.ini.j2', 'dest': '/etc/letsencrypt/cli.ini'})
+skipping: [Fedora-34] => (item={'src': 'templates/dnscloudflare.ini.j2', 'dest': '/etc/letsencrypt/dnscloudflare.ini'})
+skipping: [Fedora-34] => (item={'src': 'templates/letsencryptcli.ini.j2', 'dest': '/etc/letsencrypt/cli.ini'})
+skipping: [Fedora-35] => (item={'src': 'templates/dnscloudflare.ini.j2', 'dest': '/etc/letsencrypt/dnscloudflare.ini'})
+skipping: [Fedora-35] => (item={'src': 'templates/letsencryptcli.ini.j2', 'dest': '/etc/letsencrypt/cli.ini'})
+
+TASK [certbot : Generate Let's Encrypt certificates] ***************************
+Friday 07 January 2022  05:07:11 -0500 (0:00:00.060)       0:00:10.043 ********
+
+TASK [certbot : Add cron job for certbot renewal (if configured)] **************
+Friday 07 January 2022  05:07:11 -0500 (0:00:00.055)       0:00:10.099 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [certbot : Run generic Linux tasks] ***************************************
+Friday 07 January 2022  05:07:11 -0500 (0:00:00.045)       0:00:10.144 ********
+included: /home/hawkwood/gas-station/roles/services/certbot/tasks/setup-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [certbot : Ensure Certbot and certbot-dns-cloudflare is installed] ********
+Friday 07 January 2022  05:07:12 -0500 (0:00:00.140)       0:00:10.285 ********
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: ImportError: No module named pkg_resources
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  msg: Failed to import the required Python library (setuptools) on Debian-9-Stretch's Python /usr/bin/python. Please read the module documentation and install it in the appropriate location. If the required library is installed, but Ansible is using the wrong Python interpreter, please consult the documentation on ansible_python_interpreter
+fatal: [Debian-10-Buster]: FAILED! => changed=false
+  cmd: /usr/bin/pip3 install certbot certbot-dns-cloudflare
+  msg: '[Errno 2] No such file or directory: b''/usr/bin/pip3'': b''/usr/bin/pip3'''
+  rc: 2
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+fatal: [Debian-11-Bullseye]: FAILED! => changed=false
+  cmd: /usr/bin/pip3 install certbot certbot-dns-cloudflare
+  msg: '[Errno 2] No such file or directory: b''/usr/bin/pip3'''
+  rc: 2
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=false
+  cmd: /usr/bin/pip3 install certbot certbot-dns-cloudflare
+  msg: '[Errno 2] No such file or directory: b''/usr/bin/pip3'''
+  rc: 2
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=false
+  cmd: /usr/bin/pip3 install certbot certbot-dns-cloudflare
+  msg: '[Errno 2] No such file or directory: b''/usr/bin/pip3'''
+  rc: 2
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=false
+  cmd: /usr/bin/pip3 install certbot certbot-dns-cloudflare
+  msg: '[Errno 2] No such file or directory: b''/usr/bin/pip3'': b''/usr/bin/pip3'''
+  rc: 2
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  cmd:
+  - /usr/bin/pip3
+  - install
+  - certbot
+  - certbot-dns-cloudflare
+  msg: |-
+    stdout: Collecting certbot
+      Downloading certbot-1.22.0-py2.py3-none-any.whl (270 kB)
+    Collecting certbot-dns-cloudflare
+      Downloading certbot_dns_cloudflare-1.22.0-py2.py3-none-any.whl (11 kB)
+    Collecting acme>=1.22.0
+      Downloading acme-1.22.0-py2.py3-none-any.whl (46 kB)
+    Collecting parsedatetime>=2.4
+      Downloading parsedatetime-2.6-py3-none-any.whl (42 kB)
+    Requirement already satisfied: zope.interface in /usr/lib/python3/dist-packages (from certbot) (5.2.0)
+    Requirement already satisfied: distro>=1.0.1 in /usr/lib/python3/dist-packages (from certbot) (1.6.0)
+    Collecting pyrfc3339
+      Downloading pyRFC3339-1.1-py2.py3-none-any.whl (5.7 kB)
+    Requirement already satisfied: cryptography>=2.5.0 in /usr/lib/python3/dist-packages (from certbot) (36.0.1)
+    Collecting josepy>=1.9.0
+      Downloading josepy-1.11.0-py2.py3-none-any.whl (29 kB)
+    Requirement already satisfied: configobj>=5.0.6 in /usr/lib/python3/dist-packages (from certbot) (5.0.6)
+    Requirement already satisfied: setuptools>=39.0.1 in /usr/lib/python3/dist-packages (from certbot) (60.2.0)
+    Collecting zope.component
+      Downloading zope.component-5.0.1-py2.py3-none-any.whl (68 kB)
+    Collecting pytz
+      Downloading pytz-2021.3-py2.py3-none-any.whl (503 kB)
+    Collecting ConfigArgParse>=0.9.3
+      Downloading ConfigArgParse-1.5.3-py3-none-any.whl (20 kB)
+    Collecting cloudflare>=1.5.1
+      Downloading cloudflare-2.8.15.tar.gz (70 kB)
+      Preparing metadata (setup.py): started
+      Preparing metadata (setup.py): finished with status 'done'
+    Collecting requests-toolbelt>=0.3.0
+      Downloading requests_toolbelt-0.9.1-py2.py3-none-any.whl (54 kB)
+    Requirement already satisfied: requests>=2.14.2 in /usr/lib/python3/dist-packages (from acme>=1.22.0->certbot) (2.26.0)
+    Requirement already satisfied: PyOpenSSL>=17.3.0 in /usr/lib/python3/dist-packages (from acme>=1.22.0->certbot) (20.0.1)
+    Requirement already satisfied: pyyaml in /usr/lib/python3/dist-packages (from cloudflare>=1.5.1->certbot-dns-cloudflare) (6.0)
+    Collecting jsonlines
+      Downloading jsonlines-3.0.0-py3-none-any.whl (8.5 kB)
+    Collecting beautifulsoup4
+      Downloading beautifulsoup4-4.10.0-py3-none-any.whl (97 kB)
+    Collecting zope.hookable>=4.2.0
+      Downloading zope.hookable-5.1.0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl (27 kB)
+    Collecting zope.interface
+      Downloading zope.interface-5.4.0-cp39-cp39-manylinux2010_x86_64.whl (255 kB)
+    Collecting zope.event
+      Downloading zope.event-4.5.0-py2.py3-none-any.whl (6.8 kB)
+    Requirement already satisfied: charset_normalizer~=2.0.0 in /usr/lib/python3/dist-packages (from requests>=2.14.2->acme>=1.22.0->certbot) (2.0.9)
+    Requirement already satisfied: idna<4,>=2.5 in /usr/lib/python3/dist-packages (from requests>=2.14.2->acme>=1.22.0->certbot) (3.3)
+    Collecting soupsieve>1.2
+      Downloading soupsieve-2.3.1-py3-none-any.whl (37 kB)
+    Requirement already satisfied: attrs>=19.2.0 in /usr/lib/python3/dist-packages (from jsonlines->cloudflare>=1.5.1->certbot-dns-cloudflare) (21.4.0)
+    Building wheels for collected packages: cloudflare
+      Building wheel for cloudflare (setup.py): started
+      Building wheel for cloudflare (setup.py): finished with status 'error'
+      Running setup.py clean for cloudflare
+    Failed to build cloudflare
+    Installing collected packages: pytz, zope.interface, zope.hookable, zope.event, soupsieve, requests-toolbelt, pyrfc3339, josepy, zope.component, parsedatetime, jsonlines, ConfigArgParse, beautifulsoup4, acme, cloudflare, certbot, certbot-dns-cloudflare
+      Attempting uninstall: zope.interface
+        Found existing installation: zope.interface 5.2.0
+        Uninstalling zope.interface-5.2.0:
+          Successfully uninstalled zope.interface-5.2.0
+        Running setup.py install for cloudflare: started
+        Running setup.py install for cloudflare: finished with status 'error'
+
+    :stderr:   ERROR: Command errored out with exit status 1:
+       command: /usr/bin/python3 -u -c 'import io, os, sys, setuptools, tokenize; sys.argv[0] = '"'"'/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py'"'"'; __file__='"'"'/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py'"'"';f = getattr(tokenize, '"'"'open'"'"', open)(__file__) if os.path.exists(__file__) else io.StringIO('"'"'from setuptools import setup; setup()'"'"');code = f.read().replace('"'"'\r\n'"'"', '"'"'\n'"'"');f.close();exec(compile(code, __file__, '"'"'exec'"'"'))' bdist_wheel -d /tmp/pip-wheel-v39n66be
+           cwd: /tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/
+      Complete output (6 lines):
+      usage: setup.py [global_opts] cmd1 [cmd1_opts] [cmd2 [cmd2_opts] ...]
+         or: setup.py --help [cmd1 cmd2 ...]
+         or: setup.py --help-commands
+         or: setup.py cmd --help
+
+      error: invalid command 'bdist_wheel'
+      ----------------------------------------
+      ERROR: Failed building wheel for cloudflare
+        ERROR: Command errored out with exit status 1:
+         command: /usr/bin/python3 -u -c 'import io, os, sys, setuptools, tokenize; sys.argv[0] = '"'"'/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py'"'"'; __file__='"'"'/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py'"'"';f = getattr(tokenize, '"'"'open'"'"', open)(__file__) if os.path.exists(__file__) else io.StringIO('"'"'from setuptools import setup; setup()'"'"');code = f.read().replace('"'"'\r\n'"'"', '"'"'\n'"'"');f.close();exec(compile(code, __file__, '"'"'exec'"'"'))' install --record /tmp/pip-record-k4gw5j_e/install-record.txt --single-version-externally-managed --compile --install-headers /usr/local/include/python3.9/cloudflare
+             cwd: /tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/
+        Complete output (34 lines):
+        running install
+        /usr/lib/python3/dist-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+          warnings.warn(
+        Traceback (most recent call last):
+          File "<string>", line 1, in <module>
+          File "/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py", line 60, in <module>
+            main()
+          File "/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py", line 18, in main
+            setup(
+          File "/usr/lib/python3/dist-packages/setuptools/__init__.py", line 155, in setup
+            return distutils.core.setup(**attrs)
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/core.py", line 148, in setup
+            return run_commands(dist)
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/core.py", line 163, in run_commands
+            dist.run_commands()
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/dist.py", line 967, in run_commands
+            self.run_command(cmd)
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/dist.py", line 985, in run_command
+            cmd_obj.ensure_finalized()
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/cmd.py", line 107, in ensure_finalized
+            self.finalize_options()
+          File "/usr/lib/python3/dist-packages/setuptools/command/install.py", line 45, in finalize_options
+            orig.install.finalize_options(self)
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/command/install.py", line 379, in finalize_options
+            self.finalize_unix()
+          File "/usr/lib/python3/dist-packages/_distutils_system_mod.py", line 59, in finalize_unix
+            self.select_scheme("posix_local")
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/command/install.py", line 578, in select_scheme
+            _select_scheme(self, name)
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/command/install.py", line 122, in _select_scheme
+            scheme = _inject_headers(name, _load_scheme(_resolve_scheme(name)))
+          File "/usr/lib/python3/dist-packages/setuptools/_distutils/command/install.py", line 147, in _load_scheme
+            return _load_schemes()[name]
+        KeyError: 'posix_local'
+        ----------------------------------------
+    ERROR: Command errored out with exit status 1: /usr/bin/python3 -u -c 'import io, os, sys, setuptools, tokenize; sys.argv[0] = '"'"'/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py'"'"'; __file__='"'"'/tmp/pip-install-p4dcz4v0/cloudflare_63e0cdf4a1474f94b795e8a198b8bb1c/setup.py'"'"';f = getattr(tokenize, '"'"'open'"'"', open)(__file__) if os.path.exists(__file__) else io.StringIO('"'"'from setuptools import setup; setup()'"'"');code = f.read().replace('"'"'\r\n'"'"', '"'"'\n'"'"');f.close();exec(compile(code, __file__, '"'"'exec'"'"'))' install --record /tmp/pip-record-k4gw5j_e/install-record.txt --single-version-externally-managed --compile --install-headers /usr/local/include/python3.9/cloudflare Check the logs for full command output.
+
+TASK [certbot : Ensure Certbot and certbot-dns-cloudflare is installed] ********
+Friday 07 January 2022  05:07:18 -0500 (0:00:06.226)       0:00:16.511 ********
+changed: [Windows-10]
+
+TASK [certbot : Ensure that C:\Certbot directory exists] ***********************
+Friday 07 January 2022  05:07:39 -0500 (0:00:21.408)       0:00:37.920 ********
+changed: [Windows-10]
+
+TASK [certbot : Check if git repo exists] **************************************
+Friday 07 January 2022  05:07:41 -0500 (0:00:01.836)       0:00:39.756 ********
+ok: [Windows-10]
+
+TASK [certbot : Clone Certbot repo] ********************************************
+Friday 07 January 2022  05:07:43 -0500 (0:00:02.202)       0:00:41.958 ********
+changed: [Windows-10]
+
+TASK [certbot : Pull Certbot repo changes] *************************************
+Friday 07 January 2022  05:07:51 -0500 (0:00:07.769)       0:00:49.728 ********
+skipping: [Windows-10]
+
+TASK [certbot : Generate Let's Encrypt certificates] ***************************
+Friday 07 January 2022  05:07:51 -0500 (0:00:00.026)       0:00:49.755 ********
+
+TASK [certbot : Check if the Scheduled Task to renew certs is registered] ******
+Friday 07 January 2022  05:07:51 -0500 (0:00:00.026)       0:00:49.781 ********
+ok: [Windows-10]
+
+TASK [certbot : Create a task to renew Let's Encrypt Certs] ********************
+Friday 07 January 2022  05:07:53 -0500 (0:00:02.215)       0:00:51.997 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Friday 07 January 2022  05:07:56 -0500 (0:00:02.956)       0:00:54.953 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.038)       0:00:54.992 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.040)       0:00:55.032 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.037)       0:00:55.070 ********
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.045)       0:00:55.116 ********
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.043)       0:00:55.159 ********
+
+TASK [professormanhattan.nginx : Include variables based on the operating system] ***
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.055)       0:00:55.215 ********
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.nginx : include_tasks] ********************************
+Friday 07 January 2022  05:07:56 -0500 (0:00:00.043)       0:00:55.258 ********
+included: /home/hawkwood/gas-station/roles/services/nginx/tasks/install-RedHat.yml for Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/services/nginx/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.nginx : Add user www-data for Nginx] ******************
+Friday 07 January 2022  05:07:57 -0500 (0:00:00.069)       0:00:55.328 ********
+changed: [Fedora-35]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.nginx : Run generic Linux tasks] **********************
+Friday 07 January 2022  05:07:57 -0500 (0:00:00.821)       0:00:56.149 ********
+included: /home/hawkwood/gas-station/roles/services/nginx/tasks/install-Linux.yml for Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.nginx : Install NGINX Optimized base dependencies] ****
+Friday 07 January 2022  05:07:57 -0500 (0:00:00.061)       0:00:56.210 ********
+changed: [Fedora-35]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.nginx : Update nginx module link] *********************
+Friday 07 January 2022  05:09:09 -0500 (0:01:11.961)       0:02:08.172 ********
+included: /home/hawkwood/gas-station/roles/services/nginx/tasks/linux/update-module-link.yml for Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.nginx : Check current state] **************************
+Friday 07 January 2022  05:09:09 -0500 (0:00:00.063)       0:02:08.235 ********
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Fedora-34]
+
+TASK [professormanhattan.nginx : Remove existing module config files] **********
+Friday 07 January 2022  05:09:10 -0500 (0:00:00.628)       0:02:08.864 ********
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nginx : Create link] **********************************
+Friday 07 January 2022  05:09:11 -0500 (0:00:00.533)       0:02:09.397 ********
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nginx : Gather the package facts] *********************
+Friday 07 January 2022  05:09:11 -0500 (0:00:00.565)       0:02:09.963 ********
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Fedora-33]
+
+TASK [professormanhattan.nginx : Set a variable equal to the NGINX version] ****
+Friday 07 January 2022  05:09:13 -0500 (0:00:01.734)       0:02:11.697 ********
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nginx : Gather the package facts] *********************
+Friday 07 January 2022  05:09:13 -0500 (0:00:00.096)       0:02:11.793 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Set a variable equal to the NGINX version] ****
+Friday 07 January 2022  05:09:13 -0500 (0:00:00.132)       0:02:11.926 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Add styled status code response pages from Git repository] ***
+Friday 07 January 2022  05:09:13 -0500 (0:00:00.083)       0:02:12.009 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough] ***
+Friday 07 January 2022  05:09:13 -0500 (0:00:00.087)       0:02:12.097 ********
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nginx : Compile Brotli modules] ***********************
+Friday 07 January 2022  05:09:14 -0500 (0:00:00.744)       0:02:12.842 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Ensure dhparam.pem exists] ********************
+Friday 07 January 2022  05:09:14 -0500 (0:00:00.149)       0:02:12.991 ********
+included: /home/hawkwood/gas-station/roles/services/nginx/tasks/linux/dhparam.yml for Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.nginx : Register file information for dhparam.pem] ****
+Friday 07 January 2022  05:09:14 -0500 (0:00:00.164)       0:02:13.156 ********
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Fedora-34]
+
+TASK [professormanhattan.nginx : Generate dhparam.pem for improved SSL security (this can take awhile..)] ***
+Friday 07 January 2022  05:09:15 -0500 (0:00:00.604)       0:02:13.760 ********
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nginx : Install NGINX Amplify] ************************
+Friday 07 January 2022  05:10:09 -0500 (0:00:54.115)       0:03:07.876 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Register the file status of the ModSecurity WAF module configuration file] ***
+Friday 07 January 2022  05:10:09 -0500 (0:00:00.088)       0:03:07.964 ********
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nginx : Compile ModSecurity WAF module] ***************
+Friday 07 January 2022  05:10:10 -0500 (0:00:00.457)       0:03:08.422 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Update the NGINX configuration files] *********
+Friday 07 January 2022  05:10:10 -0500 (0:00:00.083)       0:03:08.505 ********
+included: /home/hawkwood/gas-station/roles/services/nginx/tasks/linux/nginx-configuration.yml for Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.nginx : Check if NGINX configs are from git] **********
+Friday 07 January 2022  05:10:10 -0500 (0:00:00.159)       0:03:08.664 ********
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nginx : Remove default NGINX etc folder] **************
+Friday 07 January 2022  05:10:10 -0500 (0:00:00.390)       0:03:09.055 ********
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.nginx : Clone default NGINX source] *******************
+Friday 07 January 2022  05:10:11 -0500 (0:00:00.459)       0:03:09.514 ********
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nginx : Remove NGINX Amplify stub_status.conf if nginx_amplify_api_key is not provided] ***
+Friday 07 January 2022  05:10:13 -0500 (0:00:02.009)       0:03:11.524 ********
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nginx : Remove Brotli configuration files if Brotli not enabled] ***
+Friday 07 January 2022  05:10:13 -0500 (0:00:00.407)       0:03:11.931 ********
+changed: [Fedora-33] => (item=/etc/nginx/conf.d/brotli.conf)
+changed: [Fedora-34] => (item=/etc/nginx/conf.d/brotli.conf)
+changed: [Fedora-35] => (item=/etc/nginx/conf.d/brotli.conf)
+changed: [Fedora-33] => (item=/etc/nginx/modules-enabled/50-mod-brotli.conf)
+changed: [Fedora-34] => (item=/etc/nginx/modules-enabled/50-mod-brotli.conf)
+changed: [Fedora-35] => (item=/etc/nginx/modules-enabled/50-mod-brotli.conf)
+
+TASK [professormanhattan.nginx : Remove ModSecurity configuration files if ModSecurity is not enabled] ***
+Friday 07 January 2022  05:10:14 -0500 (0:00:00.730)       0:03:12.662 ********
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.nginx : Clear sites-available if configured to do so] ***
+Friday 07 January 2022  05:10:14 -0500 (0:00:00.388)       0:03:13.050 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Clear sites-enabled if configured to do so] ***
+Friday 07 January 2022  05:10:14 -0500 (0:00:00.083)       0:03:13.134 ********
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nginx : Generate sites-available] *********************
+Friday 07 January 2022  05:10:15 -0500 (0:00:00.491)       0:03:13.626 ********
+
+TASK [professormanhattan.nginx : Generate sites-available for proxy host] ******
+Friday 07 January 2022  05:10:15 -0500 (0:00:00.090)       0:03:13.716 ********
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nginx : Symlink sites-enabled] ************************
+Friday 07 January 2022  05:10:15 -0500 (0:00:00.088)       0:03:13.805 ********
+
+TASK [professormanhattan.nginx : Reload systemd and restart NGINX] *************
+Friday 07 January 2022  05:10:15 -0500 (0:00:00.085)       0:03:13.890 ********
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.nginx : Ensure NGINX is installed] ********************
+Friday 07 January 2022  05:10:16 -0500 (0:00:01.191)       0:03:15.082 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.nginx : Clone the error page repository] **************
+Friday 07 January 2022  05:10:43 -0500 (0:00:26.717)       0:03:41.800 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.nginx : Register file information for dhparam.pem] ****
+Friday 07 January 2022  05:10:43 -0500 (0:00:00.076)       0:03:41.876 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.nginx : Ensure C:/Program Files/nginx/ssl/certs is created] ***
+Friday 07 January 2022  05:10:46 -0500 (0:00:02.423)       0:03:44.300 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.nginx : Generate dhparam.pem for improved SSL security (this can take awhile..)] ***
+Friday 07 January 2022  05:10:47 -0500 (0:00:01.831)       0:03:46.131 ********
+fatal: [Windows-10]: FAILED! => changed=false
+  cmd: openssl dhparam -out "C:/Program Files/nginx/ssl/certs/dhparam.pem" 2064
+  msg: 'Exception calling "SearchPath" with "1" argument(s): "Could not find file ''openssl.exe''."'
+  rc: 2
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=31   changed=13   unreachable=0    failed=0    skipped=19   rescued=0    ignored=0
+Fedora-34                  : ok=31   changed=13   unreachable=0    failed=0    skipped=19   rescued=0    ignored=0
+Fedora-35                  : ok=31   changed=13   unreachable=0    failed=0    skipped=19   rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=14   changed=6    unreachable=0    failed=1    skipped=9    rescued=0    ignored=0
+
+Friday 07 January 2022  05:10:50 -0500 (0:00:02.569)       0:03:48.701 ********
+===============================================================================
+professormanhattan.nginx : Install NGINX Optimized base dependencies --- 71.96s
+professormanhattan.nginx : Generate dhparam.pem for improved SSL security (this can take awhile..) -- 54.12s
+professormanhattan.nginx : Ensure NGINX is installed ------------------- 26.72s
+certbot : Ensure Certbot and certbot-dns-cloudflare is installed ------- 21.41s
+certbot : Clone Certbot repo -------------------------------------------- 7.77s
+certbot : Ensure Certbot and certbot-dns-cloudflare is installed -------- 6.23s
+certbot : Ensure Certbot and certbot-dns-cloudflare is installed -------- 4.59s
+Gathering Facts --------------------------------------------------------- 3.78s
+certbot : Create a task to renew Let's Encrypt Certs -------------------- 2.96s
+professormanhattan.nginx : Generate dhparam.pem for improved SSL security (this can take awhile..) --- 2.57s
+professormanhattan.nginx : Register file information for dhparam.pem ---- 2.42s
+certbot : Check if the Scheduled Task to renew certs is registered ------ 2.22s
+certbot : Check if git repo exists -------------------------------------- 2.20s
+professormanhattan.nginx : Clone default NGINX source ------------------- 2.01s
+certbot : Ensure that C:\Certbot directory exists ----------------------- 1.84s
+professormanhattan.nginx : Ensure C:/Program Files/nginx/ssl/certs is created --- 1.83s
+professormanhattan.nginx : Gather the package facts --------------------- 1.73s
+professormanhattan.nginx : Reload systemd and restart NGINX ------------- 1.19s
+professormanhattan.nginx : Add user www-data for Nginx ------------------ 0.82s
+professormanhattan.nginx : Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough --- 0.74s
+Playbook run took 0 days, 0 hours, 3 minutes, 48 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  05:10:53 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  05:11:04 -0500 (0:00:10.863)       0:00:10.877 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  05:11:04 -0500 (0:00:00.398)       0:00:11.275 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  05:13:42 -0500 (0:02:38.017)       0:02:49.293 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  05:13:42 -0500 (0:00:00.136)       0:02:49.429 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  05:13:43 -0500 (0:00:00.919)       0:02:50.349 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 158.02s
+Gathering Facts -------------------------------------------------------- 10.86s
+Dump instance config ---------------------------------------------------- 0.92s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.40s
+Populate instance config ------------------------------------------------ 0.14s
+Playbook run took 0 days, 0 hours, 2 minutes, 50 seconds

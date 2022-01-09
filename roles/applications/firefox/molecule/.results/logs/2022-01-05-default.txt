@@ -1,0 +1,1018 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.firefox"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.firefox"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  02:09:27 -0500 (0:00:00.013)       0:00:00.013 *****
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Wednesday 05 January 2022  02:09:36 -0500 (0:00:08.181)       0:00:08.195 *****
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Wednesday 05 January 2022  02:09:36 -0500 (0:00:00.352)       0:00:08.547 *****
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Wednesday 05 January 2022  02:10:05 -0500 (0:00:28.566)       0:00:37.113 *****
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Wednesday 05 January 2022  02:10:05 -0500 (0:00:00.170)       0:00:37.283 *****
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Wednesday 05 January 2022  02:10:05 -0500 (0:00:00.305)       0:00:37.589 *****
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.57s
+Gathering Facts --------------------------------------------------------- 8.18s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.35s
+Dump instance config ---------------------------------------------------- 0.31s
+Populate instance config ------------------------------------------------ 0.17s
+Playbook run took 0 days, 0 hours, 0 minutes, 37 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+playbook: /home/hawkwood/gas-station/roles/applications/firefox/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  02:10:08 -0500 (0:00:00.013)       0:00:00.013 *****
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Wednesday 05 January 2022  02:10:16 -0500 (0:00:08.161)       0:00:08.175 *****
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Wednesday 05 January 2022  02:10:17 -0500 (0:00:00.343)       0:00:08.519 *****
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Wednesday 05 January 2022  02:19:29 -0500 (0:09:12.500)       0:09:21.020 *****
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2222', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2200', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2201', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2202', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2203', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2204', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2205', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2206', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2207', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2208', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2209', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2210', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2211', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2212', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/firefox/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2213', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/firefox/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Wednesday 05 January 2022  02:19:30 -0500 (0:00:00.989)       0:09:22.009 *****
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Wednesday 05 January 2022  02:19:30 -0500 (0:00:00.154)       0:09:22.163 *****
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Wednesday 05 January 2022  02:19:31 -0500 (0:00:01.004)       0:09:23.167 *****
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 552.50s
+Gathering Facts --------------------------------------------------------- 8.16s
+Dump instance config ---------------------------------------------------- 1.00s
+Populate instance config dict ------------------------------------------- 0.99s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.34s
+Convert instance config dict to a list ---------------------------------- 0.15s
+Playbook run took 0 days, 0 hours, 9 minutes, 23 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Wednesday 05 January 2022  02:19:33 -0500 (0:00:00.028)       0:00:00.028 *****
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Fedora-33]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Wednesday 05 January 2022  02:19:48 -0500 (0:00:14.962)       0:00:14.990 *****
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 14.96s
+Playbook run took 0 days, 0 hours, 0 minutes, 14 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  02:19:51 -0500 (0:00:00.027)       0:00:00.027 *****
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [CentOS-8]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-33]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Wednesday 05 January 2022  02:19:57 -0500 (0:00:06.408)       0:00:06.436 *****
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Wednesday 05 January 2022  02:19:57 -0500 (0:00:00.117)       0:00:06.553 *****
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Wednesday 05 January 2022  02:19:57 -0500 (0:00:00.125)       0:00:06.678 *****
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Wednesday 05 January 2022  02:19:57 -0500 (0:00:00.124)       0:00:06.802 *****
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Wednesday 05 January 2022  02:19:58 -0500 (0:00:00.183)       0:00:06.985 *****
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Wednesday 05 January 2022  02:19:58 -0500 (0:00:00.127)       0:00:07.113 *****
+
+TASK [professormanhattan.firefox : Include variables based on the operating system] ***
+Wednesday 05 January 2022  02:19:58 -0500 (0:00:00.185)       0:00:07.298 *****
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.firefox : include_tasks] ******************************
+Wednesday 05 January 2022  02:19:58 -0500 (0:00:00.129)       0:00:07.428 *****
+included: /home/hawkwood/gas-station/roles/applications/firefox/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/applications/firefox/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/applications/firefox/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/applications/firefox/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.firefox : Ensure Firefox is installed] ****************
+Wednesday 05 January 2022  02:19:58 -0500 (0:00:00.189)       0:00:07.617 *****
+fatal: [ArchLinux-Latest]: FAILED! => changed=false
+  msg: |-
+    failed to install firefox: warning: dependency cycle detected:
+    warning: harfbuzz will be installed before its freetype2 dependency
+    warning: dependency cycle detected:
+    warning: libglvnd will be installed before its mesa dependency
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirrors.lug.mtu.edu : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.hackingand.coffee : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archlinux.mailtunnel.eu : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from pkg.fef.moe : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from de.arch.mirror.kescher.at : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from tick-tack.mynetgear.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archlinux-br.com.br : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from asia.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.theash.xyz : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archimonde.ts.si : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr: |-
+    warning: dependency cycle detected:
+    warning: harfbuzz will be installed before its freetype2 dependency
+    warning: dependency cycle detected:
+    warning: libglvnd will be installed before its mesa dependency
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirrors.lug.mtu.edu : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.hackingand.coffee : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archlinux.mailtunnel.eu : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from pkg.fef.moe : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from de.arch.mirror.kescher.at : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from tick-tack.mynetgear.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archlinux-br.com.br : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from asia.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from mirror.theash.xyz : The requested URL returned error: 404
+    error: failed retrieving file 'firefox-94.0.2-2-x86_64.pkg.tar.zst' from archimonde.ts.si : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr_lines: <omitted>
+  stdout: |-
+    resolving dependencies...
+    :: There are 8 providers available for ttf-font:
+    :: Repository extra
+       1) gnu-free-fonts  2) noto-fonts  3) ttf-bitstream-vera  4) ttf-croscore  5) ttf-dejavu
+    :: Repository community
+       6) ttf-droid  7) ttf-ibm-plex  8) ttf-liberation
+
+    Enter a number (default=1):
+    looking for conflicting packages...
+
+    Packages (145) adobe-source-code-pro-fonts-2.038ro+1.058it+1.018var-1  adwaita-icon-theme-41.0-1  alsa-lib-1.2.5.1-3  alsa-topology-conf-1.2.5.1-1  alsa-ucm-conf-1.2.5.1-1  aom-3.2.0-1  at-spi2-atk-2.38.0-1  at-spi2-core-2.42.0-1  atk-2.36.0-1  avahi-0.8+22+gfd482a7-1  cairo-1.17.4-5  cantarell-fonts-1:0.303-1  celt-0.11.3-4  dav1d-0.9.2-1  db-5.3.28-5  dbus-glib-0.112-2  dconf-0.40.0-1  desktop-file-utils-0.26-1  ffmpeg-2:4.4.1-1  flac-1.3.3-3  fontconfig-2:2.13.94-1  freetype2-2.11.0-4  fribidi-1.0.11-1  gdk-pixbuf2-2.42.6-2  giflib-5.2.1-2  glib-networking-1:2.70.0-1  gnu-free-fonts-20120503-8  graphite-1:1.3.14-1  gsettings-desktop-schemas-41.0-1  gsm-1.0.19-1  gtk-update-icon-cache-1:4.4.1-1  gtk3-1:3.24.30+90+g20be04f7ac-1  harfbuzz-3.1.2-1  hicolor-icon-theme-0.17-2  hidapi-0.11.0-1  iso-codes-4.8.0-1  jack2-1.9.19-2  json-glib-1.6.6-1  l-smash-2.14.5-2  lame-3.100-3  lcms2-2.12-1  libass-0.15.2-1  libasyncns-0.8+3+g68cd5af-3  libavc1394-0.5.4-4  libbluray-1.3.0-1  libcanberra-0.30+2+gc0620e4-5  libcloudproviders-0.3.1-2  libcolord-1.4.5-4  libcups-1:2.3.3op2-4  libdaemon-0.14-5  libdatrie-0.2.13-1  libdrm-2.4.109-1  libepoxy-1.5.9-1  libglvnd-1.3.4-1  libibus-1.5.25-3  libice-1.0.10-3  libiec61883-1.2.0-6  libjpeg-turbo-2.1.2-1  libmfx-21.3.2-1  libmodplug-0.8.9.0-3  libogg-1.3.5-1  libomxil-bellagio-0.9.3-3  libpciaccess-0.16-2  libpng-1.6.37-3  libproxy-0.4.17-3  libpulse-15.0-1  libraw1394-2.1.2-3  librsvg-2:2.52.4-1  libsamplerate-0.2.2-1  libsm-1.2.3-2  libsndfile-1.0.31-1  libsoup-2.74.2-1  libsoup3-3.0.3-1  libsoxr-0.1.3-2  libssh-0.9.6-1  libstemmer-2.2.0-1  libthai-0.1.28-2  libtheora-1.1.1-5  libtiff-4.3.0-1  libtool-2.4.6+42+gb88cebd5-16  libunwind-1.5.0-1  libusb-1.0.24-2  libva-2.13.0-1  libvdpau-1.4-1  libvorbis-1.3.7-2  libvpx-1.11.0-1  libwebp-1.2.1-2  libx11-1.7.2-1  libxau-1.0.9-3  libxcb-1.14-1  libxcomposite-0.4.5-3  libxcursor-1.2.0-2  libxdamage-1.1.5-3  libxdmcp-1.1.3-3  libxext-1.3.4-3  libxfixes-6.0.0-1  libxft-2.3.4-1  libxi-1.8-1  libxinerama-1.1.4-3  libxkbcommon-1.3.1-1  libxrandr-1.5.2-3  libxrender-0.9.10-4  libxshmfence-1.3-2  libxt-1.2.1-1  libxtst-1.2.3-4  libxv-1.0.11-4  libxxf86vm-1.1.4-4  llvm-libs-13.0.0-3  lm_sensors-1:3.6.0.r41.g31d1f125-1  mailcap-2.1.53-1  mesa-21.2.5-1  nspr-4.32-1  nss-3.72-2  opencore-amr-0.1.5-5  openjpeg2-2.4.0-1  opus-1.3.1-2  pango-1:1.48.10-1  pixman-0.40.0-1  rav1e-0.4.1-1  rest-0.8.1-3  sdl2-2.0.18-1  shared-mime-info-2.0+115+gd74a913-1  sound-theme-freedesktop-0.8-4  speex-1.2.0-3  speexdsp-1.2.0-2  srt-1.4.4-1  svt-av1-0.8.7-1  sysfsutils-2.1.1-1  tdb-1.4.5-1  tracker3-3.2.1-2  v4l-utils-1.22.1-1  vid.stab-1.1-3  vmaf-1.5.3-1  vulkan-icd-loader-1.2.199-2  wayland-1.19.0-2  x264-3:0.163.r3060.5db6aa6-1  x265-3.5-1  xcb-proto-1.14.1-3  xkeyboard-config-2.34-1  xorgproto-2021.5-1  xvidcore-1.3.7-2  zimg-3.0.3-1  zita-alsa-pcmi-0.3.2-3  zita-resampler-1.8.0-1  firefox-94.0.2-2
+
+    Total Download Size:   197.76 MiB
+    Total Installed Size:  891.96 MiB
+
+    :: Proceed with installation? [Y/n]
+    :: Retrieving packages...
+     firefox-94.0.2-2-x86_64 downloading...
+    Errors occurred, no packages were upgraded.
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.firefox : Ensure Firefox is installed] ****************
+Wednesday 05 January 2022  02:20:06 -0500 (0:00:07.348)       0:00:14.965 *****
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: Could not import the dnf python module using /usr/bin/python (2.7.5 (default, Nov 16 2020, 22:23:17) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]). Please install `python3-dnf` or `python2-dnf` package or ensure you have specified the correct ansible_python_interpreter. (attempted ['/usr/libexec/platform-python', '/usr/bin/python3', '/usr/bin/python2', '/usr/bin/python'])
+  results: []
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-35]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.firefox : Ensure Firefox is installed] ****************
+Wednesday 05 January 2022  02:22:11 -0500 (0:02:05.715)       0:02:20.681 *****
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  msg: No package matching 'firefox' is available
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  msg: No package matching 'firefox' is available
+fatal: [Debian-11-Bullseye]: FAILED! => changed=false
+  msg: No package matching 'firefox' is available
+fatal: [Debian-10-Buster]: FAILED! => changed=false
+  msg: No package matching 'firefox' is available
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=false
+  cache_update_time: 1635200926
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'firefox'' failed: E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/f/firefox/firefox_93.0%2bbuild1-0ubuntu0.21.04.1_amd64.deb  404  Not Found [IP: 91.189.91.38 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/f/firefox/firefox_93.0%2bbuild1-0ubuntu0.21.04.1_amd64.deb  404  Not Found [IP: 91.189.91.38 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      adwaita-icon-theme at-spi2-core dbus-user-session dconf-gsettings-backend
+      dconf-service fontconfig fontconfig-config fonts-dejavu-core glib-networking
+      glib-networking-common glib-networking-services gsettings-desktop-schemas
+      gtk-update-icon-cache hicolor-icon-theme humanity-icon-theme
+      libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data libatspi2.0-0 libavahi-client3
+      libavahi-common-data libavahi-common3 libcairo-gobject2 libcairo2 libcolord2
+      libcups2 libdatrie1 libdbusmenu-glib4 libdbusmenu-gtk3-4 libdconf1
+      libdeflate0 libepoxy0 libfontconfig1 libgdk-pixbuf-2.0-0
+      libgdk-pixbuf-xlib-2.0-0 libgdk-pixbuf2.0-0 libgdk-pixbuf2.0-bin
+      libgdk-pixbuf2.0-common libgraphite2-3 libgtk-3-0 libgtk-3-bin
+      libgtk-3-common libharfbuzz0b libjbig0 libjpeg-turbo8 libjpeg8 liblcms2-2
+      libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpixman-1-0
+      libproxy1v5 librest-0.7-0 librsvg2-2 librsvg2-common libsoup-gnome2.4-1
+      libsoup2.4-1 libthai-data libthai0 libtiff5 libwayland-client0
+      libwayland-cursor0 libwayland-egl1 libwebp6 libx11-6 libx11-data libx11-xcb1
+      libxau6 libxcb-render0 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1
+      libxdamage1 libxdmcp6 libxext6 libxfixes3 libxi6 libxinerama1 libxkbcommon0
+      libxrandr2 libxrender1 libxtst6 ubuntu-mono x11-common xul-ext-ubufox
+    Suggested packages:
+      fonts-lyx colord cups-common gvfs liblcms2-utils librsvg2-bin
+    The following NEW packages will be installed:
+      adwaita-icon-theme at-spi2-core dbus-user-session dconf-gsettings-backend
+      dconf-service firefox fontconfig fontconfig-config fonts-dejavu-core
+      glib-networking glib-networking-common glib-networking-services
+      gsettings-desktop-schemas gtk-update-icon-cache hicolor-icon-theme
+      humanity-icon-theme libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data
+      libatspi2.0-0 libavahi-client3 libavahi-common-data libavahi-common3
+      libcairo-gobject2 libcairo2 libcolord2 libcups2 libdatrie1 libdbusmenu-glib4
+      libdbusmenu-gtk3-4 libdconf1 libdeflate0 libepoxy0 libfontconfig1
+      libgdk-pixbuf-2.0-0 libgdk-pixbuf-xlib-2.0-0 libgdk-pixbuf2.0-0
+      libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common libgraphite2-3 libgtk-3-0
+      libgtk-3-bin libgtk-3-common libharfbuzz0b libjbig0 libjpeg-turbo8 libjpeg8
+      liblcms2-2 libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0
+      libpixman-1-0 libproxy1v5 librest-0.7-0 librsvg2-2 librsvg2-common
+      libsoup-gnome2.4-1 libsoup2.4-1 libthai-data libthai0 libtiff5
+      libwayland-client0 libwayland-cursor0 libwayland-egl1 libwebp6 libx11-6
+      libx11-data libx11-xcb1 libxau6 libxcb-render0 libxcb-shm0 libxcb1
+      libxcomposite1 libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxi6
+      libxinerama1 libxkbcommon0 libxrandr2 libxrender1 libxtst6 ubuntu-mono
+      x11-common xul-ext-ubufox
+    0 upgraded, 87 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 72.5 MB of archives.
+    After this operation, 304 MB of additional disk space will be used.
+    Get:1 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxau6 amd64 1:1.0.9-1build3 [7360 B]
+    Get:2 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxdmcp6 amd64 1:1.1.3-0ubuntu3 [10.3 kB]
+    Get:3 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb1 amd64 1.14-3ubuntu1 [45.3 kB]
+    Get:4 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-data all 2:1.7.0-2ubuntu0.1 [112 kB]
+    Get:5 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-6 amd64 2:1.7.0-2ubuntu0.1 [577 kB]
+    Get:6 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxext6 amd64 2:1.3.4-0ubuntu3 [28.9 kB]
+    Get:7 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 hicolor-icon-theme all 0.17-2 [9976 B]
+    Get:8 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf2.0-common all 2.42.2+dfsg-1build1 [4804 B]
+    Get:9 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjpeg-turbo8 amd64 2.0.6-0ubuntu2 [117 kB]
+    Get:10 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjpeg8 amd64 8c-2ubuntu8 [2194 B]
+    Get:11 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdeflate0 amd64 1.7-1ubuntu1 [52.6 kB]
+    Get:12 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjbig0 amd64 2.1-3.1build1 [26.7 kB]
+    Get:13 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libwebp6 amd64 0.6.1-2ubuntu0.21.04.1 [184 kB]
+    Get:14 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libtiff5 amd64 4.2.0-1build1 [168 kB]
+    Get:15 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf-2.0-0 amd64 2.42.2+dfsg-1build1 [137 kB]
+    Get:16 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 gtk-update-icon-cache amd64 3.24.25-1ubuntu4.1 [28.7 kB]
+    Get:17 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 humanity-icon-theme all 0.6.15 [1250 kB]
+    Get:18 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 ubuntu-mono all 20.10-0ubuntu1 [147 kB]
+    Get:19 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 adwaita-icon-theme all 3.38.0-1ubuntu2 [3441 kB]
+    Get:20 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxi6 amd64 2:1.7.10-1build2 [29.7 kB]
+    Get:21 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatspi2.0-0 amd64 2.40.0-1 [69.9 kB]
+    Get:22 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 x11-common all 1:7.7+22ubuntu1 [22.3 kB]
+    Get:23 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxtst6 amd64 2:1.2.3-1build2 [13.0 kB]
+    Get:24 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 at-spi2-core amd64 2.40.0-1 [48.0 kB]
+    Get:25 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 dbus-user-session amd64 1.12.20-1ubuntu3 [9424 B]
+    Get:26 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdconf1 amd64 0.38.0-2 [37.2 kB]
+    Get:27 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 dconf-service amd64 0.38.0-2 [29.6 kB]
+    Get:28 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 dconf-gsettings-backend amd64 0.38.0-2 [22.9 kB]
+    Get:29 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatk1.0-data all 2.36.0-0ubuntu2 [3000 B]
+    Get:30 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatk1.0-0 amd64 2.36.0-0ubuntu2 [45.5 kB]
+    Get:31 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fonts-dejavu-core all 2.37-2build1 [1041 kB]
+    Get:32 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fontconfig-config all 2.13.1-4.2ubuntu3 [28.2 kB]
+    Get:33 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libfontconfig1 amd64 2.13.1-4.2ubuntu3 [116 kB]
+    Get:34 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpixman-1-0 amd64 0.40.0-1build2 [236 kB]
+    Get:35 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-render0 amd64 1.14-3ubuntu1 [14.8 kB]
+    Get:36 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb-shm0 amd64 1.14-3ubuntu1 [5588 B]
+    Get:37 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxrender1 amd64 1:0.9.10-1build2 [18.5 kB]
+    Get:38 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcairo2 amd64 1.16.0-5ubuntu1 [589 kB]
+    Get:39 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcairo-gobject2 amd64 1.16.0-5ubuntu1 [17.4 kB]
+    Get:40 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libatk-bridge2.0-0 amd64 2.38.0-1build1 [58.9 kB]
+    Get:41 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 liblcms2-2 amd64 2.12~rc1-2 [143 kB]
+    Get:42 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcolord2 amd64 1.4.5-3 [135 kB]
+    Get:43 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libavahi-common-data amd64 0.8-5ubuntu3.1 [23.9 kB]
+    Get:44 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libavahi-common3 amd64 0.8-5ubuntu3.1 [21.9 kB]
+    Get:45 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libavahi-client3 amd64 0.8-5ubuntu3.1 [25.7 kB]
+    Get:46 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcups2 amd64 2.3.3op2-3ubuntu3 [234 kB]
+    Get:47 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libepoxy0 amd64 1.5.5-1build1 [191 kB]
+    Get:48 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgraphite2-3 amd64 1.3.14-1 [73.7 kB]
+    Get:49 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libharfbuzz0b amd64 2.7.4-1ubuntu1 [345 kB]
+    Get:50 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fontconfig amd64 2.13.1-4.2ubuntu3 [171 kB]
+    Get:51 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libthai-data all 0.1.28-4 [134 kB]
+    Get:52 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdatrie1 amd64 0.2.13-1ubuntu2 [19.4 kB]
+    Get:53 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libthai0 amd64 0.1.28-4 [18.0 kB]
+    Get:54 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpango-1.0-0 amd64 1.48.2-1build2 [169 kB]
+    Get:55 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpangoft2-1.0-0 amd64 1.48.2-1build2 [36.9 kB]
+    Get:56 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libpangocairo-1.0-0 amd64 1.48.2-1build2 [25.2 kB]
+    Get:57 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libproxy1v5 amd64 0.4.17-1 [51.2 kB]
+    Get:58 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 glib-networking-common all 2.66.0-2 [4600 B]
+    Get:59 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 glib-networking-services amd64 2.66.0-2 [10.2 kB]
+    Get:60 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 gsettings-desktop-schemas all 3.38.0-1ubuntu1 [29.6 kB]
+    Get:61 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 glib-networking amd64 2.66.0-2 [58.4 kB]
+    Get:62 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsoup2.4-1 amd64 2.72.0-3 [266 kB]
+    Get:63 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libsoup-gnome2.4-1 amd64 2.72.0-3 [6144 B]
+    Get:64 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 librest-0.7-0 amd64 0.8.1-1.1 [32.3 kB]
+    Get:65 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-client0 amd64 1.18.0-2~exp1.1 [24.0 kB]
+    Get:66 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-cursor0 amd64 1.18.0-2~exp1.1 [10.4 kB]
+    Get:67 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libwayland-egl1 amd64 1.18.0-2~exp1.1 [5404 B]
+    Get:68 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcomposite1 amd64 1:0.4.5-1 [6976 B]
+    Get:69 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxfixes3 amd64 1:5.0.3-2build1 [10.7 kB]
+    Get:70 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcursor1 amd64 1:1.2.0-2build2 [19.9 kB]
+    Get:71 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxdamage1 amd64 1:1.1.5-2 [6996 B]
+    Get:72 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxinerama1 amd64 2:1.1.4-2build2 [6768 B]
+    Get:73 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxkbcommon0 amd64 1.0.3-2 [99.2 kB]
+    Get:74 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxrandr2 amd64 2:1.5.2-0ubuntu1 [18.5 kB]
+    Get:75 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgtk-3-common all 3.24.25-1ubuntu4.1 [236 kB]
+    Get:76 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgtk-3-0 amd64 3.24.25-1ubuntu4.1 [2654 kB]
+    Get:77 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-xcb1 amd64 2:1.7.0-2ubuntu0.1 [7600 B]
+    Ign:78 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 firefox amd64 93.0+build1-0ubuntu0.21.04.1
+    Get:79 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdbusmenu-glib4 amd64 16.04.1+18.10.20180917-0ubuntu6 [41.2 kB]
+    Get:80 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf-xlib-2.0-0 amd64 2.40.2-2build2 [38.6 kB]
+    Get:81 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf2.0-0 amd64 2.40.2-2build2 [2628 B]
+    Get:82 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdbusmenu-gtk3-4 amd64 16.04.1+18.10.20180917-0ubuntu6 [27.7 kB]
+    Get:83 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgdk-pixbuf2.0-bin amd64 2.42.2+dfsg-1build1 [13.5 kB]
+    Get:84 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgtk-3-bin amd64 3.24.25-1ubuntu4.1 [61.8 kB]
+    Get:85 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 librsvg2-2 amd64 2.50.3+dfsg-1 [2456 kB]
+    Get:86 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 librsvg2-common amd64 2.50.3+dfsg-1 [14.8 kB]
+    Get:87 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 xul-ext-ubufox all 3.4-0ubuntu1.17.10.1 [3320 B]
+    Err:78 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 firefox amd64 93.0+build1-0ubuntu0.21.04.1
+      404  Not Found [IP: 91.189.91.38 80]
+    Fetched 16.8 MB in 1s (18.7 MB/s)
+  stdout_lines: <omitted>
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=false
+  cache_update_time: 1639942925
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'firefox'' failed: E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/f/firefox/firefox_95.0+build1-0ubuntu0.20.04.1_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/f/firefox/firefox_95.0+build1-0ubuntu0.20.04.1_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      adwaita-icon-theme at-spi2-core fontconfig fontconfig-config
+      fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme
+      humanity-icon-theme libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data
+      libatspi2.0-0 libavahi-client3 libavahi-common-data libavahi-common3
+      libcairo-gobject2 libcairo2 libcolord2 libcups2 libdatrie1 libdbusmenu-glib4
+      libdbusmenu-gtk3-4 libepoxy0 libfontconfig1 libgdk-pixbuf2.0-0
+      libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common libgraphite2-3 libgtk-3-0
+      libgtk-3-bin libgtk-3-common libharfbuzz0b libjbig0 libjpeg-turbo8 libjpeg8
+      liblcms2-2 libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0
+      libpixman-1-0 librest-0.7-0 librsvg2-2 librsvg2-common libsoup-gnome2.4-1
+      libthai-data libthai0 libtiff5 libwayland-client0 libwayland-cursor0
+      libwayland-egl1 libwebp6 libx11-6 libx11-data libx11-xcb1 libxau6
+      libxcb-render0 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1 libxdamage1
+      libxdmcp6 libxext6 libxfixes3 libxi6 libxinerama1 libxkbcommon0 libxrandr2
+      libxrender1 libxtst6 ubuntu-mono x11-common xul-ext-ubufox
+    Suggested packages:
+      fonts-lyx colord cups-common gvfs liblcms2-utils librsvg2-bin
+    The following NEW packages will be installed:
+      adwaita-icon-theme at-spi2-core firefox fontconfig fontconfig-config
+      fonts-dejavu-core gtk-update-icon-cache hicolor-icon-theme
+      humanity-icon-theme libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data
+      libatspi2.0-0 libavahi-client3 libavahi-common-data libavahi-common3
+      libcairo-gobject2 libcairo2 libcolord2 libcups2 libdatrie1 libdbusmenu-glib4
+      libdbusmenu-gtk3-4 libepoxy0 libfontconfig1 libgdk-pixbuf2.0-0
+      libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common libgraphite2-3 libgtk-3-0
+      libgtk-3-bin libgtk-3-common libharfbuzz0b libjbig0 libjpeg-turbo8 libjpeg8
+      liblcms2-2 libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0
+      libpixman-1-0 librest-0.7-0 librsvg2-2 librsvg2-common libsoup-gnome2.4-1
+      libthai-data libthai0 libtiff5 libwayland-client0 libwayland-cursor0
+      libwayland-egl1 libwebp6 libx11-6 libx11-data libx11-xcb1 libxau6
+      libxcb-render0 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1 libxdamage1
+      libxdmcp6 libxext6 libxfixes3 libxi6 libxinerama1 libxkbcommon0 libxrandr2
+      libxrender1 libxtst6 ubuntu-mono x11-common xul-ext-ubufox
+    0 upgraded, 74 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 72.2 MB of archives.
+    After this operation, 303 MB of additional disk space will be used.
+    Get:1 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxau6 amd64 1:1.0.9-0ubuntu1 [7488 B]
+    Get:2 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxdmcp6 amd64 1:1.1.3-0ubuntu1 [10.6 kB]
+    Get:3 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxcb1 amd64 1.14-2 [44.7 kB]
+    Get:4 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libx11-data all 2:1.6.9-2ubuntu1.2 [113 kB]
+    Get:5 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libx11-6 amd64 2:1.6.9-2ubuntu1.2 [575 kB]
+    Get:6 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxext6 amd64 2:1.3.4-0ubuntu1 [29.1 kB]
+    Get:7 http://us.archive.ubuntu.com/ubuntu focal/main amd64 hicolor-icon-theme all 0.17-2 [9976 B]
+    Get:8 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libjpeg-turbo8 amd64 2.0.3-0ubuntu1.20.04.1 [117 kB]
+    Get:9 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libjpeg8 amd64 8c-2ubuntu8 [2194 B]
+    Get:10 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libjbig0 amd64 2.1-3.1build1 [26.7 kB]
+    Get:11 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libwebp6 amd64 0.6.1-2ubuntu0.20.04.1 [185 kB]
+    Get:12 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libtiff5 amd64 4.1.0+git191117-2ubuntu0.20.04.2 [162 kB]
+    Get:13 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgdk-pixbuf2.0-common all 2.40.0+dfsg-3ubuntu0.2 [4652 B]
+    Get:14 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgdk-pixbuf2.0-0 amd64 2.40.0+dfsg-3ubuntu0.2 [168 kB]
+    Get:15 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 gtk-update-icon-cache amd64 3.24.20-0ubuntu1 [28.9 kB]
+    Get:16 http://us.archive.ubuntu.com/ubuntu focal/main amd64 fonts-dejavu-core all 2.37-1 [1041 kB]
+    Get:17 http://us.archive.ubuntu.com/ubuntu focal/main amd64 fontconfig-config all 2.13.1-2ubuntu3 [28.8 kB]
+    Get:18 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libfontconfig1 amd64 2.13.1-2ubuntu3 [114 kB]
+    Get:19 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libpixman-1-0 amd64 0.38.4-0ubuntu1 [227 kB]
+    Get:20 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxcb-render0 amd64 1.14-2 [14.8 kB]
+    Get:21 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxcb-shm0 amd64 1.14-2 [5584 B]
+    Get:22 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxrender1 amd64 1:0.9.10-1 [18.7 kB]
+    Get:23 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libcairo2 amd64 1.16.0-4ubuntu1 [583 kB]
+    Get:24 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libcairo-gobject2 amd64 1.16.0-4ubuntu1 [17.2 kB]
+    Get:25 http://us.archive.ubuntu.com/ubuntu focal/main amd64 fontconfig amd64 2.13.1-2ubuntu3 [171 kB]
+    Get:26 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libgraphite2-3 amd64 1.3.13-11build1 [73.5 kB]
+    Get:27 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libharfbuzz0b amd64 2.6.4-1ubuntu4 [391 kB]
+    Get:28 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libthai-data all 0.1.28-3 [134 kB]
+    Get:29 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libdatrie1 amd64 0.2.12-3 [18.7 kB]
+    Get:30 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libthai0 amd64 0.1.28-3 [18.1 kB]
+    Get:31 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libpango-1.0-0 amd64 1.44.7-2ubuntu4 [162 kB]
+    Get:32 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libpangoft2-1.0-0 amd64 1.44.7-2ubuntu4 [34.9 kB]
+    Get:33 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libpangocairo-1.0-0 amd64 1.44.7-2ubuntu4 [24.8 kB]
+    Get:34 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 librsvg2-2 amd64 2.48.9-1ubuntu0.20.04.1 [2253 kB]
+    Get:35 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 librsvg2-common amd64 2.48.9-1ubuntu0.20.04.1 [9212 B]
+    Get:36 http://us.archive.ubuntu.com/ubuntu focal/main amd64 humanity-icon-theme all 0.6.15 [1250 kB]
+    Get:37 http://us.archive.ubuntu.com/ubuntu focal/main amd64 ubuntu-mono all 19.04-0ubuntu3 [147 kB]
+    Get:38 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 adwaita-icon-theme all 3.36.1-2ubuntu0.20.04.2 [3441 kB]
+    Get:39 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libatspi2.0-0 amd64 2.36.0-2 [64.2 kB]
+    Get:40 http://us.archive.ubuntu.com/ubuntu focal/main amd64 x11-common all 1:7.7+19ubuntu14 [22.3 kB]
+    Get:41 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxtst6 amd64 2:1.2.3-1 [12.8 kB]
+    Get:42 http://us.archive.ubuntu.com/ubuntu focal/main amd64 at-spi2-core amd64 2.36.0-2 [48.7 kB]
+    Get:43 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libatk1.0-data all 2.35.1-1ubuntu2 [2964 B]
+    Get:44 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libatk1.0-0 amd64 2.35.1-1ubuntu2 [45.5 kB]
+    Get:45 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libatk-bridge2.0-0 amd64 2.34.2-0ubuntu2~20.04.1 [58.2 kB]
+    Get:46 http://us.archive.ubuntu.com/ubuntu focal/main amd64 liblcms2-2 amd64 2.9-4 [140 kB]
+    Get:47 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libcolord2 amd64 1.4.4-2 [133 kB]
+    Get:48 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libavahi-common-data amd64 0.7-4ubuntu7.1 [21.4 kB]
+    Get:49 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libavahi-common3 amd64 0.7-4ubuntu7.1 [21.7 kB]
+    Get:50 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libavahi-client3 amd64 0.7-4ubuntu7.1 [25.5 kB]
+    Get:51 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libcups2 amd64 2.3.1-9ubuntu1.1 [233 kB]
+    Get:52 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libepoxy0 amd64 1.5.4-1 [191 kB]
+    Get:53 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libsoup-gnome2.4-1 amd64 2.70.0-1 [6136 B]
+    Get:54 http://us.archive.ubuntu.com/ubuntu focal/main amd64 librest-0.7-0 amd64 0.8.1-1 [32.2 kB]
+    Get:55 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libwayland-client0 amd64 1.18.0-1 [23.9 kB]
+    Get:56 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libwayland-cursor0 amd64 1.18.0-1 [10.3 kB]
+    Get:57 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libwayland-egl1 amd64 1.18.0-1 [5692 B]
+    Get:58 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxcomposite1 amd64 1:0.4.5-1 [6976 B]
+    Get:59 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxfixes3 amd64 1:5.0.3-2 [10.9 kB]
+    Get:60 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxcursor1 amd64 1:1.2.0-2 [20.1 kB]
+    Get:61 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxdamage1 amd64 1:1.1.5-2 [6996 B]
+    Get:62 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxi6 amd64 2:1.7.10-0ubuntu1 [29.9 kB]
+    Get:63 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxinerama1 amd64 2:1.1.4-2 [6904 B]
+    Get:64 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxkbcommon0 amd64 0.10.0-1 [98.4 kB]
+    Get:65 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libxrandr2 amd64 2:1.5.2-0ubuntu1 [18.5 kB]
+    Get:66 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgtk-3-common all 3.24.20-0ubuntu1 [235 kB]
+    Get:67 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgtk-3-0 amd64 3.24.20-0ubuntu1 [2620 kB]
+    Get:68 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libx11-xcb1 amd64 2:1.6.9-2ubuntu1.2 [9372 B]
+    Ign:69 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 firefox amd64 95.0+build1-0ubuntu0.20.04.1
+    Get:70 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libdbusmenu-glib4 amd64 16.04.1+18.10.20180917-0ubuntu6 [41.2 kB]
+    Get:71 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libdbusmenu-gtk3-4 amd64 16.04.1+18.10.20180917-0ubuntu6 [27.7 kB]
+    Get:72 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgdk-pixbuf2.0-bin amd64 2.40.0+dfsg-3ubuntu0.2 [14.1 kB]
+    Get:73 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgtk-3-bin amd64 3.24.20-0ubuntu1 [61.9 kB]
+    Get:74 http://us.archive.ubuntu.com/ubuntu focal/main amd64 xul-ext-ubufox all 3.4-0ubuntu1.17.10.1 [3320 B]
+    Err:69 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 firefox amd64 95.0+build1-0ubuntu0.20.04.1
+      404  Not Found [IP: 91.189.91.39 80]
+    Fetched 16.0 MB in 1s (13.2 MB/s)
+  stdout_lines: <omitted>
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=false
+  cache_update_time: 1639938438
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'firefox'' failed: E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/f/firefox/firefox_95.0+build1-0ubuntu0.18.04.1_amd64.deb  404  Not Found [IP: 91.189.88.142 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/f/firefox/firefox_95.0+build1-0ubuntu0.18.04.1_amd64.deb  404  Not Found [IP: 91.189.88.142 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      adwaita-icon-theme at-spi2-core dconf-gsettings-backend dconf-service
+      fontconfig fontconfig-config fonts-dejavu-core glib-networking
+      glib-networking-common glib-networking-services gsettings-desktop-schemas
+      gtk-update-icon-cache hicolor-icon-theme humanity-icon-theme libasound2
+      libasound2-data libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data libatspi2.0-0
+      libcairo-gobject2 libcairo2 libcanberra0 libcolord2 libcroco3 libdatrie1
+      libdbus-glib-1-2 libdbusmenu-glib4 libdbusmenu-gtk3-4 libdconf1 libepoxy0
+      libfontconfig1 libgdk-pixbuf2.0-0 libgdk-pixbuf2.0-bin
+      libgdk-pixbuf2.0-common libgraphite2-3 libgtk-3-0 libgtk-3-bin
+      libgtk-3-common libharfbuzz0b libjbig0 libjpeg-turbo8 libjpeg8
+      libjson-glib-1.0-0 libjson-glib-1.0-common liblcms2-2 libltdl7 libogg0
+      libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpixman-1-0
+      libproxy1v5 librest-0.7-0 librsvg2-2 librsvg2-common libsoup-gnome2.4-1
+      libsoup2.4-1 libthai-data libthai0 libtiff5 libvorbis0a libvorbisfile3
+      libwayland-client0 libwayland-cursor0 libwayland-egl1 libx11-6 libx11-data
+      libx11-xcb1 libxcb-render0 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1
+      libxdamage1 libxext6 libxfixes3 libxi6 libxinerama1 libxkbcommon0 libxrandr2
+      libxrender1 libxtst6 sound-theme-freedesktop ubuntu-mono x11-common
+      xul-ext-ubufox
+    Suggested packages:
+      fonts-lyx libasound2-plugins alsa-utils libcanberra-gtk0 libcanberra-pulse
+      colord gvfs liblcms2-utils librsvg2-bin
+    The following NEW packages will be installed:
+      adwaita-icon-theme at-spi2-core dconf-gsettings-backend dconf-service
+      firefox fontconfig fontconfig-config fonts-dejavu-core glib-networking
+      glib-networking-common glib-networking-services gsettings-desktop-schemas
+      gtk-update-icon-cache hicolor-icon-theme humanity-icon-theme libasound2
+      libasound2-data libatk-bridge2.0-0 libatk1.0-0 libatk1.0-data libatspi2.0-0
+      libcairo-gobject2 libcairo2 libcanberra0 libcolord2 libcroco3 libdatrie1
+      libdbus-glib-1-2 libdbusmenu-glib4 libdbusmenu-gtk3-4 libdconf1 libepoxy0
+      libfontconfig1 libgdk-pixbuf2.0-0 libgdk-pixbuf2.0-bin
+      libgdk-pixbuf2.0-common libgraphite2-3 libgtk-3-0 libgtk-3-bin
+      libgtk-3-common libharfbuzz0b libjbig0 libjpeg-turbo8 libjpeg8
+      libjson-glib-1.0-0 libjson-glib-1.0-common liblcms2-2 libltdl7 libogg0
+      libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpixman-1-0
+      libproxy1v5 librest-0.7-0 librsvg2-2 librsvg2-common libsoup-gnome2.4-1
+      libsoup2.4-1 libthai-data libthai0 libtiff5 libvorbis0a libvorbisfile3
+      libwayland-client0 libwayland-cursor0 libwayland-egl1 libx11-6 libx11-data
+      libx11-xcb1 libxcb-render0 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1
+      libxdamage1 libxext6 libxfixes3 libxi6 libxinerama1 libxkbcommon0 libxrandr2
+      libxrender1 libxtst6 sound-theme-freedesktop ubuntu-mono x11-common
+      xul-ext-ubufox
+    0 upgraded, 88 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 70.8 MB of archives.
+    After this operation, 296 MB of additional disk space will be used.
+    Get:1 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libxcb1 amd64 1.13-2~ubuntu18.04 [45.5 kB]
+    Get:2 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libx11-data all 2:1.6.4-3ubuntu0.4 [114 kB]
+    Get:3 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libx11-6 amd64 2:1.6.4-3ubuntu0.4 [572 kB]
+    Get:4 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxext6 amd64 2:1.3.3-1 [29.4 kB]
+    Get:5 http://archive.ubuntu.com/ubuntu bionic/main amd64 fonts-dejavu-core all 2.37-1 [1041 kB]
+    Get:6 http://archive.ubuntu.com/ubuntu bionic/main amd64 fontconfig-config all 2.12.6-0ubuntu2 [55.8 kB]
+    Get:7 http://archive.ubuntu.com/ubuntu bionic/main amd64 libfontconfig1 amd64 2.12.6-0ubuntu2 [137 kB]
+    Get:8 http://archive.ubuntu.com/ubuntu bionic/main amd64 fontconfig amd64 2.12.6-0ubuntu2 [169 kB]
+    Get:9 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libjpeg-turbo8 amd64 1.5.2-0ubuntu5.18.04.4 [110 kB]
+    Get:10 http://archive.ubuntu.com/ubuntu bionic/main amd64 libogg0 amd64 1.3.2-1 [17.2 kB]
+    Get:11 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxinerama1 amd64 2:1.1.3-1 [7908 B]
+    Get:12 http://archive.ubuntu.com/ubuntu bionic/main amd64 hicolor-icon-theme all 0.17-2 [9976 B]
+    Get:13 http://archive.ubuntu.com/ubuntu bionic/main amd64 libjpeg8 amd64 8c-2ubuntu8 [2194 B]
+    Get:14 http://archive.ubuntu.com/ubuntu bionic/main amd64 libjbig0 amd64 2.1-3.1build1 [26.7 kB]
+    Get:15 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libtiff5 amd64 4.0.9-5ubuntu0.4 [153 kB]
+    Get:16 http://archive.ubuntu.com/ubuntu bionic/main amd64 libgdk-pixbuf2.0-common all 2.36.11-2 [4536 B]
+    Get:17 http://archive.ubuntu.com/ubuntu bionic/main amd64 libgdk-pixbuf2.0-0 amd64 2.36.11-2 [165 kB]
+    Get:18 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 gtk-update-icon-cache amd64 3.22.30-1ubuntu4 [28.3 kB]
+    Get:19 http://archive.ubuntu.com/ubuntu bionic/main amd64 libpixman-1-0 amd64 0.34.0-2 [229 kB]
+    Get:20 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libxcb-render0 amd64 1.13-2~ubuntu18.04 [14.7 kB]
+    Get:21 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libxcb-shm0 amd64 1.13-2~ubuntu18.04 [5600 B]
+    Get:22 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxrender1 amd64 1:0.9.10-1 [18.7 kB]
+    Get:23 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libcairo2 amd64 1.15.10-2ubuntu0.1 [580 kB]
+    Get:24 http://archive.ubuntu.com/ubuntu bionic/main amd64 libcroco3 amd64 0.6.12-2 [81.3 kB]
+    Get:25 http://archive.ubuntu.com/ubuntu bionic/main amd64 libthai-data all 0.1.27-2 [133 kB]
+    Get:26 http://archive.ubuntu.com/ubuntu bionic/main amd64 libdatrie1 amd64 0.2.10-7 [17.8 kB]
+    Get:27 http://archive.ubuntu.com/ubuntu bionic/main amd64 libthai0 amd64 0.1.27-2 [18.0 kB]
+    Get:28 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libpango-1.0-0 amd64 1.40.14-1ubuntu0.1 [153 kB]
+    Get:29 http://archive.ubuntu.com/ubuntu bionic/main amd64 libgraphite2-3 amd64 1.3.11-2 [78.7 kB]
+    Get:30 http://archive.ubuntu.com/ubuntu bionic/main amd64 libharfbuzz0b amd64 1.7.2-1ubuntu1 [232 kB]
+    Get:31 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libpangoft2-1.0-0 amd64 1.40.14-1ubuntu0.1 [33.2 kB]
+    Get:32 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libpangocairo-1.0-0 amd64 1.40.14-1ubuntu0.1 [20.8 kB]
+    Get:33 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 librsvg2-2 amd64 2.40.20-2ubuntu0.2 [98.6 kB]
+    Get:34 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 librsvg2-common amd64 2.40.20-2ubuntu0.2 [5064 B]
+    Get:35 http://archive.ubuntu.com/ubuntu bionic/main amd64 humanity-icon-theme all 0.6.15 [1250 kB]
+    Get:36 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 ubuntu-mono all 16.10+18.04.20181005-0ubuntu1 [149 kB]
+    Get:37 http://archive.ubuntu.com/ubuntu bionic/main amd64 adwaita-icon-theme all 3.28.0-1ubuntu1 [3306 kB]
+    Get:38 http://archive.ubuntu.com/ubuntu bionic/main amd64 libatspi2.0-0 amd64 2.28.0-1 [59.6 kB]
+    Get:39 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 x11-common all 1:7.7+19ubuntu7.1 [22.5 kB]
+    Get:40 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxtst6 amd64 2:1.2.3-1 [12.8 kB]
+    Get:41 http://archive.ubuntu.com/ubuntu bionic/main amd64 at-spi2-core amd64 2.28.0-1 [47.9 kB]
+    Get:42 http://archive.ubuntu.com/ubuntu bionic/main amd64 libdconf1 amd64 0.26.0-2ubuntu3 [33.1 kB]
+    Get:43 http://archive.ubuntu.com/ubuntu bionic/main amd64 dconf-service amd64 0.26.0-2ubuntu3 [28.4 kB]
+    Get:44 http://archive.ubuntu.com/ubuntu bionic/main amd64 dconf-gsettings-backend amd64 0.26.0-2ubuntu3 [20.0 kB]
+    Get:45 http://archive.ubuntu.com/ubuntu bionic/main amd64 libatk1.0-data all 2.28.1-1 [2992 B]
+    Get:46 http://archive.ubuntu.com/ubuntu bionic/main amd64 libatk1.0-0 amd64 2.28.1-1 [43.9 kB]
+    Get:47 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libcairo-gobject2 amd64 1.15.10-2ubuntu0.1 [17.1 kB]
+    Get:48 http://archive.ubuntu.com/ubuntu bionic/main amd64 libdbus-glib-1-2 amd64 0.110-2 [58.3 kB]
+    Get:49 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libgtk-3-common all 3.22.30-1ubuntu4 [229 kB]
+    Get:50 http://archive.ubuntu.com/ubuntu bionic/main amd64 libatk-bridge2.0-0 amd64 2.26.2-1 [57.3 kB]
+    Get:51 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 liblcms2-2 amd64 2.9-1ubuntu0.1 [139 kB]
+    Get:52 http://archive.ubuntu.com/ubuntu bionic/main amd64 libcolord2 amd64 1.3.3-2build1 [107 kB]
+    Get:53 http://archive.ubuntu.com/ubuntu bionic/main amd64 libepoxy0 amd64 1.4.3-1 [181 kB]
+    Get:54 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libjson-glib-1.0-common all 1.4.2-3ubuntu0.18.04.1 [3480 B]
+    Get:55 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libjson-glib-1.0-0 amd64 1.4.2-3ubuntu0.18.04.1 [58.4 kB]
+    Get:56 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libproxy1v5 amd64 0.4.15-1ubuntu0.2 [48.7 kB]
+    Get:57 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 glib-networking-common all 2.56.0-1ubuntu0.1 [3476 B]
+    Get:58 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 glib-networking-services amd64 2.56.0-1ubuntu0.1 [8632 B]
+    Get:59 http://archive.ubuntu.com/ubuntu bionic/main amd64 gsettings-desktop-schemas all 3.28.0-1ubuntu1 [27.8 kB]
+    Get:60 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 glib-networking amd64 2.56.0-1ubuntu0.1 [56.7 kB]
+    Get:61 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libsoup2.4-1 amd64 2.62.1-1ubuntu0.4 [292 kB]
+    Get:62 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libsoup-gnome2.4-1 amd64 2.62.1-1ubuntu0.4 [5088 B]
+    Get:63 http://archive.ubuntu.com/ubuntu bionic/main amd64 librest-0.7-0 amd64 0.8.0-2 [31.8 kB]
+    Get:64 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libwayland-client0 amd64 1.16.0-1ubuntu1.1~18.04.3 [23.6 kB]
+    Get:65 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libwayland-cursor0 amd64 1.16.0-1ubuntu1.1~18.04.3 [10.1 kB]
+    Get:66 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libwayland-egl1 amd64 1.16.0-1ubuntu1.1~18.04.3 [5464 B]
+    Get:67 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxcomposite1 amd64 1:0.4.4-2 [6988 B]
+    Get:68 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxfixes3 amd64 1:5.0.3-1 [10.8 kB]
+    Get:69 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxcursor1 amd64 1:1.1.15-1 [19.8 kB]
+    Get:70 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxdamage1 amd64 1:1.1.4-3 [6934 B]
+    Get:71 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxi6 amd64 2:1.7.9-1 [29.2 kB]
+    Get:72 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libxkbcommon0 amd64 0.8.2-1~ubuntu18.04.1 [97.8 kB]
+    Get:73 http://archive.ubuntu.com/ubuntu bionic/main amd64 libxrandr2 amd64 2:1.5.1-1 [18.1 kB]
+    Get:74 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libgtk-3-0 amd64 3.22.30-1ubuntu4 [2503 kB]
+    Get:75 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libx11-xcb1 amd64 2:1.6.4-3ubuntu0.4 [9720 B]
+    Ign:76 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 firefox amd64 95.0+build1-0ubuntu0.18.04.1
+    Get:77 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libasound2-data all 1.1.3-5ubuntu0.6 [38.5 kB]
+    Get:78 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libasound2 amd64 1.1.3-5ubuntu0.6 [360 kB]
+    Get:79 http://archive.ubuntu.com/ubuntu bionic/main amd64 libltdl7 amd64 2.4.6-2 [38.8 kB]
+    Get:80 http://archive.ubuntu.com/ubuntu bionic/main amd64 libvorbis0a amd64 1.3.5-4.2 [86.4 kB]
+    Get:81 http://archive.ubuntu.com/ubuntu bionic/main amd64 libvorbisfile3 amd64 1.3.5-4.2 [16.0 kB]
+    Get:82 http://archive.ubuntu.com/ubuntu bionic/main amd64 sound-theme-freedesktop all 0.8-2ubuntu1 [384 kB]
+    Get:83 http://archive.ubuntu.com/ubuntu bionic/main amd64 libcanberra0 amd64 0.30-5ubuntu1 [38.4 kB]
+    Get:84 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libdbusmenu-glib4 amd64 16.04.1+18.04.20171206-0ubuntu2 [41.0 kB]
+    Get:85 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libdbusmenu-gtk3-4 amd64 16.04.1+18.04.20171206-0ubuntu2 [26.8 kB]
+    Get:86 http://archive.ubuntu.com/ubuntu bionic/main amd64 libgdk-pixbuf2.0-bin amd64 2.36.11-2 [7864 B]
+    Get:87 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libgtk-3-bin amd64 3.22.30-1ubuntu4 [57.4 kB]
+    Get:88 http://archive.ubuntu.com/ubuntu bionic/main amd64 xul-ext-ubufox all 3.4-0ubuntu1.17.10.1 [3320 B]
+    Err:76 http://security.ubuntu.com/ubuntu bionic-updates/main amd64 firefox amd64 95.0+build1-0ubuntu0.18.04.1
+      404  Not Found [IP: 91.189.88.142 80]
+    Fetched 14.5 MB in 2s (6243 kB/s)
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.firefox : Ensure Firefox is installed] ****************
+Wednesday 05 January 2022  02:22:18 -0500 (0:00:06.825)       0:02:27.506 *****
+changed: [Windows-10]
+
+TASK [Set Firefox as the default browser] **************************************
+Wednesday 05 January 2022  02:22:42 -0500 (0:00:24.216)       0:02:51.723 *****
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-8                   : ok=4    changed=1    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+CentOS-Stream-8            : ok=4    changed=1    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Debian-10-Buster           : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-9-Stretch           : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-33                  : ok=4    changed=1    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-34                  : ok=4    changed=1    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-35                  : ok=4    changed=1    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=4    changed=1    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+
+Wednesday 05 January 2022  02:22:42 -0500 (0:00:00.128)       0:02:51.852 *****
+===============================================================================
+professormanhattan.firefox : Ensure Firefox is installed -------------- 125.72s
+professormanhattan.firefox : Ensure Firefox is installed --------------- 24.22s
+professormanhattan.firefox : Ensure Firefox is installed ---------------- 7.35s
+professormanhattan.firefox : Ensure Firefox is installed ---------------- 6.83s
+Gathering Facts --------------------------------------------------------- 6.41s
+professormanhattan.firefox : include_tasks ------------------------------ 0.19s
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date --- 0.19s
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux) --- 0.18s
+professormanhattan.firefox : Include variables based on the operating system --- 0.13s
+Set Firefox as the default browser -------------------------------------- 0.13s
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date --- 0.13s
+professormanhattan.homebrew : Register Homebrew bin path information ---- 0.13s
+professormanhattan.homebrew : include_tasks ----------------------------- 0.12s
+professormanhattan.homebrew : Include variables based on the operating system --- 0.12s
+Playbook run took 0 days, 0 hours, 2 minutes, 51 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  02:22:45 -0500 (0:00:00.013)       0:00:00.013 *****
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Wednesday 05 January 2022  02:22:55 -0500 (0:00:09.448)       0:00:09.462 *****
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Wednesday 05 January 2022  02:22:55 -0500 (0:00:00.361)       0:00:09.823 *****
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Wednesday 05 January 2022  02:25:29 -0500 (0:02:33.983)       0:02:43.806 *****
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Wednesday 05 January 2022  02:25:29 -0500 (0:00:00.131)       0:02:43.937 *****
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Wednesday 05 January 2022  02:25:30 -0500 (0:00:00.963)       0:02:44.901 *****
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 153.98s
+Gathering Facts --------------------------------------------------------- 9.45s
+Dump instance config ---------------------------------------------------- 0.96s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Populate instance config ------------------------------------------------ 0.13s
+Playbook run took 0 days, 0 hours, 2 minutes, 44 seconds

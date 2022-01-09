@@ -1,0 +1,1380 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.java (master) is already installed - use
+--force to change version to unspecified
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.gradle"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.gradle"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  22:36:05 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  22:36:14 -0500 (0:00:09.584)       0:00:09.599 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  22:36:15 -0500 (0:00:00.367)       0:00:09.966 ********
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  22:36:44 -0500 (0:00:29.193)       0:00:39.160 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  22:36:44 -0500 (0:00:00.179)       0:00:39.340 ********
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  22:36:45 -0500 (0:00:00.332)       0:00:39.672 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.19s
+Gathering Facts --------------------------------------------------------- 9.58s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.33s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+
+playbook: /home/hawkwood/gas-station/roles/tools/gradle/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  22:36:48 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  22:36:57 -0500 (0:00:09.579)       0:00:09.594 ********
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Friday 07 January 2022  22:36:58 -0500 (0:00:00.395)       0:00:09.989 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Friday 07 January 2022  22:46:54 -0500 (0:09:56.402)       0:10:06.392 ********
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/gradle/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/gradle/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Friday 07 January 2022  22:46:55 -0500 (0:00:01.056)       0:10:07.448 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  22:46:55 -0500 (0:00:00.168)       0:10:07.616 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  22:46:56 -0500 (0:00:00.998)       0:10:08.615 ********
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 596.40s
+Gathering Facts --------------------------------------------------------- 9.58s
+Populate instance config dict ------------------------------------------- 1.06s
+Dump instance config ---------------------------------------------------- 1.00s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.40s
+Convert instance config dict to a list ---------------------------------- 0.17s
+Playbook run took 0 days, 0 hours, 10 minutes, 8 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Friday 07 January 2022  22:46:59 -0500 (0:00:00.029)       0:00:00.029 ********
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  22:48:52 -0500 (0:01:53.279)       0:01:53.308 ********
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------ 113.28s
+Playbook run took 0 days, 0 hours, 1 minutes, 53 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  22:48:54 -0500 (0:00:00.027)       0:00:00.027 ********
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Friday 07 January 2022  22:48:57 -0500 (0:00:02.810)       0:00:02.838 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Friday 07 January 2022  22:48:57 -0500 (0:00:00.128)       0:00:02.966 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Friday 07 January 2022  22:48:57 -0500 (0:00:00.129)       0:00:03.095 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Friday 07 January 2022  22:48:57 -0500 (0:00:00.134)       0:00:03.229 ********
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.141)       0:00:03.371 ********
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.130)       0:00:03.502 ********
+
+TASK [professormanhattan.java : Include OS-specific variables for Fedora or FreeBSD] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.179)       0:00:03.681 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.java : Include version-specific variables for CentOS/RHEL] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.163)       0:00:03.845 ********
+skipping: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.java : Include version-specific variables for Ubuntu] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.134)       0:00:03.979 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.java : Include version-specific variables for Debian] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.131)       0:00:04.111 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+fatal: [Debian-11-Bullseye]: FAILED! => changed=false
+  ansible_facts: {}
+  ansible_included_var_files: []
+  message: |-
+    Could not find or access 'Debian-11.yml'
+    Searched in:
+            /home/hawkwood/gas-station/roles/languages/java/vars/Debian-11.yml
+            /home/hawkwood/gas-station/roles/languages/java/Debian-11.yml
+            /home/hawkwood/gas-station/roles/tools/gradle/vars/Debian-11.yml
+            /home/hawkwood/gas-station/roles/tools/gradle/Debian-11.yml
+            /home/hawkwood/gas-station/roles/languages/java/tasks/vars/Debian-11.yml
+            /home/hawkwood/gas-station/roles/languages/java/tasks/Debian-11.yml
+            /home/hawkwood/gas-station/roles/tools/gradle/molecule/vars/Debian-11.yml
+            /home/hawkwood/gas-station/roles/tools/gradle/molecule/Debian-11.yml on the Ansible Controller.
+    If you are using a module and expect the file to exist on the remote, see the remote_src option
+ok: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.java : Include version-specific variables for Archlinux and MacOS] ***
+Friday 07 January 2022  22:48:58 -0500 (0:00:00.132)       0:00:04.244 ********
+ok: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.java : Include Windows-specific variables] ************
+Friday 07 January 2022  22:48:59 -0500 (0:00:00.126)       0:00:04.370 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.java : Define java_packages] **************************
+Friday 07 January 2022  22:48:59 -0500 (0:00:00.134)       0:00:04.504 ********
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.java : include_tasks] *********************************
+Friday 07 January 2022  22:48:59 -0500 (0:00:00.133)       0:00:04.638 ********
+included: /home/hawkwood/gas-station/roles/languages/java/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/languages/java/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/languages/java/tasks/install-Debian.yml for Debian-10-Buster, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/languages/java/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.java : Install JDK] ***********************************
+Friday 07 January 2022  22:48:59 -0500 (0:00:00.190)       0:00:04.828 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.java : Ensure Java is installed] **********************
+Friday 07 January 2022  22:49:14 -0500 (0:00:14.941)       0:00:19.770 ********
+changed: [CentOS-7]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [CentOS-8]
+changed: [Fedora-34]
+
+TASK [professormanhattan.java : Run common Linux tasks] ************************
+Friday 07 January 2022  22:52:06 -0500 (0:02:51.645)       0:03:11.415 ********
+included: /home/hawkwood/gas-station/roles/languages/java/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.java : Set JAVA_HOME (if configured)] *****************
+Friday 07 January 2022  22:52:06 -0500 (0:00:00.116)       0:03:11.531 ********
+changed: [CentOS-7]
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+fatal: [Fedora-35]: UNREACHABLE! => changed=false
+  msg: |-
+    Failed to connect to the host via ssh: mux_client_request_session: read from master failed: Broken pipe
+    Failed to connect to new control master
+  unreachable: true
+
+TASK [professormanhattan.java : Ensure 'man' directory exists] *****************
+Friday 07 January 2022  23:02:17 -0500 (0:10:11.769)       0:13:23.301 ********
+skipping: [Debian-10-Buster]
+skipping: [Debian-9-Stretch]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.java : Ensure Java is installed] **********************
+Friday 07 January 2022  23:02:18 -0500 (0:00:00.761)       0:13:24.063 ********
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.java : Run common Linux tasks] ************************
+Friday 07 January 2022  23:03:54 -0500 (0:01:35.650)       0:14:59.713 ********
+included: /home/hawkwood/gas-station/roles/languages/java/tasks/install-Linux.yml for Debian-10-Buster, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.java : Set JAVA_HOME (if configured)] *****************
+Friday 07 January 2022  23:03:54 -0500 (0:00:00.145)       0:14:59.858 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.java : Install Java] **********************************
+Friday 07 January 2022  23:03:55 -0500 (0:00:00.629)       0:15:00.488 ********
+ok: [Windows-10]
+
+TASK [Remove Java folder from start menu] **************************************
+Friday 07 January 2022  23:03:59 -0500 (0:00:04.138)       0:15:04.626 ********
+
+TASK [professormanhattan.startmenu : include_tasks] ****************************
+Friday 07 January 2022  23:03:59 -0500 (0:00:00.074)       0:15:04.700 ********
+included: /home/hawkwood/gas-station/roles/helpers/startmenu/tasks/shortcut.yml for Windows-10
+
+TASK [professormanhattan.startmenu : Check if there is a start menu shortcut in the start menu shared folder] ***
+Friday 07 January 2022  23:03:59 -0500 (0:00:00.118)       0:15:04.818 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Move the shortcut to the parent directory if it exists] ***
+Friday 07 January 2022  23:03:59 -0500 (0:00:00.070)       0:15:04.889 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Remove the original folder] ***************
+Friday 07 January 2022  23:03:59 -0500 (0:00:00.063)       0:15:04.953 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.startmenu : Check if there is a start menu shortcut in the user folder] ***
+Friday 07 January 2022  23:04:01 -0500 (0:00:02.097)       0:15:07.051 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Move the shortcut to the parent directory if it exists (user start menu)] ***
+Friday 07 January 2022  23:04:01 -0500 (0:00:00.070)       0:15:07.122 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Remove the original folder (user start menu)] ***
+Friday 07 January 2022  23:04:01 -0500 (0:00:00.071)       0:15:07.193 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Friday 07 January 2022  23:04:03 -0500 (0:00:02.008)       0:15:09.201 ********
+skipping: [ArchLinux-Latest]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: ArchLinux-Latest
+skipping: [CentOS-7]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: CentOS-7
+skipping: [CentOS-8]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: CentOS-8
+skipping: [CentOS-Stream-8]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: CentOS-Stream-8
+skipping: [Debian-10-Buster]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Debian-10-Buster
+skipping: [Debian-9-Stretch]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Debian-9-Stretch
+skipping: [Fedora-33]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Fedora-33
+skipping: [Fedora-34]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Fedora-34
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Ubuntu-18.04-Bionic-Beaver
+skipping: [Ubuntu-20.04-Focal-Fossa]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Ubuntu-20.04-Focal-Fossa
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Ubuntu-21.04-Hirsute-Hippo
+skipping: [Ubuntu-21.10-Impish-Indri]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Ubuntu-21.10-Impish-Indri
+skipping: [Windows-10]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:2: Converge:
+professormanhattan.homebrew : Include variables based on the operating system:
+duplicate host callback: Windows-10
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Friday 07 January 2022  23:04:03 -0500 (0:00:00.130)       0:15:09.332 ********
+skipping: [ArchLinux-Latest]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: ArchLinux-Latest
+skipping: [CentOS-7]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: CentOS-7
+skipping: [CentOS-8]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: CentOS-8
+skipping: [CentOS-Stream-8]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: CentOS-Stream-8
+skipping: [Debian-10-Buster]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Debian-10-Buster
+skipping: [Debian-9-Stretch]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Debian-9-Stretch
+skipping: [Fedora-33]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Fedora-33
+skipping: [Fedora-34]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Fedora-34
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Ubuntu-18.04-Bionic-Beaver
+skipping: [Ubuntu-20.04-Focal-Fossa]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Ubuntu-20.04-Focal-Fossa
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Ubuntu-21.04-Hirsute-Hippo
+skipping: [Ubuntu-21.10-Impish-Indri]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Ubuntu-21.10-Impish-Indri
+skipping: [Windows-10]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:8: Converge:
+professormanhattan.homebrew : Register Homebrew bin path information: duplicate
+host callback: Windows-10
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Friday 07 January 2022  23:04:04 -0500 (0:00:00.142)       0:15:09.474 ********
+skipping: [ArchLinux-Latest]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+ArchLinux-Latest
+skipping: [CentOS-7]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback: CentOS-7
+skipping: [CentOS-8]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback: CentOS-8
+skipping: [CentOS-Stream-8]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback: CentOS-
+Stream-8
+skipping: [Debian-10-Buster]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Debian-10-Buster
+skipping: [Debian-9-Stretch]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Debian-9-Stretch
+skipping: [Fedora-33]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback: Fedora-33
+skipping: [Fedora-34]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback: Fedora-34
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Ubuntu-18.04-Bionic-Beaver
+skipping: [Ubuntu-20.04-Focal-Fossa]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Ubuntu-20.04-Focal-Fossa
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Ubuntu-21.04-Hirsute-Hippo
+skipping: [Ubuntu-21.10-Impish-Indri]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Ubuntu-21.10-Impish-Indri
+skipping: [Windows-10]
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:19: Converge:
+professormanhattan.homebrew : include_tasks: duplicate host callback:
+Windows-10
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Friday 07 January 2022  23:04:04 -0500 (0:00:00.132)       0:15:09.606 ********
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: ArchLinux-Latest
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: CentOS-7
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: CentOS-8
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: CentOS-Stream-8
+skipping: [Debian-9-Stretch] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Debian-10-Buster
+skipping: [Fedora-33] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Debian-9-Stretch
+skipping: [Fedora-34] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Fedora-33
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Fedora-34
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Ubuntu-18.04-Bionic-Beaver
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Ubuntu-20.04-Focal-Fossa
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Ubuntu-21.04-Hirsute-Hippo
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Ubuntu-21.10-Impish-Indri
+skipping: [Windows-10] => (item=vagrant)
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:26: Converge:
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux):
+duplicate host callback: Windows-10
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Friday 07 January 2022  23:04:04 -0500 (0:00:00.166)       0:15:09.773 ********
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: ArchLinux-Latest
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: CentOS-7
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: CentOS-8
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: CentOS-Stream-8
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Debian-10-Buster
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Debian-9-Stretch
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Fedora-33
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Fedora-34
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Ubuntu-18.04-Bionic-Beaver
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Ubuntu-20.04-Focal-Fossa
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Ubuntu-21.04-Hirsute-Hippo
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Ubuntu-21.10-Impish-Indri
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:36: Converge:
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-
+date: duplicate host callback: Windows-10
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Friday 07 January 2022  23:04:04 -0500 (0:00:00.135)       0:15:09.909 ********
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: ArchLinux-Latest
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: CentOS-7
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: CentOS-8
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: CentOS-Stream-8
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Debian-10-Buster
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Debian-9-Stretch
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Fedora-33
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Fedora-34
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Ubuntu-18.04-Bionic-Beaver
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Ubuntu-20.04-Focal-Fossa
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Ubuntu-21.04-Hirsute-Hippo
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Ubuntu-21.10-Impish-Indri
+[WARNING]: Failure using method (v2_runner_on_skipped) in callback plugin
+(<ansible.plugins.callback.junit.CallbackModule object at 0x7fdb8ef17970>):
+/home/hawkwood/gas-station/roles/system/homebrew/tasks/main.yml:53: Converge:
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-
+date: duplicate host callback: Windows-10
+
+TASK [professormanhattan.gradle : include_tasks] *******************************
+Friday 07 January 2022  23:04:04 -0500 (0:00:00.192)       0:15:10.102 ********
+included: /home/hawkwood/gas-station/roles/tools/gradle/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/tools/gradle/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34
+included: /home/hawkwood/gas-station/roles/tools/gradle/tasks/install-Debian.yml for Debian-10-Buster, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/tools/gradle/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.gradle : Ensure Gradle is installed] ******************
+Friday 07 January 2022  23:04:04 -0500 (0:00:00.190)       0:15:10.293 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.gradle : Run generic Linux tasks] *********************
+Friday 07 January 2022  23:04:28 -0500 (0:00:23.240)       0:15:33.533 ********
+included: /home/hawkwood/gas-station/roles/tools/gradle/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34
+
+TASK [professormanhattan.gradle : Ensure custom facts directory exists] ********
+Friday 07 January 2022  23:04:28 -0500 (0:00:00.112)       0:15:33.645 ********
+changed: [CentOS-Stream-8]
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.gradle : Ensure /usr/local/src/gradle directory exists] ***
+Friday 07 January 2022  23:04:28 -0500 (0:00:00.669)       0:15:34.315 ********
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.gradle : Ensure /opt/gradle directory exists] *********
+Friday 07 January 2022  23:04:29 -0500 (0:00:00.443)       0:15:34.759 ********
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.gradle : Detect the latest Gradle version] ************
+Friday 07 January 2022  23:04:29 -0500 (0:00:00.459)       0:15:35.218 ********
+ok: [CentOS-7]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+
+TASK [professormanhattan.gradle : Determine whether or not the latest version of Gradle is already installed] ***
+Friday 07 January 2022  23:04:30 -0500 (0:00:00.796)       0:15:36.015 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+
+TASK [professormanhattan.gradle : Fetch CHECKSUMS file of Gradle installer] ****
+Friday 07 January 2022  23:04:30 -0500 (0:00:00.087)       0:15:36.102 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+
+TASK [professormanhattan.gradle : Find the Checksum of Gradle installer] *******
+Friday 07 January 2022  23:04:31 -0500 (0:00:00.692)       0:15:36.795 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+
+TASK [professormanhattan.gradle : Acquire Gradle's latest installer] ***********
+Friday 07 January 2022  23:04:31 -0500 (0:00:00.083)       0:15:36.878 ********
+changed: [CentOS-8]
+changed: [Fedora-34]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [CentOS-7]
+
+TASK [professormanhattan.gradle : Ensure Gradle is installed] ******************
+Friday 07 January 2022  23:04:46 -0500 (0:00:14.675)       0:15:51.554 ********
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: Failed to find handler for "/usr/local/src/gradle/gradle.zip". Make sure the required command to extract the file is installed. Unable to find required 'unzip' or 'zipinfo' binary in the path. Command "/bin/gtar" could not handle archive.
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.gradle : Save meta information about the version of Gradle that was installed] ***
+Friday 07 January 2022  23:04:48 -0500 (0:00:02.385)       0:15:53.939 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.gradle : Ensure /usr/local/etc/bash_completion.d directory exists] ***
+Friday 07 January 2022  23:04:49 -0500 (0:00:00.628)       0:15:54.568 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.gradle : Ensure BASH completion is setup] *************
+Friday 07 January 2022  23:04:49 -0500 (0:00:00.418)       0:15:54.987 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.gradle : Ensure PATH is set and completion is sourced] ***
+Friday 07 January 2022  23:04:50 -0500 (0:00:00.733)       0:15:55.721 ********
+changed: [CentOS-Stream-8] => (item={'regex': '^export PATH=$PATH:/opt/gradle/', 'line': 'export PATH=$PATH:/opt/gradle/gradle-7.3.3/bin'})
+changed: [CentOS-8] => (item={'regex': '^export PATH=$PATH:/opt/gradle/', 'line': 'export PATH=$PATH:/opt/gradle/gradle-7.3.3/bin'})
+changed: [Fedora-33] => (item={'regex': '^export PATH=$PATH:/opt/gradle/', 'line': 'export PATH=$PATH:/opt/gradle/gradle-7.3.3/bin'})
+changed: [Fedora-34] => (item={'regex': '^export PATH=$PATH:/opt/gradle/', 'line': 'export PATH=$PATH:/opt/gradle/gradle-7.3.3/bin'})
+changed: [CentOS-8] => (item={'regex': '. /usr/local/etc/bash_completion.d/gradle-completion.bash', 'line': '. /usr/local/etc/bash_completion.d/gradle-completion.bash'})
+changed: [CentOS-Stream-8] => (item={'regex': '. /usr/local/etc/bash_completion.d/gradle-completion.bash', 'line': '. /usr/local/etc/bash_completion.d/gradle-completion.bash'})
+changed: [Fedora-34] => (item={'regex': '. /usr/local/etc/bash_completion.d/gradle-completion.bash', 'line': '. /usr/local/etc/bash_completion.d/gradle-completion.bash'})
+changed: [Fedora-33] => (item={'regex': '. /usr/local/etc/bash_completion.d/gradle-completion.bash', 'line': '. /usr/local/etc/bash_completion.d/gradle-completion.bash'})
+
+TASK [professormanhattan.gradle : Run generic Linux tasks] *********************
+Friday 07 January 2022  23:04:51 -0500 (0:00:00.840)       0:15:56.561 ********
+included: /home/hawkwood/gas-station/roles/tools/gradle/tasks/install-Linux.yml for Debian-10-Buster, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.gradle : Ensure custom facts directory exists] ********
+Friday 07 January 2022  23:04:51 -0500 (0:00:00.118)       0:15:56.680 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Ensure /usr/local/src/gradle directory exists] ***
+Friday 07 January 2022  23:04:51 -0500 (0:00:00.340)       0:15:57.021 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.gradle : Ensure /opt/gradle directory exists] *********
+Friday 07 January 2022  23:04:51 -0500 (0:00:00.333)       0:15:57.354 ********
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.gradle : Detect the latest Gradle version] ************
+Friday 07 January 2022  23:04:52 -0500 (0:00:00.336)       0:15:57.690 ********
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.gradle : Determine whether or not the latest version of Gradle is already installed] ***
+Friday 07 January 2022  23:04:52 -0500 (0:00:00.581)       0:15:58.271 ********
+ok: [Debian-10-Buster]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Fetch CHECKSUMS file of Gradle installer] ****
+Friday 07 January 2022  23:04:53 -0500 (0:00:00.118)       0:15:58.390 ********
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Find the Checksum of Gradle installer] *******
+Friday 07 January 2022  23:04:53 -0500 (0:00:00.594)       0:15:58.985 ********
+ok: [Debian-10-Buster]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Acquire Gradle's latest installer] ***********
+Friday 07 January 2022  23:04:53 -0500 (0:00:00.148)       0:15:59.134 ********
+changed: [Debian-10-Buster]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.gradle : Ensure Gradle is installed] ******************
+Friday 07 January 2022  23:05:12 -0500 (0:00:18.608)       0:16:17.742 ********
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  msg: Failed to find handler for "/usr/local/src/gradle/gradle.zip". Make sure the required command to extract the file is installed. Command "/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+fatal: [Debian-10-Buster]: FAILED! => changed=false
+  msg: Failed to find handler for "/usr/local/src/gradle/gradle.zip". Make sure the required command to extract the file is installed. Command "/usr/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=false
+  msg: Failed to find handler for "/usr/local/src/gradle/gradle.zip". Make sure the required command to extract the file is installed. Command "/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=false
+  msg: Failed to find handler for "/usr/local/src/gradle/gradle.zip". Make sure the required command to extract the file is installed. Unable to find required 'unzip' or 'zipinfo' binary in the path. Command "/usr/bin/tar" could not handle archive.
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=false
+  msg: Failed to find handler for "/usr/local/src/gradle/gradle.zip". Make sure the required command to extract the file is installed. Unable to find required 'unzip' or 'zipinfo' binary in the path. Command "/usr/bin/tar" could not handle archive.
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Save meta information about the version of Gradle that was installed] ***
+Friday 07 January 2022  23:05:13 -0500 (0:00:01.612)       0:16:19.355 ********
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Ensure /usr/local/etc/bash_completion.d directory exists] ***
+Friday 07 January 2022  23:05:14 -0500 (0:00:00.247)       0:16:19.602 ********
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Ensure BASH completion is setup] *************
+Friday 07 January 2022  23:05:14 -0500 (0:00:00.244)       0:16:19.847 ********
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.gradle : Ensure PATH is set and completion is sourced] ***
+Friday 07 January 2022  23:05:14 -0500 (0:00:00.359)       0:16:20.206 ********
+changed: [Ubuntu-21.10-Impish-Indri] => (item={'regex': '^export PATH=$PATH:/opt/gradle/', 'line': 'export PATH=$PATH:/opt/gradle/gradle-7.3.3/bin'})
+changed: [Ubuntu-21.10-Impish-Indri] => (item={'regex': '. /usr/local/etc/bash_completion.d/gradle-completion.bash', 'line': '. /usr/local/etc/bash_completion.d/gradle-completion.bash'})
+
+TASK [professormanhattan.gradle : Ensure Gradle is installed] ******************
+Friday 07 January 2022  23:05:15 -0500 (0:00:00.422)       0:16:20.629 ********
+changed: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=7    changed=2    unreachable=0    failed=0    skipped=17   rescued=0    ignored=0
+CentOS-7                   : ok=17   changed=6    unreachable=0    failed=1    skipped=17   rescued=0    ignored=0
+CentOS-8                   : ok=22   changed=11   unreachable=0    failed=0    skipped=17   rescued=0    ignored=0
+CentOS-Stream-8            : ok=22   changed=11   unreachable=0    failed=0    skipped=17   rescued=0    ignored=0
+Debian-10-Buster           : ok=17   changed=6    unreachable=0    failed=1    skipped=18   rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=1    skipped=9    rescued=0    ignored=0
+Debian-9-Stretch           : ok=17   changed=6    unreachable=0    failed=1    skipped=18   rescued=0    ignored=0
+Fedora-33                  : ok=22   changed=11   unreachable=0    failed=0    skipped=17   rescued=0    ignored=0
+Fedora-34                  : ok=22   changed=11   unreachable=0    failed=0    skipped=17   rescued=0    ignored=0
+Fedora-35                  : ok=6    changed=1    unreachable=1    failed=0    skipped=11   rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=19   changed=7    unreachable=0    failed=1    skipped=16   rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=19   changed=7    unreachable=0    failed=1    skipped=16   rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=19   changed=7    unreachable=0    failed=1    skipped=16   rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=24   changed=12   unreachable=0    failed=0    skipped=16   rescued=0    ignored=0
+Windows-10                 : ok=10   changed=1    unreachable=0    failed=0    skipped=21   rescued=0    ignored=0
+
+Friday 07 January 2022  23:05:53 -0500 (0:00:38.728)       0:16:59.358 ********
+===============================================================================
+professormanhattan.java : Set JAVA_HOME (if configured) --------------- 611.77s
+professormanhattan.java : Ensure Java is installed -------------------- 171.65s
+professormanhattan.java : Ensure Java is installed --------------------- 95.65s
+professormanhattan.gradle : Ensure Gradle is installed ----------------- 38.73s
+professormanhattan.gradle : Ensure Gradle is installed ----------------- 23.24s
+professormanhattan.gradle : Acquire Gradle's latest installer ---------- 18.61s
+professormanhattan.java : Install JDK ---------------------------------- 14.94s
+professormanhattan.gradle : Acquire Gradle's latest installer ---------- 14.68s
+professormanhattan.java : Install Java ---------------------------------- 4.14s
+Gathering Facts --------------------------------------------------------- 2.81s
+professormanhattan.gradle : Ensure Gradle is installed ------------------ 2.39s
+professormanhattan.startmenu : Remove the original folder --------------- 2.10s
+professormanhattan.startmenu : Remove the original folder (user start menu) --- 2.01s
+professormanhattan.gradle : Ensure Gradle is installed ------------------ 1.61s
+professormanhattan.gradle : Ensure PATH is set and completion is sourced --- 0.84s
+professormanhattan.gradle : Detect the latest Gradle version ------------ 0.80s
+professormanhattan.java : Ensure 'man' directory exists ----------------- 0.76s
+professormanhattan.gradle : Ensure BASH completion is setup ------------- 0.73s
+professormanhattan.gradle : Fetch CHECKSUMS file of Gradle installer ---- 0.69s
+professormanhattan.gradle : Ensure custom facts directory exists -------- 0.67s
+Playbook run took 0 days, 0 hours, 16 minutes, 59 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  23:05:57 -0500 (0:00:00.015)       0:00:00.015 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  23:06:08 -0500 (0:00:11.125)       0:00:11.140 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  23:06:08 -0500 (0:00:00.391)       0:00:11.531 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  23:08:52 -0500 (0:02:43.856)       0:02:55.388 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  23:08:52 -0500 (0:00:00.139)       0:02:55.528 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  23:08:53 -0500 (0:00:01.000)       0:02:56.529 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 163.86s
+Gathering Facts -------------------------------------------------------- 11.13s
+Dump instance config ---------------------------------------------------- 1.00s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Populate instance config ------------------------------------------------ 0.14s
+Playbook run took 0 days, 0 hours, 2 minutes, 56 seconds

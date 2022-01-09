@@ -1,15 +1,13 @@
 ---
 - name: "Ensure {{ hostsfile_dest_dir }} exists"
-  file:
-    mode: 0755
+  ansible.windows.win_file:
     path: "{{ hostsfile_dest_dir }}"
     state: directory
 
 - name: Ensure hosts files are downloaded
-  get_url:
+  ansible.windows.win_get_url:
     url: "{{ hostsfile.url }}"
     dest: "{{ hostsfile_dest_dir }}/{{ hostsfile.filename }}"
-    mode: 0644
   loop:
     - url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
       filename: base
@@ -28,10 +26,9 @@
   register: download_result
 
 - name: Ensure a copy of hosts files are created
-  copy:
+  ansible.windows.win_copy:
     src: "{{ hostsfile_dest_dir }}/{{ filename }}"
     dest: "{{ hostsfile_dest_dir }}/{{ filename }}-clean"
-    mode: preserve
     remote_src: true
   loop:
     - base
@@ -45,11 +42,10 @@
   when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
 
 - name: Ensure the hosts file are sanitized
-  lineinfile:
+  community.windows.win_lineinfile:
     path: "{{ hostsfile_dest_dir }}/{{ filename }}-clean"
     regex: '(^ *#.*$)|^$'
     state: absent
-    mode: 0644
   loop:
     - base
     - fakenews
@@ -61,8 +57,8 @@
     loop_var: filename
   when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
 
-- name: Backup the default hosts file # noqa 301
-  command: hostctl backup --path "{{ hostsfile_dest_dir }}/"
+- name: Backup the default hosts file
+  ansible.windows.win_command: hostctl backup --path "{{ hostsfile_dest_dir }}/"
 
 # @action `hostctl` versions after v1.0.15 check for unique domains in a profile which makes
 # it extremely slow to process large hosts files. Revisit after a future version provides a
@@ -76,11 +72,11 @@
 #     - porn
 #     - social
 #     - all
-#   loop_control:
-#     loop_var: filename
+#  loop_control:
+#    loop_var: filename
 
 - name: Read the content of the hosts files # noqa 301
-  command: cat "{{ hostsfile_dest_dir }}/{{ filename }}-clean"
+  ansible.windows.win_shell: type "{{ hostsfile_dest_dir }}/{{ filename }}-clean"
   loop:
     - base
     - fakenews
@@ -94,7 +90,7 @@
   when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
 
 - name: Setup SwitchHosts
-  include_tasks: user-Linux.yml
+  include_tasks: user-Windows.yml
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"
@@ -102,25 +98,3 @@
   when:
     - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
-
-- name: Set systemd-resolved DNS
-  lineinfile:
-    path: "{{ systemd_resolved_conf_path }}"
-    regex: "(^#DNS=|^DNS=)"
-    line: "DNS={{ dns_provider }}"
-  notify: restart systemd-resolved
-
-- name: Set systemd-resolved FallbackDNS
-  lineinfile:
-    path: "{{ systemd_resolved_conf_path }}"
-    regex: "(^#FallbackDNS=|^FallbackDNS=)"
-    line: "FallbackDNS={{ dns_fallback_provider }}"
-  when: dns_fallback_provider is defined
-  notify: restart systemd-resolved
-
-- name: Set systemd-resolved DNSOverTLS
-  lineinfile:
-    path: "{{ systemd_resolved_conf_path }}"
-    regex: "(^#DNSOverTLS=|^DNSOverTLS=)"
-    line: "DNSOverTLS={{ dns_over_tls }}"
-  notify: restart systemd-resolved

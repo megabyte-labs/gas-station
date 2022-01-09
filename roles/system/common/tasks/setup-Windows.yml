@@ -3,6 +3,8 @@
   ansible.windows.win_command: 'Rename-Computer -NewName {{ hostname }}'
   when: hostname is defined
 
+# @action Ensures common configuration settings are applied
+# Activates Windows 10 using the provided key
 - name: Activate Windows 10
   ansible.windows.win_command: 'cscript slmgr.vbs /ipk {{ windows_enterprise_key }}'
   args:
@@ -23,11 +25,15 @@
     post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
   when: update.reboot_required
 
+# @action Ensures common configuration settings are applied
+# Update PowerShell Execution Policy
 - name: Add override for Execution Policy for PowerShell profile
   ansible.windows.win_shell: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
   register: pwsh_exec_policy
   failed_when: (not (pwsh_exec_policy.rc == 1 and 'Windows PowerShell updated your execution policy successfully' in pwsh_exec_policy.stderr))
 
+# @action Ensures common configuration settings are applied
+# Configures Windows optional features
 - name: Configure Windows optional features
   ansible.windows.win_optional_feature:
     include_parent: true
@@ -68,6 +74,8 @@
   include_role:
     name: professormanhattan.startmenu
 
+# @action Ensures common configuration settings are applied
+# Installs Bandizip on Windows Systems
 - name: Install Bandizip
   chocolatey.chocolatey.win_chocolatey:
     name: bandizip
@@ -80,6 +88,8 @@
   include_role:
     name: professormanhattan.startmenu
 
+# @action Ensures common configuration settings are applied
+# Installs PuTTY on Windows Systems
 - name: Install PuTTY
   chocolatey.chocolatey.win_chocolatey:
     name: putty

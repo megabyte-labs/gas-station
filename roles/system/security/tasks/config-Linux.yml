@@ -1,10 +1,14 @@
 ---
-- name: Ensure rng-tools is installed
+# @action Ensures RNG is configured
+# Installs `rng-tools` package on Linux Systems
+- name: Ensures rng-tools is installed
   package:
     name: rng-tools
     state: present
   when: (ansible_kernel.split('-'))[0] < "5.6"
 
+# @action Ensures RNG is configured
+# Configures `rng-tools`
 - name: Configure urandom
   lineinfile:
     path: /etc/default/rng-tools
@@ -13,13 +17,17 @@
     mode: 0600
   when: (ansible_kernel.split('-'))[0] < "5.6"
 
-- name: Ensure libpam-pwquality is installed
+# @action Ensures Password quality policy is setup
+# Installs `PAM pwquality` package
+- name: Ensures libpam-pwquality is installed
   apt:
     name: libpam-pwquality
     state: present
   when: ansible_os_family == 'Debian'
 
-- name: Ensure PAM is configured
+# @action Ensures Password quality policy is setup
+# Configures Password Quality settings
+- name: Ensures PAM is configured
   lineinfile:
     path: /etc/pam.d/common-password
     regex: '^(password\s+requisite\s+pam_pwquality.so)(.*)$'
@@ -29,6 +37,8 @@
     backup: true
     mode: 0644
 
+# @action Secure /proc mount
+# Updates /proc mount settings
 - name: Udpate fstab to secure /proc
   lineinfile:
     path: /etc/fstab
@@ -36,7 +46,9 @@
     backup: true
     mode: 0644
 
-- name: Ensure /proc is remounted
+# @action Secure /proc mount
+# Remounts /proc to use updated mount settings
+- name: Ensures /proc is remounted
   ansible.posix.mount:
     path: /proc
     opts: hidepid=2

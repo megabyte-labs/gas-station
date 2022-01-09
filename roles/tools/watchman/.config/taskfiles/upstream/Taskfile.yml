@@ -35,6 +35,7 @@ tasks:
 
   project:
     cmds:
+      - task: pull
       - task: :upstream:project:clone
       - task: :upstream:project:copy
       - task: :upstream:project:clean
@@ -48,9 +49,40 @@ tasks:
       - task: :git:push:all
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:galaxy:import{{else}}donothing{{end}}
 
+  project:scaffold-only:
+    cmds:
+      - task: pull
+      - task: :upstream:project:clone
+      - task: :upstream:project:copy
+      - task: :upstream:project:clean
+      - task: :upstream:project:template
+      - task: :upstream:project:boilerplate
+      - task: :vscode:generate
+      - task: :upstream:project:merge:package:overrides
+      - SKIP_UPLOADING=true task common:update:update
+      - task: :fix:eslint
+
+  pull:
+    deps:
+      - :install:software:git
+    cmds:
+      - |
+        if ([ -f "$HOME/.ssh/known_hosts" ] && [ ! -n "$(grep "^gitlab.com " "$HOME/.ssh/known_hosts")" ]) || [[ "${container:=}" == "docker" ]]; then
+          if [ -z "$GITLAB_CI" ]; then
+            if [ -d "$HOME/.ssh" ]; then
+              ssh-keyscan gitlab.com >> "$HOME/.ssh/known_hosts" 2> /dev/null
+            fi
+            git config url."https://gitlab.com/".insteadOf git@gitlab.com:
+          fi
+        fi
+      - cmd: git pull --ff-only
+        ignore_error: true
+      - cmd: git config --unset url."https://gitlab.com/".insteadOf
+        ignore_error: true
+
   shared:
     cmds:
-      - git pull
+      - task: pull
       - task: :upstream:shared:copy
       - task: :upstream:shared:variables
       - task: :upstream:shared:template
@@ -73,9 +105,9 @@ tasks:
         sh: mktemp
     cmds:
       - |
-        if [ '{{.REPOSITORY_TYPE}}' == 'python' ] && [ -f '.config/brew/python.rb.liquid' ]; then
+        if [[ '{{.REPOSITORY_TYPE}}' == 'python' ]] && [ -f '.config/brew/python.rb.liquid' ]; then
           BINARY_NAME="$(jq -r '.customPyPiPackageName' .variables.json)"
-          if [ "$BINARY_NAME" == 'null' ] || ! type "$BINARY_NAME" &> /dev/null; then
+          if [[ "$BINARY_NAME" == 'null' ]] || ! type "$BINARY_NAME" &> /dev/null; then
             echo "{{.PYTHON_BREW_NOTICE}}" > .config/brew/python.rb.liquid
           fi
         fi
@@ -88,18 +120,18 @@ tasks:
           mv "$TMP" "${FILE//.liquid}"
           rm "$FILE"
         }
-        find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid' | while read FILE; do
+        while read FILE; do
           handlebars "$FILE" &
-        done
-        find .config -type f -name '*.liquid' | while read FILE; do
-          handlebars "$FILE" &
-        done
+        done < <(find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid')
+        while read CONFIG_FILE; do
+          handlebars "$CONFIG_FILE" &
+        done < <(find .config -type f -name '*.liquid')
         wait
       - |
         function ensureKeywords() {
           if [ ! -f "$1" ]; then echo "{}" > "$1"; fi
           KEYWORDS="$(jq -r '.keywords' "$1")"
-          if [ "$KEYWORDS" == 'null' ] || [ "$KEYWORDS" == '' ]; then
+          if [[ "$KEYWORDS" == 'null' ]] || [[ "$KEYWORDS" == '' ]]; then
             TMP="$(mktemp)"
             jq -r '.keywords = [] | .' "$1" > "$TMP"
             mv "$TMP" "$1"
@@ -125,7 +157,7 @@ tasks:
         sh: mktemp
     cmds:
       - |
-        if [ "$(jq '.keywords' package.json)" == 'null' ]; then
+        if [[ "$(jq '.keywords' package.json)" == 'null' ]]; then
           TMP_KEYWORDS="$(mktemp)"
           jq '.keywords = []' package.json > "$TMP_KEYWORDS"
           mv "$TMP_KEYWORDS" package.json

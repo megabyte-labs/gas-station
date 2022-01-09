@@ -41,11 +41,12 @@ env:
 tasks:
   commit:automated:
     cmds:
-      - |
-        if [ "$FULLY_AUTOMATED_TASKS" == 'true' ]; then
-          git add --all
-          HUSKY=0 git commit -m "☁️ Automation" -n
-        fi
+      - cmd: |
+          if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
+            git add --all
+            HUSKY=0 git commit -m "☁️ Automation" -n
+          fi
+        ignore_error: true
 
   convert:folder:submodule:
     deps:
@@ -76,10 +77,27 @@ tasks:
       - sh: '[[ ! $(git rev-parse --git-dir) =~ ".git/modules" ]]'
         msg: Cannot convert the directory to a submodule - the directory already appears to be a submodule.
 
+  convert:folder:subrepo:
+    deps:
+      - :install:software:subrepo
+    vars:
+      BASENAME:
+        sh: basename "$PWD"
+      GITLAB_REPO:
+        sh: jq -r '.blueprint.repository.gitlab' package.json
+    cmds:
+      - rm -rf .git
+      - |
+        ROLE_DIR="$PWD"
+        while ! test -d .git; do cd ..; done
+        git remote add {{.BASENAME}} {{.GITLAB_REPO}}
+        RELATIVE_DIR="$(echo $ROLE_DIR | sed 's@'"$PWD"'/@@')"
+        HUSKY=0 git subrepo clone {{.BASENAME}} "$RELATIVE_DIR" -b master
+
   push:all:
     cmds:
       - |
-        if [ "$FULLY_AUTOMATED_TASKS" == 'true' ]; then
+        if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
           git push all master
         fi
 
@@ -87,6 +105,7 @@ tasks:
     deps:
       - :install:software:git
       - :install:software:jq
+      - :install:software:subrepo
     desc: Configure the git remote `origin` to point to GitLab and the git remote `all` to point to GitLab and GitHub
     summary: |
       # Configure git remote
@@ -209,3 +228,5 @@ tasks:
     deps:
       - :git:gitlab:update
       - :git:github:update
+    cmds:
+      - git push -u origin master

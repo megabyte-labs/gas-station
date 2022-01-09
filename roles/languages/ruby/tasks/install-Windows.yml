@@ -5,16 +5,22 @@
     state: "{{ app_state | default('present') }}"
     package_params: /InstallDir:{{ ruby_installation_path }}
 
+# @action Installs Ruby
+# Installs MSYS2 on Windows
 - name: Ensure MSYS2 is installed
   chocolatey.chocolatey.win_chocolatey:
     name: msys2
     state: "{{ app_state | default('present') }}"
     package_params: /InstallDir:{{ msys2_installation_path }}
 
+# @action Installs Ruby packages
+# Ensures user-specified global Ruby packages are installed at the system-level
 - name: Ensure configured gems are installed (system)
   ansible.windows.win_shell: "gem install {{ ruby_gems | default([]) | map(attribute='name') | join(' ') }}"
   ignore_errors: true
 
+# @action Installs Ruby packages
+# Ensures user-specified, user-scoped Ruby packages are installed
 - name: Ensure configured gems are installed (user)
   include_tasks: user-Windows.yml
   loop: "{{ user_configs }}"

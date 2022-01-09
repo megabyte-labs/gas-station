@@ -70,22 +70,20 @@
 
 ## Table of Contents
 
-    * [Overview](#overview)
-    * [Quick Start](#quick-start)
-    * [Variables](#variables)
-    	* [Variable Examples](#variable-examples)
-    			* [`# Install a specific version of a package.](#-install-a-specific-version-of-a-package)
-
-- [}Install a specific version of a package.](#install-a-specific-version-of-a-package)
-  - [Supported Operating Systems](#supported-operating-systems)
-  - [Dependencies](#dependencies)
-    - [Python](#python)
-    - [Galaxy Roles](#galaxy-roles)
-    - [Galaxy Collections](#galaxy-collections)
-  - [Example Playbook](#example-playbook)
-    - [Real World Example](#real-world-example)
-  - [Contributing](#contributing)
-  - [License](#license)
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Variables](#variables)
+  - [Variable Examples](#variable-examples)
+    - [`- name`](#--name)
+- [Supported Operating Systems](#supported-operating-systems)
+- [Dependencies](#dependencies)
+  - [Python](#python)
+  - [Galaxy Roles](#galaxy-roles)
+  - [Galaxy Collections](#galaxy-collections)
+- [Example Playbook](#example-playbook)
+  - [Real World Example](#real-world-example)
+- [Contributing](#contributing)
+- [License](#license)
 
 <a href="#overview" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -133,23 +131,14 @@ This role contains variables that you can customize. The variables you can custo
 
 ### Variable Examples
 
-#### `# Install a specific version of a package.
-
-- name`
+#### `- name`
 
 ```yaml
-#💬 Example implementation of the # Install a specific version of a package.
- - name variable
-
-<a href="#install-a-specific-version-of-a-package" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
-
-# }Install a specific version of a package.
- - name: jslint
+#💬 Example implementation of the - name variable
+- name: jslint
    version: 0.9.3
- # Install the latest stable release of a package.
  - name: node-sass
- # This shorthand syntax also works (same as previous example).
- - node-sass
+ - signale
 ```
 
 <a href="#supported-operating-systems" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>

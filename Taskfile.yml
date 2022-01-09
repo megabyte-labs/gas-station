@@ -60,11 +60,16 @@ includes:
   upstream:project: ./.config/taskfiles/upstream/Taskfile-project.yml
   upstream:shared: ./.config/taskfiles/upstream/Taskfile-shared.yml
   vscode: ./.config/taskfiles/vscode/Taskfile.yml
+  web: ./.config/taskfiles/web/Taskfile.yml
+  web:ionic: ./.config/taskfiles/web/Taskfile-ionic.yml
+  web:nx: ./.config/taskfiles/web/Taskfile-nx.yml
+  web:profile: ./.config/taskfiles/web/Taskfile-profile.yml
 
 output: interleaved
 
 vars:
   DOCKERHUB_PROFILE: megabytelabs
+  GALAXY_NAMESPACE: professormanhattan
   GITHUB_ORG: ProfessorManhattan
   GITHUB_USER: ProfessorManhattan
   IGNORE_FOLDERS: -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*'
@@ -81,7 +86,7 @@ vars:
   NPX_HANDLE: 'pnpx '
   NPX_PACKAGE: pnpx
   PYTHON_HANDLE:
-    sh: if [ -z "$GITLAB_CI" ]; then echo 'poetry run '; fi
+    sh: if [ -z "$GITLAB_CI" ] || [[ "$OPTIMIZED_IMAGE" == 'false' ]]; then echo 'poetry run '; fi
   REPOSITORY_SUBTYPE: playbook
   REPOSITORY_TYPE: ansible
   TIMEZONE: America/New_York
@@ -150,6 +155,27 @@ tasks:
         else
           bash <(curl -s {{.INIT_SCRIPT}})
         fi
+
+  playbook:
+    desc: Run the playbook
+    summary: |
+      # Run the playbook
+
+      This task will prompt you for the environment and inventory you would like to
+      run the `main.yml` playbook with. It will:
+
+      1. Symlink all roles in the `roles/` folder to `~/.ansible/roles`
+      2. Run `task environment` (which prompts and symlinks the appropriate environment)
+      3. Prompt for which inventory to use
+      4. Run `ansible-playbook -i inventories/your_choice --ask-vault-pass main.yml`
+
+      **Example usage:**
+      `task playbook`
+
+      **Example bypassing prompts, using the `inventories/inventory.yml` file:**
+      `task playbook -- inventory.yml`
+    cmds:
+      - task: ansible:playbook:run
 
   preload:
     deps:

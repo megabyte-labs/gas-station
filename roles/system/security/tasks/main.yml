@@ -2,16 +2,39 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+# @action Configures SUDO privileges
+# Configures passwordless SUDO privileges for provided users
+# @action Configures SUDO privileges
+# Configures passworded SUDO privileges for provided users
 - name: Configure sudo priviledges
   become: true
   block:
     - include_tasks: sudo.yml
   when: ansible_os_family != 'Windows'
 
+# @action Configures Automatic Update settings
+# Installs autoupdate provider on Linux Systems
+# @action Configures Automatic Update settings
+# Configures Automatic Updates settings
 - name: Configure autoupdating
+  become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' }}"
+  block:
+    - include_tasks: "autoupdate-{{ ansible_os_family }}.yml"
+  when: security_autoupdate_enabled | bool
+
+- name: Configure tweaks
   become: true
   become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
   become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
-    - include_tasks: "autoupdate-{{ ansible_os_family }}.yml"
-  when: security_autoupdate_enabled | bool
+    - include_tasks: "setup-{{ ansible_os_family }}.yml"
+  when: ansible_system == 'Darwin'
+
+- name: Configure RNG
+  become: true
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' }}"
+  block:
+    - include_tasks: "config-Linux.yml"
+  when: ansible_system == 'Linux'

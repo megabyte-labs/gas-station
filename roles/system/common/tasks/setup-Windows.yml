@@ -1,10 +1,12 @@
 ---
 - name: Ensure the hostname is correct
-  ansible.windows.win_command: "Rename-Computer -NewName {{ hostname }}"
+  ansible.windows.win_command: 'Rename-Computer -NewName {{ hostname }}'
   when: hostname is defined
 
+# @action Ensures common configuration settings are applied
+# Activates Windows 10 using the provided key
 - name: Activate Windows 10
-  ansible.windows.win_command: "cscript slmgr.vbs /ipk {{ windows_enterprise_key }}"
+  ansible.windows.win_command: 'cscript slmgr.vbs /ipk {{ windows_enterprise_key }}'
   args:
     chdir: C:\Windows\System32\
   when: windows_activation_key is defined
@@ -23,17 +25,21 @@
     post_reboot_delay: 14 # TODO: Not sure if this is required, was at 140 initially which seemed a bit excessive
   when: update.reboot_required
 
+# @action Ensures common configuration settings are applied
+# Update PowerShell Execution Policy
 - name: Add override for Execution Policy for PowerShell profile
   ansible.windows.win_shell: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
   register: pwsh_exec_policy
   failed_when: (not (pwsh_exec_policy.rc == 1 and 'Windows PowerShell updated your execution policy successfully' in pwsh_exec_policy.stderr))
 
+# @action Ensures common configuration settings are applied
+# Configures Windows optional features
 - name: Configure Windows optional features
   ansible.windows.win_optional_feature:
     include_parent: true
-    name: "{{ item.name | default(item) }}"
+    name: '{{ item.name | default(item) }}'
     state: "{{ item.state | default('present') }}"
-  loop: "{{ windows_features | default([]) }}"
+  loop: '{{ windows_features | default([]) }}'
   register: optional_features
 
 - name: Determine whether or not a reboot is required
@@ -49,12 +55,12 @@
   ansible.windows.win_shell: 'Get-AppxPackage -AllUsers -Name "{{ item }}" | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue; \
     Get-AppxProvisionedPackage -Online | where {$_.PackageName -like "{{ item }}"} | Remove-AppxProvisionedPackage \
     -AllUsers -Online -ErrorAction SilentlyContinue;'
-  loop: "{{ windows_appx_removals | default([]) }}"
+  loop: '{{ windows_appx_removals | default([]) }}'
 
 - name: Install APPX packages
   debug:
-    msg: "TODO: Figure out how to install APPX packages from the Microsoft Store"
-  loop: "{{ windows_appx_installs }}"
+    msg: 'TODO: Figure out how to install APPX packages from the Microsoft Store'
+  loop: '{{ windows_appx_installs }}'
 
 - name: Install git
   chocolatey.chocolatey.win_chocolatey:
@@ -66,8 +72,10 @@
   vars:
     shortcut_folder: Git
   include_role:
-    name: startmenu
+    name: professormanhattan.startmenu
 
+# @action Ensures common configuration settings are applied
+# Installs Bandizip on Windows Systems
 - name: Install Bandizip
   chocolatey.chocolatey.win_chocolatey:
     name: bandizip
@@ -78,8 +86,10 @@
     shortcut_folder: Bandizip
     shortcut_link: Bandizip
   include_role:
-    name: startmenu
+    name: professormanhattan.startmenu
 
+# @action Ensures common configuration settings are applied
+# Installs PuTTY on Windows Systems
 - name: Install PuTTY
   chocolatey.chocolatey.win_chocolatey:
     name: putty
@@ -87,4 +97,4 @@
 
 - name: Install Scoops
   community.windows.win_scoop:
-    name: "{{ windows_scoop_packages }}"
+    name: '{{ windows_scoop_packages }}'

@@ -9,6 +9,13 @@ tasks:
         vars:
           FORMULAE: act
 
+  allure:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: allure
+
   brew:
     deps:
       - common
@@ -26,16 +33,13 @@ tasks:
         brew install --cask {{.CASK}}
         .config/log success 'Successfully installed the `{{.CASK}}` Homebrew cask'
     status:
-      - type {{.CASK}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type {{.CASK}} &> /dev/null
 
   brew:darwin:
     cmds:
       - |
         .config/log info 'Ensuring Homebrew is installed and available'
-        if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
-          .config/log info "Homebrew is already installed"
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
-        elif ! type brew &> /dev/null; then
+        if ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
@@ -44,16 +48,13 @@ tasks:
           brew update --force --quiet
           chmod -R go-w "$(brew --prefix)/share/zsh"
           .config/log success "Successfully installed Homebrew"
+          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
+          .config/log info 'Please close/open the terminal and re-run the same command to continue'
+          exit 1
         fi
       - task: brew:utils
     status:
-      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type gcp > /dev/null
-      - type gfind > /dev/null
-      - type gsed > /dev/null
-      - type ggrep > /dev/null
-      - type gtar > /dev/null
-      - type ggawk > /dev/null
+      - type brew &> /dev/null
 
   brew:formulae:
     deps:
@@ -65,7 +66,7 @@ tasks:
         brew install {{.FORMULAE}}
         .config/log success 'Successfully installed the `{{.FORMULAE}}` Homebrew package'
     status:
-      - type {{.FORMULAE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type {{.FORMULAE}} &> /dev/null
 
   brew:linux:
     run: once
@@ -73,7 +74,7 @@ tasks:
       - |
         .config/log info 'Ensuring Homebrew is installed and available'
         function ensureSource() {
-          if ! (grep "/bin/brew shellenv" < cat "$1" &> /dev/null); then
+          if ! (grep "/bin/brew shellenv" < "$1" &> /dev/null); then
             echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
           fi
         }
@@ -86,32 +87,55 @@ tasks:
             fi
             ;;
           */zsh*)
-            SHELL_PROFILE="${HOME}/.zprofile"
+            SHELL_PROFILE="${HOME}/.zshrc"
             ;;
           *)
             SHELL_PROFILE="${HOME}/.profile"
             ;;
         esac
-        if [ -f "~/.local/homebrew/bin/brew" ] && ! type brew &> /dev/null; then
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
-          ensureSource "$SHELL_PROFILE"
-        elif ! type brew &> /dev/null; then
+        if ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
           git clone https://github.com/Homebrew/brew ~/.local/homebrew
           eval "$(~/.local/homebrew/bin/brew shellenv)"
           brew update --force --quiet
           ensureSource "$SHELL_PROFILE"
+          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
+          .config/log info 'Please close/open the terminal and re-run the same command to continue'
+          exit 1
         fi
     status:
-      - type brew &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type brew &> /dev/null || [[ "$OPTIMIZED_IMAGE" == 'true' ]]
 
   brew:utils:
+    run: once
     cmds:
       - |
         .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
-        brew install coreutils findutils gnu-indent gnu-sed gnutls grep gnu-tar gawk
+        brew install coreutils findutils gnu-sed grep gnu-tar gawk
         .config/log success "Successfully installed GNU-compatibility tools"
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/findutils/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/gnu-sed/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/grep/libexec/gnubin
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/gnu-tar/libexec/gnubin
+    status:
+      - type gcp > /dev/null
+      - type gfind > /dev/null
+      - type gsed > /dev/null
+      - type ggrep > /dev/null
+      - type gtar > /dev/null
+      - type gawk > /dev/null
 
   brew:windows:
     cmds:
@@ -135,13 +159,17 @@ tasks:
       - task: common:darwin:xcode
 
   common:darwin:xcode:
+    vars:
+      CLT_STATUS:
+        sh: brew config | grep CLT
     cmds:
       - |
-        .config/log info "Installing xcode-select"
+        .config/log info "Installing xcode-select.. You might be prompted for a password"
+        .config/log info 'Running `xcode-select --install`'
         xcode-select --install
         .config/log success "Successfully installed xcode-select"
     status:
-      - xcode-select -p 1> /dev/null
+      - '[ "{{.CLT_STATUS}}" != "CLT: N/A" ]'
 
   common:linux:
     vars:
@@ -158,6 +186,8 @@ tasks:
           fi
     cmds:
       - task: common:linux:{{.LINUX_FAMILY}}
+    status:
+      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
 
   common:linux:archlinux:
     interactive: true
@@ -167,11 +197,11 @@ tasks:
         sudo pacman update
         sudo pacman -S base-devel curl file git procps-ng
     status:
-      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep base-devel || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep file || [[ "${container:=}" == "docker" ]]
-      - ldconfig -p | grep procps-ng || [[ "${container:=}" == "docker" ]]
+      - type curl &> /dev/null
+      - type git &> /dev/null
+      - ldconfig -p | grep base-devel
+      - ldconfig -p | grep file
+      - ldconfig -p | grep procps-ng
 
   common:linux:debian:
     interactive: true
@@ -181,11 +211,11 @@ tasks:
         sudo apt-get -y update
         sudo apt-get install -y build-essential curl file git procps
     status:
-      - type curl &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - type git &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - dpkg-query -l build-essential &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - dpkg-query -l file &> /dev/null || [[ "${container:=}" == "docker" ]]
-      - dpkg-query -l procps &> /dev/null || [[ "${container:=}" == "docker" ]]
+      - type curl &> /dev/null
+      - type git &> /dev/null
+      - dpkg-query -l build-essential &> /dev/null
+      - dpkg-query -l file &> /dev/null
+      - dpkg-query -l procps &> /dev/null
 
   common:linux:redhat:
     interactive: true
@@ -195,7 +225,7 @@ tasks:
         if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
           yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
           DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
-          if [ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]; then
+          if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
             sudo yum groupinstall -y 'Development Tools'
           fi
           touch "$HOME/.config/mblabs/yum-devtools-check-ran"
@@ -206,7 +236,7 @@ tasks:
         fi
         if [ -f '/etc/os-release' ]; then
           source /etc/os-release
-          if [ "$ID" == 'fedora' ] && [ "$VERSION_ID" -gt "29" ]; then
+          if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
             if ! rpm --quiet --query libxcrypt-compat; then
               .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
               sudo yum -y install libxcrypt-compat
@@ -227,29 +257,9 @@ tasks:
   container-structure-test:
     run: once
     cmds:
-      - task: container-structure-test:{{OS}}
-
-  container-structure-test:darwin:
-    cmds:
       - task: brew:formulae
         vars:
           FORMULAE: container-structure-test
-
-  container-structure-test:linux:
-    cmds:
-      - curl -LO https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64
-      - chmod +x container-structure-test-linux-amd64
-      - mkdir -p $HOME/.local/bin
-      - export PATH=$PATH:$HOME/.local/bin
-      - mv container-structure-test-linux-amd64 $HOME/.local/bin/container-structure-test
-      - .config/log info 'Added container-structure-test to ~/.local/bin - ensure "$HOME/.local/bin" is in the PATH variable'
-    status:
-      - type container-structure-test > /dev/null
-
-  container-structure-test:windows:
-    cmds:
-      - .config/log error "Windows is not supported. Try using a Windows WSL environment."
-      - exit 1
 
   coreutils:
     deps:
@@ -262,8 +272,11 @@ tasks:
           brew install coreutils
           .config/log success 'Successfully installed GNU compatibility tools (i.e. `coreutils`)'
         fi
+      - task: :install:path:add
+        vars:
+          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
     status:
-      - '[ "{{OS}}" == "darwin" ] || type gsed > /dev/null'
+      - '[[ "{{OS}}" != "darwin" ]] && type gsed > /dev/null'
 
   docker:
     run: once
@@ -276,6 +289,9 @@ tasks:
       - task: brew:cask
         vars:
           CASK: docker
+      - task: exit:notice:restart
+    status:
+      - type docker > /dev/null
 
   docker:linux:
     run: once
@@ -283,6 +299,9 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: docker
+      - task: exit:notice:restart
+    status:
+      - type docker > /dev/null
 
   docker:windows:
     cmds:
@@ -303,6 +322,18 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: exiftool
+
+  exit:notice:reload:
+    cmds:
+      - .config/log warn 'Software was installed that requires a terminal session reload'
+      - .config/log info 'Please close and re-open the terminal. Then, re-run the same command to continue.'
+      - exit 1
+
+  exit:notice:restart:
+    cmds:
+      - .config/log warn 'Software was installed that requires a system reboot'
+      - .config/log info 'Please reboot the system and re-run the same command after rebooting'
+      - exit 1
 
   gcloud:
     run: once
@@ -416,16 +447,61 @@ tasks:
   poetry:
     run: once
     cmds:
-      - task: brew:formulae
-        vars:
-          FORMULAE: poetry
+      - task: poetry:{{OS}}
+      - task: exit:notice:reload
+    status:
+      - type poetry > /dev/null
 
-  python:
+  poetry:darwin:
     run: once
     cmds:
       - task: brew:formulae
         vars:
-          FORMULAE: python
+          FORMULAE: poetry
+
+  poetry:linux:
+    deps:
+      - pipx
+    cmds:
+      - pipx install poetry
+      - task: :install:path:add
+        vars:
+          PATH_STRING: .local/pipx/venvs/poetry/bin
+    status:
+      - type poetry > /dev/null
+
+  poetry:windows:
+    cmds:
+      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
+      - exit 1
+
+  python:
+    deps:
+      - brew # bug fix
+    run: once
+    cmds:
+      - task: python:{{OS}}
+
+  python:darwin:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: python@3.10
+    status:
+      - type python3 > /dev/null
+
+  python:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: python
+
+  python:windows:
+    cmds:
+      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
+      - exit 1
 
   rsync:
     run: once
@@ -442,6 +518,15 @@ tasks:
           FORMULAE: hudochenkov/sshpass/sshpass
     status:
       - type sshpass > /dev/null
+
+  subrepo:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: git-subrepo
+    status:
+      - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
 
   tokei:
     run: once
@@ -480,6 +565,9 @@ tasks:
   virtualbox:
     cmds:
       - task: virtualbox:{{OS}}
+      - task: exit:notice:restart
+    status:
+      - type vboxmanage > /dev/null
 
   virtualbox:darwin:
     run: once
@@ -498,6 +586,9 @@ tasks:
   vmware:
     cmds:
       - task: vmware:{{OS}}
+      - task: exit:notice:restart
+    status:
+      - type vmware > /dev/null
 
   vmware:darwin:
     run: once

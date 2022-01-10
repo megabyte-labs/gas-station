@@ -5,6 +5,26 @@ vars:
   REPOSITORY_LIST: .cache/repository-list.txt
 
 tasks:
+  access-token:
+    deps:
+      - :install:software:glab
+      - :install:software:jq
+      - create
+    vars:
+      REPO_ID:
+        sh: glab api projects/:fullpath | jq '.id'
+      REQUEST_DATA: '{ "name":"PROJECT_CI_ACCESS_TOKEN", "scopes":["write_repository", "read_repository"] }'
+      TOKEN_STATUS:
+        sh: glab api projects/:fullpath/access_tokens | jq -r '.[] | select(.name=="PROJECT_CI_ACCESS_TOKENX") | .id'
+    run: once
+    cmds:
+      - |
+        curl -sSL --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header \
+        'Content-Type:application/json' --data '{{.REQUEST_DATA}}' \
+        'https://gitlab.com/api/v4/projects/{{.REPO_ID}}/access_tokens'
+    status:
+      - '[ -n "{{.TOKEN_STATUS}}" ]'
+
   branches:
     deps:
       - :install:software:glab
@@ -279,6 +299,7 @@ tasks:
 
   update:
     deps:
+      - access-token
       - branches
       - mirror
       - integrations

@@ -113,6 +113,9 @@ tasks:
       - .config/scripts/prompts/**
 
   path:add:
+    vars:
+      UNAME:
+        sh: uname
     cmds:
       - |
         function ensureLocalPath() {
@@ -131,14 +134,14 @@ tasks:
               SHELL_PROFILE="${HOME}/.profile"
               ;;
           esac
-          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+          if [[ '{{.UNAME}}' == 'Darwin' ]] || [[ '{{.UNAME}}' == 'Linux' ]]; then
             # shellcheck disable=SC2016
             local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
             if ! grep -L "$PATH_STRING" "$SHELL_PROFILE" > /dev/null; then
               echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
               .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
             fi
-          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+          elif [[ '{{.UNAME}}' == 'CYGWIN'* ]] || [[ '{{.UNAME}}' == 'MINGW'* ]]; then
             .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
           elif [[ "$OSTYPE" == 'freebsd'* ]]; then
             .config/log error "FreeBSD support not added yet" && exit 1

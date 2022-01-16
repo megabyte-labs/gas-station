@@ -73,6 +73,8 @@ function triggerUpdates() {
 #
 # shellcheck disable=SC2207
 GROUP_IDS=($(echo "$DOWNSTREAM_GROUP_IDS" | tr ',' '\n'))
+echo "Group IDs: $GROUP_IDS"
 for GROUP_ID in "${GROUP_IDS[@]}"; do
+  echo "Triggering update for group ID: $GROUP_ID"
   triggerUpdates "$GROUP_ID" "1"
 done

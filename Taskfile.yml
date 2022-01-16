@@ -112,8 +112,19 @@ tasks:
       `task environment -- prod`
     cmds:
       - task: ansible:playbook:environment
+  fix:
+    desc: Run code auto-fixers
+    summary: |
+      # Auto-fix code
+
+      This task will automatically apply lint fixes across the whole project using
+      auto-fixers. Although unlikely, it is possible that auto-fixing can introduce
+      an error so the auto-fixes still have to be validated.
+    cmds:
+      - fix:all
+
   group:exec:
-    desc: Execute group commands on any group (including repositories in sub-groups)
+    desc: Execute group commands on any GitLab group (including repositories in sub-groups)
     summary: |
       # Run commands on multiple repositories in parallel
 
@@ -133,7 +144,7 @@ tasks:
       - task: git:gitlab:group:exec
 
   init:
-    desc: Ensures project is initialized with upstream files and migrates pre-existing projects
+    desc: Runs the initialization script
     summary: |
       # Initialize the project and run the full update sequence
 
@@ -156,6 +167,20 @@ tasks:
         else
           bash <(curl -s {{.INIT_SCRIPT}})
         fi
+
+  lint:
+    desc: Lints the project using all error-prone linters
+    summary: |
+      # Lint the project using most of the linters
+
+      This task will do a project-wide linting using all of the linters that commonly
+      report errors. You can use this task to spot linting errors prior to running
+      the git pre-commit hooks.
+
+      **Example usage:**
+      `task lint`
+    cmds:
+      - task: lint:all
 
   playbook:
     desc: Run the playbook
@@ -208,10 +233,10 @@ tasks:
       chances are you will be asked for a sudo password. In this case, we recommend
       you adopt the Megabyte Labs philosophy and inspect the code before running it.
     cmds:
+      - task: install:brewfile
+      - task: install:modules:global
+      - task: install:pipx:global
       - |
-        task install:modules:global &
-        task install:pipx:global &
-        wait
         .config/log success 'Successfully preloaded commonly used system applications'
         .config/log info 'Some software that requires a reboot may have been installed - rebooting would be prudent'
 
@@ -253,6 +278,38 @@ tasks:
       API keys be set. Generally, only project owners will use this task.
     cmds:
       - task: common:update:services
+
+  shell:
+    desc: Start a terminal session using Docker with any Linux operating system
+    summary: |
+      # Start a Docker terminal session
+
+      Use Docker to run commands on nearly any operating system. The operating
+      systems are all stock distros with systemd added.
+
+      The selected environment will mount the current working directory to the
+      Docker container.
+
+      **Example opening an interactive prompt:**
+      `task shell`
+
+      **Example of directly shelling into a container:**
+      `task shell -- ubuntu-21.04`
+
+      ## Available operating systems (that you can use with the example above):
+
+      * archlinux
+      * centos-7
+      * centos-8
+      * debian-9
+      * debian-10
+      * fedora-33
+      * fedora-34
+      * ubuntu-18.04
+      * ubuntu-20.04
+      * ubuntu-21.04
+    cmds:
+      - task: common:shell
 
   start:
     desc: Set up the project and refresh it with the latest changes

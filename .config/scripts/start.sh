@@ -87,7 +87,7 @@ if [ -d .git ] && type git &> /dev/null; then
   git submodule update --init --recursive
 fi
 
-# @description Ensures Task is installed and properly configured and then runs the `start` task
+# @description Ensures Task is installed and properly configured
 if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
   bash "$INSTALL_TASK_SCRIPT"
   SHELL_PROFILE_PATH="$(cat "$TMP_PROFILE_PATH")"
@@ -96,8 +96,29 @@ if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
     source "$SHELL_PROFILE_PATH"
   fi
 fi
-bash "$VALID_TASKFILE_SCRIPT"
+
+# @description Ensure profile is sourced (in case of error with SHELL_PROFILE_PATH)
+case "${SHELL}" in
+  */bash*)
+    if [[ -r "${HOME}/.bash_profile" ]]; then
+      source "${HOME}/.bash_profile"
+    else
+      source "${HOME}/.profile"
+    fi
+    ;;
+  */zsh*)
+    source "${HOME}/.zshrc"
+    ;;
+  *)
+    source "${HOME}/.profile"
+    ;;
+esac
+
+# @description Ensure Taskfile.yml is valid
 cd "$PROJECT_BASE_DIR" || exit
+bash "$VALID_TASKFILE_SCRIPT"
+
+# @description Run the start logic, if appropriate
 if [ -z "$GITLAB_CI" ]; then
   task start
   if [ -f .config/log ] && [ -n "$SHELL_PROFILE_PATH" ]; then

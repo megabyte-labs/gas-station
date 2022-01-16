@@ -75,7 +75,7 @@ tasks:
         .config/log info 'Ensuring Homebrew is installed and available'
         function ensureSource() {
           if ! (grep "/bin/brew shellenv" < "$1" &> /dev/null); then
-            echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
+            echo "eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"" >> "$1"
           fi
         }
         case "${SHELL}" in
@@ -96,8 +96,12 @@ tasks:
         if ! type brew &> /dev/null; then
           rm -rf ~/.local/homebrew
           mkdir -p ~/.local/homebrew
-          git clone https://github.com/Homebrew/brew ~/.local/homebrew
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
+          echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" | EXIT_CODE=$?
+          if [ "$EXIT_CODE" == '1' ]; then
+            .config/log warn 'Failed to install Homebrew headlessly, running again allowing prompt..'
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew update --force --quiet
           ensureSource "$SHELL_PROFILE"
           .config/log warn 'Homebrew was installed and requires a terminal profile reload'

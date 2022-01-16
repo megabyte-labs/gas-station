@@ -93,15 +93,16 @@ if [ "$GITLAB_CI" != 'true' ] || ! type task &> /dev/null; then
   SHELL_PROFILE_PATH="$(cat "$TMP_PROFILE_PATH")"
   if [ -n "$SHELL_PROFILE_PATH" ]; then
     # shellcheck disable=SC1090
-    source "$SHELL_PROFILE_PATH"
+    . "$SHELL_PROFILE_PATH"
   fi
 fi
+. "$HOME/.profile"
 bash "$VALID_TASKFILE_SCRIPT"
 cd "$PROJECT_BASE_DIR" || exit
 if [ -z "$GITLAB_CI" ]; then
   task start
   if [ -f .config/log ] && [ -n "$SHELL_PROFILE_PATH" ]; then
     .config/log info 'There may have been changes to your PATH variable. You may have to run:\n'
-    .config/log info '`source '"$SHELL_PROFILE_PATH"'`'
+    .config/log info '`. '"$SHELL_PROFILE_PATH"'`'
   fi
 fi

@@ -464,8 +464,29 @@ tasks:
 
   poetry:linux:
     deps:
+      - brew
       - pipx
     cmds:
+      - |
+        if ! type python3.10 > /dev/null; then
+          brew install python@3.10
+          case "${SHELL}" in
+            */bash*)
+              if [[ -r "${HOME}/.bash_profile" ]]; then
+                SHELL_PROFILE="${HOME}/.bash_profile"
+              else
+                SHELL_PROFILE="${HOME}/.profile"
+              fi
+              ;;
+            */zsh*)
+              SHELL_PROFILE="${HOME}/.zshrc"
+              ;;
+            *)
+              SHELL_PROFILE="${HOME}/.profile"
+              ;;
+          esac
+          echo 'export PATH="/home/linuxbrew/.linuxbrew/opt/python@3.10/bin:$PATH"' >> "$SHELL_PROFILE"
+        fi
       - pipx install poetry
       - task: :install:path:add
         vars:

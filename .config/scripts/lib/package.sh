@@ -39,7 +39,7 @@ function ensurePackageInstalled() {
     elif [[ "$OSTYPE" == 'freebsd'* ]]; then
       .config/log error "FreeBSD support not added yet" && exit 1
     else
-      .config/log error "System type not recognized" && exit 1
+      .config/log error "System type not recognized"
     fi
   fi
 }

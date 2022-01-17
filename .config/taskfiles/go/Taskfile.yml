@@ -2,4 +2,34 @@
 version: '3'
 
 tasks:
-  default: 'true'
+  build:
+    deps:
+      - :install:software:go
+      - :install:software:jq
+    vars:
+      BUILD_COMMAND:
+        sh: jq -r '.blueprint.build_command' package.json
+      BUILD_OUTPUT:
+        sh: jq -r '.blueprint.build_command_output' package.json
+    cmds:
+      - '{{.BUILD_COMMAND}}'
+    sources:
+      - '**/*.go'
+    generates:
+      - '{{.BUILD_OUTPUT}}'
+
+  help:
+    deps:
+      - build
+      - :install:software:jq
+    vars:
+      BUILD_OUTPUT:
+        sh: jq -r '.blueprint.build_command_output' package.json
+    env:
+      TMP:
+        sh: mktemp
+    cmds:
+      - |
+        HELP_MENU_OUTPUT="$({{.BUILD_OUTPUT}} --help)"
+        jq --arg output "$HELP_MENU_OUTPUT" -s '.help_menu_output = $output' .variables.json > "$TMP"
+        mv "$TMP" .variables.json

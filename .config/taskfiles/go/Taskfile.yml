@@ -1,34 +1,33 @@
 ---
 version: '3'
 
+vars:
+  BUILD_COMMAND:
+    sh: jq -r '.blueprint.build_command' package.json
+  BUILD_OUTPUT:
+    sh: jq -r '.blueprint.build_command_output' package.json
+
 tasks:
   build:
-    deps:
-      - :install:software:go
-      - :install:software:jq
-    vars:
-      BUILD_COMMAND:
-        sh: jq -r '.blueprint.build_command' package.json
-      BUILD_OUTPUT:
-        sh: jq -r '.blueprint.build_command_output' package.json
     cmds:
-      - '{{.BUILD_COMMAND}}'
+      - task: build:bin
     status:
       - '[[ "{{.BUILD_COMMAND}}" == "null" ]] || [[ "{{.BUILD_OUTPUT}}" == "null" ]]'
 
+  build:bin:
+    deps:
+      - :install:software:go
+    cmds:
+      - '{{.BUILD_COMMAND}}'
     sources:
       - '**/*.go'
     generates:
       - '{{.BUILD_OUTPUT}}'
+
   help:
     deps:
       - build
       - :install:software:jq
-    vars:
-      BUILD_COMMAND:
-        sh: jq -r '.blueprint.build_command' package.json
-      BUILD_OUTPUT:
-        sh: jq -r '.blueprint.build_command_output' package.json
     env:
       TMP_HELP:
         sh: mktemp

@@ -13,23 +13,31 @@ tasks:
         sh: jq -r '.blueprint.build_command_output' package.json
     cmds:
       - '{{.BUILD_COMMAND}}'
+    status:
+      - '[[ "{{.BUILD_COMMAND}}" == "null" ]] || [[ "{{.BUILD_OUTPUT}}" == "null" ]]'
+
     sources:
       - '**/*.go'
     generates:
       - '{{.BUILD_OUTPUT}}'
-
   help:
     deps:
       - build
       - :install:software:jq
     vars:
+      BUILD_COMMAND:
+        sh: jq -r '.blueprint.build_command' package.json
       BUILD_OUTPUT:
         sh: jq -r '.blueprint.build_command_output' package.json
     env:
-      TMP:
+      TMP_HELP:
+        sh: mktemp
+      TMP_VARS:
         sh: mktemp
     cmds:
       - |
-        HELP_MENU_OUTPUT="$({{.BUILD_OUTPUT}} --help)"
-        jq --arg output "$HELP_MENU_OUTPUT" -s '.help_menu_output = $output' .variables.json > "$TMP"
-        mv "$TMP" .variables.json
+        {{.BUILD_OUTPUT}} --help 2> "TMP_HELP"
+        jq --arg output "$(cat $TMP_HELP)" -s '.help_menu_output = $output' .variables.json > "$TMP_VARS"
+        mv "$TMP_VARS" .variables.json
+    status:
+      - '[[ "{{.BUILD_COMMAND}}" == "null" ]] || [[ "{{.BUILD_OUTPUT}}" == "null" ]]'

@@ -1,0 +1,41 @@
+---
+# @action Prepares Autorestic
+# Ensures `~/.config/autorestic` is a directory (which is used by other roles to store app-specific back-up configurations)
+- name: "Ensure {{ user.username }} has the ~/.config/autorestic folder created"
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: ~/.config/autorestic
+    state: directory
+
+# @action Prepares Autorestic
+# Generates a `.autorestic.env` file in a configurable list of user's `$HOME` directories
+# @action Prepares Autorestic
+# **Note:** In order to leverage the automation provided by this role and other role's that leverage it, you must specify two S3 buckets to back up to
+- name: "Ensure {{ user.username }} has the .autorestic.env file in their home directory, if appropriate"
+  become_user: "{{ user.username }}"
+  template:
+    src: .autorestic.env.j2
+    dest: ~/.autorestic.env
+  when:
+    - user.primary_s3_access_key_id is defined
+    - user.primary_s3_secret_access_key is defined
+    - user.restic_password is defined
+    - user.secondary_s3_access_key_id is defined
+    - user.secondary_s3_secret_access_key is defined
+
+# @action Prepares Autorestic
+# Ensures the user's autorestic configurations are cron-enabled
+
+# TODO-- Add logic here that creates a file at ~/.autorestic.yml
+# Configure the file to back up the $HOME directory every hour and keep 14 hourly backups, 14 daily backups, and 3 monthly backups
+# After that, add more logic that sets up a cron for each user with the s3 keys defined using the guide
+# here: https://autorestic.vercel.app/location/cron
+# The logic should run the cron task for ~/.autorestic.yml and all the *.yml files stored in ~/.config/autorestic
+# In the config folder, we'll be storing app-specific backup routines
+  when:
+    - user.primary_s3_access_key_id is defined
+    - user.primary_s3_secret_access_key is defined
+    - user.restic_password is defined
+    - user.secondary_s3_access_key_id is defined
+    - user.secondary_s3_secret_access_key is defined

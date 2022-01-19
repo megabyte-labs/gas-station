@@ -29,13 +29,20 @@
     mode: 0400
     path: ~/.config/.maas-admin-created
     state: touch
-# - name: Fetch MAAS API key for admin user
-#   command: "mass apikey --username={{ vault_maas_admin_username }}"
-#   changed_when: false
-#   register: maas_api_key_command
-# - name: Login to MAAS using the API key
-#   command: "maas login {{ vault_maas_admin_username }} http://NUC:5240/MAAS/ {{ maas_api_key_command.stdout }}"
-#   changed_when: false
-#   register: maas_login_command
-# - name: Make sure login to MAAS was successful
-#   assert: { that: "'You are now logged in to the MAAS server' in login_res.stdout"}
+
+- name: Fetch MAAS API key for admin user
+  command: "{{ maas_binary }} apikey --username={{ maas_admin_username }}"
+  changed_when: false
+  register: maas_api_key_command
+
+- name: Perform authenticated tasks
+  block:
+    - name: Login to MAAS using the API key
+      become: true
+      command: "{{ maas_binary }} login {{ maas_admin_username }} https://{{ maas_fqdn }}/MAAS/ {{ maas_api_key_command.stdout }}"
+      changed_when: "{{ 'You are now logged in to the MAAS server' in maas_login_command.stdout }}"
+      register: maas_login_command
+  always:
+    - name: Ensure admin user is logged out
+      become: true
+      command: "{{ maas_binary }} logout {{ maas_admin_username }}"

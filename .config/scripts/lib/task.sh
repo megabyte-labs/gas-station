@@ -34,7 +34,7 @@ function ensureTaskInstalled() {
     elif [[ "$OSTYPE" == 'freebsd'* ]]; then
       .config/log error "FreeBSD support not added yet" && exit 1
     else
-      .config/log error "System type not recognized" && exit 1
+      .config/log error "System type not recognized"
     fi
   else
     CURRENT_VERSION="$(task --version | cut -d' ' -f3 | cut -c 2-)"

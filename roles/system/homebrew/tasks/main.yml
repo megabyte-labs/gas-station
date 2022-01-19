@@ -23,7 +23,7 @@
 
 # @action Ensures Homebrew is installed
 # Ensures the `.bashrc` file correctly adds Homebrew to the `PATH` variable
-- name: Ensure .bashrc includes Homebrew (Linux) # Revisit: Add the equivalent to Mac OS X and Windows
+- name: Ensure .bashrc includes Homebrew (Linux)
   include_tasks: bashrc-Linux.yml
   loop: '{{ user_configs }}'
   loop_control:
@@ -32,14 +32,20 @@
   when: ansible_system == 'Linux'
 
 # @action Installs Homebrew packages
+# Ensures Homebrew and Homebrew packages are up-to-date
+- name: Ensure Homebrew and Homebrew packages are up-to-date
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
+
+# @action Installs Homebrew packages
 # Installs a configurable list of Homebrew packages (via the `homebrew_packages` variable)
-- name: Ensure Homebrew packages are installed and up-to-date
+- name: Ensure Homebrew packages are installed
   community.general.homebrew:
     name: '{{ package.name }}'
     path: '{{ homebrew_bin_path }}'
     state: present
-    update_homebrew: true
-    upgrade_all: true
+  ignore_errors: true
   loop: '{{ homebrew_packages | default([]) }}'
   loop_control:
     label: '{{ package.name }}'
@@ -49,14 +55,19 @@
     - ansible_os_family != 'Windows'
 
 # @action Installs Homebrew packages
+# Ensures pre-installed Homebrew casks are up-to-date
+- name: Ensure Homebrew and Homebrew casks are up-to-date
+  community.general.homebrew_cask:
+    update_homebrew: true
+    upgrade_all: true
+
+# @action Installs Homebrew packages
 # Installs a configurable list of Homebrew casks on macOS (via the `homebrew_casks` variable)
-- name: Ensure Homebrew casks are installed and up-to-date
+- name: Ensure a configurable list of Homebrew casks are installed
   community.general.homebrew_cask:
     name: '{{ package.name }}'
     path: '{{ homebrew_bin_path }}'
     state: present
-    update_homebrew: true
-    upgrade_all: true
   loop: '{{ homebrew_casks | default([]) }}'
   loop_control:
     label: '{{ package.name }}'

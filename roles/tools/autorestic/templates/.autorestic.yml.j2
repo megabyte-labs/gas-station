@@ -1,1 +1,48 @@
+version: 2
 
+extras:
+  exclude: &exclude
+    - .venv
+    - node_modules
+    - venv
+
+locations:
+  home-cloud:
+    from: {{ ansible_env.HOME }}
+    to:
+      - primary
+      - secondary
+    cron: '0 * * * *'
+    options:
+      backup:
+        exclude:
+          <<: *exclude
+      forget:
+        keep-hourly: 14
+        keep-daily: 3
+        keep-weekly: 7
+
+  home-local:
+    from: {{ ansible_env.HOME }}
+    to: local
+    cron: '*/15 * * * *'
+    options:
+      backup:
+        exclude:
+          <<: *exclude
+      forget:
+        keep-hourly: 14
+        keep-daily: 3
+
+backends:
+  local:
+    type: local
+    path: /var/local/backups/home/{{ user.username }}
+
+  primary:
+    type: s3
+    path: {{ primary_s3_bucket }}/{{ hostname }}/home/{{ user.username }}
+
+  secondary:
+    type: s3
+    path: {{ secondary_s3_bucket }}/{{ hostname }}/home/{{ user.username }}

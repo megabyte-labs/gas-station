@@ -1,9 +1,25 @@
 ---
 # @action Ensures Autorestic is installed
 # Installs Autorestic via Homebrew
-- community.general.homebrew:
+- name: Ensure Autorestic is installed
+  community.general.homebrew:
     name: autorestic
     state: present
+
+- name: Acquire Autorestic bin location
+  command: which autorestic
+  register: autorestic_which_output
+
+- name: Set autorestic_bin_path
+  set_fact:
+    autorestic_bin_path: "{{ autorestic_which_output.stdout }}"
+
+- name: Ensure /var/local/backups exists
+  file:
+    path: /var/local/backups
+    state: directory
+    mode: 0755
+    recurse: yes
 
 - name: Perform user-specific tasks
   include_tasks: user.yml
@@ -11,3 +27,9 @@
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
+  when:
+    - user.primary_s3_access_key_id is defined
+    - user.primary_s3_secret_access_key is defined
+    - user.restic_password is defined
+    - user.secondary_s3_access_key_id is defined
+    - user.secondary_s3_secret_access_key is defined

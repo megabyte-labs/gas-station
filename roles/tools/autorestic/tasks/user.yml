@@ -8,6 +8,15 @@
     path: ~/.config/autorestic
     state: directory
 
+- name: "Ensure /var/local/backups/{{ user.username }} is created and has proper permissions"
+  file:
+    path: "/var/local/backups/{{ user.username }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: directory
+    mode: 0700
+    recurse: yes
+
 # @action Prepares Autorestic
 # Generates a `.autorestic.env` file in a configurable list of user's `$HOME` directories
 # @action Prepares Autorestic
@@ -17,25 +26,21 @@
   template:
     src: .autorestic.env.j2
     dest: ~/.autorestic.env
-  when:
-    - user.primary_s3_access_key_id is defined
-    - user.primary_s3_secret_access_key is defined
-    - user.restic_password is defined
-    - user.secondary_s3_access_key_id is defined
-    - user.secondary_s3_secret_access_key is defined
 
-# @action Prepares Autorestic
-# Ensures the user's autorestic configurations are cron-enabled
+# @action Enables cron jobs for Autorestic
+# Ensures the user's default Autorestic configuration is cron-enabled
+- name: Create default Autorestic cron (for ~/.autorestic.yml)
+  become_user: "{{ user.username }}"
+  ansible.builtin.cron:
+    name: "Default Autorestic ({{ user.username }})"
+    minute: "*/5"
+    job: "{{ autorestic_bin_path }} -c {{ ansible_env.HOME }}/.autorestic.yml --ci cron"
 
-# TODO-- Add logic here that creates a file at ~/.autorestic.yml
-# Configure the file to back up the $HOME directory every hour and keep 14 hourly backups, 14 daily backups, and 3 monthly backups
-# After that, add more logic that sets up a cron for each user with the s3 keys defined using the guide
-# here: https://autorestic.vercel.app/location/cron
-# The logic should run the cron task for ~/.autorestic.yml and all the *.yml files stored in ~/.config/autorestic
-# In the config folder, we'll be storing app-specific backup routines
-  when:
-    - user.primary_s3_access_key_id is defined
-    - user.primary_s3_secret_access_key is defined
-    - user.restic_password is defined
-    - user.secondary_s3_access_key_id is defined
-    - user.secondary_s3_secret_access_key is defined
+# @action Enables cron jobs for Autorestic
+# Ensures each user's application-specific Autorestic configurations are cron-enabled
+- name: Ensure crons for the configurations stored in ~/.config/autorestic are enabled
+  become_user: "{{ user.username }}"
+  ansible.builtin.cron:
+    name: "App-specific Autorestic ({{ user.username }})"
+    minute: "*/5"
+    job: 'for FILE in "{{ ansible_env.HOME }}/.config/.autorestic/*"; do {{ autorestic_bin_path }} -c "$FILE" --ci cron; done'

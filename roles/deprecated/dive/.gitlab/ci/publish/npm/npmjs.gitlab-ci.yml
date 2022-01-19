@@ -1,0 +1,42 @@
+---
+publish:npm:
+  stage: publish
+  image: megabytelabs/npm-publisher:slim
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_COMMIT_TITLE =~ /^(automation|chore).*/
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      changes:
+        - '{src,bin}/**/*.{js,ts,json}'
+        - package.json
+        - tsconfig.json
+        - tsconfig.module.json
+    - if: ($CI_PIPELINE_SOURCE == 'schedule' || $CI_PIPELINE_SOURCE == 'web') && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  variables:
+    GIT_DEPTH: 1
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .npm/
+  before_script:
+    - git config pull.ff only
+    - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - git config user.email "$GITLAB_CI_EMAIL"
+    - git config user.name "$GITLAB_CI_NAME"
+    - npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+    - git checkout "$CI_COMMIT_REF_NAME"
+    - git pull origin "$CI_COMMIT_REF_NAME"
+    - npm ci --cache .npm --ignore-scripts --prefer-offline
+    - npm install shellcheck
+  script:
+    - set -eo pipefail
+    - npm run prepare-release
+    - git push --follow-tags origin HEAD:master
+    - npm publish --verbose
+  artifacts:
+    paths:
+      - build/docs

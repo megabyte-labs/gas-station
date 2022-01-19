@@ -1,0 +1,30 @@
+---
+publish:gitlab:registry:
+  stage: test
+  image: docker
+  services:
+    - docker:dind
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
+  variables:
+    DOCKER_CERT_PATH: $DOCKER_TLS_CERTDIR/client
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_TLS_VERIFY: 1
+    GIT_DEPTH: 1
+  before_script:
+    - git config pull.ff only
+    - echo "$DOCKERHUB_REGISTRY_PASSWORD" | docker login -u "$DOCKERHUB_REGISTRY_USER" --password-stdin "$DOCKERHUB_REGISTRY"
+    - git checkout "$CI_COMMIT_REF_NAME"
+    - git pull origin "$CI_COMMIT_REF_NAME"
+  script:
+    - set -eo pipefail
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+    - DOCKERSLIM_COMMAND=$(jq -r '.blueprint.dockerslim_command' package.json)
+    - docker-slim build --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-slim" "$DOCKERSLIM_COMMAND" "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-slim"

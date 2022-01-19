@@ -1,0 +1,43 @@
+---
+- name: Generate a random string
+  set_fact:
+    gen_random_string: |
+      {%- macro random_int(len) -%}
+      {%- for _ in range(len) -%}
+        {{ range(10) | random }}
+      {%- endfor -%}
+      {%- endmacro -%}
+      {{ random_int(10) }}
+
+- name: Ensure SwitchHosts configuration directories exist
+  become_user: "{{ ansible_user }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.SwitchHosts/data/collection/hosts/data
+    - ~/.SwitchHosts/data/list
+
+- name: Create the configuration files for SwitchHosts
+  become_user: "{{ ansible_user }}"
+  template:
+    src: "{{ item.name }}.j2"
+    dest: "{{ item.dest }}/{{ item.name }}"
+    mode: 0600
+  loop:
+    - name: tree.json
+      dest: ~/.SwitchHosts/data/list
+    - name: ids.json
+      dest: ~/.SwitchHosts/data/collection/hosts
+
+- name: Create the data files for SwitchHosts
+  become_user: "{{ ansible_user }}"
+  template:
+    src: data.json.j2
+    dest: "~/.SwitchHosts/data/collection/hosts/data/{{ idx + 1 }}.json"
+    mode: 0600
+  loop: "{{ clean_files.results }}"
+  loop_control:
+    loop_var: filecontent
+    index_var: idx

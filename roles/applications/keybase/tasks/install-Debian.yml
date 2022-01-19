@@ -1,0 +1,36 @@
+---
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+
+- name: "Add {{ app_name }}'s apt key"
+  apt_key:
+    url: "{{ keybase_key }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    deb: https://prerelease.keybase.io/keybase_amd64.deb
+    state: "{{ app_state | default('present') }}"
+  when: "'keybase' not in ansible_facts.packages"
+
+- name: "Ensure {{ app_name }} is updated"
+  apt:
+    name: keybase
+    state: "{{ app_state | default('latest') }}"
+    update_cache: true
+  when: "'keybase' in ansible_facts.packages"
+
+- name: Ensure setting to disable root redirector exists
+  copy:
+    dest: /etc/keybase/config.json
+    content: |
+      {
+        "disable-root-redirector": true
+      }
+    mode: 0644
+
+- name: "Ensure keybase-redirector permissions are updated"
+  file:
+    path: /usr/bin/keybase-redirector
+    mode: a-s
+    state: file

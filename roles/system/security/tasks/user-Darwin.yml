@@ -1,0 +1,30 @@
+---
+- name: Tweak user settings
+  become_user: "{{ user.username }}"
+  block:
+    - name: Ensure Finder Preferences are cleared # noqa 303 503
+      shell: |
+        defaults delete ~/Library/Preferences/com.apple.finder.plist FXDesktopVolumePositions
+        defaults delete ~/Library/Preferences/com.apple.finder.plist FXRecentFolders
+        defaults delete ~/Library/Preferences/com.apple.finder.plist RecentMoveAndCopyDestinations
+        defaults delete ~/Library/Preferences/com.apple.finder.plist RecentSearches
+        defaults delete ~/Library/Preferences/com.apple.finder.plist SGTRecentFileSearches
+      when: clear_finder_metadata
+
+    - name: Ensure screen is locked when Screensaver starts # noqa 303 503
+      shell: |
+        defaults write com.apple.screensaver askForPassword -int 1
+        defaults write com.apple.screensaver askForPasswordDelay -int 0
+      when: lock_on_screensaver
+
+    - name: Show all files and extensions in Finder # noqa 303 503
+      shell: |
+        defaults write com.apple.finder AppleShowAllFiles -bool true
+        chflags nohidden ~/Library
+        defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+      when: finder_show_hidden_extensions
+
+    - name: Do not save files to iCloud by default # noqa 303 503
+      shell: |
+        defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+      when: no_save_to_cloud

@@ -39,12 +39,16 @@
     install_sdkman: "{{ (current_sdkman_version.skipped | default(false)) or \
       ((not current_sdkman_version.skipped | default(false)) and (current_sdkman_version.stdout != sdkman_latest_release_tag.json.tag_name)) }}"
 
+# @action Installs SDKMAN
+# Removes older version of SDKMAN if it is already present
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
     path: ~/.sdkman/bin/sdkman-init.sh
     state: absent
   when: install_sdkman
 
+# @action Installs SDKMAN
+# Installs SDKMAN by running `curl -s "https://get.sdkman.io" | bash`
 - name: "Ensure {{ app_name }} is installed" # noqa 303
   shell: |
     set -o pipefail && curl -s "https://get.sdkman.io" | bash
@@ -61,12 +65,16 @@
       {{ sdkman_latest_release_tag.json.tag_name }}
   when: install_sdkman
 
+# @action Configures SDKMAN
+# Sets `sdkman_auto_answer` to true in the SDKMAN configuration
 - name: Ensure sdkman is configured
   lineinfile:
     path: ~/.sdkman/etc/config
     regexp: "^sdkman_auto_answer"
     line: sdkman_auto_answer=true
 
+# @action Configures SDKMAN
+# Ensures user-specified SDKs are installed
 - name: Ensure SDKs are installed
   shell: |
     source ~/.sdkman/bin/sdkman-init.sh

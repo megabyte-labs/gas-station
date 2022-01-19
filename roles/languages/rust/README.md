@@ -93,18 +93,18 @@ This repository is the home of an [Ansible](https://www.ansible.com/) role that 
 
 ## Features
 
-**Ensures Rust is installed:**
-
-- Installs Rust via `brew` on macOS sudolessly
-- Installs Rust via `pacman` on Archlinux
-- Installs Rust on macOS, Linux, and Windows
-- Installs Rust via `snap` on Debian-flavored systems
-- Installs Rust via `snap` on RedHat-flavored systems
-
 **Ensures Rust shell completions are set-up:**
 
-- Sets up bash and zsh completions on macOS/Linux
 - Sets up shell completions for PowerShell on Windows
+- Sets up bash and zsh completions on macOS/Linux
+
+**Ensures Rust is installed:**
+
+- Installs Rust via `pacman` on Archlinux
+- Installs Rust via `brew` on macOS sudolessly
+- Installs Rust via `snap` on Debian-flavored systems
+- Installs Rust via `snap` on RedHat-flavored systems
+- Installs Rust on macOS, Linux, and Windows
 
 <a href="#quick-start" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -183,7 +183,10 @@ Although most of our roles do not have dependencies, there are some cases where 
 
 The `requirements.yml` file contains a full list of the Ansible Galaxy dependencies required by this role (i.e. `meta/main.yml` role dependencies, helper roles, collections, etc.). For your convenience, a list of the role dependencies along with quick descriptions is below:
 
-role_dependencies
+| Dependency                                                                                                                                                                    | Description                                                                | Supported OSes               | Status                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------- | ---------------------------- |
+| <b><a href="https://galaxy.ansible.com/professormanhattan/snapd" title="professormanhattan.snapd on Ansible Galaxy" target="_blank">professormanhattan.snapd</a></b>          | Ensures Snap is installed and properly configured on Linux systems         | <div align="center">❔</div> | <div align="center">❔</div> |
+| <b><a href="https://galaxy.ansible.com/professormanhattan/homebrew" title="professormanhattan.homebrew on Ansible Galaxy" target="_blank">professormanhattan.homebrew</a></b> | Installs Homebrew (a package management system) on macOS and Linux systems | <div align="center">❔</div> | <div align="center">❔</div> |
 
 ### Galaxy Collections
 
@@ -191,6 +194,7 @@ This role is dependent on multiple Ansible Galaxy collections. The collections a
 
 - <a href="https://galaxy.ansible.com/chocolatey/chocolatey" title="chocolatey.chocolatey collection on Ansible Galaxy" target="_blank"><img alt="chocolatey.chocolatey Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-chocolatey.chocolatey-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
 - <a href="https://galaxy.ansible.com/community/general" title="community.general collection on Ansible Galaxy" target="_blank"><img alt="community.general Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-community.general-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
+- <a href="https://galaxy.ansible.com/google/cloud" title="google.cloud collection on Ansible Galaxy" target="_blank"><img alt="google.cloud Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-google.cloud-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
 
 <a href="#example-playbook" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 

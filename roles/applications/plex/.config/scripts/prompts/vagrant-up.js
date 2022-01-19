@@ -47,7 +47,18 @@ const execPowerShell = (cmd) => execSync(cmd, optionsPowerShell)
  * @returns A boolean indicator of whether or not the program is installed
  */
 const isUnixInstalled = (program) => {
-  return Boolean(exec(`hash ${program} 2>/dev/null`))
+  if (process.platform === 'linux') {
+    // eslint-disable-next-line functional/no-try-statement
+    try {
+      exec(`hash ${program} 2>/dev/null`)
+
+      return true
+    } catch {
+      return false
+    }
+  } else {
+    return false
+  }
 }
 
 /**
@@ -57,21 +68,25 @@ const isUnixInstalled = (program) => {
  * @returns A boolean indicator of whether or not the program is installed
  */
 const isDotDesktopInstalled = (program) => {
-  const directories = [
-    process.env.XDG_DATA_HOME && `${process.env.XDG_DATA_HOME}/applications`,
-    process.env.HOME && `${process.env.HOME}/.local/share/applications`,
-    '/usr/share/applications',
-    '/usr/local/share/applications'
-  ]
-    .filter(Boolean)
-    .filter((path) => Boolean(readdirSync(path)))
+  if (process.platform === 'linux') {
+    const directories = [
+      process.env.XDG_DATA_HOME && `${process.env.XDG_DATA_HOME}/applications`,
+      process.env.HOME && `${process.env.HOME}/.local/share/applications`,
+      '/usr/share/applications',
+      '/usr/local/share/applications'
+    ]
+      .filter(Boolean)
+      .filter((path) => Boolean(readdirSync(path)))
 
-  const desktopFiles = directories
-    .flatMap((directory) => readdirSync(directory))
-    .filter((file) => file.endsWith('.desktop'))
-    .map((item) => item.replace(/\.desktop$/u, ''))
+    const desktopFiles = directories
+      .flatMap((directory) => readdirSync(directory))
+      .filter((file) => file.endsWith('.desktop'))
+      .map((item) => item.replace(/\.desktop$/u, ''))
 
-  return desktopFiles.includes(program.replace(/\.desktop$/u, ''))
+    return desktopFiles.includes(program.replace(/\.desktop$/u, ''))
+  }
+
+  return false
 }
 
 /**
@@ -81,7 +96,11 @@ const isDotDesktopInstalled = (program) => {
  * @returns A boolean indicating if the program is installed
  */
 const isMacInstalled = (program) => {
-  return Boolean(exec(`osascript -e 'id of application "${program}"' 2>&1>/dev/null`))
+  if (process.platform === 'darwin') {
+    return Boolean(exec(`osascript -e 'id of application "${program}"' 2>&1>/dev/null`))
+  }
+
+  return false
 }
 
 /**
@@ -91,13 +110,17 @@ const isMacInstalled = (program) => {
  * @returns A boolean indicating whether or not the program is installed
  */
 const isWindowsInstalled = (program) => {
-  /*
-   * Try a couple variants, depending on execution environment the .exe
-   * may or may not be required on both `where` and the program name.
-   */
-  const attempts = [`where ${program}`, `where ${program}.exe`, `where.exe ${program}`, `where.exe ${program}.exe`]
+  if (process.platform === 'win32') {
+    /*
+     * Try a couple variants, depending on execution environment the .exe
+     * may or may not be required on both `where` and the program name.
+     */
+    const attempts = [`where ${program}`, `where ${program}.exe`, `where.exe ${program}`, `where.exe ${program}.exe`]
 
-  return attempts.map((attempt) => Boolean(exec(attempt))).includes(true)
+    return attempts.map((attempt) => Boolean(exec(attempt))).includes(true)
+  }
+
+  return false
 }
 
 /**

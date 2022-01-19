@@ -2,7 +2,19 @@
 - name: Ensure Stubby is installed
   chocolatey.chocolatey.win_chocolatey:
     name: stubby
+    state: "{{ app_state | default('present') }}"
+
+- name: Add stubby to PATH
+  ansible.windows.win_path:
+    elements: 'C:\Program Files\Stubby'
     state: present
+    scope: user
+
+- name: Ensure hostctl is installed
+  community.windows.win_scoop:
+    name: hostctl
+    state: "{{ app_state | default('present') }}"
+    global: true
 
 - name: Ensure DNS configuration file is created
   ansible.windows.win_template:
@@ -22,3 +34,6 @@
     triggers:
       - type: boot
     username: SYSTEM
+
+- name: Run generic configuration tasks
+  include_tasks: config-Windows.yml

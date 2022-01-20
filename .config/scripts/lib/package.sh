@@ -21,7 +21,7 @@ function ensurePackageInstalled() {
   if ! type "$1" &> /dev/null; then
     if [[ "$OSTYPE" == 'darwin'* ]]; then
       echo "$1 appears to be missing. Please install $1 to continue" && exit 1
-    elif [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+    elif [[ "$OSTYPE" == 'linux'* ]]; then
       if [ -f "/etc/redhat-release" ]; then
         sudo yum update
         sudo yum install "$1"
@@ -31,6 +31,9 @@ function ensurePackageInstalled() {
       elif [ -f "/etc/arch-release" ]; then
         sudo pacman update
         sudo pacman -S "$1"
+      elif [ -f "/etc/alpine-release" ]; then
+        apk update
+        apk add "$1"
       else
         .config/log error "$1 is missing. Please install $1 to continue." && exit 1
       fi

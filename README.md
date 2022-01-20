@@ -581,25 +581,25 @@ To reduce the amount of time it takes to configure Chromium-based browsers like 
 
 Although most of the `brew` installs are handled by the [Binaries](#binaries) installer, some `brew` packages are also installed using [this configuration](environments/prod/group_vars/desktop/homebrew.yml). The default Homebrew formulae include:
 
-| Package                                                                   | Description                                                                    |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **[automake](https://formulae.brew.sh/formula/automake)**                 | Tool for generating GNU Standards-compliant Makefiles                          |
-| **[carthage](https://formulae.brew.sh/formula/carthage)**                 | A simple, decentralized dependency manager for Cocoa                           |
-| **[chrome-cli](https://formulae.brew.sh/formula/chrome-cli)**             | Control Google Chrome from the command-line                                    |
-| **[findutils](https://formulae.brew.sh/formula/findutils)**               | Collection of GNU find, xargs, and locate                                      |
-| **[ideviceinstaller](https://formulae.brew.sh/formula/ideviceinstaller)** | Tool for managing apps on iOS devices                                          |
-| **[libimobiledevice](https://formulae.brew.sh/formula/libimobiledevice)** | Library to communicate with iOS devices natively                               |
-| **[secretive](https://github.com/maxgoedjen/secretive)**                  | there is no importing/exporting keys so you only have access to the public key |
+| Package                                                                   | Description                                           |
+| ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **[automake](https://formulae.brew.sh/formula/automake)**                 | Tool for generating GNU Standards-compliant Makefiles |
+| **[carthage](https://formulae.brew.sh/formula/carthage)**                 | A simple, decentralized dependency manager for Cocoa  |
+| **[chrome-cli](https://formulae.brew.sh/formula/chrome-cli)**             | Control Google Chrome from the command-line           |
+| **[findutils](https://formulae.brew.sh/formula/findutils)**               | Collection of GNU find, xargs, and locate             |
+| **[ideviceinstaller](https://formulae.brew.sh/formula/ideviceinstaller)** | Tool for managing apps on iOS devices                 |
+| **[libimobiledevice](https://formulae.brew.sh/formula/libimobiledevice)** | Library to communicate with iOS devices natively      |
 
 ### Homebrew Casks (macOS only)
 
 On macOS, some software is installed using Homebrew casks. These include:
 
-| Package                                              | Description                                                                                                                     |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **[clocker](https://formulae.brew.sh/cask/clocker)** | macOS program that shows the time in multiple timezones in the top menu bar                                                     |
-| **[sloth](https://github.com/sveinbjornt/Sloth)**    | macOS program that shows all open files, directories, sockets, pipes, and devices in use by all running processes on the system |
-| **[stats](https://formulae.brew.sh/cask/stats)**     | macOS program that shows the system monitor in the top menu bar                                                                 |
+| Package                                                  | Description                                                                                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **[clocker](https://formulae.brew.sh/cask/clocker)**     | macOS program that shows the time in multiple timezones in the top menu bar                                                     |
+| **[secretive](https://github.com/maxgoedjen/secretive)** | there is no importing/exporting keys so you only have access to the public key                                                  |
+| **[sloth](https://github.com/sveinbjornt/Sloth)**        | macOS program that shows all open files, directories, sockets, pipes, and devices in use by all running processes on the system |
+| **[stats](https://formulae.brew.sh/cask/stats)**         | macOS program that shows the system monitor in the top menu bar                                                                 |
 
 ### Go, Rust, and System-Specific Packages
 

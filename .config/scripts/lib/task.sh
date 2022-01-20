@@ -27,7 +27,7 @@ TASK_RELEASE_URL="https://github.com/go-task/task/releases/latest"
 # @exitcode 1+ If the OS is unsupported or if there was an error either installing the package or setting the PATH
 function ensureTaskInstalled() {
   if ! type task &> /dev/null; then
-    if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+    if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl' ]]; then
       installTask
     elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
       .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
@@ -39,7 +39,7 @@ function ensureTaskInstalled() {
   else
     CURRENT_VERSION="$(task --version | cut -d' ' -f3 | cut -c 2-)"
     LATEST_VERSION="$(curl -s "$TASK_RELEASE_API" | grep tag_name | cut -c 17- | sed 's/\",//')"
-    if printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort --check=quiet --version-sort; then
+    if printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort -V -C; then
       .config/log info "Task is already up-to-date"
     else
       .config/log info "A new version of Task is available (version $LATEST_VERSION)"
@@ -117,7 +117,7 @@ function installTask() {
 # @exitcode 0 If the checksum is valid or if a warning about the checksum software not being present is displayed
 # @exitcode 1+ If the OS is unsupported or if the checksum is invalid
 function sha256() {
-  if [[ "$OSTYPE" == 'darwin'* ]]; then
+  if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-musl' ]]; then
     if ! type sha256sum &> /dev/null; then
       if type brew &> /dev/null; then
         brew install coreutils
@@ -126,7 +126,7 @@ function sha256() {
       fi
     fi
     if type sha256sum &> /dev/null; then
-      echo "$2 $1" | sha256sum --check
+      echo "$2 $1" | sha256sum -c
     fi
   elif [[ "$OSTYPE" == 'linux-gnu'* ]]; then
     if ! type shasum &> /dev/null; then
@@ -134,12 +134,14 @@ function sha256() {
     else
       echo "$2  $1" | shasum -s -a 256 -c
     fi
+  elif [[ "$OSTYPE" == 'linux-musl' ]]; then
+
   elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
     .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
   elif [[ "$OSTYPE" == 'freebsd'* ]]; then
     .config/log error "FreeBSD support not added yet" && exit 1
   else
-    .config/log error "System type not recognized" && exit 1
+    .config/log error "System type not recognized"
   fi
 }
 

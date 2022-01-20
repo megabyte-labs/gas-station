@@ -57,7 +57,7 @@ function ensureLocalPath() {
       SHELL_PROFILE="${HOME}/.profile"
       ;;
   esac
-  if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+  if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux'* ]]; then
     # shellcheck disable=SC2016
     local PATH_STRING='PATH="$HOME/.local/bin:$PATH"'
     mkdir -p "$HOME/.local/bin"

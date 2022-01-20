@@ -79,9 +79,6 @@ ensureLocalPath
 # @description Ensure basic dependencies are installed
 bash "$INSTALL_PACKAGE_SCRIPT" "curl"
 bash "$INSTALL_PACKAGE_SCRIPT" "git"
-if [[ "$OSTYPE" == 'linux'* ]]; then
-  bash "$INSTALL_PACKAGE_SCRIPT" "jq"
-fi
 
 # @description Attempts to pull the latest changes if the folder is a git repository
 cd "$PROJECT_BASE_DIR" || exit

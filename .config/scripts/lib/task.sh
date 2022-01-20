@@ -135,7 +135,9 @@ function sha256() {
       echo "$2  $1" | shasum -s -a 256 -c
     fi
   elif [[ "$OSTYPE" == 'linux-musl' ]]; then
-
+    if type sha256sum &> /dev/null; then
+      echo "$2 $1" | sha256sum -c
+    fi
   elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
     .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
   elif [[ "$OSTYPE" == 'freebsd'* ]]; then

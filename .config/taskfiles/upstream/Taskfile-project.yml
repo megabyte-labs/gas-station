@@ -10,11 +10,9 @@ tasks:
     deps:
       - :install:software:coreutils
       - :install:software:jq
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         if [[ "$(jq -r '.blueprint.boilerplate' package.json)" == 'true' ]]; then
           for ENTITY in .boilerplate/*; do
             TARGET="$(echo $ENTITY | sed 's/^.boilerplate\///')"
@@ -47,13 +45,12 @@ tasks:
   copy:
     deps:
       - :install:software:coreutils
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
     cmds:
       - rm -rf .config
-      - cp -rT {{.SHARED_FOLDER}}/_generated_/common .
-      - cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
+      - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+        cp -rT {{.SHARED_FOLDER}}/_generated_/common .
+        cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
       - task: :common:husky:permissions
       - task: save:common:keywords
 

@@ -14,6 +14,7 @@ tasks:
       - :install:python:requirements
     cmds:
       - task: compatibility-chart
+      - task: populate-platforms
       - task: tasks:{{.REPOSITORY_SUBTYPE}}
 
   compatibility-chart:
@@ -27,19 +28,18 @@ tasks:
         TMP="$(mktemp)"
         jq -s -S '.[0] + .[1]' '{{.VARIABLES_PATH}}' .cache/compatibility-chart.json > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
-      - task: populate-platforms
 
+    log:
+      error: Failed to generate operating system compatibility chart
+      start: Generating operating system compatibility chart
+      success: Successfully generated operating system compatibility chart
   compatibility-chart:generate:
     deps:
       - :install:python:requirements
     cmds:
       - >
-        .config/log info 'Generating compatibility chart'
-
         {{.PYTHON_HANDLE}}ansibler --generate-compatibility-chart --molecule-results-dir '{{.MOLECULE_RESULTS_PATH}}'
         --json-file .cache/compatibility-chart.json
-
-        .config/log success 'Successfully generated compatibility chart'
     sources:
       - '{{.MOLECULE_RESULTS_PATH}}/*'
     generates:
@@ -49,12 +49,11 @@ tasks:
     deps:
       - :install:python:requirements
     cmds:
-      - |
-        .config/log info 'Populating the supported platforms listed in meta/main.yml based on the compatibility chart data'
-
-        {{.PYTHON_HANDLE}}ansibler --populate-platforms --json-file .cache/compatibility-chart.json
-
-        .config/log success 'Successfully populated platforms in meta/main.yml based on the compatibility chart data'
+      - '{{.PYTHON_HANDLE}}ansibler --populate-platforms --json-file .cache/compatibility-chart.json'
+    log:
+      error: Failed to populate platforms in `meta/main.yml
+      start: Populating the supported platforms listed in `meta/main.yml` based on the compatibility chart data
+      success: Successfully populated `meta/main.yml` platforms
     sources:
       - .cache/compatibility-chart.json
       - meta/main.yml
@@ -72,14 +71,15 @@ tasks:
         jq -s -S '.[0] + .[1]' '{{.VARIABLES_PATH}}' .cache/role-dependencies.json > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
 
+    log:
+      error: Failed to acquire role dependency information
+      start: Gathering information about role dependencies
+      success: Acquired role dependency information
   role-dependencies:generate:
     deps:
       - :install:python:requirements
     cmds:
-      - cmd: |
-          .config/log info 'Gathering information about role dependencies'
-          {{.PYTHON_HANDLE}}ansibler --role-dependencies --json-file .cache/role-dependencies.json
-          .config/log success 'Acquired role dependency information'
+      - cmd: '{{.PYTHON_HANDLE}}ansibler --role-dependencies --json-file .cache/role-dependencies.json'
         ignore_error: true
     sources:
       - '{{.REQUIREMENTS_PATH}}'

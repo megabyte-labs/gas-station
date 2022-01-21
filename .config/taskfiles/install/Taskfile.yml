@@ -69,14 +69,11 @@ tasks:
         function updateAvailable() {
           LATEST="$(npm view $1 version)"
           LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
-          COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
-          if [[ "$COMPARE" == '-1' ]]; then
+          if ! printf '%s\n%s\n' "$LATEST" "$LOCAL" | sort -V -C; then
             .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
             echo "true" > "$TMP_REFRESH"
           fi
         }
-        chmod +x .config/log
-        chmod +x .config/scripts/lib/semver-compare.sh
         for PATTERN in {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.NPM_KEEP_UPDATED}}{{end}}; do
            while read PATHH; do
             if [ -f "$PATHH/package.json" ]; then

@@ -1,11 +1,12 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
-  yum:
+  dnf:
     name:
       - cockpit
       - cockpit-machines
       - libvirt-dbus
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: Enable the Cockpit service
   systemd:
@@ -34,13 +35,13 @@
       {{- tmp_cockpit_package | unique -}}
 
 - name: Install Cockpit Docker or Cockpit Podman
-  yum:
+  dnf:
     name: "{{ cockpit_package | regex_replace('\\W*(cockpit-\\w*)\\W*','\\1') }}"
     state: present
   when: cockpit_package is defined
 
 - name: Install Cockpit 389 DS
-  yum:
+  dnf:
     name:
       - 389-ds-base
       - cockpit-389-ds

@@ -1,9 +1,10 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
-  yum:
+  dnf:
     name: wkhtmltopdf
     state: "{{ app_state | default('present') }}"
     enablerepo: "{{ 'epel' if ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7' else omit }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   when: not (ansible_distribution == 'CentOS' and ansible_distribution_major_version == '8')
 
 - name: "Ensure {{ app_name }} is installed"
@@ -32,6 +33,7 @@
       dnf:
         name: "{{ wkhtmltopdf_latest_version_url }}"
         state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
       when: install_wkhtmltopdf
     - name: "Save meta information about the version of {{ app_name }} that was installed"
       community.general.ini_file:

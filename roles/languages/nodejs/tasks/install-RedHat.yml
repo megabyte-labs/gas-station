@@ -16,21 +16,21 @@
   when: ansible_distribution_major_version | int >= 7
 
 - name: "Ensure Nodesource's RPM key is imported (CentOS < 7)"
-  yum:
+  dnf:
     name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
       /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
     state: present
   when: ansible_distribution_major_version | int < 7
 
 - name: "Ensure {{ app_name }}'s RPM key is imported (CentOS 7+)"
-  yum:
+  dnf:
     name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
       /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
     state: present
   when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution != 'Fedora')
 
 - name: "Ensure {{ app_name }}'s RPM key is imported (Fedora)"
-  yum:
+  dnf:
     name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/fc/{{ ansible_distribution_major_version }}\
       /{{ ansible_architecture }}/nodesource-release-fc{{ ansible_distribution_major_version }}-1.noarch.rpm"
     state: present
@@ -45,10 +45,11 @@
   when: ansible_distribution_major_version|int >= 8
 
 - name: 'Ensure {{ app_name }} and npm are installed'
-  yum:
+  dnf:
     name: "nodejs-{{ nodejs_version|regex_replace('.x', '') }}*"
     state: present
     enablerepo: nodesource
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: Run common Linux tasks
   include_tasks: install-Linux.yml

@@ -3,15 +3,17 @@
   community.general.pacman:
     name: "{{ autokey_dependencies }}"
     state: "{{ app_state | default('present') }}"
-    update_cache: true
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: "Ensure {{ app_name }}'s source directory is present"
   file:
     mode: 0755
     path: "{{ autokey_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
   git:
     dest: "{{ autokey_src_dir }}"
     repo: "{{ autokey_aur_git_repository }}"
@@ -25,6 +27,7 @@
   when: autokey_git.changed
 
 - name: "Ensure {{ app_name }} is installed"
+  become: false
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ autokey_src_dir }}"

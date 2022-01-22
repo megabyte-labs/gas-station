@@ -12,6 +12,10 @@ tasks:
       - :install:npm:prettier
       - :install:software:jq
       - :install:software:yq
+    log:
+      start: Generating `.vscode/extensions.json`
+      success: Generated `.vscode/extensions.json`
+      error: Failed to generate `.vscode/extensions.json`
     summary: |
       # Generates the `.vscode/extensions.json` file for VS Code auto plugin recommendations
 
@@ -20,7 +24,6 @@ tasks:
       This list is populated by converting the list of VS Code plugins installed by default by
       [Gas Station](https://gitlab.com/megabyte-labs/gas-station) into VS Code syntax.
     cmds:
-      - .config/log info 'Generating `.vscode/extensions.json`'
       - mkdir -p .vscode
       - |
         TMP="$(mktemp)"
@@ -32,7 +35,6 @@ tasks:
         sed 's/,""//' < "$TMP_JQ" > '{{.EXTENSIONS_FILE}}'
       - |
         {{.NPX_HANDLE}}prettier --write '{{.EXTENSIONS_FILE}}' > /dev/null
-      - .config/log success 'Generated `.vscode/extensions.json`'
 
   generate:
     deps:
@@ -43,6 +45,10 @@ tasks:
     deps:
       - :install:npm:prettier
       - :install:software:jq
+    log:
+      start: Generating `.vscode/tasks.json`
+      success: Generated `.vscode/extensions.json`
+      error: Failed to generate `.vscode/extensions.json`
     summary: |
       # Populate the `.vscode/tasks.json` file
 
@@ -54,7 +60,6 @@ tasks:
       can potentially leverage to make our `tasks.json` better and more useful to developers.
     run: when_changed
     cmds:
-      - .config/log info 'Generating `.vscode/tasks.json`'
       - |
         TMP="$(mktemp)"
         echo '{"version": "2.0.0"}' > "$TMP"
@@ -72,4 +77,3 @@ tasks:
         jq --arg tasks "${TASKS%?}]" '.tasks = ($tasks | fromjson)' "$TMP" > '{{.TASKS_FILE}}'
       - |
         {{.NPX_HANDLE}}prettier --write '{{.TASKS_FILE}}' > /dev/null
-      - .config/log success 'Generated `.vscode/tasks.json`'

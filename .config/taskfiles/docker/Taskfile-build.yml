@@ -23,12 +23,13 @@ tasks:
         sh: jq -r '.blueprint.slug' package.json
       VERSION:
         sh: jq -r '.version' package.json
+    log:
+      start: Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)
+      success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
+      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
     cmds:
-      - |
-        .config/log info 'Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)'
-        docker build --build-arg BUILD_DATE="{{.BUILD_DATE}}" --build-arg REVISION="{{.REVISION}}" --build-arg VERSION="{{.VERSION}}"
+      - docker build --build-arg BUILD_DATE="{{.BUILD_DATE}}" --build-arg REVISION="{{.REVISION}}" --build-arg VERSION="{{.VERSION}}"
         --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}} .
-        .config/log success 'Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`'
     sources:
       - Dockerfile
       - package.json
@@ -61,11 +62,12 @@ tasks:
         sh: jq -r '.blueprint.dockerslim_command' package.json
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
+    log:
+      start: Building Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
+      success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
+      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` with `docker-slim`
     cmds:
-      - |
-        .config/log info 'Building Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`'
-        docker-slim build --tag '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim' {{.SLIM_COMMAND}} '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest'
-        .config/log success 'Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`'
+      - docker-slim build --tag '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim' {{.SLIM_COMMAND}} '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest'
     sources:
       - Dockerfile
       - package.json
@@ -78,6 +80,10 @@ tasks:
   slim:prettier:
     deps:
       - :install:npm:prettier
+    log:
+      start: Formatting `slim.report.json` with Prettier
+      success: Formatted `slim.report.json` with Prettier
+      error: Failed to format `slim.report.json` with Prettier
     cmds:
       - '{{.NPX_HANDLE}}prettier --write slim.report.json > /dev/null'
     sources:
@@ -96,6 +102,9 @@ tasks:
       SLIM_SIZE:
         sh: 'docker manifest inspect -v "{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
           | awk "{$1=$1/(1024^2); print $1,\"MB\";}"'
+    log:
+      start: Injecting `:slim` image file size into `package.json` blueprint data
+      error: Failed to acquire / inject `:slim` image file size information into `package.json` blueprint data
     cmds:
       - |
         TMP="$(mktemp)"

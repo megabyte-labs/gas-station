@@ -282,7 +282,7 @@ ensureTaskInstalled
 
 # @description Run the start logic, if appropriate
 cd "$PROJECT_BASE_DIR" || exit
-if [ -z "$GITLAB_CI" ]; then
+if [ -z "$GITLAB_CI" ] && [ -z "$INIT_CWD" ]; then
   # shellcheck disable=SC1091
   . "$HOME/.profile"
   task start

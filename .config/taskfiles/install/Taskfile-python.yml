@@ -56,16 +56,14 @@ tasks:
     deps:
       - :install:software:poetry
     run: once
+    log:
+      start: Configuring Poetry and running `poetry install`
+      success: Successfully ran `poetry install`
+      error: Failed to configure / install via `poetry`
     cmds:
-      - |
-        .config/log info 'Running `poetry install`'
-        if [ '{{.PYTHON_VIRTUALENV}}' != 'true' ]; then
-          poetry config virtualenvs.create false
-        else
-          poetry config --local virtualenvs.in-project true
-        fi
-        poetry install
-        .config/log success '`poetry install` completed successfully'
+      - poetry config virtualenvs.create {{.PYTHON_VIRTUALENV}}
+      - poetry config virtualenvs.in-project true
+      - poetry install
     sources:
       - pyproject.toml
     preconditions:
@@ -91,3 +89,25 @@ tasks:
             .config/log warn '`gcc` is missing.'
           fi
         fi
+
+  venv:node:
+    deps:
+      - :install:software:python
+    log:
+      start: Setting up a Python 3 `.venv`
+      success: 'Finished setting up `.venv`. Run `. .venv/bin/activate` to load the environment into your shell.'
+      error: Encountered error while setting up `.venv` environment
+    cmds:
+      - |
+        REQUIREMENTS_PATH="$PWD/.config/requirements.txt"
+        cd "$INIT_CWD" || exit
+        if [ ! -f .venv/bin/activate ]; then
+          python3 -m venv .env
+        else
+          .config/log warn 'The `.venv` folder is already present so a fresh virtualenv cannot be installed (there is a small chance of a conflict)'
+        fi
+        . .venv/bin/activate
+        pip3 install -U pip setuptools
+        pip3 install -r "$REQUIREMENTS_PATH"
+    sources:
+      - requirements.txt

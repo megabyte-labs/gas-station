@@ -155,11 +155,43 @@ tasks:
       `task lint:eslint -- '**/*.js'`
     cmds:
       - >
-        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint'
-
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
+    log:
+      start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint
+      success: Successfully passed the ESLint test (please still address warnings)
+  eslint:warn-all:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Convert ESLint errors into warnings in `package.json`
+    summary: |
+      # Convert ESLint Errors into Warnings
+
+      This task will run ESLint against the project and then automatically inline
+      all reported errors as warnings in `package.json`.
+    cmds:
+      - >
+        ESLINT_TMP="$(mktemp)"
+
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format summary --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} |
+        tee "$ESLINT_TMP"
+
+        while read LINE; do
+          TMP="$(mktemp)";
+          ESLINT_RULE="$(echo "$LINE" | grep 'errors ' | sed 's/.*rule:\ //')";
+          if [ -n "$ESLINT_RULE" ]; then
+            jq --arg rule "$ESLINT_RULE" '.eslintConfig.rules[$rule] - "warn"' package.json > "$TMP";
+            mv "$TMP" package.json;
+          fi;
+        done < "$ESLINT_TMP"
+
+    log:
+      error: Encountered error while converting `eslint` errors to warnings
+      start: Overriding all errors reported from `eslint` as `warnings` in `package.json`
+      success: Successfully overrode `eslint` errors as warnings
   js:
     deps:
       - :install:modules:local

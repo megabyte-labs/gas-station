@@ -41,9 +41,12 @@ tasks:
       - :install:npm:readme
     vars:
       CONTRIB_TEMPLATE: .config/docs/blueprint-contributing.md
+    log:
+      start: Generating `docs/CONTRIBUTING.md` using document partials
+      success: Successfully generated `docs/CONTRIBUTING.md`
+      error: Encountered error while generating `docs/CONTRIBUTING.md`
     cmds:
       - mkdir -p docs
-      - .config/log info 'Generating `docs/CONTRIBUTING.md` using document partials'
       - >
         {{.NPX_HANDLE}}readme generate --silent --headingPrefix '{}' --config .variables.json
         --input "{{.CONTRIB_TEMPLATE}}" --output docs/CONTRIBUTING.md
@@ -51,7 +54,6 @@ tasks:
         vars:
           SCRUB_FILE: docs/CONTRIBUTING.md
       - '{{.NPX_HANDLE}}prettier --write docs/CONTRIBUTING.md > /dev/null'
-      - .config/log success 'Successfully generated `docs/CONTRIBUTING.md`'
     sources:
       - docs/CONTRIBUTING.md
       - .config/docs/**/*
@@ -70,6 +72,10 @@ tasks:
         sh: if [[ "${container:=}" == "docker" ]]; then echo "docker"; fi
       FIRST_LINE:
         sh: if [ -f Dockerfile ]; then head -n 1 Dockerfile; fi
+    log:
+      start: Updating miscellaneous files
+      success: Updated miscellaneous files
+      error: Encountered error while updating miscellaneous files
     cmds:
       - |
         {{if eq .REPOSITORY_SUBTYPE "ci-pipeline"}}
@@ -82,6 +88,9 @@ tasks:
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
 
   init:
+    log:
+      start: Ensuring project is initialized
+      error: Encountered error while initializing project
     cmds:
       - |
         if ! test -f package.json; then
@@ -136,7 +145,6 @@ tasks:
   modules:
     deps:
       - :install:software:git
-    label: update:modules
     summary: |
       # Ensure all submodules in `.modules/` are updated
 
@@ -145,6 +153,10 @@ tasks:
       might symlink files to one of the submodules stored in the `.modules/` folder.
       If you are ok with the risk, you can use this task to update all the submodules
       to the latest on the remote's master branch.
+    log:
+      start: Ensuring submodules in the `.modules/` folder are up-to-date
+      success: Successfully ensured submodules in the `.modules/` folder are up-to-date
+      error: Failed to ensure submodules in the `.modules/` folder are up-to-date
     cmds:
       - |
         if ls .modules/*/ > /dev/null 2>&1; then
@@ -161,6 +173,8 @@ tasks:
       - '! ls .modules/*/ > /dev/null 2>&1'
 
   project:
+    log:
+      start: Pulling `master` if `origin` is defined
     cmds:
       - |
         if [ -d .git ] && git branch -r | grep origin > /dev/null; then
@@ -175,6 +189,10 @@ tasks:
       - :install:npm:readme
     vars:
       README_TEMPLATE: blueprint-readme-{{.REPOSITORY_SUBTYPE}}.md
+    log:
+      start: Generating `README.md`
+      success: Generated README.md successfully
+      error: Error encountered while generating `README.md`
     cmds:
       - >
         {{.NPX_HANDLE}}readme generate --headingPrefix '{}' --silent --config .variables.json
@@ -184,7 +202,6 @@ tasks:
           SCRUB_FILE: README.md
       - task: ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:readme{{else}}donothing{{end}}'
       - '{{.NPX_HANDLE}}prettier --write README.md > /dev/null'
-      - .config/log success 'Generated README.md successfully'
     sources:
       - .autodoc/*
       - .config/docs/**/*
@@ -222,7 +239,6 @@ tasks:
       - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:latestos{{else}}donothing{{end}}'
       - init
       - repositories
-    label: update
     summary: |
       # Refresh project with latest upstream code and ensure project files are up-to-date
 

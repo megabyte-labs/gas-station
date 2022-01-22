@@ -12,11 +12,19 @@ tasks:
 
   before:npm:
     deps:
-      - :install:software:node
+      - :install:npm:pnpm
+    log:
+      start: Configuring pnpm to store its cache in `.pnpm-store`
+      success: Successfully updated pnpm to store its cache in `.pnpm-store`
+      error: Error encountered while configuring pnpm to store its cache in `.pnpm-store`
     cmds:
       - pnpm config set store-dir .pnpm-store
 
   checkout:
+    log:
+      start: Pulling latest changes
+      success: Successfully pulled latest changes
+      error: Failed to pull latest changes
     cmds:
       - |
         if [[ "$CI_COMMIT_REF_NAME" == 'synchronize' ]]; then
@@ -30,6 +38,9 @@ tasks:
   commit:
     deps:
       - :install:software:git
+    log:
+      start: Bypassing git hooks and pushing changes to master (if there are any changes)
+      error: Encountered error while pushing changes to master
     cmds:
       - task: commit:config
       - git add --all
@@ -60,12 +71,20 @@ tasks:
   submodules:
     deps:
       - :install:software:git
+    log:
+      start: Ensuring submodules are configured and up-to-date with their master remote
+      success: Ensured submodules are up-to-date
+      error: Encountered error while ensuring submodules are up-to-date
     cmds:
       - >
         git submodule foreach 'git config user.email "$GITLAB_CI_EMAIL"; git config user.name "$GITLAB_CI_NAME";
         git checkout -q master; git pull -q origin master --ff-only'
 
   synchronize:
+    log:
+      start: Synchronizing the `synchronize` branch with the `master` branch
+      success: Successfully updated the `synchronize` branch
+      error: Failed to update the `synchronize` branch
     cmds:
       - git checkout -b synchronize || git checkout synchronize
       - git reset --hard HEAD
@@ -73,8 +92,10 @@ tasks:
       - git push -q -o ci.skip origin synchronize --force
       - |
         if [ '{{.REPOSITORY_TYPE}}' == 'deprecated_common' ] && [ '{{.REPOSITORY_SUBTYPE}}' == 'shared' ]; then
-          echo 'Not triggering any pipelines because this is the shared common repository'
+          .config/log info 'Bypassing the `master` branch pipeline trigger because the repository is not of the right type'
         else
+          .config/log info 'Triggering the `master` branch pipeline'
           curl -s --request POST --form "token=${CI_JOB_TOKEN}" --form ref=master --form "variables[PIPELINE_SOURCE]=$PIPELINE_SOURCE" \
             "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/trigger/pipeline"
         fi
+      - git checkout master

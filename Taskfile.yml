@@ -1,7 +1,40 @@
 ---
 version: '3'
 
+output: interleaved
+
+vars:
+  DOCKERHUB_PROFILE: megabytelabs
+  DOCKERHUB_USER: professormanhattan
+  ESLINT_FORMATTER: pretty
+  ESLINT_FORMATTER_OPTIONS: git-log pretty summary
+  GALAXY_NAMESPACE: professormanhattan
+  GITHUB_ORG: ProfessorManhattan
+  GITHUB_USER: ProfessorManhattan
+  IGNORE_FOLDERS: -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*'
+    -o -path './.github/*' -o -path './.gitlab/*' -o -path './.husky/*' -o -path './.modules/*' -o -path './.npm/*'
+    -o -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*'
+    -o -path './build/*' -o -path './dist/*' -o -path './node_modules/*' -o -path './roles/*' -o -name pnpm-lock.yaml
+    -o -name package-lock.json -o -name poetry.lock -o -name '.variables.json'
+  INIT_SCRIPT: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/update-init.sh
+  LOG_FIX:
+    sh: chmod +x .config/log && echo "heyhey"
+  NPM_KEEP_UPDATED: '@washingtondc/* eslint-config-strict-mode sleekfast'
+  NPM_PROGRAM: npm
+  NPM_PROGRAM_LOCAL: pnpm
+  NPX_HANDLE: 'pnpx '
+  NPX_PACKAGE: pnpx
+  PYTHON_HANDLE:
+    sh: if [ -z "$GITLAB_CI" ] || [[ "$OPTIMIZED_IMAGE" == 'false' ]]; then echo 'poetry run '; fi
+  PYTHON_VIRTUALENV: true
+  REPOSITORY_SUBTYPE: playbook
+  REPOSITORY_TYPE: ansible
+  TIMEZONE: America/New_York
+
 includes:
+  project:
+    taskfile: Taskfile-project.yml
+    optional: true
   ansible: ./.config/taskfiles/ansible/Taskfile.yml
   ansible:ansibler: ./.config/taskfiles/ansible/Taskfile-ansibler.yml
   ansible:playbook: ./.config/taskfiles/ansible/Taskfile-playbook.yml
@@ -65,35 +98,8 @@ includes:
   web:nx: ./.config/taskfiles/web/Taskfile-nx.yml
   web:profile: ./.config/taskfiles/web/Taskfile-profile.yml
 
-output: interleaved
-
-vars:
-  DOCKERHUB_PROFILE: megabytelabs
-  GALAXY_NAMESPACE: professormanhattan
-  GITHUB_ORG: ProfessorManhattan
-  GITHUB_USER: ProfessorManhattan
-  IGNORE_FOLDERS: -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*'
-    -o -path './.github/*' -o -path './.gitlab/*' -o -path './.husky/*' -o -path './.modules/*' -o -path './.npm/*'
-    -o -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*'
-    -o -path './build/*' -o -path './dist/*' -o -path './node_modules/*' -o -path './roles/*' -o -name pnpm-lock.yaml
-    -o -name package-lock.json -o -name poetry.lock -o -name '.variables.json'
-  INIT_SCRIPT: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/update-init.sh
-  LOG_FIX:
-    sh: chmod +x .config/log && echo "heyhey"
-  NPM_KEEP_UPDATED: '@washingtondc/* eslint-config-strict-mode sleekfast'
-  NPM_PROGRAM: npm
-  NPM_PROGRAM_LOCAL: pnpm
-  NPX_HANDLE: 'pnpx '
-  NPX_PACKAGE: pnpx
-  PYTHON_HANDLE:
-    sh: if [ -z "$GITLAB_CI" ] || [[ "$OPTIMIZED_IMAGE" == 'false' ]]; then echo 'poetry run '; fi
-  PYTHON_VIRTUALENV: true
-  REPOSITORY_SUBTYPE: playbook
-  REPOSITORY_TYPE: ansible
-  TIMEZONE: America/New_York
-
 profile: |
-  PATH="$PATH:$HOME/.local/bin"
+  PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin"
   if [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
     if [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && ! type brew > /dev/null; then
       eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -107,8 +113,8 @@ profile: |
     PATH="$PATH:$(brew --prefix)/opt/gnu-tar/libexec/gnubin"
     PATH="$PATH:$(brew --prefix)/opt/gawk/libexec/gnubin"
   fi
-  if [ -d "$HOME/.poetry/bin" ] && ! type poetry > /dev/null; then
-    PATH="$PATH:$HOME/.poetry/bin"
+  if [ -f .venv/bin/activate ]; then
+    . .venv/bin/activate
   fi
 
 tasks:
@@ -215,6 +221,47 @@ tasks:
     cmds:
       - task: lint:all
 
+  livereload:
+    deps:
+      - install:npm:nodemon
+    desc: Start the project with live-reloading (i.e. watch mode)
+    summary: |
+      # LiveReload the project
+
+      Using LiveReload, you can automatically run the project any time you make
+      changes to the project. The LiveReload feature uses [nodemon](https://github.com/remy/nodemon)
+      with the configuration stored in `.config/nodemon.json`.
+
+      Whenever you make a change to the project, `task project:livereload` will run. You can
+      define the command that runs everytime you make a change in the `Taskfile-project.yml`
+      `livereload` section. This file is kept intact even across upstream propagation updates,
+      unlike the regular `Taskfile.yml`.
+
+      **Example usage:**
+      `task livereload`
+
+      The default configuration (in `.config/nodemon.json`) is generic and makes assumptions
+      about the file types to watch based on what type project it is. If you would like to
+      use a different configuration, you can pass in the location of the configuration like so:
+
+      **Example with custom configuration:**
+      `task livereload -- nodemon.custom.json`
+
+      The task program also provides a `--watch` feature. However, it relies on the `sources` attribute
+      being defined so it might not work in all cases.
+
+      **Example using `task --watch`:**
+      `task --watch mytask`
+    log:
+      start: Starting `nodemon` live-reload session
+    cmds:
+      - |
+        if [ ! -f Taskfile-project.yml ]; then
+          .config/log error '`Taskfile-project.yml` must exist and have a `livereload` task to use with `nodemon`' && exit 1
+        fi
+      - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
+
+
   playbook:
     desc: Run the playbook
     summary: |
@@ -235,6 +282,7 @@ tasks:
       `task playbook -- inventory.yml`
     cmds:
       - task: ansible:playbook:run
+
 
   preload:
     deps:

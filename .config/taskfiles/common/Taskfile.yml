@@ -186,19 +186,52 @@ tasks:
 
   shell:cli:
     vars:
+      DC: '{{.CLI_ARGS}}'
       WORKDIR:
         sh: basename $PWD
     log:
-      start: Starting a Docker container for `{{.CLI_ARGS}}` and attaching to `/bin/bash`
+      start: Starting a Docker container for `{{.DOCKER_CONTAINER}}` and attaching to `/bin/bash`
     cmds:
-      - .config/log info 'Running `docker run -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.CLI_ARGS}}:latest /bin/bash`'
-      - cmd: docker run -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.CLI_ARGS}}:latest /bin/bash
+      - .config/log info 'Running `docker run -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.DC}}:latest /bin/bash`'
+      - cmd: docker run -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.DC}}:latest /bin/bash
         ignore_error: true
 
   shell:prompt:
-    deps:
-      - :install:modules:local
+    vars:
+      HELP_MESSAGE: |
+        # Launch a Docker Shell Environment
+
+        Open a shell session quickly, safely, and easily using Docker. Select an option from the prompt below
+        to download and shell into a Docker environment. The environment will be automatically deleted after
+        you exit the terminal session.
+    cmds:
+      - task: log:markdown
+        vars:
+          HELP_MESSAGE: '{{.HELP_MESSAGE}}'
+      - task: shell:prompt:question
+
+  shell:prompt:question:
     interactive: true
+    type: select
+    message: Which operating system would you like to open up a terminal session with?
+    options:
+      - Archlinux
+      - CentOS 7
+      - CentOS 8
+      - Debian 9
+      - Debian 10
+      - Fedora 33
+      - Fedora 34
+      - Ubuntu 18.04
+      - Ubuntu 20.04
+      - Ubuntu 21.04
+    answer:
+      cmds:
+        - task: shell:cli
+          env:
+            DC:
+              sh: echo '{{.ANSWER}}' | sed 's/ /-/g' | tr '[:upper:]' '[:lower:]'
+
     env:
       WORKDIR:
         sh: basename $PWD

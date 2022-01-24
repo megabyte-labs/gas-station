@@ -75,7 +75,7 @@ tasks:
             git config url."https://gitlab.com/".insteadOf git@gitlab.com:
           fi
         fi
-      - cmd: git pull --ff-only
+      - cmd: if git branch -r | grep origin > /dev/null; then git pull --ff-only; fi
         ignore_error: true
       - cmd: git config --unset url."https://gitlab.com/".insteadOf
         ignore_error: true
@@ -97,6 +97,7 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:liquidjs
+      - :install:software:jq
     vars:
       PYTHON_BREW_NOTICE: In order for this file to be generated, the customPyPiPackageName needs to be specified in the
         blueprint section of package.json and the PyPi package needs to be installed on the system.
@@ -124,7 +125,7 @@ tasks:
           handlebars "$FILE" &
         done < <(find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid')
         while read CONFIG_FILE; do
-          handlebars "$CONFIG_FILE" &
+          handlebars "$CONFIG_FILE"
         done < <(find .config -type f -name '*.liquid')
         wait
       - |
@@ -150,6 +151,7 @@ tasks:
   variables:
     deps:
       - :install:software:jq
+      - :install:software:yq
     env:
       FILE_INPUT:
         sh: if [ -f '{{.INPUT_FILE}}' ]; then echo {{.INPUT_FILE}}; else echo ".variables.json"; fi

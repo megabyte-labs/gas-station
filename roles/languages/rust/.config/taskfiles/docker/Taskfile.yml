@@ -1,6 +1,12 @@
 ---
 version: '3'
 
+vars:
+  DOCKER_IMAGE:
+    sh: jq -r '.name' package.json | sed 's/^@//'
+  SLIM_ENABLED:
+    sh: jq -r '.blueprint.slimBuildEnabled' package.json | sed 's/null/false/'
+
 tasks:
   build:
     desc: Build a regular Docker image and then generate a slim build from it
@@ -8,27 +14,82 @@ tasks:
       - task: :docker:build:fat
       - task: :docker:build:slim
 
-  standard-version:prebump:
+  login:
+    deps:
+      - :install:software:docker
+    log:
+      error: Failed to authenticate `{{.DOCKERHUB_USER}}` with the DockerHub registry
+      start: Logging into DockerHub registry with `{{.DOCKERHUB_USER}}`
+      success: Authenticated to DockerHub registry with `{{.DOCKERHUB_USER}}`
+    cmds:
+      - echo "$DOCKERHUB_REGISTRY_PASSWORD" | docker login -u {{.DOCKERHUB_USER}} --password-stdin
+    preconditions:
+      - test -n "$DOCKERHUB_REGISTRY_PASSWORD"
+
+  prepare:
+    cmds:
+      - task: build
+
+  publish:
+    vars:
+      MAJOR_VERSION:
+        sh: '{{if .CLI_ARGS}}echo "{{.CLI_ARGS}}"{{else}}jq -r ".version" package.json{{end}} | sed "s/\..*\..*$//"'
+      VERSION:
+        sh: '{{if .CLI_ARGS}}echo "{{.CLI_ARGS}}"{{else}}jq -r ".version" package.json{{end}}'
+    log:
+      error: An error occurred while publishing the Docker images
+      start: Publishing Docker images
+      success: Finished uploading all Docker images
+    cmds:
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest
+          TARGET_TAG: '{{.VERSION}}'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest
+          TARGET_TAG: '{{.MAJOR_VERSION}}-latest'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest
+          TARGET_TAG: latest
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim
+          TARGET_TAG: '{{.VERSION}}-slim'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim
+          TARGET_TAG: '{{.MAJOR_VERSION}}-slim'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim
+          TARGET_TAG: slim
+
+  publish:image:
+    log:
+      error: Failed to tag / push `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+      start: Tagging and pushing `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+      success: Finished uploading `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+    cmds:
+      - docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+      - docker push {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+    status:
+      - if [[ '{{.SOURCE_TAG}}' == 'slim' ]]; then [[ '{{.SLIM_ENABLED}}' == 'false' ]]; fi
+
+  verify:
+    cmds:
+      - task: login
+
+  version:software:
     cmds:
       - |
         if grep -q "CMD.\[\"--version\"\]" Dockerfile; then
-          VERSION=$(docker run --cap-drop=ALL -e PY_COLORS=0 --rm megabytelabs/shellcheck:latest | perl \
+          VERSION=$(docker run --cap-drop=ALL -e PY_COLORS=0 --rm {{.DOCKER_IMAGE}}:latest | perl \
             -pe 'if(($v)=/([0-9]+([.][0-9]+)+)/){print"$v";exit}$_=""')
           if [[ $VERSION == *.*.* ]]; then
             echo $VERSION
           elif [[ $VERSION == *.* ]]; then
             echo $VERSION.0
           fi
-        fi
-
-  standard-version:prerelease: git add --all
-
-  standard-version:pretag:
-    vars:
-      PACKAGE_VERSION:
-        sh: grep version < package.json | head -1 | awk -F':' '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]'
-    cmds:
-      - |
-        if git show-ref --tags 'v{{.PACKAGE_VERSION}}' --quiet; then
-          git tag -d 'v{{.PACKAGE_VERSION}}'
         fi

@@ -8,6 +8,9 @@ tasks:
     vars:
       GROUP_URL:
         sh: jq -r '.repository.group.dockerfile' .variables.json
+    log:
+      start: Ensuring `Dockerfile` labels are up-to-date
+      success: '`Dockerfile` labels are up-to-date'
     cmds:
       - task: update:labels:add
       - task: update:labels:{{OS}}
@@ -35,28 +38,29 @@ tasks:
         sh: jq -r '.organization' .variables.json
       URL:
         sh: jq -r '.link.home' .variables.json
+    log:
+      error: Failed to add Dockerfile labels
+      start: Ensuring default Dockerfile labels are present (e.g. `org.opencontainers.image` tags)
+      success: Successfully injected `org.opencontainers.image` labels into Dockerfile
     cmds:
       - |
-        if ! grep 'org.opencontainers.image.documentation' Dockerfile; then
-          echo 'ARG BUILD_DATE' >> Dockerfile
-          echo 'ARG REVISION' >> Dockerfile
-          echo 'ARG VERSION' >> Dockerfile
-          echo '' >> Dockerfile
-          echo 'LABEL maintainer="{{.ORGANIZATION}} <{{.HELP_EMAIL}}>"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.authors="{{.AUTHORS}}"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.created=$BUILD_DATE' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.description="[[ Injected by running `task update` ]]"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.documentation="[[ Injected by running `task update` ]]"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.licenses="{{.LICENSE}}"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.revision=$REVISION' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.source="[[ Injected by running `task update` ]]"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.url="{{.URL}}"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.vendor="{{.ORGANIZATION}}"' >> Dockerfile
-          echo 'LABEL org.opencontainers.image.version=$VERSION' >> Dockerfile
-          echo 'LABEL space.megabyte.type="{{.REPOSITORY_SUBTYPE}}"' >> Dockerfile
-          echo '' >> Dockerfile
-          .config/log success 'Successfully injected org.opencontainers labels into Dockerfile'
-        fi
+        echo 'ARG BUILD_DATE' >> Dockerfile
+        echo 'ARG REVISION' >> Dockerfile
+        echo 'ARG VERSION' >> Dockerfile
+        echo '' >> Dockerfile
+        echo 'LABEL maintainer="{{.ORGANIZATION}} <{{.HELP_EMAIL}}>"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.authors="{{.AUTHORS}}"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.created=$BUILD_DATE' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.description="[[ Injected by running `task update` ]]"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.documentation="[[ Injected by running `task update` ]]"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.licenses="{{.LICENSE}}"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.revision=$REVISION' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.source="[[ Injected by running `task update` ]]"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.url="{{.URL}}"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.vendor="{{.ORGANIZATION}}"' >> Dockerfile
+        echo 'LABEL org.opencontainers.image.version=$VERSION' >> Dockerfile
+        echo 'LABEL space.megabyte.type="{{.REPOSITORY_SUBTYPE}}"' >> Dockerfile
+        echo '' >> Dockerfile
     status:
       - grep 'org.opencontainers.image.documentation' Dockerfile
 
@@ -64,6 +68,8 @@ tasks:
     vars:
       GROUP_URL:
         sh: jq -r '.repository.group.dockerfile' .variables.json
+    log:
+      error: Encountered error while updating `Dockerfile` labels
     cmds:
       # yamllint disable rule:line-length
       # eslint-disable max-len
@@ -81,6 +87,8 @@ tasks:
         sh: jq -r '.repository.group.dockerfile' .variables.json
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
+    log:
+      error: Encountered error while updating `Dockerfile` labels
     cmds:
       # yamllint disable rule:line-length
       # eslint-disable max-len

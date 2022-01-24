@@ -11,6 +11,9 @@ includes:
   ci: ./.config/taskfiles/ci/Taskfile.yml
   ci:github: ./.config/taskfiles/ci/Taskfile-github.yml
   common: ./.config/taskfiles/common/Taskfile.yml
+  project:
+    taskfile: Taskfile-project.yml
+    optional: true
   common:code: ./.config/taskfiles/common/Taskfile-code.yml
   common:update: ./.config/taskfiles/common/Taskfile-update.yml
   docker: ./.config/taskfiles/docker/Taskfile.yml
@@ -23,6 +26,7 @@ includes:
   git:gitlab: ./.config/taskfiles/git/Taskfile-gitlab.yml
   git:hook: ./.config/taskfiles/git/Taskfile-hook.yml
   go: ./.config/taskfiles/go/Taskfile.yml
+  go:goreleaser: ./.config/taskfiles/go/Taskfile-goreleaser.yml
   go:test: ./.config/taskfiles/go/Taskfile-test.yml
   image: ./.config/taskfiles/image/Taskfile.yml
   install: ./.config/taskfiles/install/Taskfile.yml
@@ -51,6 +55,7 @@ includes:
   publish:opera: ./.config/taskfiles/publish/Taskfile-opera.yml
   python: ./.config/taskfiles/python/Taskfile.yml
   python:test: ./.config/taskfiles/python/Taskfile-test.yml
+  release: ./.config/taskfiles/release/Taskfile.yml
   security: ./.config/taskfiles/security/Taskfile.yml
   symlink: ./.config/taskfiles/symlink/Taskfile.yml
   upstream: ./.config/taskfiles/upstream/Taskfile.yml
@@ -69,6 +74,9 @@ output: interleaved
 
 vars:
   DOCKERHUB_PROFILE: megabytelabs
+  DOCKERHUB_USER: professormanhattan
+  ESLINT_FORMATTER: pretty
+  ESLINT_FORMATTER_OPTIONS: git-log gitlab pretty summary
   GALAXY_NAMESPACE:
     sh: "if [ -f meta/main.yml ]; then grep namespace < meta/main.yml | sed 's/.*namespace: \\(.*\\)$/\\1/g'; fi"
   GALAXY_ROLE_NAME:
@@ -83,20 +91,87 @@ vars:
   INIT_SCRIPT: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/update-init.sh
   LOG_FIX:
     sh: chmod +x .config/log && echo "heyhey"
-  NPM_KEEP_UPDATED: '@washingtondc/* eslint-config-strict-mode sleekfast'
+  NPM_KEEP_UPDATED: '@washingtondc/* eslint-config-strict-mode semantic-release-config'
   NPM_PROGRAM: npm
   NPM_PROGRAM_LOCAL: pnpm
   NPX_HANDLE: 'pnpx '
   NPX_PACKAGE: pnpx
   PYTHON_HANDLE:
     sh: if [ -z "$GITLAB_CI" ] || [[ "$OPTIMIZED_IMAGE" == 'false' ]]; then echo 'poetry run '; fi
+  PYTHON_KEEP_UPDATED: ansibler
+  PYTHON_VIRTUALENV: true
   REPOSITORY_SUBTYPE: role
   REPOSITORY_TYPE: ansible
   TIMEZONE: America/New_York
 
-tasks:
-  donothing: 'true'
+profile: |
+  PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin"
+  if [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
+    if [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && ! type brew > /dev/null; then
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    fi
+  fi
+  if [[ "$OSTYPE" == 'darwin'* ]] && type brew > /dev/null; then
+    BREW_PREFIX="$(brew --prefix)"
+    PATH="$PATH:$BREW_PREFIX/opt/coreutils/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/findutils/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/gnu-sed/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/grep/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/gnu-tar/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/gawk/libexec/gnubin"
+  fi
+  if [ -f .venv/bin/activate ]; then
+    . .venv/bin/activate
+  fi
 
+tasks:
+  build:
+    desc: Build the project
+    summary: |
+      # Build the project
+
+      Use this command to build the project. It executes the command defined
+      in `package.json` under the `.blueprint.build_command` key.
+
+      You can ensure all the proper keys are setup in `.blueprint.build_command`
+      by running `task init` which will prompt you to enter required fields
+      that are not present.
+    cmds:
+      - task: go:build
+
+  cmds:
+    - |
+      {{if .CLI_ARGS}}
+      git add --all
+      HUSKY=0 git commit -m "{{.CLI_ARGS}}" --no-verify
+      {{else}}
+      git add --all
+      git commit
+      {{end}}
+
+  commit:
+    deps:
+      - install:software:git
+    desc: Add all and commit
+    summary: |
+      # Commit the code
+
+      By default, this task is an alias for:
+
+      ```
+      git add --all
+      git commit
+      ```
+
+      If you pass a commit message as a CLI argument, then the pre-commit
+      logic will be bypassed. By bypassing the hooks, the commit message will be
+      excluded from the automatic CHANGELOG.md entry generated during commits.
+      Passing the commit message as a CLI argument can be done like so:
+
+      ```
+      task commit -- "Added new files that do not need to show up in CHANGELOG.md"
+      ```
+  donothing: 'true'
   environment:
     interactive: true
     desc: Symlink to an environment in the `environments/` folder
@@ -114,8 +189,19 @@ tasks:
       `task environment -- prod`
     cmds:
       - task: ansible:playbook:environment
+  fix:
+    desc: Run code auto-fixers
+    summary: |
+      # Auto-fix code
+
+      This task will automatically apply lint fixes across the whole project using
+      auto-fixers. Although unlikely, it is possible that auto-fixing can introduce
+      an error so the auto-fixes still have to be validated.
+    cmds:
+      - fix:all
+
   group:exec:
-    desc: Execute group commands on any group (including repositories in sub-groups)
+    desc: Execute group commands on any GitLab group (including repositories in sub-groups)
     summary: |
       # Run commands on multiple repositories in parallel
 
@@ -135,7 +221,7 @@ tasks:
       - task: git:gitlab:group:exec
 
   init:
-    desc: Ensures project is initialized with upstream files and migrates pre-existing projects
+    desc: Runs the initialization script
     summary: |
       # Initialize the project and run the full update sequence
 
@@ -156,8 +242,62 @@ tasks:
         if [ -n "$GITLAB_CI" ]; then
           if [ -n "$UPDATE_INIT_SCRIPT" ]; then curl -s "$UPDATE_INIT_SCRIPT" | bash; fi
         else
-          bash <(curl -s {{.INIT_SCRIPT}})
+          bash <(curl -s https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/update-init.sh)
         fi
+
+  lint:
+    desc: Lints the project using all error-prone linters
+    summary: |
+      # Lint the project using most of the linters
+
+      This task will do a project-wide linting using all of the linters that commonly
+      report errors. You can use this task to spot linting errors prior to running
+      the git pre-commit hooks.
+
+      **Example usage:**
+      `task lint`
+    cmds:
+      - task: lint:all
+
+  livereload:
+    deps:
+      - install:npm:nodemon
+    desc: Start the project with live-reloading (i.e. watch mode)
+    summary: |
+      # LiveReload the project
+
+      Using LiveReload, you can automatically run the project any time you make
+      changes to the project. The LiveReload feature uses [nodemon](https://github.com/remy/nodemon)
+      with the configuration stored in `.config/nodemon.json`.
+
+      Whenever you make a change to the project, `task project:livereload` will run. You can
+      define the command that runs everytime you make a change in the `Taskfile-project.yml`
+      `livereload` section. This file is kept intact even across upstream propagation updates,
+      unlike the regular `Taskfile.yml`.
+
+      **Example usage:**
+      `task livereload`
+
+      The default configuration (in `.config/nodemon.json`) is generic and makes assumptions
+      about the file types to watch based on what type project it is. If you would like to
+      use a different configuration, you can pass in the location of the configuration like so:
+
+      **Example with custom configuration:**
+      `task livereload -- nodemon.custom.json`
+
+      The task program also provides a `--watch` feature. However, it relies on the `sources` attribute
+      being defined so it might not work in all cases.
+
+      **Example using `task --watch`:**
+      `task --watch mytask`
+    log:
+      start: Starting `nodemon` live-reload session
+    cmds:
+      - |
+        if [ ! -f Taskfile-project.yml ]; then
+          .config/log error '`Taskfile-project.yml` must exist and have a `livereload` task to use with `nodemon`' && exit 1
+        fi
+      - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
 
   preload:
     deps:
@@ -189,10 +329,10 @@ tasks:
       chances are you will be asked for a sudo password. In this case, we recommend
       you adopt the Megabyte Labs philosophy and inspect the code before running it.
     cmds:
+      - task: install:brewfile
+      - task: install:modules:global
+      - task: install:pipx:global
       - |
-        task install:modules:global &
-        task install:pipx:global &
-        wait
         .config/log success 'Successfully preloaded commonly used system applications'
         .config/log info 'Some software that requires a reboot may have been installed - rebooting would be prudent'
 
@@ -234,6 +374,38 @@ tasks:
       API keys be set. Generally, only project owners will use this task.
     cmds:
       - task: common:update:services
+
+  shell:
+    desc: Start a terminal session using Docker with any Linux operating system
+    summary: |
+      # Start a Docker terminal session
+
+      Use Docker to run commands on nearly any operating system. The operating
+      systems are all stock distros with systemd added.
+
+      The selected environment will mount the current working directory to the
+      Docker container.
+
+      **Example opening an interactive prompt:**
+      `task shell`
+
+      **Example of directly shelling into a container:**
+      `task shell -- ubuntu-21.04`
+
+      ## Available operating systems (that you can use with the example above):
+
+      * archlinux
+      * centos-7
+      * centos-8
+      * debian-9
+      * debian-10
+      * fedora-33
+      * fedora-34
+      * ubuntu-18.04
+      * ubuntu-20.04
+      * ubuntu-21.04
+    cmds:
+      - task: common:shell
 
   start:
     desc: Set up the project and refresh it with the latest changes

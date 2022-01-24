@@ -7,11 +7,12 @@ vars:
 
 tasks:
   boilerplate:
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+    deps:
+      - :install:software:coreutils
+      - :install:software:jq
     cmds:
       - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         if [[ "$(jq -r '.blueprint.boilerplate' package.json)" == 'true' ]]; then
           for ENTITY in .boilerplate/*; do
             TARGET="$(echo $ENTITY | sed 's/^.boilerplate\///')"
@@ -42,17 +43,20 @@ tasks:
       - rm -rf ./{{.SHARED_FOLDER}}/.git
 
   copy:
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+    deps:
+      - :install:software:coreutils
     cmds:
       - rm -rf .config
-      - cp -rT {{.SHARED_FOLDER}}/_generated_/common .
-      - cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
+      - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+        cp -rT {{.SHARED_FOLDER}}/_generated_/common .
+        cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
       - task: :common:husky:permissions
       - task: save:common:keywords
 
   merge:package:overrides:
+    deps:
+      - :install:software:jq
     summary: |
       # Merge data from package.json's '.blueprint.jsonOverrides' key
 
@@ -88,6 +92,8 @@ tasks:
         fi
 
   save:common:keywords:
+    deps:
+      - :install:software:jq
     cmds:
       - |
         KEYWORDS="$(jq -r '.keywords' package.json.liquid)"

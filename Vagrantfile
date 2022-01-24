@@ -19,7 +19,7 @@ Vagrant.configure("2") do |config|
       nodeconfig.vm.box = node[:box]
       nodeconfig.vm.hostname = node[:hostname]
 
-      nodeconfig.vm.network :private_network, ip: node[:ip]
+      nodeconfig.vm.network :public_network, ip: node[:ip]
       nodeconfig.vm.network :forwarded_port, guest: 22, host: 52022, id: "ssh", auto_correct: true
       nodeconfig.vm.network :forwarded_port, guest: 80, host: 52080, id: "http", auto_correct: true
       nodeconfig.vm.network :forwarded_port, guest: 443, host: 52443, id: "https", auto_correct: true

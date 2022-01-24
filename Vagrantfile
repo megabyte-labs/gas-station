@@ -10,7 +10,7 @@ nodes = [
   { :hostname => 'fedora', :ip => '192.168.14.44', :box => 'Megabyte/Fedora-Desktop' },
   { :hostname => 'macos', :ip => '192.168.14.45', :box => 'Megabyte/macOS-Desktop', :ram => 8192 },
   { :hostname => 'ubuntu', :ip => '192.168.14.46', :box => 'Megabyte/Ubuntu-Desktop' },
-  { :hostname => 'windows', :ip => '192.168.14.47', :box => 'Megabyte/Windows-Desktop', :ram => 4096 }
+  { :hostname => 'windows', :ip => '192.168.14.47', :box => 'Megabyte/Windows-Desktop', :ram => 4096, :windows => true }
 ]
 
 Vagrant.configure("2") do |config|
@@ -24,15 +24,27 @@ Vagrant.configure("2") do |config|
       nodeconfig.vm.network :forwarded_port, guest: 80, host: 52080, id: "http", auto_correct: true
       nodeconfig.vm.network :forwarded_port, guest: 443, host: 52443, id: "https", auto_correct: true
       nodeconfig.vm.network :forwarded_port, guest: 3389, host: 53389, id: "rdp", auto_correct: true
+      nodeconfig.vm.network :forwarded_port, guest: 5985, host: 55985, id: "winrm", auto_correct: true
 
       memory = node[:ram] ? node[:ram] : 2048
       nodeconfig.vm.provider :virtualbox do |vb|
+        vb.gui = true
+        vb.memory = memory.to_s
         vb.customize [
           "modifyvm", :id,
-          "--cpuexecutioncap", "50",
-          "--memory", memory.to_s
+          "--cpuexecutioncap", "50"
         ]
       end
+
+      nodeconfig.vm.guest = node[:windows] ? :windows : :linux
+      nodeconfig.vm.communicator = node[:windows] ? :winrm : :ssh
+
+      nodeconfig.ssh.username = "vagrant"
+      nodeconfig.ssh.password = "vagrant"
+      nodeconfig.ssh.insert_key = true
+
+      nodeconfig.winrm.username = "vagrant"
+      nodeconfig.winrm.password = "vagrant"
     end
   end
 

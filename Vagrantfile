@@ -10,7 +10,7 @@ nodes = [
   { :hostname => 'fedora', :ip => '192.168.14.44', :box => 'Megabyte/Fedora-Desktop' },
   { :hostname => 'macos', :ip => '192.168.14.45', :box => 'Megabyte/macOS-Desktop', :ram => 8192 },
   { :hostname => 'ubuntu', :ip => '192.168.14.46', :box => 'Megabyte/Ubuntu-Desktop' },
-  { :hostname => 'windows', :ip => '192.168.14.47', :box => 'Megabyte/Windows-Desktop', :ram => 4096, :windows => true }
+  { :hostname => 'windows', :ip => '10.14.14.241', :box => 'Megabyte/Windows-Desktop', :ram => 4096, :windows => true }
 ]
 
 Vagrant.configure("2") do |config|

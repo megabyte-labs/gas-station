@@ -5,6 +5,26 @@ vars:
   REPOSITORY_LIST: .cache/repository-list.txt
 
 tasks:
+  access-token:
+    deps:
+      - :install:software:glab
+      - :install:software:jq
+      - create
+    vars:
+      REPO_ID:
+        sh: glab api projects/:fullpath | jq '.id'
+      REQUEST_DATA: '{ "name":"PROJECT_CI_ACCESS_TOKEN", "scopes":["write_repository", "read_repository"] }'
+      TOKEN_STATUS:
+        sh: glab api projects/:fullpath/access_tokens | jq -r '.[] | select(.name=="PROJECT_CI_ACCESS_TOKENX") | .id'
+    run: once
+    cmds:
+      - |
+        curl -sSL --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header \
+        'Content-Type:application/json' --data '{{.REQUEST_DATA}}' \
+        'https://gitlab.com/api/v4/projects/{{.REPO_ID}}/access_tokens' > /dev/null
+    status:
+      - '[ -n "{{.TOKEN_STATUS}}" ]'
+
   branches:
     deps:
       - :install:software:glab
@@ -34,6 +54,10 @@ tasks:
         glab api projects/:fullpath/protected_branches -X POST -f name=main -f code_owner_approval_required=true > /dev/null &
         glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=next -f ref=master > /dev/null &
         glab api projects/:fullpath/protected_branches -X POST -f name=next -f code_owner_approval_required=true > /dev/null &
+        glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=alpha -f ref=master > /dev/null &
+        glab api projects/:fullpath/protected_branches -X POST -f name=alpha -f code_owner_approval_required=true > /dev/null &
+        glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=beta -f ref=master > /dev/null &
+        glab api projects/:fullpath/protected_branches -X POST -f name=beta -f code_owner_approval_required=true > /dev/null &
         glab api projects/:fullpath/protected_branches -X POST -f name=protected/* -f code_owner_approval_required=true > /dev/null &
         glab api projects/:fullpath/repository/branches -X POST -f id={{.REPO_ID}} -f branch=synchronize -f ref=master > /dev/null &
         glab api projects/:fullpath/protected_branches -X POST -f name=synchronize -f code_owner_approval_required=true -f allow_force_push=true > /dev/null &
@@ -279,6 +303,7 @@ tasks:
 
   update:
     deps:
+      - access-token
       - branches
       - mirror
       - integrations

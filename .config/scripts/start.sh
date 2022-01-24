@@ -16,6 +16,49 @@ if [ -f .config/log ]; then
   chmod +x .config/log
 fi
 
+# @description Installs package when user is root on Linux
+#
+# @example
+#   ensureRootPackageInstalled "sudo"
+#
+# @arg $1 string The name of the package that must be present
+#
+# @exitcode 0 The package was successfully installed
+# @exitcode 1+ If there was an error, the package needs to be installed manually, or if the OS is unsupported
+function ensureRootPackageInstalled() {
+  if ! type "$1" &> /dev/null; then
+    if [[ "$OSTYPE" == 'linux'* ]]; then
+      if [ -f "/etc/redhat-release" ]; then
+        yum update
+        yum install -y "$1"
+      elif [ -f "/etc/lsb-release" ]; then
+        apt update
+        apt install -y "$1"
+      elif [ -f "/etc/arch-release" ]; then
+        pacman update
+        pacman -S "$1"
+      elif [ -f "/etc/alpine-release" ]; then
+        apk update
+        apk add -y "$1"
+      fi
+    fi
+  fi
+}
+
+# @description If the user is running this script as root, then create a new user named
+# megabyte and restart the script with that user. This is required because Homebrew
+# can only be invoked by non-root users.
+if [ "$EUID" -eq 0 ]; then
+  # shellcheck disable=SC2016
+  .config/log info 'Running as root - creating seperate user named `megabyte` to run script with'
+  echo 'megabyte ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+  useradd -m -s "$(which bash)" -c "Megabyte Labs Homebrew Account" megabyte
+  ensureRootPackageInstalled "sudo"
+  # shellcheck disable=SC2016
+  .config/log info 'Reloading the script with the `megabyte` user'
+  exec su megabyte "$0" -- "$@"
+fi
+
 # @description Detect script paths
 BASH_SRC="$(dirname "${BASH_SOURCE[0]}")"
 SOURCE_PATH="$(
@@ -54,23 +97,23 @@ function ensureLocalPath() {
   fi
 }
 
-# @description Ensures given packages are installed on a system.
+# @description Ensures given package is installed on a system.
 #
 # @example
-#   ensurePackagesInstalled "curl git"
+#   ensurePackageInstalled "curl"
 #
 # @arg $1 string The name of the package that must be present
 #
 # @exitcode 0 The package(s) were successfully installed
 # @exitcode 1+ If there was an error, the package needs to be installed manually, or if the OS is unsupported
-function ensurePackagesInstalled() {
+function ensurePackageInstalled() {
   if ! type "$1" &> /dev/null; then
     if [[ "$OSTYPE" == 'darwin'* ]]; then
       brew install "$1"
     elif [[ "$OSTYPE" == 'linux'* ]]; then
       if [ -f "/etc/redhat-release" ]; then
         sudo yum update
-        sudo yum install "$1"
+        sudo yum install -y "$1"
       elif [ -f "/etc/lsb-release" ]; then
         sudo apt update
         sudo apt install -y "$1"
@@ -79,7 +122,7 @@ function ensurePackagesInstalled() {
         sudo pacman -S "$1"
       elif [ -f "/etc/alpine-release" ]; then
         apk update
-        apk add "$1"
+        apk add -y "$1"
       else
         .config/log error "$1 is missing. Please install $1 to continue." && exit 1
       fi
@@ -257,7 +300,8 @@ if [[ "$OSTYPE" == 'darwin'* ]]; then
   fi
 elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
   if ! type curl > /dev/null || ! type git > /dev/null; then
-    ensurePackagesInstalled "curl git"
+    ensurePackageInstalled "curl"
+    ensurePackageInstalled "git"
   fi
 fi
 

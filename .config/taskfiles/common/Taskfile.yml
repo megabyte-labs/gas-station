@@ -18,9 +18,9 @@ tasks:
       RANDOM_STRING:
         sh: openssl rand -hex 14
     log:
+      error: Error removing `{{.CLEAN_TARGETS}}`
       start: Removing `{{.CLEAN_TARGETS}}`
       success: Removed `{{.CLEAN_TARGETS}}`
-      error: Error removing `{{.CLEAN_TARGETS}}`
     cmds:
       - mkdir -p '/tmp/{{.RANDOM_STRING}}'
       - mkdir -p '/tmp/{{.RANDOM_STRING}}-empty'
@@ -40,8 +40,6 @@ tasks:
       - :install:npm:commitlint
       - :install:python:requirements
     desc: Lint staged files, report spelling errors, and open a _required_ commit dialoge
-    log:
-      start: Initiating commit dialog
     summary: |
       # Commit code
 
@@ -54,6 +52,8 @@ tasks:
       It is very important that you use this task to commit rather than the conventional approach
       using `git commit -m`. However, if you really need to, you can add the flag `--no-verify`
       to your regular `git commit -m` command to bypass the pre-commit hook.
+    log:
+      start: Initiating commit dialog
     cmds:
       - . ./.config/husky/pre-commit
       - exec < /dev/tty && git cz --hook || true
@@ -80,8 +80,8 @@ tasks:
     deps:
       - :install:npm:husky
     log:
-      start: Installing Husky git hooks
       error: Error installing Husky git hooks
+      start: Installing Husky git hooks
     cmds:
       - |
         if [ -d .git ] && [ "${container:=}" != 'docker' ]; then
@@ -95,9 +95,9 @@ tasks:
 
   husky:permissions:
     log:
+      error: Encountered error while ensuring git hook scripts have the appropriate permissions
       start: Ensuring git hook scripts are executable
       success: Ensured git hook scripts are executable
-      error: Encountered error while ensuring git hook scripts have the appropriate permissions
     cmds:
       - |
         chmod +x .config/log
@@ -160,16 +160,16 @@ tasks:
     deps:
       - software:git
     desc: 'Aggressively reset the project (**WARNING** This will wipe uncommitted work)'
-    log:
-      start: Forcing project to reset aggressively
-      success: Successfully reset project back to its HEAD
-      error: Failed to reset project back to its HEAD
     summary: |
       # Aggressively reset the project
 
       If using `task common:reset` does not fix your issues, you can run this task
       to completely wipe out uncommitted work, clear all the caches, and sync
       with the master branch of both this project and its upstream repositories.
+    log:
+      error: Failed to reset project back to its HEAD
+      start: Forcing project to reset aggressively
+      success: Successfully reset project back to its HEAD
     cmds:
       - task: clean
       - git reset --hard HEAD

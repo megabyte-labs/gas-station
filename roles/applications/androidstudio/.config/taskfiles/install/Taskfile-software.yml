@@ -21,6 +21,10 @@ tasks:
     deps:
       - common
     run: once
+    log:
+      error: Failed to install or load Homebrew
+      start: Ensuring Homebrew is installed and available
+      success: Successfully ensured Homebrew is installed
     cmds:
       - task: brew:{{OS}}
 
@@ -28,30 +32,27 @@ tasks:
     deps:
       - brew
     run: when_changed
+    log:
+      error: Failed to install `{{.CASK}}`
+      start: Ensuring the `{{.CASK}}` Homebrew cask is installed
+      success: Successfully installed `{{.CASK}}`
     cmds:
-      - |
-        .config/log info 'Installing the `{{.CASK}}` Homebrew cask'
-        brew install --cask {{.CASK}}
-        .config/log success 'Successfully installed the `{{.CASK}}` Homebrew cask'
+      - brew install --cask {{.CASK}}
     status:
       - type {{.CASK}} &> /dev/null
 
   brew:darwin:
     cmds:
       - |
-        .config/log info 'Ensuring Homebrew is installed and available'
         if ! type brew &> /dev/null; then
-          rm -rf ~/.local/homebrew
-          mkdir -p ~/.local/homebrew
-          git clone https://github.com/Homebrew/brew ~/.local/homebrew
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
-          .config/log info "Updating Homebrew"
-          brew update --force --quiet
-          chmod -R go-w "$(brew --prefix)/share/zsh"
-          .config/log success "Successfully installed Homebrew"
-          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
-          .config/log info 'Please close/open the terminal and re-run the same command to continue'
-          exit 1
+          if sudo -n bash; then
+            echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          if [ '{{.BODEGA}}' != 'true' ]; then
+            task install:software:exit:notice:reload
+          fi
         fi
       - task: brew:utils
     status:
@@ -61,11 +62,12 @@ tasks:
     deps:
       - brew
     run: when_changed
+    log:
+      error: Failed to install `{{.FORMULAE}}`
+      start: Ensuring the `{{.FORMULAE}}` Homebrew formulae is installed
+      success: Successfully installed `{{.FORMULAE}}`
     cmds:
-      - |
-        .config/log info 'Installing the `{{.FORMULAE}}` Homebrew package'
-        brew install {{.FORMULAE}}
-        .config/log success 'Successfully installed the `{{.FORMULAE}}` Homebrew package'
+      - brew install {{.FORMULAE}}
     status:
       - type {{.FORMULAE}} &> /dev/null
 
@@ -73,70 +75,41 @@ tasks:
     run: once
     cmds:
       - |
-        .config/log info 'Ensuring Homebrew is installed and available'
         function ensureSource() {
           if ! (grep "/bin/brew shellenv" < "$1" &> /dev/null); then
-            echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
+            echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$1"
           fi
         }
-        case "${SHELL}" in
-          */bash*)
-            if [[ -r "${HOME}/.bash_profile" ]]; then
-              SHELL_PROFILE="${HOME}/.bash_profile"
-            else
-              SHELL_PROFILE="${HOME}/.profile"
-            fi
-            ;;
-          */zsh*)
-            SHELL_PROFILE="${HOME}/.zshrc"
-            ;;
-          *)
-            SHELL_PROFILE="${HOME}/.profile"
-            ;;
-        esac
         if ! type brew &> /dev/null; then
-          rm -rf ~/.local/homebrew
-          mkdir -p ~/.local/homebrew
-          git clone https://github.com/Homebrew/brew ~/.local/homebrew
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
-          brew update --force --quiet
-          ensureSource "$SHELL_PROFILE"
-          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
-          .config/log info 'Please close/open the terminal and re-run the same command to continue'
-          exit 1
+          if sudo -n bash; then
+            echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ensureSource "$HOME/.profile"
+          if [ '{{.BODEGA}}' != 'true' ]; then
+            task install:software:exit:notice:reload
+          fi
         fi
     status:
       - type brew &> /dev/null || [[ "$OPTIMIZED_IMAGE" == 'true' ]]
 
   brew:utils:
     run: once
+    log:
+      error: Failed to setup GNU-compatibility tools
+      start: Installing GNU-compatibility tools for macOS via Homebrew
+      success: Successfully installed GNU-compatibility tools
     cmds:
-      - |
-        .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
-        brew install coreutils findutils gnu-sed grep gnu-tar gawk
-        .config/log success "Successfully installed GNU-compatibility tools"
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/findutils/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/gnu-sed/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/grep/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/gnu-tar/libexec/gnubin
+      - task: compatibility:coreutils
+      - task: compatibility:findutils
+      - task: compatibility:gnu-sed
+      - task: compatibility:grep
+      - task: compatibility:gnu-tar
+      - task: compatibility:gawk
     status:
-      - type gcp > /dev/null
-      - type gfind > /dev/null
-      - type gsed > /dev/null
-      - type ggrep > /dev/null
-      - type gtar > /dev/null
-      - type gawk > /dev/null
+      - '[ "{{OS}}" != "darwin" ]'
 
   brew:windows:
     cmds:
@@ -152,6 +125,10 @@ tasks:
 
   common:
     run: once
+    log:
+      error: There was an error ensuring common system tools are present
+      start: Ensuring common system tools are present
+      success: Ensured common system tools are present
     cmds:
       - task: common:{{OS}}
 
@@ -163,12 +140,12 @@ tasks:
     vars:
       CLT_STATUS:
         sh: brew config | grep CLT
+    log:
+      error: Failed to run `sudo xcode-select --install`
+      start: Running `sudo xcode-select --install` to install macOS developer tools
+      success: Successfully ran `sudo xcode-select --install`
     cmds:
-      - |
-        .config/log info "Installing xcode-select.. You might be prompted for a password"
-        .config/log info 'Running `xcode-select --install`'
-        xcode-select --install
-        .config/log success "Successfully installed xcode-select"
+      - sudo xcode-select --install
     status:
       - '[ "{{.CLT_STATUS}}" != "CLT: N/A" ]'
 
@@ -221,15 +198,15 @@ tasks:
   common:linux:redhat:
     interactive: true
     cmds:
-      - mkdir -p "$HOME/.config/mblabs"
+      - mkdir -p "$HOME/.config/bodega"
       - |
-        if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
-          yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
-          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+        if [ ! -f "$HOME/.config/bodega/yum-devtools-check-ran" ]; then
+          yum grouplist 'Development Tools' &> "$HOME/.config/bodega/yum-devtools-check-ran"
+          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/bodega/yum-devtools-check-ran" > /dev/null)"
           if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
             sudo yum groupinstall -y 'Development Tools'
           fi
-          touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+          touch "$HOME/.config/bodega/yum-devtools-check-ran"
         fi
         if ! rpm --quiet --query curl file git procps-ng; then
           .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
@@ -251,9 +228,48 @@ tasks:
         the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.'
 
   common:windows:
+    log:
+      error: Windows is not supported. Try using a Windows WSL environment.
     cmds:
-      - .config/log error "Windows is not supported. Try using a Windows WSL environment."
       - exit 1
+
+  compatibility:findutils:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: findutils
+    status:
+      - type gfind > /dev/null
+
+  compatibility:gawk:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gawk
+
+  compatibility:gnu-sed:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gnu-sed
+    status:
+      - type gsed > /dev/null
+
+  compatibility:gnu-tar:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gnu-tar
+    status:
+      - type gtar > /dev/null
+
+  compatibility:grep:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: grep
+    status:
+      - type ggrep > /dev/null
 
   container-structure-test:
     run: once
@@ -263,21 +279,12 @@ tasks:
           FORMULAE: container-structure-test
 
   coreutils:
-    deps:
-      - brew
-    run: once
     cmds:
-      - |
-        if [ '{{OS}}' == 'darwin' ] && ! type gsed > /dev/null; then
-          .config/log info 'Installing GNU compatibility tools (i.e. `coreutils`)'
-          brew install coreutils
-          .config/log success 'Successfully installed GNU compatibility tools (i.e. `coreutils`)'
-        fi
-      - task: :install:path:add
+      - task: brew:formulae
         vars:
-          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
+          FORMULAE: coreutils
     status:
-      - '[[ "{{OS}}" != "darwin" ]] && type gsed > /dev/null'
+      - type gcp > /dev/null || [ "{{OS}}" != "darwin" ]
 
   docker:
     run: once
@@ -417,6 +424,10 @@ tasks:
 
   pipx:
     run: once
+    log:
+      error: Failed to ensure `pipx` is installed
+      start: Ensuring `pipx` is installed
+      success: Successfully ensured `pipx` is installed
     cmds:
       - task: pipx:{{OS}}
     status:
@@ -426,23 +437,20 @@ tasks:
     deps:
       - brew
     cmds:
-      - .config/log info 'Installing pipx and running `pipx ensurepath`'
       - brew install pipx
       - pipx ensurepath
-      - .config/log success 'Successfully installed pipx'
 
   pipx:linux:
     deps:
       - :install:software:python
     cmds:
-      - .config/log info 'Installing pipx and running `pipx ensurepath`'
       - python3 -m pip install --user pipx
       - python3 -m pipx ensurepath
-      - .config/log success 'Successfully installed pipx'
 
   pipx:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
-      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
       - exit 1
 
   poetry:
@@ -461,19 +469,16 @@ tasks:
           FORMULAE: poetry
 
   poetry:linux:
-    deps:
-      - pipx
+    run: once
     cmds:
-      - pipx install poetry
-      - task: :install:path:add
+      - task: brew:formulae
         vars:
-          PATH_STRING: .local/pipx/venvs/poetry/bin
-    status:
-      - type poetry > /dev/null
+          FORMULAE: poetry
 
   poetry:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
-      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
       - exit 1
 
   python:
@@ -500,8 +505,9 @@ tasks:
           SOFTWARE: python
 
   python:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
-      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
       - exit 1
 
   rsync:

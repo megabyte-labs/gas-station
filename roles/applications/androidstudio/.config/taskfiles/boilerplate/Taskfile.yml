@@ -9,6 +9,10 @@ tasks:
       - :install:software:jq
     vars:
       BLUEPRINT_REQUIRED_FIELDS: title description group name overview slug subgroup
+    log:
+      error: Error occurred while validating/prompting for blueprint settings
+      start: Ensuring required fields in the blueprint section of `package.json` are present
+      succes: Successfully ensured `package.json` minimum blueprint requirements are present
     cmds:
       - |
         if [ "$(jq -r '.type' package.json)" != 'module' ]; then
@@ -44,6 +48,10 @@ tasks:
   clean:
     deps:
       - :install:software:jq
+    log:
+      error: Failed to clean `package.json`
+      start: Cleaning `package.json`
+      success: Cleaned `package.json`
     cmds:
       - |
         TMP="$(mktemp)"
@@ -57,6 +65,10 @@ tasks:
   prime:package:
     deps:
       - :install:software:jq
+    log:
+      error: Failed to merge shared `package.json` settings
+      start: Ensuring `package.json` has shared settings
+      success: Successfully merged shared `package.json` settings
     cmds:
       - curl -s https://gitlab.com/megabyte-labs/common/shared/-/raw/master/package.json > package-reference.json
       - |
@@ -78,9 +90,12 @@ tasks:
   update:taskfile:
     deps:
       - :install:software:yq
+    log:
+      error: Error encountered while ensuring `Taskfile.yml` has correct settings
+      start: Ensuring `Taskfile.yml` has correct settings
+      success: Successfully applied `Taskfile.yml` assurances
     cmds:
       - |
-        .config/log info 'Ensuring Taskfile.yml has correct variables'
         GROUP="$(jq -r '.blueprint.group' package.json)"
         SUBGROUP="$(jq -r '.blueprint.subgroup' package.json)"
         TASK_GROUP="$(yq eval '.vars.REPOSITORY_TYPE' Taskfile.yml)"
@@ -102,4 +117,3 @@ tasks:
           UPSTREAM='upstream:docs'
         fi
         yq e -i ".tasks.start.cmds[0].task = \"$UPSTREAM\"" Taskfile.yml
-        .config/log success 'Successfully ensured Taskfile.yml has correct variables'

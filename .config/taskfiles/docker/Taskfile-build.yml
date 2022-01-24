@@ -24,9 +24,9 @@ tasks:
       VERSION:
         sh: jq -r '.version' package.json
     log:
+      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
       start: Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)
       success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
-      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
     cmds:
       - docker build --build-arg BUILD_DATE="{{.BUILD_DATE}}" --build-arg REVISION="{{.REVISION}}" --build-arg VERSION="{{.VERSION}}"
         --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}} .
@@ -63,9 +63,9 @@ tasks:
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
     log:
+      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` with `docker-slim`
       start: Building Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
       success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
-      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` with `docker-slim`
     cmds:
       - docker-slim build --tag '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim' {{.SLIM_COMMAND}} '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest'
     sources:
@@ -81,9 +81,9 @@ tasks:
     deps:
       - :install:npm:prettier
     log:
+      error: Failed to format `slim.report.json` with Prettier
       start: Formatting `slim.report.json` with Prettier
       success: Formatted `slim.report.json` with Prettier
-      error: Failed to format `slim.report.json` with Prettier
     cmds:
       - '{{.NPX_HANDLE}}prettier --write slim.report.json > /dev/null'
     sources:
@@ -103,8 +103,8 @@ tasks:
         sh: 'docker manifest inspect -v "{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
           | awk "{$1=$1/(1024^2); print $1,\"MB\";}"'
     log:
-      start: Injecting `:slim` image file size into `package.json` blueprint data
       error: Failed to acquire / inject `:slim` image file size information into `package.json` blueprint data
+      start: Injecting `:slim` image file size into `package.json` blueprint data
     cmds:
       - |
         TMP="$(mktemp)"

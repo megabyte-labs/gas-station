@@ -2,22 +2,44 @@
 version: '3'
 
 tasks:
-  goget:
+  get:
     deps:
       - :install:software:go
     run: when_changed
+    log:
+      error: Failed to acquire Go package named `{{.PACKAGE}}`
+      start: Getting Go package named `{{.PACKAGE}}`
+      success: Retrieved Go packaged named `{{.PACKAGE}}`
     cmds:
-      - |
-        .config/log info 'Installing the `{{.PACKAGE}}` Go-lang package'
-        go get {{.PACKAGE}}
-        .config/log success 'Successfully installed the `{{.PACKAGE}}` Go-lang package'
+      - go get {{.PACKAGE}}
     status:
       - type {{.BIN}} &> /dev/null
+
+  goreleaser:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: goreleaser
+          PACKAGE: github.com/goreleaser/goreleaser@latest
 
   gotestsum:
     run: once
     cmds:
-      - task: goget
+      - task: get
         vars:
           BIN: gotestsum
           PACKAGE: gotest.tools/gotestsum
+
+  install:
+    deps:
+      - :install:software:go
+    run: when_changed
+    log:
+      error: Failed to install `{{.PACKAGE}}` with Go
+      start: Installing Go package named `{{.PACKAGE}}`
+      success: Successfully installed `{{.PACKAGE}}`
+    cmds:
+      - go install {{.PACKAGE}}
+    status:
+      - type {{.BIN}} &> /dev/null

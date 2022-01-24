@@ -1,88 +1,20 @@
 ---
 version: '3'
 
-includes:
-  ansible: ./.config/taskfiles/ansible/Taskfile.yml
-  ansible:ansibler: ./.config/taskfiles/ansible/Taskfile-ansibler.yml
-  ansible:playbook: ./.config/taskfiles/ansible/Taskfile-playbook.yml
-  ansible:populate: ./.config/taskfiles/ansible/Taskfile-populate.yml
-  ansible:test: ./.config/taskfiles/ansible/Taskfile-test.yml
-  boilerplate: ./.config/taskfiles/boilerplate/Taskfile.yml
-  ci: ./.config/taskfiles/ci/Taskfile.yml
-  ci:github: ./.config/taskfiles/ci/Taskfile-github.yml
-  common: ./.config/taskfiles/common/Taskfile.yml
-  project:
-    taskfile: Taskfile-project.yml
-    optional: true
-  common:code: ./.config/taskfiles/common/Taskfile-code.yml
-  common:update: ./.config/taskfiles/common/Taskfile-update.yml
-  docker: ./.config/taskfiles/docker/Taskfile.yml
-  docker:build: ./.config/taskfiles/docker/Taskfile-build.yml
-  docker:test: ./.config/taskfiles/docker/Taskfile-test.yml
-  docker:update: ./.config/taskfiles/docker/Taskfile-update.yml
-  fix: ./.config/taskfiles/fix/Taskfile.yml
-  git: ./.config/taskfiles/git/Taskfile.yml
-  git:github: ./.config/taskfiles/git/Taskfile-github.yml
-  git:gitlab: ./.config/taskfiles/git/Taskfile-gitlab.yml
-  git:hook: ./.config/taskfiles/git/Taskfile-hook.yml
-  go: ./.config/taskfiles/go/Taskfile.yml
-  go:goreleaser: ./.config/taskfiles/go/Taskfile-goreleaser.yml
-  go:test: ./.config/taskfiles/go/Taskfile-test.yml
-  image: ./.config/taskfiles/image/Taskfile.yml
-  install: ./.config/taskfiles/install/Taskfile.yml
-  install:go: ./.config/taskfiles/install/Taskfile-go.yml
-  install:npm: ./.config/taskfiles/install/Taskfile-npm.yml
-  install:python: ./.config/taskfiles/install/Taskfile-python.yml
-  install:software: ./.config/taskfiles/install/Taskfile-software.yml
-  lint: ./.config/taskfiles/lint/Taskfile.yml
-  lint:esprint: ./.config/taskfiles/lint/Taskfile-esprint.yml
-  lint:markdown: ./.config/taskfiles/lint/Taskfile-markdown.yml
-  lint:prose: ./.config/taskfiles/lint/Taskfile-prose.yml
-  nest: ./.config/taskfiles/nest/Taskfile.yml
-  npm: ./.config/taskfiles/npm/Taskfile.yml
-  npm:cov: ./.config/taskfiles/npm/Taskfile-cov.yml
-  npm:doc: ./.config/taskfiles/npm/Taskfile-doc.yml
-  packer: ./.config/taskfiles/packer/Taskfile.yml
-  packer:build: ./.config/taskfiles/packer/Taskfile-build.yml
-  packer:update: ./.config/taskfiles/packer/Taskfile-update.yml
-  publish: ./.config/taskfiles/publish/Taskfile.yml
-  publish:android: ./.config/taskfiles/publish/Taskfile-android.yml
-  publish:brew: ./.config/taskfiles/publish/Taskfile-brew.yml
-  publish:chrome: ./.config/taskfiles/publish/Taskfile-chrome.yml
-  publish:firefox: ./.config/taskfiles/publish/Taskfile-firefox.yml
-  publish:ios: ./.config/taskfiles/publish/Taskfile-ios.yml
-  publish:menubar: ./.config/taskfiles/publish/Taskfile-menubar.yml
-  publish:opera: ./.config/taskfiles/publish/Taskfile-opera.yml
-  python: ./.config/taskfiles/python/Taskfile.yml
-  python:test: ./.config/taskfiles/python/Taskfile-test.yml
-  release: ./.config/taskfiles/release/Taskfile.yml
-  security: ./.config/taskfiles/security/Taskfile.yml
-  symlink: ./.config/taskfiles/symlink/Taskfile.yml
-  upstream: ./.config/taskfiles/upstream/Taskfile.yml
-  upstream:common: ./.config/taskfiles/upstream/Taskfile-common.yml
-  upstream:commondocs: ./.config/taskfiles/upstream/Taskfile-commondocs.yml
-  upstream:docs: ./.config/taskfiles/upstream/Taskfile-docs.yml
-  upstream:project: ./.config/taskfiles/upstream/Taskfile-project.yml
-  upstream:shared: ./.config/taskfiles/upstream/Taskfile-shared.yml
-  vscode: ./.config/taskfiles/vscode/Taskfile.yml
-  web: ./.config/taskfiles/web/Taskfile.yml
-  web:ionic: ./.config/taskfiles/web/Taskfile-ionic.yml
-  web:nx: ./.config/taskfiles/web/Taskfile-nx.yml
-  web:profile: ./.config/taskfiles/web/Taskfile-profile.yml
-
 output: interleaved
 
 vars:
-  DOCKERHUB_PROFILE: megabytelabs
-  DOCKERHUB_USER: professormanhattan
+  DOCKERHUB_PROFILE: {{profile.dockerhub}}
+  DOCKERHUB_USER: {{profile.dockerHubUser}}{{#eq group 'ansible'}}
   ESLINT_FORMATTER: pretty
-  ESLINT_FORMATTER_OPTIONS: git-log pretty summary
+  ESLINT_FORMATTER_OPTIONS: git-log pretty summary{{#eq subgroup 'role'}}
   GALAXY_NAMESPACE:
     sh: "if [ -f meta/main.yml ]; then grep namespace < meta/main.yml | sed 's/.*namespace: \\(.*\\)$/\\1/g'; fi"
   GALAXY_ROLE_NAME:
-    sh: "if [ -f meta/main.yml ]; then grep role_name < meta/main.yml | sed 's/.*role_name: \\(.*\\)$/\\1/g'; fi"
-  GITHUB_ORG: ProfessorManhattan
-  GITHUB_USER: ProfessorManhattan
+    sh: "if [ -f meta/main.yml ]; then grep role_name < meta/main.yml | sed 's/.*role_name: \\(.*\\)$/\\1/g'; fi"{{/eq}}{{#eq subgroup 'playbook'}}
+  GALAXY_NAMESPACE: {{profile.galaxy}}{{/eq}}{{/eq}}
+  GITHUB_ORG: {{profile.github}}
+  GITHUB_USER: {{profile.github}}
   IGNORE_FOLDERS: -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*'
     -o -path './.github/*' -o -path './.gitlab/*' -o -path './.husky/*' -o -path './.modules/*' -o -path './.npm/*'
     -o -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*'
@@ -99,9 +31,17 @@ vars:
   PYTHON_HANDLE:
     sh: if [ -z "$GITLAB_CI" ] || [[ "$OPTIMIZED_IMAGE" == 'false' ]]; then echo 'poetry run '; fi
   PYTHON_VIRTUALENV: true
-  REPOSITORY_SUBTYPE: role
-  REPOSITORY_TYPE: ansible
+  REPOSITORY_SUBTYPE: {{subgroup}}
+  REPOSITORY_TYPE: {{group}}
   TIMEZONE: America/New_York
+
+includes:
+  project:
+    taskfile: Taskfile-project.yml
+    optional: true
+{{#each (taskfileSort (glob './.config/taskfiles/**/*.yml'))}}
+  {{remove (remove (remove (replace (remove this "./.config/taskfiles/") "/Taskfile-" ":") "/Taskfile.yml") "Taskfile-") ".yml"}}: {{this}}
+{{/each}}
 
 profile: |
   PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin"
@@ -138,16 +78,6 @@ tasks:
     cmds:
       - task: go:build
 
-  cmds:
-    - |
-      {{if .CLI_ARGS}}
-      git add --all
-      HUSKY=0 git commit -m "{{.CLI_ARGS}}" --no-verify
-      {{else}}
-      git add --all
-      git commit
-      {{end}}
-
   commit:
     deps:
       - install:software:git
@@ -170,7 +100,19 @@ tasks:
       ```
       task commit -- "Added new files that do not need to show up in CHANGELOG.md"
       ```
+  cmds:
+    - |
+      {{if .CLI_ARGS}}
+      git add --all
+      HUSKY=0 git commit -m "{{.CLI_ARGS}}" --no-verify
+      {{else}}
+      git add --all
+      git commit
+      {{end}}
+
   donothing: 'true'
+
+{{#eq group "ansible"}}
   environment:
     interactive: true
     desc: Symlink to an environment in the `environments/` folder
@@ -188,6 +130,7 @@ tasks:
       `task environment -- prod`
     cmds:
       - task: ansible:playbook:environment
+{{/eq}}
   fix:
     desc: Run code auto-fixers
     summary: |
@@ -241,7 +184,7 @@ tasks:
         if [ -n "$GITLAB_CI" ]; then
           if [ -n "$UPDATE_INIT_SCRIPT" ]; then curl -s "$UPDATE_INIT_SCRIPT" | bash; fi
         else
-          bash <(curl -s {{.INIT_SCRIPT}})
+          bash <(curl -s \{{.INIT_SCRIPT}})
         fi
 
   lint:
@@ -296,8 +239,31 @@ tasks:
         if [ ! -f Taskfile-project.yml ]; then
           .config/log error '`Taskfile-project.yml` must exist and have a `livereload` task to use with `nodemon`' && exit 1
         fi
-      - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
+      - nodemon --config \{{if .CLI_ARGS}}\{{.CLI_ARGS}}\{{else}}.config/nodemon.json\{{end}}
 
+{{#eq group 'ansible'}}{{#eq subgroup 'playbook'}}
+  playbook:
+    desc: Run the playbook
+    summary: |
+      # Run the playbook
+
+      This task will prompt you for the environment and inventory you would like to
+      run the `main.yml` playbook with. It will:
+
+      1. Symlink all roles in the `roles/` folder to `~/.ansible/roles`
+      2. Run `task environment` (which prompts and symlinks the appropriate environment)
+      3. Prompt for which inventory to use
+      4. Run `ansible-playbook -i inventories/your_choice --ask-vault-pass main.yml`
+
+      **Example usage:**
+      `task playbook`
+
+      **Example bypassing prompts, using the `inventories/inventory.yml` file:**
+      `task playbook -- inventory.yml`
+    cmds:
+      - task: ansible:playbook:run
+
+{{/eq}}{{/eq}}
   preload:
     deps:
       - install:brewfile
@@ -310,7 +276,7 @@ tasks:
       a handful of CLIs (and Python). This task will check for missing applications
       and install them globally. If you do not run this task, the routines will
       assume you want to keep the footprint small and use disposable virtual
-      environments whenever possible (i.e. `{{.NPX_PACKAGE}}` in the case of Node.js,
+      environments whenever possible (i.e. `\{{.NPX_PACKAGE}}` in the case of Node.js,
       `poetry` in the case of Python, etc.).
 
       ## Reboot Requirements
@@ -361,7 +327,7 @@ tasks:
       task is a convienience method that will present a list of scripts alongside
       their descriptions that you can interactively launch.
     cmds:
-      - NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl
+      - NTL_RUNNER=\{{.NPM_PROGRAM}} \{{.NPX_HANDLE}}ntl
 
   services:
     desc: Update elements of the repository that require API access
@@ -421,7 +387,8 @@ tasks:
       **Example usage:**
       `task start`
     cmds:
-      - task: upstream:project
+      - task: {{#eq group "common"}}upstream:{{#eq subgroup "shared"}}shared{{else}}common{{/eq}}{{else}}{{#eq group "documentation"}}upstream:{{#eq subgroup "shared"}}commondocs{{else}}docs{{/eq}}{{else}}upstream:project{{/eq}}{{/eq}}
+{{#eq group "ansible"}}
   test:
     interactive: true
     desc: Open an interactive dialog to select and run a Molecule test
@@ -438,3 +405,4 @@ tasks:
       5. Running the play over SSH on a remote target
     cmds:
       - task: ansible:test:prompt
+{{/eq}}

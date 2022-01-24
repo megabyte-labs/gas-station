@@ -17,6 +17,10 @@ tasks:
       CLEAN_TARGETS: .autodoc .task .venv node_modules
       RANDOM_STRING:
         sh: openssl rand -hex 14
+    log:
+      error: Error removing `{{.CLEAN_TARGETS}}`
+      start: Removing `{{.CLEAN_TARGETS}}`
+      success: Removed `{{.CLEAN_TARGETS}}`
     cmds:
       - mkdir -p '/tmp/{{.RANDOM_STRING}}'
       - mkdir -p '/tmp/{{.RANDOM_STRING}}-empty'
@@ -48,9 +52,10 @@ tasks:
       It is very important that you use this task to commit rather than the conventional approach
       using `git commit -m`. However, if you really need to, you can add the flag `--no-verify`
       to your regular `git commit -m` command to bypass the pre-commit hook.
+    log:
+      start: Initiating commit dialog
     cmds:
       - . ./.config/husky/pre-commit
-      - .config/log info "Initiating the commit dialog"
       - exec < /dev/tty && git cz --hook || true
 
   husky:
@@ -74,11 +79,14 @@ tasks:
   husky:install:
     deps:
       - :install:npm:husky
+    log:
+      error: Error installing Husky git hooks
+      start: Installing Husky git hooks
     cmds:
       - |
         if [ -d .git ] && [ "${container:=}" != 'docker' ]; then
           {{.NPX_HANDLE}}husky install .config/husky > /dev/null
-          .config/log success 'Installed husky git hooks'
+          .config/log success 'Installed Husky git hooks'
         else
           .config/log warn 'Cannot run `husky install` because there is no `.git/` folder (or this is a Docker container)'
         fi
@@ -86,6 +94,10 @@ tasks:
       - '[ ! -d .git ] || [[ "${container:=} == "docker" ]]'
 
   husky:permissions:
+    log:
+      error: Encountered error while ensuring git hook scripts have the appropriate permissions
+      start: Ensuring git hook scripts are executable
+      success: Ensured git hook scripts are executable
     cmds:
       - |
         chmod +x .config/log
@@ -154,6 +166,10 @@ tasks:
       If using `task common:reset` does not fix your issues, you can run this task
       to completely wipe out uncommitted work, clear all the caches, and sync
       with the master branch of both this project and its upstream repositories.
+    log:
+      error: Failed to reset project back to its HEAD
+      start: Forcing project to reset aggressively
+      success: Successfully reset project back to its HEAD
     cmds:
       - task: clean
       - git reset --hard HEAD
@@ -165,31 +181,6 @@ tasks:
   shell:
     deps:
       - :install:software:docker
-    desc: Start a terminal session using Docker with any Linux operating system
-    summary: |
-      # Start a Docker terminal session
-
-      Use Docker to run commands on nearly any operating system. The operating
-      systems are all stock distros with systemd added.
-
-      **Example opening an interactive prompt:**
-      `task shell`
-
-      **Example of directly shelling into a container:**
-      `task shell -- ubuntu-21.04`
-
-      ## Available operating systems (that you can use with the example above):
-
-      * archlinux
-      * centos-7
-      * centos-8
-      * debian-9
-      * debian-10
-      * fedora-33
-      * fedora-34
-      * ubuntu-18.04
-      * ubuntu-20.04
-      * ubuntu-21.04
     cmds:
       - task: shell:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}
 
@@ -197,8 +188,11 @@ tasks:
     vars:
       WORKDIR:
         sh: basename $PWD
+    log:
+      start: Starting a Docker container for `{{.CLI_ARGS}}` and attaching to `/bin/bash`
     cmds:
-      - cmd: docker run --cap-drop=ALL -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.CLI_ARGS}}:latest /bin/bash
+      - .config/log info 'Running `docker run -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.CLI_ARGS}}:latest /bin/bash`'
+      - cmd: docker run -it -v "$PWD:/{{.WORKDIR}}" -w /{{.WORKDIR}} --rm megabytelabs/ansible-molecule-{{.CLI_ARGS}}:latest /bin/bash
         ignore_error: true
 
   shell:prompt:

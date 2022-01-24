@@ -119,6 +119,9 @@ tasks:
       - task: group:exec:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}
 
   group:exec:cli:
+    log:
+      error: Failed to run group:exec logic
+      start: Running group:exec logic
     cmds:
       - task git:gitlab:group:repositories -- {{index (splitList " ---- " .CLI_ARGS) 0}}
       - |
@@ -146,7 +149,7 @@ tasks:
         }
         cat {{.REPOSITORY_LIST}} | (while IFS= read -r REPO_DETAILS; do
           .config/log info "Executing logic on $REPO_DETAILS"
-          execRepo "$REPO_DETAILS" &
+          execRepo "$REPO_DETAILS"{{.CLI_ARGS}}
         done
         wait)
 

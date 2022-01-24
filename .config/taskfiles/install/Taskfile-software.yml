@@ -1,4 +1,3 @@
-# eslint-disable eslint-comments/disable-enable-pair, max-lines
 ---
 version: '3'
 
@@ -21,23 +20,23 @@ tasks:
     deps:
       - common
     run: once
-    cmds:
-      - task: brew:{{OS}}
-
     log:
       error: Failed to install or load Homebrew
       start: Ensuring Homebrew is installed and available
       success: Successfully ensured Homebrew is installed
+    cmds:
+      - task: brew:{{OS}}
+
   brew:cask:
     deps:
       - brew
     run: when_changed
-    cmds:
-      - brew install --cask {{.CASK}}
     log:
       error: Failed to install `{{.CASK}}`
       start: Ensuring the `{{.CASK}}` Homebrew cask is installed
       success: Successfully installed `{{.CASK}}`
+    cmds:
+      - brew install --cask {{.CASK}}
     status:
       - type {{.CASK}} &> /dev/null
 
@@ -62,12 +61,12 @@ tasks:
     deps:
       - brew
     run: when_changed
-    cmds:
-      - brew install {{.FORMULAE}}
     log:
       error: Failed to install `{{.FORMULAE}}`
       start: Ensuring the `{{.FORMULAE}}` Homebrew formulae is installed
       success: Successfully installed `{{.FORMULAE}}`
+    cmds:
+      - brew install {{.FORMULAE}}
     status:
       - type {{.FORMULAE}} &> /dev/null
 
@@ -97,6 +96,10 @@ tasks:
 
   brew:utils:
     run: once
+    log:
+      error: Failed to setup GNU-compatibility tools
+      start: Installing GNU-compatibility tools for macOS via Homebrew
+      success: Successfully installed GNU-compatibility tools
     cmds:
       - task: compatibility:coreutils
       - task: compatibility:findutils
@@ -104,10 +107,6 @@ tasks:
       - task: compatibility:grep
       - task: compatibility:gnu-tar
       - task: compatibility:gawk
-    log:
-      error: Failed to setup GNU-compatibility tools
-      start: Installing GNU-compatibility tools for macOS via Homebrew
-      success: Successfully installed GNU-compatibility tools
     status:
       - '[ "{{OS}}" != "darwin" ]'
 
@@ -125,13 +124,13 @@ tasks:
 
   common:
     run: once
-    cmds:
-      - task: common:{{OS}}
-
     log:
       error: There was an error ensuring common system tools are present
       start: Ensuring common system tools are present
       success: Ensured common system tools are present
+    cmds:
+      - task: common:{{OS}}
+
   common:darwin:
     cmds:
       - task: common:darwin:xcode
@@ -140,12 +139,12 @@ tasks:
     vars:
       CLT_STATUS:
         sh: brew config | grep CLT
-    cmds:
-      - sudo xcode-select --install
     log:
       error: Failed to run `sudo xcode-select --install`
       start: Running `sudo xcode-select --install` to install macOS developer tools
       success: Successfully ran `sudo xcode-select --install`
+    cmds:
+      - sudo xcode-select --install
     status:
       - '[ "{{.CLT_STATUS}}" != "CLT: N/A" ]'
 
@@ -228,11 +227,11 @@ tasks:
         the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.'
 
   common:windows:
+    log:
+      error: Windows is not supported. Try using a Windows WSL environment.
     cmds:
       - exit 1
 
-    log:
-      error: Windows is not supported. Try using a Windows WSL environment.
   compatibility:findutils:
     cmds:
       - task: brew:formulae
@@ -424,12 +423,12 @@ tasks:
 
   pipx:
     run: once
-    cmds:
-      - task: pipx:{{OS}}
     log:
       error: Failed to ensure `pipx` is installed
       start: Ensuring `pipx` is installed
       success: Successfully ensured `pipx` is installed
+    cmds:
+      - task: pipx:{{OS}}
     status:
       - type pipx > /dev/null
 
@@ -448,11 +447,11 @@ tasks:
       - python3 -m pipx ensurepath
 
   pipx:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
       - exit 1
 
-    log:
-      error: These scripts are not currently compatible with Windows. Try using WSL.
   poetry:
     run: once
     cmds:
@@ -476,11 +475,11 @@ tasks:
           FORMULAE: poetry
 
   poetry:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
       - exit 1
 
-    log:
-      error: These scripts are not currently compatible with Windows. Try using WSL.
   python:
     deps:
       - brew # bug fix
@@ -505,11 +504,11 @@ tasks:
           SOFTWARE: python
 
   python:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
       - exit 1
 
-    log:
-      error: These scripts are not currently compatible with Windows. Try using WSL.
   rsync:
     run: once
     cmds:

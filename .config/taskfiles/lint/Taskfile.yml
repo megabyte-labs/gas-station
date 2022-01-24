@@ -153,14 +153,14 @@ tasks:
 
       **Example linting specific pattern of files:**
       `task lint:eslint -- '**/*.js'`
+    log:
+      start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint
+      success: Successfully passed the ESLint test (please still address warnings)
     cmds:
       - >
         {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
-    log:
-      start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint
-      success: Successfully passed the ESLint test (please still address warnings)
   eslint:warn-all:
     deps:
       - :install:modules:local
@@ -171,6 +171,10 @@ tasks:
 
       This task will run ESLint against the project and then automatically inline
       all reported errors as warnings in `package.json`.
+    log:
+      error: Encountered error while converting `eslint` errors to warnings
+      start: Overriding all errors reported from `eslint` as `warnings` in `package.json`
+      success: Successfully overrode `eslint` errors as warnings
     cmds:
       - >
         ESLINT_TMP="$(mktemp)"
@@ -188,10 +192,6 @@ tasks:
           fi;
         done < "$ESLINT_TMP"
 
-    log:
-      error: Encountered error while converting `eslint` errors to warnings
-      start: Overriding all errors reported from `eslint` as `warnings` in `package.json`
-      success: Successfully overrode `eslint` errors as warnings
   js:
     deps:
       - :install:modules:local

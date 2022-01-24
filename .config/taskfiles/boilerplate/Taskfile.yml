@@ -4,15 +4,15 @@ version: '3'
 tasks:
   check:package:
     interactive: true
-    log:
-      start: Ensuring required fields in the blueprint section of `package.json` are present
-      succes: Successfully ensured `package.json` minimum blueprint requirements are present
-      error: Error occurred while validating/prompting for blueprint settings
     deps:
       - :install:modules:local
       - :install:software:jq
     vars:
       BLUEPRINT_REQUIRED_FIELDS: title description group name overview slug subgroup
+    log:
+      error: Error occurred while validating/prompting for blueprint settings
+      start: Ensuring required fields in the blueprint section of `package.json` are present
+      succes: Successfully ensured `package.json` minimum blueprint requirements are present
     cmds:
       - |
         if [ "$(jq -r '.type' package.json)" != 'module' ]; then
@@ -49,9 +49,9 @@ tasks:
     deps:
       - :install:software:jq
     log:
+      error: Failed to clean `package.json`
       start: Cleaning `package.json`
       success: Cleaned `package.json`
-      error: Failed to clean `package.json`
     cmds:
       - |
         TMP="$(mktemp)"
@@ -66,9 +66,9 @@ tasks:
     deps:
       - :install:software:jq
     log:
+      error: Failed to merge shared `package.json` settings
       start: Ensuring `package.json` has shared settings
       success: Successfully merged shared `package.json` settings
-      error: Failed to merge shared `package.json` settings
     cmds:
       - curl -s https://gitlab.com/megabyte-labs/common/shared/-/raw/master/package.json > package-reference.json
       - |
@@ -91,9 +91,9 @@ tasks:
     deps:
       - :install:software:yq
     log:
+      error: Error encountered while ensuring `Taskfile.yml` has correct settings
       start: Ensuring `Taskfile.yml` has correct settings
       success: Successfully applied `Taskfile.yml` assurances
-      error: Error encountered while ensuring `Taskfile.yml` has correct settings
     cmds:
       - |
         GROUP="$(jq -r '.blueprint.group' package.json)"

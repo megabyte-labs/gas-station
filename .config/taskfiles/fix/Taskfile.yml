@@ -7,8 +7,6 @@ vars:
 
 tasks:
   all:
-    log:
-      start: Running all stable fixers in parallel
     deps:
       - eslint
       - misc
@@ -16,6 +14,8 @@ tasks:
       - '{{if .REPOSITORY_TYPE eq "python"}}python{{else}}:donothing{{end}}'
       - toml
       - xml
+    log:
+      start: Running all stable fixers in parallel
     cmds:
       - task: yaml:dashes
 
@@ -37,9 +37,9 @@ tasks:
       **Example fixing all JS/TS files in a project:**
       `task fix:js`
     log:
+      error: ESLint found some issues that need to be fixed manually
       start: Auto-fixing with ESLint
       success: ESLint fixing appears to have corrected all the issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
-      error: ESLint found some issues that need to be fixed manually
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache --cache-location .cache/eslintcache
         --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
@@ -65,9 +65,9 @@ tasks:
       **Example looping through project:**
       `task fix:json`
     log:
+      error: '{{if .CLI_ARGS}}Manual fixing is still required for `{{.CLI_ARGS}}`{{else}}Failed to fix all project JSON issues with ESLint{{end}}'
       start: Linting JSON with ESLint
       success: ESLint has fixed all of the JSON issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
-      error: '{{if .CLI_ARGS}}Manual fixing is still required for `{{.CLI_ARGS}}`{{else}}Failed to fix all project JSON issues with ESLint{{end}}'
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
         --format pretty --ext .json {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
@@ -91,9 +91,9 @@ tasks:
       **Example applying fixes to single file:**
       `task fix:misc -- singlefile.js`
     log:
+      error: Encountered an error while performing miscellaneous fixes{{if .CLI_ARGS}} on `{{.CLI_ARGS}}`{{end}}
       start: Performing miscellaneous fixes such as removing BOM and ensuring LF line endings
       success: Finished performing miscellaneous fixes{{if .CLI_ARGS}} on `{{.CLI_ARGS}}`{{end}}
-      error: Encountered an error while performing miscellaneous fixes{{if .CLI_ARGS}} on `{{.CLI_ARGS}}`{{end}}
     cmds:
       - |
         function misc() {
@@ -129,8 +129,8 @@ tasks:
       For more information on `packer fix`, see [Packer's website](https://www.packer.io/docs/commands/fix).
     log:
       start: Attempting to fix Packer template{{if .CLI_ARGS}}{{else}}s{{end}}
-      success: Successfully ran `packer fix` on the template(s)
       stop: Error running `packer fix`
+      success: Successfully ran `packer fix` on the template(s)
     cmds:
       - |
         function packerFix() {
@@ -194,9 +194,9 @@ tasks:
 
       For more information, see [Black's GitHub page](https://github.com/psf/black).
     log:
+      error: Error while running `black` auto-fixer
       start: Fixing Python with `black`
       success: Fixed {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} with `black`
-      error: Error while running `black` auto-fixer
     cmds:
       - |
         {{if .CLI_ARGS}}
@@ -239,9 +239,9 @@ tasks:
 
       For more information, see [Shellcheck's GitHub page](https://github.com/koalaman/shellcheck).
     log:
+      error: Encountered an error while linting with `shellcheck` on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
       start: Running `shellcheck` auto-fixer
       success: Autofixed {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} with `shellcheck`
-      error: Encountered an error while linting with `shellcheck` on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
     cmds:
       - |
         .config/log warn 'This is an experimental fix method - please manually inspect and test the scripts'
@@ -309,9 +309,9 @@ tasks:
       **Example usage for one specific file:**
       `task fix:yaml:dashes -- path/filename.yml`
     log:
+      error: Error encountered while ensuring YML dashes
       start: Ensuring {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} has YML files that start with `---`
       success: Successfully ensured {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} has YML files that start with `---`
-      error: Error encountered while ensuring YML dashes
     cmds:
       - |
         function yamlDashes() {
@@ -350,9 +350,9 @@ tasks:
       **Example fixing specific `.yml` file(s):**
       `task fix:yaml:order -- 'file_name.{yml,yaml}'`
     log:
+      error: There are still some errors. Try running the command again.
       start: Ensuring YML file(s) are in order specified in configuration
       success: Successfully ensured YML file order
-      error: There are still some errors. Try running the command again.
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --fix --cache
         --cache-location .cache/eslintcache --ext yml,yaml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'

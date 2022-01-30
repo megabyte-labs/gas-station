@@ -2,9 +2,10 @@
 - name: "Ensure {{ app_name }} is installed"  # noqa 303
   become_user: "{{ user.username }}"
   shell: |
-    set -o pipefail && curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+    set -o pipefail && curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | (python - || python3 -)
   args:
     creates: ~/.poetry/bin
+    executable: /bin/bash
 
 # @action: Revisit at a later point once support for Python 3.10 is added to Poetry and remove
 # this step, and the step in `install-<ansible_os_family>.yml` where Python 3.9 is installed
@@ -14,6 +15,13 @@
     path: ~/.poetry/bin/poetry
     regexp: '^#!/usr/bin/env python'
     line: '#!/usr/bin/env python3.9'
+
+- name: "Ensure {{ app_name }} is linked"
+  become_user: "{{ user.username }}"
+  file:
+    src: ~/.poetry/bin/poetry
+    dest: ~/.local/bin/poetry
+    state: link
 
 - name: Ensure Bash completions is setup
   become_user: "{{ user.username }}"

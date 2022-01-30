@@ -32,8 +32,8 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} Desktop's AppImage is already installed"
   set_fact:
-    install_appiumdesktop: "{{ (current_appiumdesktop_version.skipped) or \
-      ((not current_appiumdesktop_version.skipped) and \
+    install_appiumdesktop: "{{ (current_appiumdesktop_version.skipped | default('false')) or \
+      ((not current_appiumdesktop_version.skipped | default('false')) and \
       (current_appiumdesktop_version.stdout != appiumdesktop_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Acquire the latest {{ app_name }} Desktop AppImage"
@@ -91,15 +91,15 @@
 
 - name: "Determine whether or not the latest version of Appium Inspector's AppImage is already installed"
   set_fact:
-    install_appium_inspector: "{{ (current_appium_inspector_version.skipped) or \
-      ((not current_appium_inspector_version.skipped) and \
+    install_appium_inspector: "{{ (current_appium_inspector_version.skipped | default('false')) or \
+      ((not current_appium_inspector_version.skipped | default('false')) and \
       (current_appium_inspector_version.stdout != appium_inspector_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Acquire the latest Appium Inspector AppImage"
   get_url:
     url: "https://github.com/appium/appium-inspector/releases/download/{{ appium_inspector_latest_release_tag.json.tag_name }}/\
       Appium-Inspector-linux-{{ appium_inspector_latest_release_tag.json.tag_name | replace('v','') }}.AppImage"
-    dest: "{{ appium_inspector_src_path }}/Appium-Inspector.AppImage"
+    dest: "{{ appiumdesktop_src_path }}/Appium-Inspector.AppImage"
     mode: 0755
   when: install_appium_inspector
 
@@ -117,7 +117,7 @@
 
 - name: "Ensure Appium Inspector AppImage is removed from /usr/local/bin"
   file:
-    path: "{{ appium_inspector_src_path }}/Appium-Inspector.AppImage"
+    path: "{{ appiumdesktop_src_path }}/Appium-Inspector.AppImage"
     state: absent
   when: install_appium_inspector
 

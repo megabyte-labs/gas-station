@@ -11,13 +11,13 @@
     path: "{{ workstation_tempdir }}"
     state: directory
     mode: 0755
-  when: ansible_os_family == 'Linux'
+  when: ansible_system == 'Linux'
 
-- name: Check for pre-downloaded binary
+- name: Check for existing installation
   stat:
-    path: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
+    path: "/usr/bin/vmware"
   register: file_stats
-  when: ansible_os_family == 'Linux'
+  when: ansible_system == 'Linux'
 
 - name: Download workstation # noqa 303
   command: |
@@ -26,14 +26,16 @@
   args:
     creates: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
   when:
-    - ansible_os_family == 'Linux'
+    - ansible_system == 'Linux'
     - not file_stats.stat.exists
 
 - name: Ensure Workstation installer is executable
   file:
     path: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
     mode: 0755
-  when: ansible_os_family == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - not file_stats.stat.exists
 
 - name: Run installer
   become: true
@@ -43,7 +45,9 @@
     if workstation_license is defined else '' }}
   args:
     creates: /usr/bin/vmware
-  when: ansible_os_family == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - not file_stats.stat.exists
   tags:
     - skip_ansible_lint
 
@@ -54,14 +58,14 @@
     state: present
   loop: "{{ workstation_extra_packages }}"
   when:
-    - ansible_os_family == 'Linux'
+    - ansible_system == 'Linux'
     - workstation_extra_packages is defined
 
 - name: Stat for systemd
   stat:
     path: /etc/systemd/system
   register: systemd_dir
-  when: ansible_os_family == 'Linux'
+  when: ansible_system == 'Linux'
 
 - name: Install systemd services
   copy:
@@ -75,7 +79,7 @@
     - vmware-workstation-server.service
   notify: reload systemd configurations
   when:
-    - ansible_os_family == 'Linux'
+    - ansible_system == 'Linux'
     - systemd_dir.stat.exists
 
 - name: Clone Unlocker (for running Mac OS X on VMWare)
@@ -85,14 +89,14 @@
     force: true
     repo: "{{ unlocker_git }}"
     version: master
-  when: ansible_os_family == 'Darwin'
+  when: ansible_system == 'Darwin'
 
 - name: Update python to python3 in lnx-install.sh
   lineinfile:
     path: "{{ unlocker_temp_dir }}/lnx-install.sh"
     regex: "python gettools.py"
     line: python3 gettools.py
-  when: ansible_os_family == 'Darwin'
+  when: ansible_system == 'Darwin'
 
 # @action: Test this on Mac
 - name: Patch VMWare for Mac OS X
@@ -100,10 +104,10 @@
   args:
     chdir: "{{ unlocker_temp_dir }}"
     creates: /usr/lib/vmware/isoimages/darwin.iso
-  when: ansible_os_family == 'Darwin'
+  when: ansible_system == 'Darwin'
 
 - name: Remove the temporary Unlocker directory
   file:
     path: "{{ unlocker_temp_dir }}"
     state: absent
-  when: ansible_os_family == 'Darwin'
+  when: ansible_system == 'Darwin'

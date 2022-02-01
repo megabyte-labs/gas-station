@@ -15,6 +15,8 @@ if [ -n "$GITLAB_CI" ]; then
   git checkout master
 fi
 
+TMP="$(mktemp)" && sed 's/- :install:software:/- install:software:/g' < Taskfile.yml > "$TMP" && mv "$TMP" Taskfile.yml
+
 mkdir -p .config/taskfiles/install
 curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.config/taskfiles/install/Taskfile-python.yml > .config/taskfiles/install/Taskfile-python.yml
 mkdir -p .config/taskfiles/ci

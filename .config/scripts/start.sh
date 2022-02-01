@@ -29,7 +29,7 @@ function logger() {
   else
     if [ "$1" == 'error' ]; then
       echo "ERROR:   ""$2"
-    elif [ "$1" == 'info']; then
+    elif [ "$1" == 'info' ]; then
       echo "INFO:    ""$2"
     elif [ "$1" == 'success' ]; then
       echo "SUCCESS: ""$2"

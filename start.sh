@@ -372,6 +372,6 @@ if [ -z "$GITLAB_CI" ] && [ -z "$INIT_CWD" ]; then
   # shellcheck disable=SC1091
   . "$HOME/.profile"
   task start
-  # shellcheck disable=SC2028
+  # shellcheck disable=SC2016
   logger info 'There may have been changes to your PATH variable. You may have to reload your terminal or run:\n\n`. "$HOME/.profile"`'
 fi

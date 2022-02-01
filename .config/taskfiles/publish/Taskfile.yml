@@ -10,7 +10,11 @@ tasks:
       - :publish:ios:beta
       - :publish:opera:private
     desc: Publish a beta release of all the release targets
+    log:
+      error: Error publishing beta release
 
+      start: Publishing beta release
+      success: Finished publishing beta release
   app:release:
     deps:
       - :publish:android:release
@@ -21,3 +25,22 @@ tasks:
       - :publish:opera:release
       - :publish:menubar:release
     desc: Publish a production release of all the targets
+    log:
+      error: Error publishing `production` release
+
+      start: Publishing `production` release
+      success: Successfully published `production` release
+  semantic-release:
+    deps:
+      - :install:modules:local
+      - :install:npm:semantic-release
+      - :install:software:git
+      - :install:software:poetry
+    log:
+      error: Error while running `semantic-release`
+      start: Releasing with `semantic-release`..
+      success: Finished running `semantic-release`
+    cmds:
+      - task install:modules:local:sync -- {{.SEMANTIC_CONFIG}}
+      - task: :common:update:variables
+      - GIT_CREDENTIALS="gitlab-ci-token:$CI_BUILD_TOKEN" semantic-release -r "$(git remote get-url origin)"{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}

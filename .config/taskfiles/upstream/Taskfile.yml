@@ -3,6 +3,10 @@ version: '3'
 
 tasks:
   common:
+    log:
+      error: Error updating common repository
+      start: Updating common repository
+      success: Finished updating common repository
     cmds:
       - task: :upstream:common:reset
       - task: :upstream:common:clone
@@ -15,6 +19,10 @@ tasks:
       - task: :fix:eslint
 
   commondocs:
+    log:
+      error: Error updating common documents repository
+      start: Updating common documents repository
+      success: Finished updating common documents repository
     cmds:
       - task: :upstream:commondocs:clone
       - task: :upstream:commondocs:copy
@@ -24,6 +32,10 @@ tasks:
       - task: :fix:eslint
 
   docs:
+    log:
+      error: Error updating document repository
+      start: Updating document repository
+      success: Finished updating document repository
     cmds:
       - task: :upstream:docs:clone
       - task: :upstream:docs:copy
@@ -34,6 +46,10 @@ tasks:
       - task: :fix:eslint
 
   project:
+    log:
+      error: Error updating project repository
+      start: Running project update logic
+      success: Finished running project update logic
     cmds:
       - task: pull
       - task: :upstream:project:clone
@@ -50,6 +66,10 @@ tasks:
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:galaxy:import{{else}}donothing{{end}}
 
   project:scaffold-only:
+    log:
+      error: Error scaffolding project
+      start: Scaffolding project
+      success: Finished scaffolding project
     cmds:
       - task: pull
       - task: :upstream:project:clone
@@ -65,6 +85,10 @@ tasks:
   pull:
     deps:
       - :install:software:git
+    log:
+      error: Error executing initial `git pull` logic
+      start: Determining whether or not to `git pull`
+      success: Finished initial `git pull` logic
     cmds:
       - |
         if ([ -f "$HOME/.ssh/known_hosts" ] && [ ! -n "$(grep "^gitlab.com " "$HOME/.ssh/known_hosts")" ]) || [[ "${container:=}" == "docker" ]]; then
@@ -81,6 +105,10 @@ tasks:
         ignore_error: true
 
   shared:
+    log:
+      error: Error running shared repository update logic
+      start: Running shared repository update logic
+      success: Finished running shared repository update logic
     cmds:
       - task: pull
       - task: :upstream:shared:copy
@@ -104,6 +132,10 @@ tasks:
     env:
       TMP:
         sh: mktemp
+    log:
+      error: Error encountered while generating files from `liquid` template files
+      start: Generating files from `liquid` template files
+      success: Successfully generated files from templates
     cmds:
       - |
         if [[ '{{.REPOSITORY_TYPE}}' == 'python' ]] && [ -f '.config/brew/python.rb.liquid' ]; then
@@ -125,7 +157,7 @@ tasks:
           handlebars "$FILE" &
         done < <(find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid')
         while read CONFIG_FILE; do
-          handlebars "$CONFIG_FILE" &
+          handlebars "$CONFIG_FILE"
         done < <(find .config -type f -name '*.liquid')
         wait
       - |
@@ -151,12 +183,15 @@ tasks:
   variables:
     deps:
       - :install:software:jq
-      - :install:software:yq
     env:
       FILE_INPUT:
         sh: if [ -f '{{.INPUT_FILE}}' ]; then echo {{.INPUT_FILE}}; else echo ".variables.json"; fi
       TMP:
         sh: mktemp
+    log:
+      error: Encountered error while injecting `{{.OUTPUT_FILE}}` with variables
+      start: Injecting `{{.OUTPUT_FILE}}` with variables
+      success: Successfully injected `{{.OUTPUT_FILE}}` with variables
     cmds:
       - |
         if [[ "$(jq '.keywords' package.json)" == 'null' ]]; then

@@ -16,31 +16,6 @@ if [ -f .config/log ]; then
   chmod +x .config/log
 fi
 
-# @description Proxy function for handling logs in this script
-#
-# @example
-#   logger warn "Warning message"
-#
-# @arg $1 string The type of log message (can be info, warn, success, or error)
-# @arg $2 string The message to log
-function logger() {
-  if [ -f .config/log ]; then
-    .config/log "$1" "$2"
-  else
-    if [ "$1" == 'error' ]; then
-      echo "ERROR:   ""$2"
-    elif [ "$1" == 'info']; then
-      echo "INFO:    ""$2"
-    elif [ "$1" == 'success' ]; then
-      echo "SUCCESS: ""$2"
-    elif [ "$1" == 'warn' ]; then
-      echo "WARNING: ""$2"
-    else
-      echo "$2"
-    fi
-  fi
-}
-
 # @description Installs package when user is root on Linux
 #
 # @example
@@ -75,12 +50,12 @@ function ensureRootPackageInstalled() {
 # can only be invoked by non-root users.
 if [ "$EUID" -eq 0 ] && [ -z "$INIT_CWD" ] && type useradd &> /dev/null; then
   # shellcheck disable=SC2016
-  logger info 'Running as root - creating seperate user named `megabyte` to run script with'
+  echo 'INFO:    Running as root - creating seperate user named `megabyte` to run script with'
   echo "megabyte ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
   useradd -m -s "$(which bash)" -c "Megabyte Labs Homebrew Account" megabyte
   ensureRootPackageInstalled "sudo"
   # shellcheck disable=SC2016
-  logger info 'Reloading the script with the `megabyte` user'
+  echo 'INFO:    Reloading the script with the `megabyte` user'
   exec su megabyte "$0" -- "$@"
 fi
 
@@ -111,14 +86,14 @@ function ensureLocalPath() {
     mkdir -p "$HOME/.local/bin"
     if grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
       echo -e "${PATH_STRING}\n" >> "$HOME/.profile"
-      logger info "Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
+      echo "INFO:    Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
     fi
   elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-    logger error "Windows is not directly supported. Use WSL or Docker." && exit 1
+    echo "Windows is not directly supported. Use WSL or Docker." && exit 1
   elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-    logger error "FreeBSD support not added yet" && exit 1
+    echo "FreeBSD support not added yet" && exit 1
   else
-    logger warn "System type not recognized"
+    echo "System type not recognized"
   fi
 }
 
@@ -149,14 +124,14 @@ function ensurePackageInstalled() {
         apk update
         apk add -y "$1"
       else
-        logger error "$1 is missing. Please install $1 to continue." && exit 1
+        echo "ERROR: $1 is missing. Please install $1 to continue." && exit 1
       fi
     elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-      logger error "Windows is not directly supported. Use WSL or Docker." && exit 1
+      echo "ERROR: Windows is not directly supported. Use WSL or Docker." && exit 1
     elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-      logger error "FreeBSD support not added yet" && exit 1
+      echo "ERROR: FreeBSD support not added yet" && exit 1
     else
-      logger error "System type not recognized"
+      echo "ERROR: System type not recognized"
     fi
   fi
 }
@@ -178,31 +153,26 @@ function ensureTaskInstalled() {
     if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl' ]]; then
       installTask
     elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-      logger error "Windows is not directly supported. Use WSL or Docker." && exit 1
+      echo "ERROR: Windows is not directly supported. Use WSL or Docker." && exit 1
     elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-      logger error "FreeBSD support not added yet" && exit 1
+      echo "ERROR: FreeBSD support not added yet" && exit 1
     else
-      logger error "System type not recognized. You must install task manually." && exit 1
+      echo "ERROR: System type not recognized. You must install task manually." && exit 1
     fi
   else
-    logger info "Checking for latest version of Task"
+    echo "INFO:    Checking for latest version of Task"
     CURRENT_VERSION="$(task --version | cut -d' ' -f3 | cut -c 2-)"
     LATEST_VERSION="$(curl -s "$TASK_RELEASE_API" | grep tag_name | cut -c 17- | sed 's/\",//')"
     if printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort -V -c &> /dev/null; then
-      logger info "Task is already up-to-date"
+      echo "INFO:    Task is already up-to-date"
     else
-      logger info "A new version of Task is available (version $LATEST_VERSION)"
-      logger info "The current version of Task installed is $CURRENT_VERSION"
+      echo "INFO:    A new version of Task is available (version $LATEST_VERSION)"
+      echo "INFO:    The current version of Task installed is $CURRENT_VERSION"
+      # Replace with rm "$(which task)" &> /dev/null when ready
       if ! type task &> /dev/null; then
         installTask
       else
-        if rm "$(which task)" &> /dev/null; then
-          installTask
-        elif sudo rm "$(which task)" &> /dev/null; then
-          installTask
-        else
-          logger warn "Unable to remove previous version of Task"
-        fi
+        echo "WARNING: Unable to remove previous version of Task"
       fi
     fi
   fi
@@ -232,13 +202,13 @@ function installTask() {
     DOWNLOAD_URL="$TASK_RELEASE_URL/download/task_linux_amd64.tar.gz"
   fi
   mkdir -p "$(dirname "$DOWNLOAD_DESTINATION")"
-  logger info "Downloading latest version of Task"
+  echo "INFO:    Downloading latest version of Task"
   curl -sSL "$DOWNLOAD_URL" -o "$DOWNLOAD_DESTINATION"
   curl -sSL "$CHECKSUMS_URL" -o "$CHECKSUM_DESTINATION"
   DOWNLOAD_BASENAME="$(basename "$DOWNLOAD_URL")"
   DOWNLOAD_SHA256="$(grep "$DOWNLOAD_BASENAME" < "$CHECKSUM_DESTINATION" | cut -d ' ' -f 1)"
   sha256 "$DOWNLOAD_DESTINATION" "$DOWNLOAD_SHA256" > /dev/null
-  logger success "Validated checksum"
+  echo "SUCCESS: Validated checksum"
   mkdir -p "$TMP_DIR/task"
   tar -xzvf "$DOWNLOAD_DESTINATION" -C "$TMP_DIR/task" > /dev/null
   if type task &> /dev/null && [ -w "$(which task)" ]; then
@@ -253,7 +223,7 @@ function installTask() {
     mkdir -p "$TARGET_BIN_DIR"
   fi
   mv "$TMP_DIR/task/task" "$TARGET_DEST"
-  logger success "Installed Task to $TARGET_DEST"
+  echo "SUCCESS: Installed Task to $TARGET_DEST"
   rm "$CHECKSUM_DESTINATION"
   rm "$DOWNLOAD_DESTINATION"
 }
@@ -269,11 +239,13 @@ function installTask() {
 # @exitcode 0 The checksum is valid or the system is unrecognized
 # @exitcode 1+ The OS is unsupported or if the checksum is invalid
 function sha256() {
+  echo "$2"
+  echo "$1"
   if [[ "$OSTYPE" == 'darwin'* ]]; then
     if type brew &> /dev/null && ! type sha256sum &> /dev/null; then
       brew install coreutils
     else
-      logger warn "Brew is not installed - this may cause issues"
+      echo "WARNING: Brew is not installed - this may cause issues"
     fi
     if type brew &> /dev/null; then
       PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
@@ -281,26 +253,26 @@ function sha256() {
     if type sha256sum &> /dev/null; then
       echo "$2 $1" | sha256sum -c
     else
-      logger warn "Checksum validation is being skipped for $1 because the sha256sum program is not available"
+      echo "WARNING: Checksum validation is being skipped for $1 because the sha256sum program is not available"
     fi
   elif [[ "$OSTYPE" == 'linux-gnu'* ]]; then
     if ! type shasum &> /dev/null; then
-      logger warn "Checksum validation is being skipped for $1 because the shasum program is not installed"
+      echo "WARNING: Checksum validation is being skipped for $1 because the shasum program is not installed"
     else
       echo "$2  $1" | shasum -s -a 256 -c
     fi
   elif [[ "$OSTYPE" == 'linux-musl' ]]; then
     if ! type sha256sum &> /dev/null; then
-      logger warn "Checksum validation is being skipped for $1 because the sha256sum program is not available"
+      echo "WARNING: Checksum validation is being skipped for $1 because the sha256sum program is not available"
     else
       echo "$2  $1" | sha256sum -c
     fi
   elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-    logger error "Windows is not directly supported. Use WSL or Docker." && exit 1
+    echo "ERROR: Windows is not directly supported. Use WSL or Docker." && exit 1
   elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-    logger error "FreeBSD support not added yet" && exit 1
+    echo "ERROR: FreeBSD support not added yet" && exit 1
   else
-    logger warn "System type not recognized. Skipping checksum validation."
+    echo "WARNING: System type not recognized. Skipping checksum validation."
   fi
 }
 
@@ -318,11 +290,11 @@ if [[ "$OSTYPE" == 'darwin'* ]]; then
   if ! type curl &> /dev/null && type brew &> /dev/null; then
     brew install curl
   else
-    logger error "Neither curl nor brew are installed. Install one of them manually and try again."
+    echo "ERROR: Neither curl nor brew are installed. Install one of them manually and try again."
   fi
   if ! type git &> /dev/null; then
     # shellcheck disable=SC2016
-    logger info 'Git is not present. A password may be required to run `sudo xcode-select --install`'
+    echo 'INFO:    Git is not present. A password may be required to run `sudo xcode-select --install`'
     sudo xcode-select --install
   fi
 elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
@@ -336,7 +308,7 @@ fi
 if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
   if [ -z "$INIT_CWD" ]; then
     if ! type brew &> /dev/null; then
-      logger warn "Homebrew is not installed. The script will attempt to install Homebrew and you might be prompted for your password."
+      echo "WARNING: Homebrew is not installed. The script will attempt to install Homebrew and you might be prompted for your password."
       bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     if [ -f "$HOME/.profile" ]; then
@@ -373,5 +345,5 @@ if [ -z "$GITLAB_CI" ] && [ -z "$INIT_CWD" ]; then
   . "$HOME/.profile"
   task start
   # shellcheck disable=SC2028
-  logger info 'There may have been changes to your PATH variable. You may have to reload your terminal or run:\n\n`. "$HOME/.profile"`'
+  echo 'INFO:    There may have been changes to your PATH variable. You may have to reload your terminal or run:\n\n`. '"$HOME/.profile"'`'
 fi

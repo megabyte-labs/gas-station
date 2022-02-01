@@ -8,12 +8,13 @@ includes:
   ansible:populate: ./.config/taskfiles/ansible/Taskfile-populate.yml
   ansible:test: ./.config/taskfiles/ansible/Taskfile-test.yml
   boilerplate: ./.config/taskfiles/boilerplate/Taskfile.yml
+  boilerplate:prompt: ./.config/taskfiles/boilerplate/Taskfile-prompt.yml
   ci: ./.config/taskfiles/ci/Taskfile.yml
   ci:github: ./.config/taskfiles/ci/Taskfile-github.yml
-  common: ./.config/taskfiles/common/Taskfile.yml
   project:
     taskfile: Taskfile-project.yml
     optional: true
+  common: ./.config/taskfiles/common/Taskfile.yml
   common:code: ./.config/taskfiles/common/Taskfile-code.yml
   common:update: ./.config/taskfiles/common/Taskfile-update.yml
   docker: ./.config/taskfiles/docker/Taskfile.yml
@@ -53,6 +54,7 @@ includes:
   publish:ios: ./.config/taskfiles/publish/Taskfile-ios.yml
   publish:menubar: ./.config/taskfiles/publish/Taskfile-menubar.yml
   publish:opera: ./.config/taskfiles/publish/Taskfile-opera.yml
+  publish:snap: ./.config/taskfiles/publish/Taskfile-snap.yml
   python: ./.config/taskfiles/python/Taskfile.yml
   python:test: ./.config/taskfiles/python/Taskfile-test.yml
   release: ./.config/taskfiles/release/Taskfile.yml
@@ -76,7 +78,7 @@ vars:
   DOCKERHUB_PROFILE: megabytelabs
   DOCKERHUB_USER: professormanhattan
   ESLINT_FORMATTER: pretty
-  ESLINT_FORMATTER_OPTIONS: git-log pretty summary
+  ESLINT_FORMATTER_OPTIONS: git-log gitlab pretty summary
   GALAXY_NAMESPACE: professormanhattan
   GITHUB_ORG: ProfessorManhattan
   GITHUB_USER: ProfessorManhattan
@@ -85,19 +87,21 @@ vars:
     -o -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*'
     -o -path './build/*' -o -path './dist/*' -o -path './node_modules/*' -o -path './roles/*' -o -name pnpm-lock.yaml
     -o -name package-lock.json -o -name poetry.lock -o -name '.variables.json'
-  INIT_SCRIPT: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.gitlab/ci/scripts/update-init.sh
+  INIT_SCRIPT: https://gitlab.com/megabyte-labs/gitlab-ci/-/raw/master/scripts/update-init.sh
   LOG_FIX:
     sh: chmod +x .config/log && echo "heyhey"
-  NPM_KEEP_UPDATED: '@washingtondc/* eslint-config-strict-mode sleekfast'
+  NPM_KEEP_UPDATED: ''
   NPM_PROGRAM: npm
   NPM_PROGRAM_LOCAL: pnpm
   NPX_HANDLE: 'pnpx '
   NPX_PACKAGE: pnpx
   PYTHON_HANDLE:
     sh: if [ -z "$GITLAB_CI" ] || [[ "$OPTIMIZED_IMAGE" == 'false' ]]; then echo 'poetry run '; fi
+  PYTHON_KEEP_UPDATED: ansibler
   PYTHON_VIRTUALENV: true
   REPOSITORY_SUBTYPE: playbook
   REPOSITORY_TYPE: ansible
+  SEMANTIC_CONFIG: semantic-release-config
   TIMEZONE: America/New_York
 
 profile: |
@@ -122,18 +126,28 @@ profile: |
 
 tasks:
   build:
+    deps:
+      - install:software:jq
+      - install:software:node
     desc: Build the project
     summary: |
-      # Build the project
+      # Build the Project
 
       Use this command to build the project. It executes the command defined
-      in `package.json` under the `.blueprint.build_command` key.
-
-      You can ensure all the proper keys are setup in `.blueprint.build_command`
-      by running `task init` which will prompt you to enter required fields
-      that are not present.
+      in `package.json` under the `.scripts.build` key.
+    vars:
+      NONINTERACTIVE_MISSING_BUILD_CMD: There must be a build command under `.scripts.build` in `package.json`!
+    log:
+      error: Encountered error while running `npm run build`
+      start: Running `npm run build`
+      success: Successfully ran `npm run build`
     cmds:
-      - task: go:build
+      - |
+        if [ "$(jq '.scripts.build' package.json)" != 'null' ]; then
+          npm run build
+        else
+          [[ $- == *i* ]] && task prepare || (.config/log error '{{.NONINTERACTIVE_MISSING_BUILD_CMD}}' && exit 1)
+        fi
 
   cmds:
     - |
@@ -150,7 +164,7 @@ tasks:
       - install:software:git
     desc: Add all and commit
     summary: |
-      # Commit the code
+      # Commit Code
 
       By default, this task is an alias for:
 
@@ -172,19 +186,22 @@ tasks:
     interactive: true
     desc: Symlink to an environment in the `environments/` folder
     summary: |
-      # Symlink an environment's contents to the root
+      # Switch Environments Using an Interactive Dialogue
 
-      This method is convienience method for symlinking all of the folders in
-      `environments/prod/`, for instance. You can pass the environment as a CLI
-      argument or you can use an interactive prompt.
+      Ansible does not really provide any great ways to switch between environments (or sets of
+      `host_vars/`, `group_vars/` etc.). If you place all the files and folders you wish to constitute
+      as an environment inside a folder named as the name of the environment in the `environments/` folder
+      then you can use this task to handle the symlinking and switching between environments.
 
-      **Example opening a prompt:**
-      `task environment`
+      **Example of opening the interactive prompt:**
+      `task ansible:environment`
 
-      **Example using CLI argument:**
-      `task environment -- prod`
+      **You can directly switch enironments to `environments/prod/` by running:**
+      `task ansible:environment -- prod`
     cmds:
       - task: ansible:playbook:environment
+    build: |
+      yq eval -i -P '.tasks.environment.summary = $summary' .config/taskfiles/ansible/Taskfile.yml
   fix:
     desc: Run code auto-fixers
     summary: |
@@ -194,12 +211,12 @@ tasks:
       auto-fixers. Although unlikely, it is possible that auto-fixing can introduce
       an error so the auto-fixes still have to be validated.
     cmds:
-      - fix:all
+      - task: fix:all
 
   group:exec:
     desc: Execute group commands on any GitLab group (including repositories in sub-groups)
     summary: |
-      # Run commands on multiple repositories in parallel
+      # Run Commands on Multiple GitLab Repositories
 
       This command requires that the `GITLAB_TOKEN` environment variable be set. With the
       token defined, you can use this task to run scripts on repositories that fall under
@@ -217,9 +234,12 @@ tasks:
       - task: git:gitlab:group:exec
 
   init:
+    deps:
+      - install:software:jq
+      - install:software:yq
     desc: Runs the initialization script
     summary: |
-      # Initialize the project and run the full update sequence
+      # Initialize the Project and Run the Full Update Sequence
 
       This command will mostly not be needed for pre-existing projects. This task begins
       by calling a script that:
@@ -232,19 +252,23 @@ tasks:
 
       If you are facing difficulties, you can try running this task to reset the project,
       perform common fixes, and run the whole start up routine.
+    log:
+      error: Failed to run initialization script
+      start: Initializing project by running initialization script
+      success: Successfully bootstrapped project by running initialization script
     cmds:
       - git init
       - |
         if [ -n "$GITLAB_CI" ]; then
-          if [ -n "$UPDATE_INIT_SCRIPT" ]; then curl -s "$UPDATE_INIT_SCRIPT" | bash; fi
+          if [ -n "$UPDATE_INIT_SCRIPT" ]; then bash <(curl -sSL "$UPDATE_INIT_SCRIPT"); fi
         else
-          bash <(curl -s {{.INIT_SCRIPT}})
+          bash <(curl -sSL {{.INIT_SCRIPT}})
         fi
 
   lint:
     desc: Lints the project using all error-prone linters
     summary: |
-      # Lint the project using most of the linters
+      # Lint the Project Using Most of the Linters
 
       This task will do a project-wide linting using all of the linters that commonly
       report errors. You can use this task to spot linting errors prior to running
@@ -260,14 +284,14 @@ tasks:
       - install:npm:nodemon
     desc: Start the project with live-reloading (i.e. watch mode)
     summary: |
-      # LiveReload the project
+      # LiveReload the Project
 
       Using LiveReload, you can automatically run the project any time you make
       changes to the project. The LiveReload feature uses [nodemon](https://github.com/remy/nodemon)
       with the configuration stored in `.config/nodemon.json`.
 
       Whenever you make a change to the project, `task project:livereload` will run. You can
-      define the command that runs everytime you make a change in the `Taskfile-project.yml`
+      define the command that runs every time you make a change in the `Taskfile-project.yml`
       `livereload` section. This file is kept intact even across upstream propagation updates,
       unlike the regular `Taskfile.yml`.
 
@@ -295,10 +319,14 @@ tasks:
         fi
       - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
 
+  log:
+    error: Error while running commit logic
+    start: Adding all changes and committing
+    success: Successfully commit changes
   playbook:
     desc: Run the playbook
     summary: |
-      # Run the playbook
+      # Run the Playbook
 
       This task will prompt you for the environment and inventory you would like to
       run the `main.yml` playbook with. It will:
@@ -321,7 +349,7 @@ tasks:
       - install:brewfile
     desc: Set up your workstation in advance by installing commonly used programs
     summary: |
-      # Speed up future development by preloading common system applications
+      # Speed Up Future Development by Preloading Common System Applications
 
       Just about every development task requires some sort of globally installed
       application. TypeScript requires Node.js to be installed. Ansible requires
@@ -345,23 +373,28 @@ tasks:
       level binary is installed. However, if you are missing something like git, then
       chances are you will be asked for a sudo password. In this case, we recommend
       you adopt the Megabyte Labs philosophy and inspect the code before running it.
+    log:
+      error: Encountered error while preloading system with common dependencies (REBOOT RECOMMENDED)
+      start: Preloading system with common dependencies
+      success: Successfully preloaded system with common dependencies (REBOOT RECOMMENDED)
     cmds:
       - task: install:brewfile
       - task: install:modules:global
       - task: install:pipx:global
-      - |
-        .config/log success 'Successfully preloaded commonly used system applications'
-        .config/log info 'Some software that requires a reboot may have been installed - rebooting would be prudent'
 
   prepare:
     desc: Prepares the project for the normal start command
     summary: |
-      # Prepare the project
+      # Prepare the Project
 
       This task ensures the project has all the required metadata. If a project
       is missing required metadata then this task will interactively prompt the user
       for the missing data. It also performs miscellaneous tasks that are sometimes
       required by the `start` task.
+    log:
+      error: Encountered error while preparing the project
+      start: Preparing the project
+      success: Successfully prepared the project
     cmds:
       - task: boilerplate:check:package
       - task: boilerplate:clean
@@ -372,30 +405,37 @@ tasks:
       - install:npm:ntl
     desc: Run and view descriptions for `npm scripts` via an interactive dialog
     summary: |
-      # Interactively select scripts defined in package.json
+      # Interactively Select Scripts Defined in package.json
 
       Our projects use `run` (a fork of task) to handle most of the task running.
       However, in some projects there may be scripts defined in package.json. This
-      task is a convienience method that will present a list of scripts alongside
+      task is a convenience method that will present a list of scripts alongside
       their descriptions that you can interactively launch.
+    log:
+      error: Error running `NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl`
+      start: Running `NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl`
     cmds:
       - NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl
 
   services:
     desc: Update elements of the repository that require API access
     summary: |
-      # Update elements of the repository that require API access
+      # Update Elements of the Repository that Require API Access
 
       This task will ensure that the git repositories and other services related to the
       project are updated with the proper configurations. It requires that certain
       API keys be set. Generally, only project owners will use this task.
     cmds:
       - task: common:update:services
+    status:
+      - '[ -n "$GITLAB_CI" ] && [ "$REPOSITORY_UPDATE" != "true" ]'
 
   shell:
     desc: Start a terminal session using Docker with any Linux operating system
+    compile: |
+      '.tasks.common.shell = $this' common/Taskfile.yml
     summary: |
-      # Start a Docker terminal session
+      # Start a Docker Terminal Session
 
       Use Docker to run commands on nearly any operating system. The operating
       systems are all stock distros with systemd added.
@@ -427,7 +467,7 @@ tasks:
   start:
     desc: Set up the project and refresh it with the latest changes
     summary: |
-      # Start the project
+      # Start the Project
 
       This task will scaffold the project with the latest upstream changes
       and ensure your development environment has all the dependencies installed.
@@ -438,21 +478,39 @@ tasks:
 
       **Example usage:**
       `task start`
+    log:
+      error: Error encountered while starting up the project
+      start: Synchronizing project with upstream file changes and bootstrapping
+      success: Successfully synchronized the project with upstream file changes and also bootstrapped the project
     cmds:
       - task: upstream:project
+
   test:
+    deps:
+      - install:software:node
     interactive: true
     desc: Open an interactive dialog to select and run a Molecule test
     summary: |
-      # Test Ansible plays
+      # Test the Project
 
-      This task wraps all the supported test methods for Ansible plays into a
-      convienient multi-question prompt system that supports:
+      This task calls `npm run test` which functions differently based on the
+      definition made in `package.json` under the `.scripts.test` key.
+      ## Ansible Project Functionality
+
+      For Ansible projects, this task wraps all the supported test methods for Ansible plays into a
+      convenient multi-question prompt system that supports:
 
       1. Docker tests
       2. Headless VirtualBox tests
       3. VirtualBox Desktop tests which are not automatically destroyed
       4. Running the play locally
       5. Running the play over SSH on a remote target
+    vars:
+      NONINTERACTIVE_MISSING_TEST_CMD: There must be a `.scripts.test` definition in `package.json`!
     cmds:
-      - task: ansible:test:prompt
+      - |
+        if [ "$(jq '.scripts.test' package.json)" != 'null' ]; then
+          npm run test
+        else
+          [[ $- == *i* ]] && task prepare || (.config/log error '{{.NONINTERACTIVE_MISSING_TEST_CMD}}' && exit 1)
+        fi

@@ -19,10 +19,7 @@ tasks:
 
   all:docs:
     cmds:
-      - |
-        {{if eq .REPOSITORY_TYPE "common"}}{{else}}{{if eq .REPOSITORY_TYPE "documentation"}}{{else}}
-        task common:update:all:docs:generate
-        {{end}}{{end}}
+      - task: '{{if eq .REPOSITORY_TYPE "common"}}:donothing{{else}}{{if eq .REPOSITORY_TYPE "documentation"}}:donothing{{else}}all:docs:generate{{end}}{{end}}'
 
   all:docs:generate:
     deps:
@@ -83,6 +80,8 @@ tasks:
             cp .config/initctl initctl
             .config/log info 'Added initctl faker file to repository root'
           fi
+        {{else}}
+          true
         {{end}}
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}

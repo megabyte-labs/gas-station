@@ -15,6 +15,11 @@ if [ -n "$GITLAB_CI" ]; then
   git checkout master
 fi
 
+mkdir -p .config/taskfiles/install
+curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.config/taskfiles/install/Taskfile-python.yml > .config/taskfiles/install/Taskfile-python.yml
+mkdir -p .config/taskfiles/ci
+curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.config/taskfiles/ci/Taskfile.yml > .config/taskfiles/ci/Taskfile.yml
+
 # @description Clone shared files repository
 rm -rf common-shared
 git clone --depth=1 https://gitlab.com/megabyte-labs/common/shared.git common-shared
@@ -57,23 +62,30 @@ if type jq &> /dev/null; then
   TMP="$(mktemp)" && jq 'del(.devDependencies["@commitlint/config-conventional"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["@mblabs/eslint-config"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["@mblabs/release-config"])' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq 'del(.devDependencies["@megabytelabs/jest-preset"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["@typescript-eslint/eslint-plugin"])' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq 'del(.devDependencies["@washingtondc/prettier"])' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq 'del(.devDependencies["@washingtondc/release"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["commitlint-config-gitmoji"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["cz-conventional-changelog"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["glob"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["handlebars-helpers"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.devDependencies["semantic-release"])' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq 'del(.devDependencies["sleekfast"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.optionalDependencies["chalk"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.optionalDependencies["inquirer"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.optionalDependencies["signale"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.optionalDependencies["string-break"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq 'del(.dependencies["tslib"])' package.json > "$TMP" && mv "$TMP" package.json
   TMP="$(mktemp)" && jq '.private = false' package.json > "$TMP" && mv "$TMP" package.json
-  TMP="$(mktemp)" && jq '.devDependencies["@washingtondc/development"] = "^1.0.2"' package.json > "$TMP" && mv "$TMP" package.json
-  TMP="$(mktemp)" && jq '.devDependencies["@washingtondc/prettier"] = "^1.0.0"' package.json > "$TMP" && mv "$TMP" package.json
-  TMP="$(mktemp)" && jq '.devDependencies["@washingtondc/release"] = "^0.0.2"' package.json > "$TMP" && mv "$TMP" package.json
-  TMP="$(mktemp)" && jq '.devDependencies["eslint-config-strict-mode"] = "^1.0.0"' package.json > "$TMP" && mv "$TMP" package.json
-  TMP="$(mktemp)" && jq '.devDependencies["sleekfast"] = "^0.0.1"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["@commitlint/config-conventional"] = "^16.0.0"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["@washingtondc/development"] = "latest"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["cz-emoji-conventional"] = "^1.0.1"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["eslint-config-strict-mode"] = "latest"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["handlebars-helpers"] = "^0.10.0"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["prettier-config-sexy-mode"] = "latest"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.devDependencies["semantic-release-config"] = "latest"' package.json > "$TMP" && mv "$TMP" package.json
+  TMP="$(mktemp)" && jq '.prettier = "prettier-config-sexy-mode"' package.json > "$TMP" && mv "$TMP" package.json
 
   if [ "$(jq -r '.blueprint.group' package.json)" == 'documentation' ]; then
     TMP="$(mktemp)" && jq '.eslintConfig.rules["import/no-extraneous-dependencies"] = "off"' package.json > "$TMP" && mv "$TMP" package.json
@@ -105,6 +117,7 @@ rm -f .prettierignore
 rm -f .start.sh
 rm -f .update.sh
 rm -f .yamllint
+rm -f update-init.sh
 rm -f requirements.txt
 rm -f .config/eslintcache
 rm -f CODE_OF_CONDUCT.md

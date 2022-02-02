@@ -55,6 +55,7 @@ tasks:
       success: Finished running `semantic-release`
     cmds:
       - task install:modules:local:sync -- {{.SEMANTIC_CONFIG}}
+      - task: version:tag
       - task: :common:update:variables
       - |
         export GIT_CREDENTIALS="gitlab-ci-token:$CI_BUILD_TOKEN"
@@ -63,3 +64,20 @@ tasks:
           poetry install -E semantic
         fi
         {{.RELEASE_PREFIX}}semantic-release -r "$(git remote get-url origin)"{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}
+
+  version:tag:
+    deps:
+      - :install:software:jq
+    summary: |
+      This command is intended to be used before the `semantic-release` task to ensure
+      that the latest git tag is up-to-date with the latest `package.json` version.
+    cmds:
+      - git tag -a "v$(jq -r '.version' package.json )" -m "Latest package.json version tagged."
+      - git push origin --tags
+    status:
+      - git tag | grep "v$(jq -r '.version' package.json)"
+    preconditions:
+      - sh: '[ -f package.json ]'
+        msg: A package.json file must be present!
+      - sh: '[ "$(jq -r \".version\" package.json)" != "null" ]'
+        msg: Version must be defined in package.json

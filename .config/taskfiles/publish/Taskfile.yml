@@ -42,24 +42,21 @@ tasks:
       If `setup.cfg` is present, then the project is assumed to be a legacy Python
       project that needs to run in environment with access to the `python-semantic`
       extras defined in `pyproject.toml`.
-
-      If `meta/main.yml` is defined, then the project is assumed to be an Ansible
-      project that requires Python dependencies to be installed and accessible by
-      prefixing the `semantic-release` CLI command with `poetry run`.
     vars:
       RELEASE_PREFIX:
-        sh: if [ -f setup.cfg ] || [ -f meta/main.yml ]; then echo 'poetry run '; else echo ''; fi
+        sh: if [ -f setup.cfg ]; then echo 'poetry run '; else echo ''; fi
     log:
       error: Error while running `semantic-release`
       start: Releasing with `semantic-release`..
       success: Finished running `semantic-release`
     cmds:
-      - task install:modules:local:sync -- {{.SEMANTIC_CONFIG}}
+      - task: :install:modules:local:sync
+        vars:
+          NPM_KEEP_UPDATED: '{{.SEMANTIC_CONFIG}}'
       - task: version:tag
       - task: :common:update:variables
       - |
         export GIT_CREDENTIALS="gitlab-ci-token:$CI_BUILD_TOKEN"
-        poetry install --no-dev
         if [ -f setup.cfg ]; then
           poetry install -E semantic
         fi

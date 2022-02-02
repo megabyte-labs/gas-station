@@ -326,9 +326,11 @@ if [[ "$OSTYPE" == 'darwin'* ]]; then
     sudo xcode-select --install
   fi
 elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
-  if ! type curl &> /dev/null || ! type git &> /dev/null; then
+  if ! type curl &> /dev/null || ! type git &> /dev/null || ! type sudo &> /dev/null; then
     ensurePackageInstalled "curl"
+    ensurePackageInstalled "file"
     ensurePackageInstalled "git"
+    ensurePackageInstalled "sudo"
   fi
 fi
 
@@ -337,7 +339,11 @@ if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYP
   if [ -z "$INIT_CWD" ]; then
     if ! type brew &> /dev/null; then
       logger warn "Homebrew is not installed. The script will attempt to install Homebrew and you might be prompted for your password."
-      bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      if sudo -n bash; then
+        echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      else
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      fi
     fi
     if [ -f "$HOME/.profile" ]; then
       # shellcheck disable=SC1091

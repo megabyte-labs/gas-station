@@ -84,14 +84,6 @@ if [ "$EUID" -eq 0 ] && [ -z "$INIT_CWD" ] && type useradd &> /dev/null; then
   exec su megabyte "$0" -- "$@"
 fi
 
-# @description Detect script paths
-BASH_SRC="$(dirname "${BASH_SOURCE[0]}")"
-SOURCE_PATH="$(
-  cd "$BASH_SRC"
-  pwd -P
-)"
-PROJECT_BASE_DIR="$SOURCE_PATH/../.."
-
 # @description Ensures ~/.local/bin is in the PATH variable on *nix machines and
 # exits with an error on unsupported OS types
 #
@@ -338,10 +330,10 @@ fi
 if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
   if [ -z "$INIT_CWD" ]; then
     if ! type brew &> /dev/null; then
-      logger warn "Homebrew is not installed. The script will attempt to install Homebrew and you might be prompted for your password."
-      if sudo -n bash; then
+      if sudo -n true; then
         echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       else
+        logger warn "Homebrew is not installed. The script will attempt to install Homebrew and you might be prompted for your password."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       fi
     fi
@@ -362,7 +354,6 @@ if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYP
 fi
 
 # @description Attempts to pull the latest changes if the folder is a git repository
-cd "$PROJECT_BASE_DIR" || exit
 if [ -d .git ] && type git &> /dev/null; then
   HTTPS_VERSION="$(git remote get-url origin | sed 's/git@gitlab.com:/https:\/\/gitlab.com\//')"
   git pull "$HTTPS_VERSION" master --ff-only
@@ -373,7 +364,6 @@ fi
 ensureTaskInstalled
 
 # @description Run the start logic, if appropriate
-cd "$PROJECT_BASE_DIR" || exit
 if [ -z "$GITLAB_CI" ] && [ -z "$INIT_CWD" ]; then
   # shellcheck disable=SC1091
   . "$HOME/.profile"

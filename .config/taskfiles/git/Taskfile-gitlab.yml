@@ -141,7 +141,7 @@ tasks:
             git pull origin master || continue
             cd "$BASE_PWD"
           else
-            git clone --depth=1 "$REPO_URL" "$REPO_PATH"
+            git clone "$REPO_URL" "$REPO_PATH"
           fi
           .config/log info "Running bash command on $REPO_PATH"
           (
@@ -153,9 +153,9 @@ tasks:
         }
         cat {{.REPOSITORY_LIST}} | (while IFS= read -r REPO_DETAILS; do
           .config/log info "Executing logic on $REPO_DETAILS"
-          execRepo "$REPO_DETAILS"
-        done
-        wait)
+          execRepo "$REPO_DETAILS"{{if eq .GROUP_EXEC_ASYNC "true"}} &{{end}}
+        done{{if eq .GROUP_EXEC_ASYNC "true"}}
+        wait){{else}}){{end}}
 
   group:exec:prompt:
     interactive: true

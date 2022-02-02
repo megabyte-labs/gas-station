@@ -98,6 +98,10 @@ if [ -f meta/main.yml ] && type yq &> /dev/null; then
   yq eval -i '.galaxy_info.min_ansible_version = 2.10' meta/main.yml
 fi
 
+if type yq &> /dev/null; then
+  yq eval -i '.includes["boilerplate:prompt"] = "./.config/taskfiles/boilerplate/Taskfile-prompt.yml"' Taskfile.yml
+fi
+
 # @description Re-generate the Taskfile.yml if it has invalid includes
 echo "Ensuring Taskfile is properly configured"
 task donothing || EXIT_CODE=$?

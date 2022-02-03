@@ -22,10 +22,7 @@ tasks:
       success: Successfully installed `{{.PACKAGE}}` with pipx
     cmds:
       - task: :install:software:pipx
-      - |
-        .config/log info 'Installing `{{.PACKAGE}}` with pipx'
-        pipx install {{.PACKAGE}}
-        .config/log success 'Successfully installed `{{.PACKAGE}}` with pipx'
+      - pipx install {{.PACKAGE}}
     status:
       - type {{.PACKAGE}} > /dev/null
 
@@ -52,6 +49,8 @@ tasks:
       - task: :{{if eq .REPOSITORY_TYPE "ansible"}}ansible:galaxy:requirements{{else}}donothing{{end}}
 
   requirements:poetry:
+    summary: |
+      `poetry publish -r gitlab` will publish to GitLab registry on GitLab CI
     run: once
     log:
       error: Failed to configure / install via `poetry`
@@ -59,10 +58,23 @@ tasks:
       success: Successfully ran `poetry install`
     cmds:
       - task: :install:software:poetry
-      - poetry config virtualenvs.create {{.PYTHON_VIRTUALENV}}
+      - poetry config virtualenvs.create {{if .PYTHON_VIRTUALENV}}{{.PYTHON_VIRTUALENV}}{{else}}false{{end}}
       - poetry config virtualenvs.in-project true
-      - poetry update{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
-      - poetry install{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
+      - |
+        if [ -n "$PYPI_TOKEN" ]; then
+          poetry config pypi-token.pypi "$PYPI_TOKEN"
+        fi
+      - |
+        if [ -n "$GITLAB_CI" ]; then
+          poetry config repositories.gitlab https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
+          poetry config http-basic.gitlab gitlab-ci-token ${CI_JOB_TOKEN}
+        fi
+      - |
+        if [ -n "$AUTO_UPDATE_PIP_PACKAGES" ]; then
+          poetry update{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
+        else
+          poetry install{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
+        fi
     sources:
       - pyproject.toml
     preconditions:

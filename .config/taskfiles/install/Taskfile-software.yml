@@ -3,6 +3,12 @@ version: '3'
 
 tasks:
   act:
+    summary: |
+      ## Act
+
+      A program that allows you to simulate GitHub Actions locally.
+
+      [GitHub](https://github.com/nektos/act)
     run: once
     cmds:
       - task: brew:formulae
@@ -421,15 +427,34 @@ tasks:
   go:
     run: once
     cmds:
-      - task: :install:profile:add
-        vars:
-          PROFILE_STRING: export GOPATH="${HOME}/go"
-      - task: :install:profile:add
-        vars:
-          PROFILE_STRING: export GOROOT="$(brew --prefix golang)/libexec"
+      - task: go:gopath
+      - task: go:goroot
       - task: :install:profile:add
         vars:
           PROFILE_STRING: export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
+      - status: go:install
+
+  go:gopath:
+    run: once
+    cmds:
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export GOPATH="${HOME}/.local/go"
+    status:
+      - '[ -n "$GOPATH" ]'
+
+  go:goroot:
+    run: once
+    cmds:
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export GOROOT="$(brew --prefix golang)/libexec"
+    status:
+      - '[ -n "$GOROOT" ]'
+
+  go:install:
+    run: once
+    cmds:
       - task: brew:formulae
         vars:
           FORMULAE: go
@@ -558,6 +583,15 @@ tasks:
           FORMULAE: rsync
     status:
       - type rsync &> /dev/null
+
+  sentry:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: getsentry/tools/sentry-cli
+    status:
+      - type sentry-cli > /dev/null
 
   snapcraft:
     run: once

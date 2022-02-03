@@ -62,8 +62,17 @@ tasks:
       start: Installing local NPM dependencies
       success: Successfully installed local NPM dependencies
     cmds:
-      - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
+      - cmd: |
+          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
+            {{.NPM_PROGRAM_LOCAL}} update
+          else
+            {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
+            if [ -n "$EXIT_CODE" ]; then
+              {{.NPM_PROGRAM_LOCAL}} update
+            fi
+          fi
         ignore_error: true
+      - pnpm install --save-dev glob # temp
       - task: modules:local:sync
     sources:
       - package.json

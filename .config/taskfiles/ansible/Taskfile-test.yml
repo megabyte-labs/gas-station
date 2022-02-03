@@ -42,6 +42,7 @@ tasks:
   local:test:
     deps:
       - :symlink:{{.REPOSITORY_SUBTYPE}}
+      - :install:software:sentry
       - task: :install:python:requirements
         env:
           INSTALL_OPTIONS: --no-dev
@@ -55,7 +56,8 @@ tasks:
       - cp test/{{OS}}/ansible.cfg ansible.cfg
       - |
         .config/log info 'Prompting for sudo password (required)'
-        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass test/{{OS}}/test.yml
+        set -o pipefail
+        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass test/{{OS}}/test.yml 2&>1 | tee debug.log || EXIT_CODE=$?
       - mv ansible.cfg.bak ansible.cfg
       - rm inventory
 
@@ -93,6 +95,7 @@ tasks:
     deps:
       - molecule:dependencies
       - :install:software:docker
+      - :install:software:sentry
       - :install:software:sshpass
     log:
       error: The `{{.CLI_ARGS}}` Docker Molecule test finished with errors
@@ -100,12 +103,15 @@ tasks:
       success: Successfully ran the `{{.CLI_ARGS}}` Docker Molecule test
     cmds:
       - |
-        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker -- --skip-tags skipdockertest
+        set -o pipefail
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker \
+        -- --skip-tags skipdockertest 2>&1 | tee debug.log || EXIT_CODE=$?
 
   molecule:docker:matrix:
     deps:
       - molecule:dependencies
       - :install:software:docker
+      - :install:software:sentry
       - :install:software:sshpass
     vars:
       MOLECULE_DATE:
@@ -122,8 +128,9 @@ tasks:
           SCENARIO="Snap"
           .config/log warn 'Running Docker Molecule tests on the Docker containers that are compatible with `snap` since the role has references to `snap`'
         fi
+        set -o pipefail
         PY_COLORS=0 {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s docker -- --skip-tags skipdockertest 2>&1 | \
-          tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt"
+          tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt" || EXIT_CODE=$?
 
   molecule:docker:prompt:
     interactive: true
@@ -137,6 +144,7 @@ tasks:
     deps:
       - molecule:dependencies
       - :install:software:gcloud
+      - :install:software:sentry
     log:
       error: Encountered error(s) while running the Google Cloud Platform Molecule test
       start: Running Google Cloud Platform Molecule test
@@ -144,12 +152,14 @@ tasks:
     cmds:
       - task: molecule:gcp:preconditions
       - |
-        {{.PYTHON_HANDLE}}molecule test -s gcp
+        set -o pipefail
+        {{.PYTHON_HANDLE}}molecule test -s gcp | tee debug.log || EXIT_CODE=$?
 
   molecule:gcp:matrix:
     deps:
       - molecule:dependencies
       - :install:software:gcloud
+      - :install:software:sentry
       - :install:software:yq
     vars:
       MOLECULE_DATE:
@@ -162,6 +172,7 @@ tasks:
       - task: molecule:gcp:preconditions
       - mkdir -p {{.MOLECULE_LOGS_PATH}}
       - |
+        set -o pipefail
         EXIT_CODE=0
         PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test -s gcp 2>&1 | tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt" || EXIT_CODE=$?
         if [ "$EXIT_CODE" != '0' ]; then
@@ -217,14 +228,16 @@ tasks:
   molecule:local:test:
     deps:
       - molecule:dependencies
+      - :install:software:sentry
     log:
       error: There was an error while running the Molecule test locally
       start: Running the Molecule test locally
       success: The local Molecule test was successfully run
     cmds:
       - |
+        set -o pipefail
         PATH="$(poetry env info | grep 'Python:   /' | sed 's/Python:   //' | sed 's/$/\/bin/'):$PATH" \
-        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s local || EXIT_CODE=$?
+        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s local 2&>1 | tee debug.log || EXIT_CODE=$?
 
   molecule:ssh:
     desc: Runs a Molecule test over SSH
@@ -242,12 +255,15 @@ tasks:
   molecule:ssh:cli:
     deps:
       - molecule:dependencies
+      - :install:software:sentry
     log:
       error: Errors encountered while running the SSH Molecule test
       start: Running the Molecule test over SSH
       success: Successfully ran the Molecule test over SSH
     cmds:
-      - '{{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s remote'
+      - |
+        set -o pipefail
+        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s remote 2&>1 | tee debug.log || EXIT_CODE=$?
 
   molecule:ssh:prompt:
     interactive: true
@@ -278,6 +294,7 @@ tasks:
   molecule:virtualbox:cli:
     deps:
       - molecule:dependencies
+      - :install:software:sentry
       - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
@@ -288,7 +305,8 @@ tasks:
       start: Running a VirtualBox Molecule test on platforms in the `{{.CLI_ARGS}}` group
       success: Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule test
     cmds:
-      - '{{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test'
+      - |
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test 2&>1 | tee debug.log || EXIT_CODE=$?
 
   molecule:virtualbox:converge:
     desc: Provisions a desktop VirtualBox VM and then runs a Molecule test
@@ -319,6 +337,7 @@ tasks:
   molecule:virtualbox:converge:cli:
     deps:
       - molecule:dependencies
+      - :install:software:sentry
       - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
@@ -329,7 +348,9 @@ tasks:
       start: Running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play (this will leave the VirtualBox instance open for inspection)
       success: Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule converge play (you are encouraged to inspect the VM)
     cmds:
-      - '{{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge -s desktop'
+      - |
+        set -o pipefail
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge -s desktop 2&>1 | tee debug.log || EXIT_CODE=$?
 
   molecule:virtualbox:converge:prompt:
     interactive: true
@@ -342,6 +363,7 @@ tasks:
   molecule:virtualbox:matrix:
     deps:
       - molecule:dependencies
+      - :install:software:sentry
       - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
@@ -356,7 +378,9 @@ tasks:
     cmds:
       - mkdir -p {{.MOLECULE_LOGS_PATH}}
       - |
-        PY_COLORS=0 {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test | tee '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
+        set -o pipefail
+        PY_COLORS=0 {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test 2&>1 | \
+        tee '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt' || EXIT_CODE=$?
 
   # yamllint enable rule:truthy
   molecule:virtualbox:prompt:
@@ -413,6 +437,7 @@ tasks:
       - task: :install:python:requirements
         vars:
           INSTALL_OPTIONS: --no-dev
+      - :install:software:sentry
       - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
@@ -421,7 +446,11 @@ tasks:
       start: Running `vagrant up {{.CLI_ARGS}}`
       success: Successfully ran `vagrant up {{.CLI_ARGS}}`
     cmds:
-      - vagrant up {{.CLI_ARGS}}
+      - |
+        set -o pipefail
+        vagrant up {{.CLI_ARGS}} 2&>1 | tee debug.log || EXIT_CODE=$?
+        if [ "$EXIT_CODE" != '0' ]; then
+        fi
 
   vagrant:prompt:
     interactive: true

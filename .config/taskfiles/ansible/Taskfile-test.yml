@@ -134,7 +134,7 @@ tasks:
 
   molecule:docker:prompt:
     vars:
-      DOCKER_MSG: |
+      MARKDOWN: |
         # Ansible Molecule Test via Docker
 
         Choose a container group from the options below to begin the Molecule test.
@@ -145,7 +145,9 @@ tasks:
         resources. Granted, to fully test an Ansible play, a VirtualBox method should be used
         instead.
     cmds:
-      - .config/log md '{{.DOCKER_MSG}}'
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
       - task: molecule:docker:prompt:continue
 
   molecule:docker:prompt:continue:
@@ -251,7 +253,7 @@ tasks:
 
   molecule:local:prompt:
     vars:
-      LOCAL_MSG: |
+      MARKDOWN: |
         # Run Molecule Locally
 
         This testing option is provided for cases where you would like to locally test the
@@ -272,7 +274,9 @@ tasks:
         be to run "ansible localhost --ask-sudo-pass -m include_role -a name=<role_name>" after
         installing the role and its dependencies with ansible-galaxy.
     cmds:
-      - .config/log md '{{.LOCAL_MSG}}'
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
       - task: molecule:local:prompt:continue
 
   molecule:local:prompt:continue:
@@ -287,9 +291,6 @@ tasks:
               ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
               TEST_PASSWORD: '{{.ANSWER}}'
           - task: allure:report
-    preconditions:
-      - sh: test -f molecule/desktop/molecule.yml
-        msg: The `molecule/desktop/molecule.yml` file must be present and in the proper format
 
   molecule:local:test:
     deps:
@@ -332,12 +333,39 @@ tasks:
         {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s remote 2&>1 | tee debug.log || EXIT_CODE=$?
 
   molecule:ssh:prompt:
-    interactive: true
-    deps:
-      - :install:modules:local
+    vars:
+      MARKDOWN: |
+        # Remote Ansible Molecule Test via SSH
+
+        This testing option is provided for cases where you would like to remotely test
+        the Ansible play on remote machines via SSH. The prompts will ask you for the
+        host IP address or FQDN, user, and password. Before running this test, you should
+        ensure that you can already connect to the machine via SSH (i.e. the ~/.ssh keys
+        should already be set up). This test assumes that SSH does not require any passwords
+        to establish the connection.
     cmds:
-      - node .config/scripts/prompts/molecule/ssh.js
-      - task: allure:report
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - echo 'This is incomplete - try again another time'
+      - exit 1
+      - task: molecule:ssh:prompt:continue
+
+  molecule:ssh:prompt:continue:
+    interactive: true
+    todo: https://gitlab.com/megabyte-labs/common/ansible/-/blob/310e721494c7395e2dae0c95462a42d9240fc167/.config/scripts/prompts/molecule/ssh.js
+    prompt:
+      type: select
+      message: Which desktop operating system would you like to test the Ansible play against?
+      options: '{{.VIRTUALBOX_OPTIONS}}'
+      answer:
+        cmds:
+          - task: molecule:virtualbox:converge:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
+            env:
+              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
+          - task: allure:report
 
   molecule:virtualbox:
     desc: Runs a full E2E Molecule test for all supported operating systems
@@ -420,7 +448,7 @@ tasks:
 
   molecule:virtualbox:converge:prompt:
     vars:
-      VIRTUALBOX_MSG: |
+      MARKDOWN: |
         # Desktop Ansible Molecule Test via VirtualBox
 
         Choose a desktop environment below to run the Ansible play on.
@@ -430,7 +458,9 @@ tasks:
         can be made. The operating systems should all be the latest stable release but might
         not always be the latest version.
     cmds:
-      - .config/log md '{{.VIRTUALBOX_MSG}}'
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
       - task: molecule:virtualbox:converge:prompt:continue
 
   molecule:virtualbox:converge:prompt:continue:
@@ -481,16 +511,51 @@ tasks:
 
   # yamllint enable rule:truthy
   molecule:virtualbox:prompt:
+    vars:
+      MARKDOWN: |
+        # Ansible Molecule Test via Headless VirtualBox Instances
+
+        This particular type of test is the best method for testing Ansible plays. It
+        uses VirtualBox and utilizes headless images. Despite that, running the test across
+        all the supported operating systems is RAM intensive. Ideally, you should have at
+        least 16GB of RAM to run all the tests at once. This type of test is used to generate
+        the compatibility chart so the results of this type of test have the final say.
+
+        You do not need to run the tests on all instances at once. Use the prompt below to
+        narrow your test scope.
+    cmds:
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - task: molecule:virtualbox:prompt:continue
+
+  molecule:virtualbox:prompt:continue:
     interactive: true
     deps:
-      - :install:modules:local
-    cmds:
-      - node .config/scripts/prompts/molecule/virtualbox.js
-      - task: allure:report
+      - :install:software:jq
+      - :install:software:yq
+    vars:
+      VIRTUALBOX_OPTIONS:
+        sh: yq eval -o=j '.groups' molecule/default/molecule.yml | jq -r 'keys'
+    prompt:
+      type: select
+      message: What environment(s) would you like to target with this test?
+      options: '{{.VIRTUALBOX_OPTIONS}}'
+      answer:
+        cmds:
+          - task: molecule:virtualbox:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
+            env:
+              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
+          - task: allure:report
+    preconditions:
+      - sh: test -f molecule/default/molecule.yml
+        msg: The `molecule/default/molecule.yml` file must be present and in the proper format
 
   prompt:
     vars:
-      MOLECULE_PROMPT_INFO: |
+      MARKDOWN: |
         # Molecule Test
 
         There are currently six different options for running Molecule tests.
@@ -539,7 +604,9 @@ tasks:
         information on the Ansible debugger (including available commands), see
         https://docs.ansible.com/ansible/latest/user_guide/playbooks_debugger.html#available-debug-commands.
     cmds:
-      - .config/log md '{{.MOLECULE_PROMPT_INFO}}'
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
       - task: prompt:continue
 
   prompt:continue:
@@ -574,9 +641,6 @@ tasks:
                     echo 'gcp'
                   fi
           - task: allure:report
-    preconditions:
-      - sh: test -f molecule/docker/molecule.yml
-        msg: The `molecule/docker/molecule.yml` file must be present and in the proper format
 
   prompt:continue:task:
     cmds:
@@ -640,8 +704,19 @@ tasks:
         fi
 
   vagrant:prompt:
-    interactive: true
-    deps:
-      - :install:modules:local
+    vars:
+      MARKDOWN: |
+        # Launch VM via Vagrant and Run Playbook
+
+        Use the following prompts to select the type of operating system and
+        the virtualization platform you wish to use with Vagrant. After you make your choice
+        the corresponding environment will be provisioned with Vagrant.
     cmds:
-      - node .config/scripts/prompts/vagrant-up.js
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - task: vagrant:prompt:continue
+
+  vagrant:prompt:continue:
+    interactive: true
+    todo: https://gitlab.com/megabyte-labs/common/ansible/-/blob/310e721494c7395e2dae0c95462a42d9240fc167/.config/scripts/prompts/vagrant-up.js

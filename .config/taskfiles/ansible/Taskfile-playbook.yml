@@ -78,26 +78,56 @@ tasks:
         {{if .CLI_ARGS}}
           for ITEM in environments/{{.CLI_ARGS}}/*; do
             ITEM="$(echo $ITEM | sed 's/.*\///')"
-            rm -f $ITEM
-            ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
-            .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
+            if test -L "$ITEM" || ! test -e "$ITEM"; then
+              rm -f "$ITEM"
+              ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
+              .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
+            else
+              .config/log warn "$ITEM exists in the root and was not a symlink so it was skipped to prevent possible data loss"
+            fi
           done
         {{else}}
           exit 69
         {{end}}
 
   environment:prompt:
-    deps:
-      - :install:modules:local
-    interactive: true
+    vars:
+      MARKDOWN: |
+        # Symlink Environment
+
+        Answer the prompt below to switch between environments. Each environment
+        should be a folder with folders and files you wish to link to from the root
+        of the project. They should normally consist of a host_vars, group_vars,
+        inventory, and files folder (but can contain any files/folders you wish to link).
+        Each environment should have its own folder in the `environments/` folder titled
+        as the name of the environment. After you select an answer, the script will
+        symlink all of the items in the environments folder to the root as long as there
+        is not anything except a symlink to the target location (i.e. it will overwrite
+        symlinks but not files).
     cmds:
-      - node .config/scripts/prompts/environment.js
-    preconditions:
-      - sh: test -d node_modules
-        msg: This task has dependencies in the `node_modules` folder which is missing.
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - task: environment:prompt:continue
+
+  environment:prompt:continue:
+    interactive: true
+    deps:
+      - :install:software:jq
+    vars:
+      ENVIRONMENT_OPTIONS:
+        sh: find ./environments -maxdepth 1 -mindepth 1 | sed 's/\.\/environments\///' | jq -R '[.]' | jq -s -c 'add'
+    prompt:
+      type: select
+      message: Which environment would you like to use?
+      options: '{{.ENVIRONMENT_OPTIONS}}'
+      answer:
+        cmds:
+          - task: environment:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
 
   find-missing:
-    # @desc_when [ansible/Taskfile-playbook.yml] ansible/playbook
     desc: Find roles that are missing files
     summary: |
       # Find roles that are missing any given file
@@ -178,8 +208,46 @@ tasks:
       - ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml
 
   run:prompt:
-    deps:
-      - :install:modules:local
-    interactive: true
+    vars:
+      MARKDOWN: |
+        # Run the Playbook
+
+        These set of prompts will run the `main.yml` playbook after you specify:
+
+        1. The "environment"
+
+        The environment is a collection of folders that should, at the very minimum,
+        include "files", "group_vars", "host_vars", and "inventories". Each folder in
+        the "environments" folder constitutes a different environment. By using
+        environments, you can seperate different sets of variables/files or even seperate
+        your private variables out into a sub-module.
+
+        2. An inventory file
+
+        The Ansible inventory stored in the "inventories" folder. This will generally be
+        a YML file with host connection information that also correlates the inventory with
+        the proper host_vars and group_vars. It is assumed that your sudo username and
+        password are encrypted inside the inventory (via "ansible-vault").
     cmds:
-      - node .config/scripts/prompts/molecule/playbook.js
+      - task: environment
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - task: run:prompt:continue
+
+  run:prompt:continue:
+    interactive: true
+    deps:
+      - :install:software:jq
+    vars:
+      INVENTORY_OPTIONS:
+        sh: find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c 'add'
+    prompt:
+      type: select
+      message: Which inventory would you like to use?
+      options: '{{.INVENTORY_OPTIONS}}'
+      answer:
+        cmds:
+          - task: run:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'

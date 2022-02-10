@@ -10,6 +10,10 @@ tasks:
     deps:
       - :install:go:goreleaser
       - :install:go:nfpm
+      - :install:software:jq
+    vars:
+      CURRENT_TAG:
+        sh: jq -r '.blueprint.currentBuildTag' package.json
     log:
       error: GoReleaser encountered an error (config file -> `{{.GORELEASER_CONFIG}}`)
       start: Building with project with GoReleaser
@@ -18,6 +22,10 @@ tasks:
       - |
         unset GITHUB_TOKEN
         unset GITLAB_TOKEN
+        export GOVERSION="$(go version)"
+        if [ '{{.CURRENT_TAG}}' != 'null' ]; then
+          export GORELEASER_CURRENT_TAG={{.CURRENT_TAG}}
+        fi
         goreleaser build --config {{.GORELEASER_CONFIG}} --rm-dist --skip-validate
 
   check:
@@ -34,6 +42,10 @@ tasks:
     deps:
       - :install:go:goreleaser
       - :install:go:nfpm
+      - :install:software:jq
+    vars:
+      CURRENT_TAG:
+        sh: jq -r '.blueprint.currentBuildTag' package.json
     log:
       error: Encountered error while releasing with GoReleaser (config file -> `{{.GORELEASER_CONFIG}})
       start: Publishing compiled assets with GoReleaser
@@ -43,4 +55,8 @@ tasks:
       - |
         unset GITHUB_TOKEN
         unset GITLAB_TOKEN
-        GORELEASER_CURRENT_TAG=v3.9.2 goreleaser release --skip-publish --config {{.GORELEASER_CONFIG}} --rm-dist --skip-validate
+        export GOVERSION="$(go version)"
+        if [ '{{.CURRENT_TAG}}' != 'null' ]; then
+          export GORELEASER_CURRENT_TAG={{.CURRENT_TAG}}
+        fi
+        goreleaser release --skip-publish --config {{.GORELEASER_CONFIG}} --rm-dist --skip-validate

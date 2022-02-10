@@ -51,6 +51,8 @@ tasks:
 
   requirements:poetry:
     summary: |
+      # Poetry Requirements
+
       `poetry publish -r gitlab` will publish to GitLab registry on GitLab CI
     run: once
     log:
@@ -68,8 +70,12 @@ tasks:
       - |
         if [ -n "$GITLAB_CI" ]; then
           poetry config repositories.gitlab "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi"
+        fi
+      - |
+        if [ -n "$GITLAB_CI" ]; then
           poetry config http-basic.gitlab gitlab-ci-token "${CI_JOB_TOKEN}"
         fi
+      - .config/log info "Installing/updating poetry install options -> {{.INSTALL_OPTIONS}}"
       - |
         if [ -n "$AUTO_UPDATE_PIP_PACKAGES" ]; then
           poetry update{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
@@ -84,8 +90,9 @@ tasks:
 
   requirements:poetry:prereqs:
     vars:
-      GCC5_MISSING_MESSAGE: 'It looks like your system is missing gcc-5 but gcc is available. You might be prompted
-        for your sudo password to run the following command:'
+      GCC5_MISSING_MESSAGE: |
+        It looks like your system is missing gcc-5 but gcc is available. You might be prompted
+        for your sudo password to run the following command:
     log:
       error: Error checking `gcc`
       start: Checking if `gcc` should be symlinked to `gcc-5`

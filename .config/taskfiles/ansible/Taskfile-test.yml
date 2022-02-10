@@ -133,12 +133,44 @@ tasks:
           tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt" || EXIT_CODE=$?
 
   molecule:docker:prompt:
+    vars:
+      DOCKER_MSG: |
+        # Ansible Molecule Test via Docker
+
+        Choose a container group from the options below to begin the Molecule test.
+        The choices should be mostly self-explanatory. The `Snap` group is a special group
+        that should be used to test roles that contain `snap` logic. Only recent versions of
+        Debian and Ubuntu support snap installations inside a Docker container. Docker tests
+        are a quick way to test Ansible plays without consuming a large amount of system
+        resources. Granted, to fully test an Ansible play, a VirtualBox method should be used
+        instead.
+    cmds:
+      - .config/log md '{{.DOCKER_MSG}}'
+      - task: molecule:docker:prompt:continue
+
+  molecule:docker:prompt:continue:
     interactive: true
     deps:
-      - :install:modules:local
-    cmds:
-      - node .config/scripts/prompts/molecule/docker.js
-      - task: allure:report
+      - :install:software:jq
+      - :install:software:yq
+    vars:
+      DOCKER_OPTIONS:
+        sh: yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys'
+    prompt:
+      type: select
+      message: Which environment(s) would you like to run the test on?
+      options: '{{.DOCKER_OPTIONS}}'
+      answer:
+        cmds:
+          - task: molecule:docker:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
+            env:
+              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
+          - task: allure:report
+    preconditions:
+      - sh: test -f molecule/docker/molecule.yml
+        msg: The `molecule/docker/molecule.yml` file must be present and in the proper format
 
   molecule:gcp:
     deps:
@@ -218,12 +250,46 @@ tasks:
       - task: molecule:local:{{if .CLI_ARGS}}test{{else}}prompt{{end}}
 
   molecule:local:prompt:
-    interactive: true
-    deps:
-      - :install:modules:local
+    vars:
+      LOCAL_MSG: |
+        # Run Molecule Locally
+
+        This testing option is provided for cases where you would like to locally test the
+        Ansible play with Molecule. This option assumes that the current user has sudo
+        privileges.
+
+        ## Sudo Password
+
+        A sudo password is required for all roles because Molecule has a step where it
+        ensures Python is installed with `become: true`. The sudo password could potentially
+        be logged in clear text if logging is in verbose mode so be careful when using this
+        method.
+
+        ## Running Locally Without Molecule
+
+        If you only want to install the play (without leveraging Molecule's features
+        like testing for idempotency and running test cases), then a more secure method would
+        be to run "ansible localhost --ask-sudo-pass -m include_role -a name=<role_name>" after
+        installing the role and its dependencies with ansible-galaxy.
     cmds:
-      - node .config/scripts/prompts/molecule/local.js
-      - task: allure:report
+      - .config/log md '{{.LOCAL_MSG}}'
+      - task: molecule:local:prompt:continue
+
+  molecule:local:prompt:continue:
+    interactive: true
+    prompt:
+      type: input
+      message: What is the sudo password for the current user?
+      answer:
+        cmds:
+          - task: molecule:local:test
+            env:
+              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
+              TEST_PASSWORD: '{{.ANSWER}}'
+          - task: allure:report
+    preconditions:
+      - sh: test -f molecule/desktop/molecule.yml
+        msg: The `molecule/desktop/molecule.yml` file must be present and in the proper format
 
   molecule:local:test:
     deps:
@@ -353,12 +419,43 @@ tasks:
         {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge -s desktop 2&>1 | tee debug.log || EXIT_CODE=$?
 
   molecule:virtualbox:converge:prompt:
+    vars:
+      VIRTUALBOX_MSG: |
+        # Desktop Ansible Molecule Test via VirtualBox
+
+        Choose a desktop environment below to run the Ansible play on.
+        After choosing, a VirtualBox VM will be created. Then, the Ansible play will run on the VM.
+        After it is done, the VM will be left open for inspection. Please do get carried away
+        ensuring everything is working as expected and looking for configuration optimizations that
+        can be made. The operating systems should all be the latest stable release but might
+        not always be the latest version.
+    cmds:
+      - .config/log md '{{.VIRTUALBOX_MSG}}'
+      - task: molecule:virtualbox:converge:prompt:continue
+
+  molecule:virtualbox:converge:prompt:continue:
     interactive: true
     deps:
-      - :install:modules:local
-    cmds:
-      - node .config/scripts/prompts/molecule/desktop.js
-      - task: allure:report
+      - :install:software:jq
+      - :install:software:yq
+    vars:
+      VIRTUALBOX_OPTIONS:
+        sh: yq eval -o=j '.groups' molecule/desktop/molecule.yml | jq -r 'keys'
+    prompt:
+      type: select
+      message: Which desktop operating system would you like to test the Ansible play against?
+      options: '{{.VIRTUALBOX_OPTIONS}}'
+      answer:
+        cmds:
+          - task: molecule:virtualbox:converge:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
+            env:
+              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
+          - task: allure:report
+    preconditions:
+      - sh: test -f molecule/desktop/molecule.yml
+        msg: The `molecule/desktop/molecule.yml` file must be present and in the proper format
 
   molecule:virtualbox:matrix:
     deps:
@@ -392,10 +489,100 @@ tasks:
       - task: allure:report
 
   prompt:
-    deps:
-      - :install:modules:local
+    vars:
+      MOLECULE_PROMPT_INFO: |
+        # Molecule Test
+
+        There are currently six different options for running Molecule tests.
+
+        ## 1. VirtualBox Headless
+
+        Runs tests using VirtualBox headless VMs. It is the test type used to generate
+        the compatibility chart.
+
+        ## 2. VirtualBox Desktop
+
+        Runs tests using a VirtualBox desktop version VM. Use this type of test to run
+        the Ansible play and then open the VirtualBox VM to smoke test the software.
+
+        ## 3. Docker
+
+        Utilizes Docker to test the Ansible play. It has some limitations such as not being
+        able to test snap installations on all operating systems. It also can only run tests
+        on Linux environments. This is, however, the fastest way to test roles and requires
+        the least amount of RAM.
+
+        ## 4. Local
+
+        Runs the Ansible play on the local machine. Use this to run the Ansible play on your
+        local machine. You might use this if you want to inspect the software after running
+        the play.
+
+        ## 5. SSH
+
+        Runs the Ansible play on a remote machine after connecting via SSH. This requires
+        that you already have the SSH credentials configured (i.e. ~/.ssh is setup).
+
+        ## 6. Google Cloud Platform
+
+        Provisions Google Cloud Platform instances and tests the Ansible play on them. This
+        test requires that you have access to a GCP account and that the proper credentials
+        are in place. For help, see
+        [this guide](https://github.com/ProfessorManhattan/molecule-ansible-google-cloud/blob/master/README.md).
+        Without the environment variables mentioned in the guide set, this task will fail.
+
+        ## Note on Debugging
+
+        All of the tests below (except GCP) enable the built-in Ansible debugger. If a task
+        fails, the STDOUT will freeze and you will be able to enter a few different commands.
+        For example, if you enter "r", then Ansible will run the task again. For more
+        information on the Ansible debugger (including available commands), see
+        https://docs.ansible.com/ansible/latest/user_guide/playbooks_debugger.html#available-debug-commands.
     cmds:
-      - node .config/scripts/prompts/molecule/molecule.js
+      - .config/log md '{{.MOLECULE_PROMPT_INFO}}'
+      - task: prompt:continue
+
+  prompt:continue:
+    interactive: true
+    prompt:
+      type: select
+      message: What type of test would you like to perform?
+      options:
+        - VirtualBox Headless
+        - VirtualBox Desktop
+        - Docker
+        - Local
+        - SSH
+        - Google Cloud Platform
+      answer:
+        cmds:
+          - task: prompt:continue:task
+            vars:
+              MOLECULE_TASK:
+                sh: |
+                  if [ {{.ANSWER}} == 'VirtualBox Headless' ]; then
+                    echo 'virtualbox:prompt'
+                  elif [ '{{.ANSWER}}' == 'VirtualBox Desktop' ]; then
+                    echo 'virtualbox:converge:prompt'
+                  elif [ '{{.ANSWER}}' == 'Docker' ]; then
+                    echo 'docker:prompt'
+                  elif [ '{{.ANSWER}}' == 'Local' ]; then
+                    echo 'local'
+                  elif [ '{{.ANSWER}}' == 'SSH' ]; then
+                    echo 'ssh:prompt'
+                  elif [ '{{.ANSWER}}' == 'Google Cloud Platform' ]; then
+                    echo 'gcp'
+                  fi
+          - task: allure:report
+    preconditions:
+      - sh: test -f molecule/docker/molecule.yml
+        msg: The `molecule/docker/molecule.yml` file must be present and in the proper format
+
+  prompt:continue:task:
+    cmds:
+      - task: molecule:{{.MOLECULE_TASK}}
+        env:
+          ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
 
   vagrant:
     desc: Runs the playbook using Vagrant

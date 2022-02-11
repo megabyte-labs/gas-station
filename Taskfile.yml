@@ -133,7 +133,7 @@ tasks:
     deps:
       - install:software:jq
       - install:software:node
-    desc: Build the project
+    desc: Build the project using the build script defined in `package.json`
     summary: |
       # Build the Project
 
@@ -153,22 +153,46 @@ tasks:
           [[ $- == *i* ]] && task prepare || (.config/log error '{{.NONINTERACTIVE_MISSING_BUILD_CMD}}' && exit 1)
         fi
 
-  cmds:
-    - |
-      {{if .CLI_ARGS}}
-      git add --all
-      HUSKY=0 git commit -m "{{.CLI_ARGS}}" --no-verify
-      {{else}}
-      git add --all
-      git commit
-      {{end}}
+  clean:
+    desc: Removes optional folders that are cached during various tasks
+    summary: |
+      # Clean Project / Remove Optional Directories and Files
+
+      This task will remove all the unnecessary files that are downloaded, generated, and
+      cached during various build steps. This task is used by the `reset` task
+      which will re-generate the project from scratch. Ideally, this task and the reset task
+      should never be necessary. The `start` task should be used instead.
+    vars:
+      CLEAN_TARGETS: .autodoc .cache .task .venv node_modules tsconfig.tsbuildinfo venv
+        .variables.json
+    cmds:
+      - task: common:clean
+        vars:
+          CLEAN_TARGETS: '{{.CLEAN_TARGETS}}'
 
   commit:
-    deps:
-      - install:software:git
-    desc: Add all and commit
+    desc: Lint staged files, report spelling errors, and open a _required_ commit dialoge
     summary: |
       # Commit Code
+
+      This task will perform linting and auto-fixing on the files that have been staged in
+      git (i.e. the files that were added with `git add --all`). It will then report possible
+      spelling errors that you may choose to fix. Then, it opens a _required_ interactive commit
+      questionnaire that will help you make better commits that are compatible with software
+      that generates the CHANGELOG.md.
+
+      It is very important that you use this task to commit rather than the conventional approach
+      using `git commit -m`. However, if you really need to, you can add the flag `--no-verify`
+      to your regular `git commit -m` command to bypass the pre-commit hook.
+    cmds:
+      - task: common:commit
+
+  commit:all:
+    deps:
+      - install:software:git
+    desc: Add all the untracked changes and commit the code
+    summary: |
+      # Commit All Untracked Code
 
       By default, this task is an alias for:
 
@@ -185,7 +209,22 @@ tasks:
       ```
       task commit -- "Added new files that do not need to show up in CHANGELOG.md"
       ```
+    log:
+      error: Error while running commit logic
+      start: Adding all changes and committing
+      success: Successfully commit changes
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+        git add --all
+        HUSKY=0 git commit -m "{{.CLI_ARGS}}" --no-verify
+        {{else}}
+        git add --all
+        git commit
+        {{end}}
+
   donothing: 'true'
+
   environment:
     interactive: true
     desc: Symlink to an environment in the `environments/` folder
@@ -206,10 +245,11 @@ tasks:
       - task: ansible:playbook:environment
     build: |
       yq eval -i -P '.tasks.environment.summary = $summary' .config/taskfiles/ansible/Taskfile.yml
+
   fix:
-    desc: Run code auto-fixers
+    desc: Run code auto-fixers / auto-formatters
     summary: |
-      # Auto-fix code
+      # Auto-Fix / Auto-Format Code
 
       This task will automatically apply lint fixes across the whole project using
       auto-fixers. Although unlikely, it is possible that auto-fixing can introduce
@@ -330,10 +370,6 @@ tasks:
         fi
       - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
 
-  log:
-    error: Error while running commit logic
-    start: Adding all changes and committing
-    success: Successfully commit changes
   playbook:
     desc: Run the playbook
     summary: |
@@ -409,6 +445,37 @@ tasks:
     cmds:
       - task: boilerplate:check:package
       - task: boilerplate:clean
+
+  reset:
+    desc: Resets the project by removing all caches and then re-generating templated files
+    summary: |
+      # Reset Project and Re-Generate Assets
+
+      This task is intended to be used when there appear to be cache related issues.
+      It will first clean the project by removing common local libraries like `node_modules/`
+      and the `.cache/` folder, to name a couple. Then, without acquiring any upstream
+      updates, it re-generates any templated files.
+    cmds:
+      - task: common:reset
+
+  reset:force:
+    desc: 'Aggressively reset the project (**WARNING** This will wipe uncommitted work)'
+    summary: |
+      # Aggressively Reset Project
+
+      This task will completely wipe the project by:
+
+      1. Resetting to the HEAD
+      2. Removing all files that are not included in source control (i.e. `node_modules/` etc.)
+      3. Pulling the latest changes from `master`
+
+      This task is essentially the equivalent of deleteing the project and re-cloning it.
+    prompt:
+      type: confirm
+      message: Are you sure you want to forcefully reset the project?
+      answer:
+        cmds:
+          - task: common:reset:force
 
   scripts:
     interactive: true

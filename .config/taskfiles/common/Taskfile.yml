@@ -5,21 +5,12 @@ tasks:
   clean:
     deps:
       - :install:software:rsync
-    desc: Removes optional folders that are cached during various tasks
-    summary: |
-      # Clean the project and remove all optional caches
-
-      This task will remove all the unnecessary files that are downloaded, generated, and
-      cached during various build steps. This task is used by the `task common:reset` task
-      which will re-generate the project from scratch. Ideally, this task and the reset task
-      should never be necessary. The `common:update` task should be used instead.
     vars:
-      CLEAN_TARGETS: .autodoc .task .venv node_modules
       RANDOM_STRING:
         sh: openssl rand -hex 14
     log:
       error: Error removing `{{.CLEAN_TARGETS}}`
-      start: Removing `{{.CLEAN_TARGETS}}`semantic-release --dry-run -r "$(git remote get-url origin)"
+      start: Removing `{{.CLEAN_TARGETS}}`
       success: Removed `{{.CLEAN_TARGETS}}`
     cmds:
       - mkdir -p '/tmp/{{.RANDOM_STRING}}'
@@ -39,19 +30,6 @@ tasks:
       - :install:npm:commitizen
       - :install:npm:commitlint
       - :install:python:requirements
-    desc: Lint staged files, report spelling errors, and open a _required_ commit dialoge
-    summary: |
-      # Commit code
-
-      This task will perform linting and auto-fixing on the files that have been staged in
-      git (i.e. the files that were added with `git add --all`). It will then report possible
-      spelling errors that you may choose to fix. Then, it opens a _required_ interactive commit
-      questionnaire that will help you make better commits that are compatible with software
-      that generates the CHANGELOG.md.
-
-      It is very important that you use this task to commit rather than the conventional approach
-      using `git commit -m`. However, if you really need to, you can add the flag `--no-verify`
-      to your regular `git commit -m` command to bypass the pre-commit hook.
     log:
       start: Initiating commit dialog
     cmds:
@@ -110,9 +88,10 @@ tasks:
   prepare-release:
     deps:
       - :install:npm:standard-version
-    desc: Ensure the project has upstream changes, lint, and then update the version
     summary: |
       # Prepare a new release
+
+      > NOTE: This is no longer used, in favor of semantic-release which handles publishing during CI/CD
 
       This task performs the following tasks in order:
 
@@ -130,42 +109,25 @@ tasks:
       - :install:modules:global
       - :install:modules:local
       - :install:python:requirements
-    desc: Ensure all the dependencies are installed (Node.js, Python, etc.)
     summary: |
       # Ensure dependencies are installed
 
       This task ensures that packages in various languages (Node.js, Python, etc.) are installed.
       At the very minimum, it will install the Node.js requirements by running `npm install`
       (or `pnpm install`, if configured to do so), install the NPM global dependencies, and
-      then install the Python requirements by running `pip3 install -r requirements` after
-      initiating a `virtualenv`. In some types of projects, additional types of requirements are
-      installed (e.g. Ansible projects also install Ansible Galaxy requirements).
+      then install the Python requirements by running `poetry update`. In some types of projects,
+      additional types of requirements are installed (e.g. Ansible projects also install Ansible
+      Galaxy requirements).
     run: once
 
   reset:
-    desc: Resets the project by removing all caches and updating the project
-    summary: |
-      # Reset the project and then update it
-
-      This task is intended to be used when the `common:update` task is having trouble
-      or when breaking changes are made to the build tools. Use this task if you are
-      having trouble with other tasks that are dependent on stale caches. Unlike
-      `task common:hard-reset`, this will not remove uncommitted work (assuming your
-      work does not reside in folders ignored by the `.gitignore` file).
     cmds:
       - task: clean
       - task: update
 
-  reset-force:
+  reset:force:
     deps:
       - software:git
-    desc: 'Aggressively reset the project (**WARNING** This will wipe uncommitted work)'
-    summary: |
-      # Aggressively reset the project
-
-      If using `task common:reset` does not fix your issues, you can run this task
-      to completely wipe out uncommitted work, clear all the caches, and sync
-      with the master branch of both this project and its upstream repositories.
     log:
       error: Failed to reset project back to its HEAD
       start: Forcing project to reset aggressively
@@ -176,7 +138,6 @@ tasks:
       - git clean -fxd :/
       - git checkout master
       - git pull origin master --no-rebase
-      - bash .config/scripts/start.sh
 
   shell:
     deps:

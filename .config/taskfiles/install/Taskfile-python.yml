@@ -114,20 +114,44 @@ tasks:
       - which gcc-5
 
   venv:node:
+    deps:
+      - :install:software:dasel
+      - :install:software:python
+    vars:
+      POETRY_MANUAL_SETUP_MSG: Adding semantic-release-python plugin Python dependencies by
+        running `poetry add pip@latest setuptools@latest twine@latest wheel@latest`
     log:
-      error: Encountered error while setting up `venv` environment.. Is Python 3 installed?
-      start: Setting up a Python 3 `venv`
-      success: Finished setting up `venv`. Run `. venv/bin/activate` to load the environment into your shell.
+      error: Encountered error while installing Python dependencies for `semantic-release-python`
+      start: Installing `semantic-release-python` Python dependencies
+      success: Successfully installed `semantic-release-python` Python dependencies
     cmds:
-      - task: :install:software:python
       - |
         REQUIREMENTS_PATH="$PWD/lib/requirements.txt"
         cd "$INIT_CWD" || exit
-        if [ ! -f venv/bin/activate ]; then
-          python3 -m venv venv || exit 0
+        if type poetry > /dev/null && test -f pyproject.toml; then
+          .config/log info 'Poetry installation detected. Using Poetry to install NPM package Python dependencies.'
+          if dasel select -f pyproject.toml '.tool.poetry.extras.semantic' > /dev/null; then
+            .config/log info '`semantic` extras bundle detected.. Installing via `poetry install -E semantic`'
+            poetry install -E semantic
+          else
+            .config/log info '{{.POETRY_MANUAL_SETUP_MSG}}'
+            poetry add pip@latest setuptools@latest twine@latest wheel@latest
+          fi
+        else
+          if [ -f venv/bin/activate ]; then
+            .config/log info 'Using existing virtualenv found at `venv/`'
+            . venv/bin/activate
+          elif [ -f .venv/bin/activate ]; then
+            .config/log info 'Using existing virtualenv found at `.venv/`'
+            . .venv/bin/activate
+          else
+            .config/log info 'No virtualenv detected.. Creating virtualenv in `.venv/`'
+            python3 -m venv .venv
+            . .venv/bin/activate
+          fi
+          .config/log info 'Installing Python dependencies into virtualenv'
+          pip3 install -U pip setuptools
+          pip3 install -r "$REQUIREMENTS_PATH"
         fi
-        . .venv/bin/activate || exit 0
-        pip3 install -U pip setuptools || exit 0
-        pip3 install -r "$REQUIREMENTS_PATH" || exit 0
     sources:
-      - src/requirements.txt
+      - lib/requirements.txt

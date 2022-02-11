@@ -67,4 +67,20 @@ tasks:
       error: '`pre-push` hook encountered an error!'
       start: '`pre-push` hook running..'
     cmds:
-      - 'true'
+      - |
+        REMOTE={{index (split " " .CLI_ARGS) 0}}
+        URL={{index (split " " .CLI_ARGS) 1}}
+        HOST="$(echo $URL | sed 's/^.*@//' | sed 's/:.*$//')"
+        ORG="$(echo $URL | sed 's/^.*://' | sed 's/\/.*$//')"
+        PROJECT="$(echo $URL | sed 's/^[^\/]*\///' | sed 's/.[^\.]*$//')"
+        IFS=' '
+        while read local_ref local_sha remote_ref remote_sha; do
+          echo "local_ref -> $local_ref"
+          echo "local_sha -> $local_sha"
+          echo "remote_ref -> $remote_ref"
+          echo "remote_sha -> $remote_sha"
+          REMOTE_BRANCH="$(echo $remote_ref | sed 's/^[^\/]*\/[^\/]*\///')"
+          .config/log star "Repository ----------> https://$HOST/$ORG/$PROJECT"
+          .config/log star "Open PR -------------> https://$HOST/$ORG/$PROJECT/-/merge_requests/new"
+          .config/log star "Open PR -------------> https://$HOST/$ORG/$PROJECT/pull/new/$REMOTE_BRANCH"
+        done

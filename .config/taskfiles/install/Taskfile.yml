@@ -56,6 +56,7 @@ tasks:
     deps:
       - :install:npm:{{.NPM_PROGRAM_LOCAL}}
       - :install:npm:cz-emoji
+      - :install:software:jq
     run: once
     log:
       error: Encountered error while installing local NPM dependencies
@@ -72,7 +73,10 @@ tasks:
             fi
           fi
         ignore_error: true
-      - pnpm install --save-dev glob # temp
+      - |
+        if [ "$(jq -r '.devDependencies.glob' package.json)" == 'null' ]; then
+          pnpm install --save-dev glob
+        fi
       - task: modules:local:sync
     sources:
       - package.json

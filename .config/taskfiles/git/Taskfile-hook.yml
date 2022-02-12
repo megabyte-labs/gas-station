@@ -69,7 +69,10 @@ tasks:
     cmds:
       - |
         REMOTE={{index (split " " (trimAll "'" .CLI_ARGS)) "_0"}}
-        URL={{index (split " " (trimAll "'" .CLI_ARGS)) "_1"}}
+        URL={{index (split " " (trimAll "'" .CLI_ARGS)) "_1" | replace .Env.GITLAB_TOKEN "" | replace .Env.GITHUB_TOKEN ""}}
+        if [[ $URL == http* ]]; then
+          URL="$(echo $URL | sed 's/^[^@]*@/git@/')"
+        fi
         HOST="$(echo $URL | sed 's/^.*@//' | sed 's/:.*$//')"
         ORG="$(echo $URL | sed 's/^.*://' | sed 's/\/.*$//')"
         PROJECT="$(echo $URL | sed 's/^[^\/]*\///' | sed 's/.[^\.]*$//')"

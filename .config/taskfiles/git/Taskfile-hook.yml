@@ -10,8 +10,8 @@ tasks:
       - :lint:commit
     log:
       error: '`commit-msg` hook encountered an error!'
-
       start: '`commit-msg` hook running..'
+
   post-checkout:
     deps:
       - :install:npm:git-notify
@@ -60,16 +60,21 @@ tasks:
       - :security:private-keys
     log:
       error: '`pre-commit` hook encountered an error!'
-
       start: '`pre-commit` hook running..'
+
   pre-push:
+    vars:
+      GITHUB_TOKEN:
+        sh: echo "$GITHUB_TOKEN"
+      GITLAB_TOKEN:
+        sh: echo "$GITLAB_TOKEN"
     log:
       error: '`pre-push` hook encountered an error!'
       start: '`pre-push` hook running..'
     cmds:
       - |
         REMOTE={{index (split " " (trimAll "'" .CLI_ARGS)) "_0"}}
-        URL={{index (split " " (trimAll "'" .CLI_ARGS)) "_1" | replace .Env.GITLAB_TOKEN "" | replace .Env.GITHUB_TOKEN ""}}
+        URL={{index (split " " (trimAll "'" .CLI_ARGS)) "_1" | replace .GITLAB_TOKEN "" | replace .GITHUB_TOKEN ""}}
         if [[ $URL == http* ]]; then
           URL="$(echo $URL | sed 's/^[^@]*@/git@/')"
         fi

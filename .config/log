@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @file .common/scripts/log.sh
+# @file .config/log
 # @brief Logger that logs pretty console messages
 # @description
 #   This file contains several functions that log content in different formats. The available
@@ -11,25 +11,40 @@
 #   * `star` - Logs a message with a star icon at the beginning
 #   * `success` - Logs a success message
 #   * `warn` - Logs a warning message
+#   * `md` - Log a stylized markdown string or file
 
-if [ "${container:=}" != 'docker' ] && type node > /dev/null && [ -f './node_modules/chalk/package.json' ] \
-&& [ -f './node_modules/string-break/package.json' ]; then
-  echo "Disabled enhanced logging temporarily"
+# @description Installs Stylog from GitHub releases
+# @example installStylog
+installStylog() {
+  echo 'Stylog has not yet been released!'
+}
+
+# @description Configure the logger to use echo or stylog
+if [ "${container:=}" != 'docker' ]; then
+  if [ -f "$HOME/.local/bin/stylog" ]; then
+    chmod +x "$HOME/.local/bin/stylog"
+    STYLOG_PATH="$HOME/.local/bin/stylog"
+    ENHANCED_LOGGING=true
+  elif type stylog > /dev/null; then
+    STYLOG_PATH="$(which stylog)"
+    ENHANCED_LOGGING=true
+  else
+    installStylog
+  fi
 fi
 
 # @description Logs using Node.js
 # @example logger info "An informative log"
 logger() {
-  node .config/scripts/prompts/lib/log.js "$1" "$2"
+  $STYLOG_PATH "$1" "$2"
 }
 
-ANSI_STR=""
 format() {
   ANSI_STR="$(echo "$1" | sed 's/^\([^`]*\)`\([^`]*\)`/\1\\e[100;1m \2 \\e[0;39m/')"
-  if [[ $ANSI_STR == *'`'*'`' ]]; then
+  if [[ $ANSI_STR == *'`'*'`'* ]]; then
     ANSI_STR="$(format "$ANSI_STR")"
   fi
-  echo "$ANSI_STR"
+  echo -e "$ANSI_STR"
 }
 
 # @description Logs an error message
@@ -38,7 +53,7 @@ error() {
   if [ -n "$ENHANCED_LOGGING" ]; then
     logger error "$1"
   else
-    echo -e "\e[1;31mERROR:\e[0m "$(format "$1")"\e[0;39m"
+    echo -e "\e[1;41m  ERROR   \e[0m $(format "$1")\e[0;39m"
   fi
 }
 
@@ -48,7 +63,7 @@ info() {
   if [ -n "$ENHANCED_LOGGING" ]; then
     logger info "$1"
   else
-    echo -e "\e[1;36mINFO:\e[0m "$(format "$1")"\e[0;39m"
+    echo -e "\e[1;46m   INFO   \e[0m $(format "$1")\e[0;39m"
   fi
 }
 
@@ -67,7 +82,7 @@ star() {
   if [ -n "$ENHANCED_LOGGING" ]; then
     logger star "$1"
   else
-    echo -e "\e[1;95mSTAR:\e[0m "$(format "$1")"\e[0;39m"
+    echo -e "\e[1;104m   STAR   \e[0m $(format "$1")\e[0;39m"
   fi
 }
 
@@ -77,7 +92,7 @@ success() {
   if [ -n "$ENHANCED_LOGGING" ]; then
     logger success "$1"
   else
-    echo -e "\e[1;32mSUCCESS:\e[0m "$(format "$1")"\e[0;39m"
+    echo -e "\e[1;42m SUCCESS  \e[0m $(format "$1")\e[0;39m"
   fi
 }
 
@@ -87,13 +102,13 @@ warn() {
   if [ -n "$ENHANCED_LOGGING" ]; then
     logger warn "$1"
   else
-    echo -e "\e[1;33mWARNING:\e[0m "$(format "$1")"\e[0;39m"
+    echo -e "\e[1;43m WARNING  \e[0m $(format "$1")\e[0;39m"
   fi
 }
 
 if [ -n "$1" ] && [ -n "$2" ]; then
   if [ "$1" == 'warn' ] || [ "$1" == 'success' ] || [ "$1" == 'star' ] || [ "$1" == 'info' ] \
-  || [ "$1" == 'error' ]; then
+  || [ "$1" == 'error' ] || [ "$1" == 'md' ]; then
     "$1" "$2"
   fi
 fi

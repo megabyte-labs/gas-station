@@ -8,7 +8,7 @@ tasks:
       - container-structure-test:slim
     desc: Runs ContainerStructureTest for Dockerfile build
     hide:
-      sh: '[ ! -f Dockerfile-test.yml ]'
+      sh: '! find . -mindepth 1 -maxdepth 1 -name "Dockerfile*.test.yml" | grep Dockerfile'
 
   container-structure-test:latest:
     deps:
@@ -19,7 +19,8 @@ tasks:
       start: Testing the `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` Docker image with `container-structure-test`
       success: '`{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` was successfully validated by `container-structure-test`'
     cmds:
-      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --config Dockerfile-test.yml
+      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:latest
+        --config Dockerfile{{if .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}.test.yml
     status:
       - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" == "" ]]'
 
@@ -32,7 +33,8 @@ tasks:
       start: Testing the `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` Docker image with `container-structure-test`
       success: '`{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` was successfully validated by `container-structure-test`'
     cmds:
-      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim --config Dockerfile-test.yml
+      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim
+        --config Dockerfile{{if .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}.test.yml
     status:
       - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" == "" ]]'
 
@@ -40,28 +42,30 @@ tasks:
     deps:
       - :install:software:docker
     desc: For each project in the `test-output/` folder, ensure slim and latest output match with default command
-    hide:
-      sh: '[ ! -f Dockerfile-test.yml ]'
     summary: |
       # Ensure Identical Output
 
       This task ensures the output of the default command is identical for both the latest and slim images.
       If both of the command's outputs match, then that is a good indicator that the slim image is
       behaiving like the latest image. The test is performed on each project folder in the `test-output/` folder.
+    vars:
+      IMAGE_NAME: '{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}'
+    hide:
+      sh: '[ ! -f Dockerfile-test.yml ]'
     log:
-      error: There was an error while comparing `latest` and `slim` image outputs
-      start: Comparing outputs of the `latest` and `slim` images
-      success: The outputs of the `latest` and `slim` images match!
+      error: There was an error while comparing `latest` and `slim` image outputs for `{{.IMAGE_NAME}}`
+      start: Comparing outputs of the `latest` and `slim` images for `{{.IMAGE_NAME}}`
+      success: The outputs of the `latest` and `slim` images match for `{{.IMAGE_NAME}}`!
     cmds:
       - |
-        if [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" != "" ]] && \
-        [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" != "" ]]; then
+        if [[ "$(docker images -q {{.IMAGE_NAME}}:slim 2> /dev/null)" != "" ]] && \
+        [[ "$(docker images -q {{.IMAGE_NAME}}:latest 2>/dev/null)" != "" ]]; then
           for TEST_SCENARIO in test-output/*/; do
             .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
-            LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest .)
+            LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:latest .)
             .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
             .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
-            SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim .)
+            SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:slim .)
             .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
             if [ "$LATEST_OUTPUT != "$SLIM_OUTPUT" ]; then
               .config/log error 'The `latest` image output did not match the `slim` image output'

@@ -20,28 +20,22 @@ tasks:
     vars:
       BUILD_DATE:
         sh: git show -s --format=%cI
+      DOCKER_IMAGE:
+        sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
       REVISION:
         sh: git rev-parse HEAD
-      SLUG:
-        sh: |
-          DOCKERHUB_SLUG="$(jq -r '.blueprint.dockerHubSlug' package.json)"
-          if [ "$DOCKERHUB_SLUG" != 'null' ]; then
-            echo "$DOCKERHUB_SLUG"
-          else
-            jq -r '.blueprint.slug' package.json
-          fi
       VERSION: latest
     log:
-      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
-      start: Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)
-      success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
+      error: Error building `{{.DOCKER_IMAGE}}:{{.VERSION}}`
+      start: Building Docker container `{{.DOCKER_IMAGE}}:{{.VERSION}}` (also tagged as latest)
+      success: Successfully built Docker container named `{{.DOCKER_IMAGE}}:{{.VERSION}}`
     cmds:
       - .config/log info 'Running `docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
-        --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:latest{{end}} .`'
+        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}
+        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:latest{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .`'
       - docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
-        --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:latest{{end}} .
+        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}
+        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:latest{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .
     sources:
       - Dockerfile
       - package.json
@@ -72,33 +66,25 @@ tasks:
 
   slim:command:
     vars:
+      DOCKER_IMAGE:
+        sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+      IMAGE_TYPE:
+        sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
       SLIM_COMMAND:
-        sh: |
-          SLIM_COMMAND="$(jq -r '.blueprint.dockerSlimCommand' package.json)"
-          if [ "$SLIM_COMMAND" != 'null' ]; then
-            echo "$SLIM_COMMAND"
-          else
-            if [ -f paths.txt ]; then
-              PATHS_TXT=" --preserve-path-file 'paths.txt'"
-            fi
-            if [ -f exe.txt ]; then
-              EXE_TXT=" --include-exe-file 'exe.txt'"
-            fi
-            echo '--http-probe=false --exec "task start && task build"'"$PATHS_TXT""$EXE_TXT"
-          fi
+        sh: jq --arg type $IMAGE_TYPE -r '.blueprint.dockerSlimCommand[$type]' package.json)"
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
     log:
-      error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` with `docker-slim`
-      start: Building Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
-      success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
+      error: Error building `{{.DOCKER_IMAGE}}:slim` with `docker-slim`
+      start: Building Docker container named `{{.DOCKER_IMAGE}}:slim`
+      success: Successfully built Docker container named `{{.DOCKER_IMAGE}}:slim`
     cmds:
-      - .config/log info 'Running `docker-slim build --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim
+      - .config/log info 'Running `docker-slim build --tag {{.DOCKER_IMAGE}}:slim
         {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:slim {{end}}
-        {{.SLIM_COMMAND}} {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest`'
-      - docker-slim build --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim
+        {{.SLIM_COMMAND}} {{.DOCKER_IMAGE}}:latest`'
+      - docker-slim build --tag {{.DOCKER_IMAGE}}:slim
         {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:slim {{end}}
-        {{.SLIM_COMMAND}} {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest
+        {{.SLIM_COMMAND}} {{.DOCKER_IMAGE}}:latest
     sources:
       - Dockerfile
       - package.json
@@ -125,13 +111,15 @@ tasks:
       - :install:software:docker
       - :install:software:jq
     vars:
+      DOCKER_IMAGE:
+        sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
       PREVIOUS_SLIM_SIZE:
         sh: jq -r '.blueprint.slim_size' package.json
       REGULAR_SIZE:
-        sh: 'docker manifest inspect -v "{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
+        sh: 'docker manifest inspect -v "{{.DOCKER_IMAGE}}:latest" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
           | awk "{$1=$1/(1024^2); print $1,\"MB\";}"'
       SLIM_SIZE:
-        sh: 'docker manifest inspect -v "{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
+        sh: 'docker manifest inspect -v "{{.DOCKER_IMAGE}}:slim" | grep size | awk -F ":" "{sum+=$NF} END {print sum}"
           | awk "{$1=$1/(1024^2); print $1,\"MB\";}"'
     log:
       error: Failed to acquire / inject `:slim` image file size information into `package.json` blueprint data

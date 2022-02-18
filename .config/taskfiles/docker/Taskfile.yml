@@ -3,7 +3,8 @@ version: '3'
 
 vars:
   DOCKER_IMAGE:
-    sh: jq -r '.name' package.json | sed 's/^@//'
+    sh: |
+      {{if .CLI_ARGS}}{{.DOCKERHUB_PROFILE}}/{{.CLI_ARGS}}{{else}}jq -r '.name' package.json | sed 's/^@//'{{end}}
   SLIM_ENABLED:
     sh: jq -r '.blueprint.slimBuildEnabled' package.json | sed 's/null/false/'
 
@@ -13,8 +14,17 @@ tasks:
     hide:
       sh: '[ ! -f Dockerfile ]'
     cmds:
-      - task: :docker:build:fat
-      - task: :docker:build:slim
+      - |
+        if [ -f Dockerfile.test.yml ]; then
+          task docker:build:fat
+          task docker:build:slim
+        fi
+      - |
+        for TESTFILE in Dockerfile-*.test.yml; do
+          TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Dockerfile-//' | sed 's/.test.yml$//')"
+          task docker:build:fat -- "$TEST_IMAGE_SLUG"
+          task docker:build:slim -- "$TEST_IMAGE_SLUG"
+        done
 
   login:
     deps:
@@ -33,11 +43,36 @@ tasks:
       - task: build
 
   publish:
+    deps:
+      - :install
+    cmds:
+      - |
+        if [ -f Dockerfile.test.yml ]; then
+          task docker:publish:images
+        fi
+      - |
+        for TESTFILE in Dockerfile-*.test.yml; do
+          TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Dockerfile-//' | sed 's/.test.yml$//')"
+          task docker:publish:images -- "$TEST_IMAGE_SLUG"
+        done
+
+  publish:image:
+    log:
+      error: Failed to tag / push `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+      start: Tagging and pushing `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+      success: Finished uploading `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+    cmds:
+      - docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+      - docker push {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+    status:
+      - if [[ '{{.SOURCE_TAG}}' == 'slim' ]]; then [[ '{{.SLIM_ENABLED}}' == 'false' ]]; fi
+
+  publish:images:
     vars:
       MAJOR_VERSION:
-        sh: '{{if .CLI_ARGS}}echo "{{.CLI_ARGS}}"{{else}}jq -r ".version" package.json{{end}} | sed "s/\..*\..*$//"'
+        sh: jq -r '.version' package.json | sed 's/\..*\..*$//'
       VERSION:
-        sh: '{{if .CLI_ARGS}}echo "{{.CLI_ARGS}}"{{else}}jq -r ".version" package.json{{end}}'
+        sh: jq -r ".version" package.json
     log:
       error: An error occurred while publishing the Docker images
       start: Publishing Docker images
@@ -68,17 +103,6 @@ tasks:
           SOURCE_TAG: slim
           TARGET_TAG: slim
       - task: pushrm
-
-  publish:image:
-    log:
-      error: Failed to tag / push `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
-      start: Tagging and pushing `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
-      success: Finished uploading `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
-    cmds:
-      - docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
-      - docker push {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
-    status:
-      - if [[ '{{.SOURCE_TAG}}' == 'slim' ]]; then [[ '{{.SLIM_ENABLED}}' == 'false' ]]; fi
 
   pushrm:
     deps:
@@ -112,7 +136,7 @@ tasks:
       `task docker:shell -- 'abc'`
     vars:
       IMAGE_OPTIONS:
-        sh: docker images | grep {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.DOCKER_IMAGE}} | sed 's/^\([^ ]*\).*$/\1/' | jq -Rsc 'split("\n")' | jq 'del(.[-1])'
+        sh: docker images | grep {{.DOCKER_IMAGE}} | sed 's/^\([^ ]*\).*$/\1/' | jq -Rsc 'split("\n")' | jq 'del(.[-1])'
     prompt:
       type: select
       message: Which Docker image would you like to shell into?
@@ -135,13 +159,17 @@ tasks:
       output. Each folder in the `test-output/` folder must have a `package.json` file present with the `test:dockerslim`
       script defined under `scripts`.
     cmds:
-      - task: :docker:test:container-structure-test
-      - task: :docker:test:output
-    preconditions:
-      - sh: >
-          [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" == "" ]] &&
-          [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" == "" ]]'
-        msg: Neither `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` nor `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` exist. One must exist to run the test.
+      - |
+        if [ -f Dockerfile.test.yml ]; then
+          task docker:test:container-structure-test
+          task docker:test:output
+        fi
+      - |
+        for TESTFILE in Dockerfile-*.test.yml; do
+          TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Dockerfile-//' | sed 's/.test.yml$//')"
+          task docker:test:container-structure-test -- "$TEST_IMAGE_SLUG"
+          task docker:test:output -- "$TEST_IMAGE_SLUG"
+        done
 
   verify:
     cmds:

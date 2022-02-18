@@ -21,7 +21,16 @@
     url: "https://github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client/releases/download/\
       {{ googleassistant_latest_release_tag.json.tag_name }}/Google-Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
     dest: "{{ googleassistant_src_dir }}/Google-Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
+    mode: 0755
   when: install_googleassistant
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
 
 - name: "Ensure {{ app_name }}'s AppImage is removed from /usr/local/src"
   file:
@@ -39,11 +48,3 @@
     backup: true
     no_extra_spaces: true
   when: install_googleassistant
-
-- name: Run user configuration tasks
-  include_tasks: user-Linux.yml
-  loop: "{{ user_configs }}"
-  loop_control:
-    label: "{{ user.username }}"
-    loop_var: user
-  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

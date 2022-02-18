@@ -83,6 +83,21 @@ tasks:
         {{else}}
           true
         {{end}}
+      - |
+        if [ -f .dockerignore ]; then
+          TMP="$(mktemp)"
+          echo '# To keep changes, only add items to end of file' > "$TMP"
+          cat .gitignore >> "$TMP"
+          if [ ! -f .config/dockerignore ]; then
+            curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.config/dockerignore > .config/dockerignore
+          fi
+          cat .config/dockerignore >> "$TMP"
+          echo '# Saved entries below' >> "$TMP"
+          cat .dockerignore >> "$TMP"
+          mv "$TMP" .dockerignore
+        elif [ '{{.PROJECT_TYPE}}' == 'project' ]; then
+          rm .config/dockerignore
+        fi
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
 

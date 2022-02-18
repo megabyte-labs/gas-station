@@ -12,8 +12,8 @@ tasks:
       start: Ensuring `Dockerfile` labels are up-to-date
       success: '`Dockerfile` labels are up-to-date'
     cmds:
-      - task: update:labels:add
-      - task: update:labels:{{OS}}
+      - task: labels:add
+      - task: labels:update
     sources:
       - .variables.json
       - Dockerfile
@@ -66,32 +66,34 @@ tasks:
 
   # yamllint disable rule:line-length
   # eslint-disable max-len
-  labels:darwin:
+  labels:update:
     vars:
+      AUTHORS:
+        sh: jq -r '.docker_label_authors' .variables.json
       GROUP_URL:
         sh: jq -r '.repository.group.dockerfile' .variables.json
-    log:
-      error: Encountered error while updating `Dockerfile` labels
-    cmds:
-      - |
-        DESCRIPTION="$(jq -r '.description' package.json)"
-        sed -i .bak "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=${DESCRIPTION}^g" Dockerfile && rm Dockerfile.bak
-      - sed -i .bak "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation=\"{{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}/-/blob/master/README.md\"^g" Dockerfile && rm Dockerfile.bak
-      - sed -i .bak "s^.*org.opencontainers.image.source.*^LABEL org.opencontainers.image.source=\"{{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}.git\"^g" Dockerfile && rm Dockerfile.bak
-
-  labels:linux:
-    vars:
-      GROUP_URL:
-        sh: jq -r '.repository.group.dockerfile' .variables.json
+      LICENSE:
+        sh: jq -r '.license' .variables.json
+      ORGANIZATION:
+        sh: jq -r '.organization' .variables.json
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
+      URL:
+        sh: jq -r '.link.home' .variables.json
+    env:
+      DESCRIPTION:
+        sh: jq -r '.description' package.json
+      REPOSITORY_GITHUB:
+        sh: jq -r '.blueprint.repository.github' package.json
     log:
       error: Encountered error while updating `Dockerfile` labels
     cmds:
-      - |
-        DESCRIPTION="$(jq -r '.description' package.json)"
-        sed -i "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=${DESCRIPTION}^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation={{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}/-/blob/master/README.md\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.source.\*^LABEL org.opencontainers.image.source={{.GROUP_URL}}/{{.REPOSITORY_SUBTYPE}}/{{.SLUG}}.git\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.authors.*^LABEL org.opencontainers.image.authors=\"{{.AUTHORS}}\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=\"${DESCRIPTION}\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation=\"${REPOSITORY_GITHUB}/blob/master/README.md\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.licenses.*^LABEL org.opencontainers.image.licenses=\"{{.LICENSE}}\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.source.\*^LABEL org.opencontainers.image.source=\"${REPOSITORY_GITHUB}.git\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.url.\*^LABEL org.opencontainers.image.url=\"{{.URL}}\"^g" Dockerfile
+      - sed -i "s^.*org.opencontainers.image.vendor.\*^LABEL org.opencontainers.image.vendor=\"{{.ORGANIZATION}}\"^g" Dockerfile
 # yamllint enable rule:line-length
 # eslint-enable max-len

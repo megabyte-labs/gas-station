@@ -11,6 +11,17 @@ vars:
 tasks:
   build:
     desc: Build a regular Docker image and then generate a slim build from it
+    summary: |
+      # Build the Docker Images
+
+      This task will build all of the corresponding Docker images as long as they
+      have a [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      created.
+
+      For regular projects, having a `Dockerfile.test.yml` container-structure-test is enough. However,
+      for projects with multiple build targets, there should be a test for each target. So, if there
+      are 2 build targets in the `Dockerfile` named `build1` and `build2` then there should be
+      a `Dockerfile-build1.test.yml` and `Dockerfile-build2.test.yml` container-structure-test.
     hide:
       sh: '[ ! -f Dockerfile ]'
     cmds:
@@ -43,8 +54,20 @@ tasks:
       - task: build
 
   publish:
-    deps:
-      - :install
+    desc: Publish all of the project's Docker images (using `Dockerfile*.test.yml` files)
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    summary: |
+      # Publish the Docker Images
+
+      This task will publish all of the corresponding Docker images as long as they
+      have a [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      created.
+
+      For regular projects, having a `Dockerfile.test.yml` container-structure-test is enough. However,
+      for projects with multiple build targets, there should be a test for each target. So, if there
+      are 2 build targets in the `Dockerfile` named `build1` and `build2` then there should be
+      a `Dockerfile-build1.test.yml` and `Dockerfile-build2.test.yml` container-structure-test.
     cmds:
       - |
         if [ -f Dockerfile.test.yml ]; then
@@ -121,6 +144,8 @@ tasks:
       - :install:software:jq
     interactive: true
     desc: Open the terminal of an existing Docker image
+    hide:
+      sh: '[ ! -f Dockerfile.yml ]'
     summary: |
       # Shell into Docker Image
 
@@ -149,15 +174,45 @@ tasks:
     deps:
       - :install:software:docker
     desc: Perform all available tests on the Docker image
+    hide:
+      sh: '[ ! -f Dockerfile.yml ]'
     summary: |
-      # Test the Dockerfile
+      # Test the Docker Images
 
-      This task will run the [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
-      if the `Dockerfile-test.yml` file is present. Then, if the `dockerSlimCommand` is present in the
-      `blueprint` section of `package.json`, the output from running `npm run test:dockerslim` on every project/folder
-      in the `test-output/` folder will be compared. The comparison will ensure that the `slim` output matches the `latest`
-      output. Each folder in the `test-output/` folder must have a `package.json` file present with the `test:dockerslim`
-      script defined under `scripts`.
+      This task will publish all of the corresponding Docker images as long as they
+      have a [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      created.
+
+      For regular projects, having a `Dockerfile.test.yml` container-structure-test is enough. However,
+      for projects with multiple build targets, there should be a test for each target. So, if there
+      are 2 build targets in the `Dockerfile` named `build1` and `build2` then there should be
+      a `Dockerfile-build1.test.yml` and `Dockerfile-build2.test.yml` container-structure-test.
+
+      ## Comparing Slim Output to Latest Output
+
+      If the `dockerSlimCommand` is present in the `blueprint` section of `package.json`, the output from running
+      `npm run test:dockerslim` on every project/folder in the `test-output/` folder will be compared. The comparison
+      will ensure that the `slim` output matches the `latest` output. Each folder in the `test-output/` folder must
+      have a `package.json` file present with the `test:dockerslim` script defined under `scripts`.
+
+      ## `dockerSlimCommand` with Multiple Build Targets
+
+      If there are multiple build targets, then the `dockerSlimCommand` should be an object with keys equal to
+      the build targets and values equal to the appropriate DockerSlim command. If you are only using
+      `Dockerfile.test.yml` then you can simply set `dockerSlimCommand` equal to the appropriate command. However,
+      if you have two targets named `build1` and `build2`, then your `dockerSlimCommand` should look something
+      like:
+
+      ```json
+      {
+        "blueprint": {
+          "dockerSlimCommand": {
+            "build1": "...DockerSlim build command options here for build1",
+            "build2": "...DockerSlim build command options here for build2"
+          }
+        }
+      }
+      ```
     cmds:
       - |
         if [ -f Dockerfile.test.yml ]; then

@@ -11,7 +11,7 @@ tasks:
   build:
     desc: Build a regular Docker image and then generate a slim build from it
     hide:
-      sh: '[ ! -f Dockerfile ] || [ "$(jq -r ".blueprint.dockerslim_command" package.json)" == "null" ]'
+      sh: '[ ! -f Dockerfile ]'
     cmds:
       - task: :docker:build:fat
       - task: :docker:build:slim
@@ -120,6 +120,28 @@ tasks:
       answer:
         cmds:
           - docker run -v "${PWD}:/work" -w /work -it --entrypoint /bin/sh --rm {{.ANSWER}}
+
+  test:
+    deps:
+      - :install:software:docker
+    desc: Perform all available tests on the Docker image
+    summary: |
+      # Test the Dockerfile
+
+      This task will run the [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      if the `Dockerfile-test.yml` file is present. Then, if the `dockerSlimCommand` is present in the
+      `blueprint` section of `package.json`, the output from running `npm run test:dockerslim` on every project/folder
+      in the `test/compare/` folder will be compared. The comparison will ensure that the `slim` output matches the `latest`
+      output. Each folder in the `test/compare/` folder must have a `package.json` file present with the `test:dockerslim`
+      script defined under `scripts`.
+    cmds:
+      - task: :docker:test:container-structure-test
+      - task: :docker:test:output
+    preconditions:
+      - sh: >
+          [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" == "" ]] &&
+          [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" == "" ]]'
+        msg: Neither `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` nor `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` exist. One must exist to run the test.
 
   verify:
     cmds:

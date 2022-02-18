@@ -8,7 +8,7 @@ tasks:
       - container-structure-test:slim
     desc: Runs ContainerStructureTest for Dockerfile build
     hide:
-      sh: '[ ! -f Dockerfile.test.yml ]'
+      sh: '[ ! -f Dockerfile-test.yml ]'
 
   container-structure-test:latest:
     deps:
@@ -19,7 +19,7 @@ tasks:
       start: Testing the `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` Docker image with `container-structure-test`
       success: '`{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` was successfully validated by `container-structure-test`'
     cmds:
-      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --config Dockerfile.test.yml
+      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --config Dockerfile-test.yml
     status:
       - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" == "" ]]'
 
@@ -32,7 +32,7 @@ tasks:
       start: Testing the `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` Docker image with `container-structure-test`
       success: '`{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` was successfully validated by `container-structure-test`'
     cmds:
-      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim --config Dockerfile.test.yml
+      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim --config Dockerfile-test.yml
     status:
       - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" == "" ]]'
 
@@ -52,23 +52,23 @@ tasks:
       success: The outputs of the `latest` and `slim` images match!
     cmds:
       - |
-        for TEST_SCENARIO in test/*/; do
-          .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
-          LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest .)
-          .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
-          .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
-          SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim .)
-          .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
-          if [ "$LATEST_OUTPUT != "$SLIM_OUTPUT" ]; then
-            .config/log error 'The `latest` image output did not match the `slim` image output'
-            echo "$LATEST_OUTPUT" > latest.log
-            .config/log info 'The `latest` image output has been written to `latest.log`'
-            echo "$SLIM_OUTPUT" > slim.log
-            .config/log info 'The `slim` image output has been written to `slim.log`'
-          fi
-        done
-    preconditions:
-      - sh: '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2>/dev/null)" != "" ]]'
-        msg: The `slim` image is not present - ensure it has been downloaded/created
-      - sh: '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" != "" ]]'
-        msg: The `latest` image is not present - ensure it has been downloaded/created
+        if [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" != "" ]] && \
+        [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" != "" ]]; then
+          for TEST_SCENARIO in test/*/; do
+            .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
+            LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest .)
+            .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
+            .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
+            SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim .)
+            .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
+            if [ "$LATEST_OUTPUT != "$SLIM_OUTPUT" ]; then
+              .config/log error 'The `latest` image output did not match the `slim` image output'
+              echo "$LATEST_OUTPUT" > latest.log
+              .config/log info 'The `latest` image output has been written to `latest.log`'
+              echo "$SLIM_OUTPUT" > slim.log
+              .config/log info 'The `slim` image output has been written to `slim.log`'
+            fi
+          done
+        else
+          .config/log warn 'Either the `slim` or `latest` image was not present so the output comparison was skipped'
+        fi

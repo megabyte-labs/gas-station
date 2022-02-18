@@ -39,13 +39,13 @@ tasks:
   output:
     deps:
       - :install:software:docker
-    desc: For each project in the `test/` folder, ensure slim and latest output match with default command
+    desc: For each project in the `test/compare/` folder, ensure slim and latest output match with default command
     summary: |
       # Ensure Identical Output
 
       This task ensures the output of the default command is identical for both the latest and slim images.
       If both of the command's outputs match, then that is a good indicator that the slim image is
-      behaiving like the latest image. The test is performed on each project folder in the `test/` folder.
+      behaiving like the latest image. The test is performed on each project folder in the `test/compare/` folder.
     log:
       error: There was an error while comparing `latest` and `slim` image outputs
       start: Comparing outputs of the `latest` and `slim` images
@@ -54,7 +54,7 @@ tasks:
       - |
         if [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" != "" ]] && \
         [[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" != "" ]]; then
-          for TEST_SCENARIO in test/*/; do
+          for TEST_SCENARIO in test/compare/*/; do
             .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
             LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest .)
             .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'

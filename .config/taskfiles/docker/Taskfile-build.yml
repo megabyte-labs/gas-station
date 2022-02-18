@@ -36,9 +36,12 @@ tasks:
       start: Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)
       success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
     cmds:
-      - docker build --build-arg BUILD_DATE="{{.BUILD_DATE}}" --build-arg REVISION="{{.REVISION}}" --build-arg VERSION="{{.VERSION}}"
+      - .config/log info 'Running `docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
         --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag 'codeclimate/{{.SLUG}}:latest'{{end}} .
+        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:latest{{end}} .`'
+      - docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
+        --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}
+        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:latest{{end}} .
     sources:
       - Dockerfile
       - package.json
@@ -90,9 +93,12 @@ tasks:
       start: Building Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
       success: Successfully built Docker container named `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`
     cmds:
-      - docker-slim build --tag '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim'
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag 'codeclimate/{{.SLUG}}:slim' {{end}}
-        {{.SLIM_COMMAND}} '{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest'
+      - .config/log info 'Running `docker-slim build --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim
+        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:slim {{end}}
+        {{.SLIM_COMMAND}} {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest`'
+      - docker-slim build --tag {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim
+        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/{{.SLUG}}:slim {{end}}
+        {{.SLIM_COMMAND}} {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest
     sources:
       - Dockerfile
       - package.json

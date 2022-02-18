@@ -2,8 +2,17 @@
 - name: Ensure smbd is started # noqa 301
   command: launchctl load -w /System/Library/LaunchDaemons/com.apple.smbd.plist
 
+- name: Check if 'samba_shares' directories exist
+  stat:
+    path: "{{ share.path | replace('/home/','/Users/') }}"
+  loop: "{{ samba_shares }}"
+  loop_control:
+    label: "{{ share.id }}"
+    loop_var: share
+  register: samba_shares_stat
+
 - name: Configure SMB File sharing # noqa 305 503
-  shell: "sharing -a {{ share.path }} -n {{ share.id }} -g {{ '001' if share.public else '000' }}"
+  shell: "sharing -a {{ share.path | replace('/home/','/Users/') }} -n {{ share.id }} -g {{ '001' if share.public else '000' }}"
   loop: "{{ samba_shares }}"
   loop_control:
     label: "{{ share.id }}"
@@ -13,3 +22,4 @@
     - samba_netbios_name is defined
     - samba_workgroup is defined
     - samba_shares is defined
+    - (samba_shares_stat.results | selectattr('share.id','equalto',share.id))[0].stat.exists

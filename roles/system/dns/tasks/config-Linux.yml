@@ -108,6 +108,7 @@
     path: "{{ systemd_resolved_conf_path }}"
     regex: "(^#DNS=|^DNS=)"
     line: "DNS={{ dns_provider }}"
+  when: ansible_system == 'Linux'
   notify: restart systemd-resolved
 
 - name: Set systemd-resolved FallbackDNS
@@ -115,7 +116,9 @@
     path: "{{ systemd_resolved_conf_path }}"
     regex: "(^#FallbackDNS=|^FallbackDNS=)"
     line: "FallbackDNS={{ dns_fallback_provider }}"
-  when: dns_fallback_provider is defined
+  when:
+    - ansible_system == 'Linux'
+    - dns_fallback_provider is defined
   notify: restart systemd-resolved
 
 - name: Set systemd-resolved DNSOverTLS
@@ -124,3 +127,4 @@
     regex: "(^#DNSOverTLS=|^DNSOverTLS=)"
     line: "DNSOverTLS={{ dns_over_tls }}"
   notify: restart systemd-resolved
+  when: ansible_system == 'Linux'

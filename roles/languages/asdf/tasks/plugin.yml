@@ -1,4 +1,9 @@
 ---
+- name: "Find the version of {{ app_name }} installed"
+  command: asdf --version
+  register: asdf_version
+  when: ansible_system == 'Darwin'
+
 # @action Enables and configures ASDF plugins
 # Adds the plugin
 - name: "Ensure {{ plugin.name }} ASDF Plugin is installed"
@@ -6,14 +11,15 @@
     . "$ASDF_DIR/asdf.sh"
     asdf plugin add {{ plugin.name }} {{ plugin.url }}
   environment:
-    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/opt/asdf' }}"
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/Cellar/asdf/' + \
+      asdf_version.stdout | replace('v','') + '/libexec' }}"
   args:
     executable: /bin/bash
-  register: asdf_node_plugin_install
-  failed_when: asdf_node_plugin_install.rc != 0 and
-    not (asdf_node_plugin_install.rc == 2 and ' already added' in asdf_node_plugin_install.stderr)
-  changed_when: asdf_node_plugin_install.rc != 0 and
-    not (asdf_node_plugin_install.rc == 2 and ' already added' in asdf_node_plugin_install.stderr)
+  register: asdf_plugin_install
+  failed_when: asdf_plugin_install.rc != 0 and
+    not (asdf_plugin_install.rc == 2 and ' already added' in asdf_plugin_install.stderr)
+  changed_when: asdf_plugin_install.rc != 0 and
+    not (asdf_plugin_install.rc == 2 and ' already added' in asdf_plugin_install.stderr)
 
 # @action Enables and configures ASDF plugins
 # Configures the `~/.default-<tool>-packages` file
@@ -42,7 +48,8 @@
     asdf install
     asdf reshim {{ plugin.name }}
   environment:
-    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/opt/asdf' }}"
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/Cellar/asdf/' + \
+      asdf_version.stdout | replace('v','') + '/libexec' }}"
     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   args:
     executable: /bin/bash

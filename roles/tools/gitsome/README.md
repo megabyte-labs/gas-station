@@ -120,7 +120,7 @@ And there you go. Installing gitsome can be as easy as that. If, however, you wo
 
 ## ➤ Overview
 
-This repository is the home of an Ansible role that installs gitsome (a "supercharged" Git CLI) on nearly any platform. [gitsome](https://github.com/donnemartin/gitsome) is a supercharged Git/GitHub command line interface (CLI), with official integration for GitHub and GitHub Enterprise. It aims to supercharge your standard git/shell interface by focusing on improving ease-of-use and increasing productivity. It is compatible (and integrates well with) [gh](https://gitlab.com/megabyte-labs/ansible-roles/gh), GitHub's official CLI.
+This repository is the home of an Ansible role that installs gitsome (a "supercharged" Git CLI) on Linux and Windows. [gitsome](https://github.com/donnemartin/gitsome) is a supercharged Git/GitHub command line interface (CLI), with official integration for GitHub and GitHub Enterprise. It aims to supercharge your standard git/shell interface by focusing on improving ease-of-use and increasing productivity. It is compatible (and integrates well with) [gh](https://gitlab.com/megabyte-labs/ansible-roles/gh), GitHub's official CLI.
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 

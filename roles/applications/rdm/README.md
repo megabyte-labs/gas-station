@@ -120,7 +120,7 @@ And there you go. Installing rdm can be as easy as that. If, however, you would 
 
 ## ➤ Overview
 
-This repository is the home of an Ansible role that installs Redis Desktop Manager on Linux or macOS. [Redis Desktop Manager](https://rdm.dev/) is an open source cross-platform Desktop Manager for Redis based on Qt 5.
+This repository is the home of an Ansible role that installs Redis Desktop Manager on Linux. [Redis Desktop Manager](https://rdm.dev/) is an open source cross-platform Desktop Manager for Redis based on Qt 5.
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 

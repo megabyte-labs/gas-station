@@ -92,6 +92,7 @@
       file:
         path: /swapfile
         mode: 0600
+      when: not swapfile.stat.exists
     - name: Format /swapfile
       command: mkswap /swapfile
       when: not swapfile.stat.exists
@@ -122,12 +123,15 @@
       shell: |
         chattr +C /swapfile
         btrfs property set /swapfile compression none
+      when: not swapfile.stat.exists
     - name: Set the size of the swapfile
       command: "fallocate -l {{ swap_space }} /swapfile"
+      when: not swapfile.stat.exists
     - name: Set permissions on /swapfile
       file:
         path: /swapfile
         mode: 0600
+      when: not swapfile.stat.exists
     - name: Format /swapfile
       command: mkswap /swapfile
       when: not swapfile.stat.exists
@@ -139,6 +143,7 @@
         dest: /etc/fstab
         regexp: /swapfile
         line: "/swapfile none swap sw 0 0"
+      when: not swapfile.stat.exists
   when:
     - root_fs_type.stdout is defined
     - "'btrfs' in root_fs_type.stdout"

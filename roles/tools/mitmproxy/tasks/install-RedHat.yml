@@ -28,8 +28,9 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_mitmproxy: "{{ (current_mitmproxy_version.skipped) or \
-      ((not current_mitmproxy_version.skipped) and (current_mitmproxy_version.stdout != mitmproxy_latest_release_tag.json.tag_name | replace('v',''))) }}"
+    install_mitmproxy: "{{ (current_mitmproxy_version.skipped | default(false)) or \
+      ((not current_mitmproxy_version.skipped | default(false)) and \
+      (current_mitmproxy_version.stdout != mitmproxy_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
@@ -43,8 +44,6 @@
       '/mitmproxy-' + mitmproxy_latest_release_tag.json.tag_name | replace('v','') + '-linux.tar.gz' }}"
     dest: /usr/local/bin
     remote_src: true
-    extra_opts:
-      - --strip-components=1
   when: install_mitmproxy
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"

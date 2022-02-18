@@ -71,7 +71,13 @@ tasks:
       IMAGE_TYPE:
         sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
       SLIM_COMMAND:
-        sh: jq --arg type $IMAGE_TYPE -r '.blueprint.dockerSlimCommand[$type]' package.json)"
+        sh: |
+          COMMAND_TYPE="$(jq -r '.blueprint.dockerSlimCommand | type' package.json)"
+          if [ "$COMMAND_TYPE" == 'string' ]; then
+            echo "$(jq -r '.blueprint.dockerSlimCommand' package.json)"
+          else
+            echo "$(jq --arg type $IMAGE_TYPE -r '.blueprint.dockerSlimCommand[$type]' package.json)"
+          fi
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
     log:

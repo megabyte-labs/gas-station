@@ -13,6 +13,7 @@ tasks:
   container-structure-test:latest:
     deps:
       - :install:software:container-structure-test
+      - :install:software:docker
     log:
       error: '`container-structure-test` reported error(s) when testing `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest`'
       start: Testing the `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest` Docker image with `container-structure-test`
@@ -25,6 +26,7 @@ tasks:
   container-structure-test:slim:
     deps:
       - :install:software:container-structure-test
+      - :install:software:docker
     log:
       error: '`container-structure-test` reported error(s) when testing `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim`'
       start: Testing the `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim` Docker image with `container-structure-test`
@@ -33,3 +35,40 @@ tasks:
       - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim --config Dockerfile.test.yml
     status:
       - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2> /dev/null)" == "" ]]'
+
+  output:
+    deps:
+      - :install:software:docker
+    desc: For each project in the `test/` folder, ensure slim and latest output match with default command
+    summary: |
+      # Ensure Identical Output
+
+      This task ensures the output of the default command is identical for both the latest and slim images.
+      If both of the command's outputs match, then that is a good indicator that the slim image is
+      behaiving like the latest image. The test is performed on each project folder in the `test/` folder.
+    log:
+      error: There was an error while comparing `latest` and `slim` image outputs
+      start: Comparing outputs of the `latest` and `slim` images
+      success: The outputs of the `latest` and `slim` images match!
+    cmds:
+      - |
+        for TEST_SCENARIO in test/*/; do
+          .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
+          LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest .)
+          .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
+          .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
+          SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim .)
+          .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
+          if [ "$LATEST_OUTPUT != "$SLIM_OUTPUT" ]; then
+            .config/log error 'The `latest` image output did not match the `slim` image output'
+            echo "$LATEST_OUTPUT" > latest.log
+            .config/log info 'The `latest` image output has been written to `latest.log`'
+            echo "$SLIM_OUTPUT" > slim.log
+            .config/log info 'The `slim` image output has been written to `slim.log`'
+          fi
+        done
+    preconditions:
+      - sh: '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:slim 2>/dev/null)" != "" ]]'
+        msg: The `slim` image is not present - ensure it has been downloaded/created
+      - sh: '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest 2>/dev/null)" != "" ]]'
+        msg: The `latest` image is not present - ensure it has been downloaded/created

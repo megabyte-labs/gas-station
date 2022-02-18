@@ -67,6 +67,7 @@ tasks:
         vars:
           SOURCE_TAG: slim
           TARGET_TAG: slim
+      - task: pushrm
 
   publish:image:
     log:
@@ -78,6 +79,47 @@ tasks:
       - docker push {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
     status:
       - if [[ '{{.SOURCE_TAG}}' == 'slim' ]]; then [[ '{{.SLIM_ENABLED}}' == 'false' ]]; fi
+
+  pushrm:
+    deps:
+      - :install:github:docker-pushrm
+      - :install:software:docker
+    vars:
+      DOCKERHUB_DESCRIPTION:
+        sh: jq -r '.description' package.json
+    cmds:
+      - docker pushrm {{.DOCKER_IMAGE}}
+      - docker pushrm --short '{{.DOCKERHUB_DESCRIPTION}}' {{.DOCKER_IMAGE}}
+
+  shell:
+    deps:
+      - :install:software:docker
+      - :install:software:jq
+    interactive: true
+    desc: Open the terminal of an existing Docker image
+    summary: |
+      # Shell into Docker Image
+
+      This task will start a shell session with one of the Docker images
+      that are currently present on machine. The task looks at the output
+      from `docker images` and filters the list based on the project's
+      expected DockerHub slug or a string, if you pass in CLI arguments.
+
+      **Displays a list of images that match the name in package.json:**
+      `task docker:shell`
+
+      **Displays a list of images that have the pattern abc in their name:**
+      `task docker:shell -- 'abc'`
+    vars:
+      IMAGE_OPTIONS:
+        sh: docker images | grep {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.DOCKER_IMAGE}} | sed 's/^\([^ ]*\).*$/\1/' | jq -Rsc 'split("\n")' | jq 'del(.[-1])'
+    prompt:
+      type: select
+      message: Which Docker image would you like to shell into?
+      options: '{{.IMAGE_OPTIONS}}'
+      answer:
+        cmds:
+          - docker run -v "${PWD}:/work" -w /work -it --entrypoint /bin/sh --rm {{.ANSWER}}
 
   verify:
     cmds:

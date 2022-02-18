@@ -15,16 +15,22 @@ tasks:
       This task builds a normal Docker container. It expects the Dockerfile to be
       named `Dockerfile` and for it to be in the root of the repository.
 
-      For more information on building Docker containers, see [Docker's build guide](https://docs.docker.com/engine/reference/commandline/build/)
+      For more information on building Docker containers, see
+      [Docker's build guide](https://docs.docker.com/engine/reference/commandline/build/).
     vars:
       BUILD_DATE:
         sh: git show -s --format=%cI
       REVISION:
         sh: git rev-parse HEAD
       SLUG:
-        sh: jq -r '.blueprint.slug' package.json
-      VERSION:
-        sh: jq -r '.version' package.json
+        sh: |
+          DOCKERHUB_SLUG="$(jq -r '.blueprint.dockerHubSlug' package.json)"
+          if [ "$DOCKERHUB_SLUG" != 'null' ]; then
+            echo "$DOCKERHUB_SLUG"
+          else
+            jq -r '.blueprint.slug' package.json
+          fi
+      VERSION: latest
     log:
       error: Error building `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}`
       start: Building Docker container `{{.DOCKERHUB_PROFILE}}/{{.SLUG}}:{{.VERSION}}` (also tagged as latest)
@@ -63,7 +69,19 @@ tasks:
   slim:command:
     vars:
       SLIM_COMMAND:
-        sh: jq -r '.blueprint.dockerslim_command' package.json
+        sh: |
+          SLIM_COMMAND="$(jq -r '.blueprint.dockerSlimCommand' package.json)"
+          if [ "$SLIM_COMMAND" != 'null' ]; then
+            echo "$SLIM_COMMAND"
+          else
+            if [ -f paths.txt ]; then
+              PATHS_TXT=" --preserve-path-file 'paths.txt'"
+            fi
+            if [ -f exe.txt ]; then
+              EXE_TXT=" --include-exe-file 'exe.txt'"
+            fi
+            echo '--http-probe=false --exec "task start && task build"'"$PATHS_TXT""$EXE_TXT"
+          fi
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
     log:

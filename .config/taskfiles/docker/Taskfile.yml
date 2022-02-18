@@ -4,7 +4,7 @@ version: '3'
 vars:
   DOCKER_IMAGE:
     sh: |
-      {{if .CLI_ARGS}}{{.DOCKERHUB_PROFILE}}/{{.CLI_ARGS}}{{else}}jq -r '.name' package.json | sed 's/^@//'{{end}}
+      echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
   SLIM_ENABLED:
     sh: jq -r '.blueprint.dockerSlimCommand' package.json | sed 's/null/false/'
 
@@ -80,6 +80,9 @@ tasks:
         done
 
   publish:image:
+    vars:
+      SLUG:
+        sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
     log:
       error: Failed to tag / push `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
       start: Tagging and pushing `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
@@ -87,6 +90,14 @@ tasks:
     cmds:
       - docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
       - docker push {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+      - |
+        if [ '{{.REPOSITORY_SUBTYPE}}' == 'codeclimate' ] && echo '{{.SLUG}}' | grep 'codeclimate-'; then
+          .config/log info 'Uploading to tag `{{.TARGET_TAG}}-codeclimate` since this is a codeclimate repository'
+          TARGET_IMAGE="$(echo '{{.SLUG}}' | sed 's/^codeclimate-//')"
+          docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} "{{.DOCKERHUB_PROFILE}}/${TARGET_IMAGE}:{{.TARGET_TAG}}-codeclimate"
+          docker push "{{.DOCKERHUB_PROFILE}}/${TARGET_IMAGE}:{{.TARGET_TAG}}-codeclimate"
+          .config/log success 'Uploaded tag `{{.TARGET_TAG}}-codeclimate` successfully'
+        fi
     status:
       - if [[ '{{.SOURCE_TAG}}' == 'slim' ]]; then [[ '{{.SLIM_ENABLED}}' == 'false' ]]; fi
 

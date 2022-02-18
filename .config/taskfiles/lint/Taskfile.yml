@@ -246,7 +246,38 @@ tasks:
       **Example linting individual file:**
       `task lint:go -- path/filename.go`
     cmds:
-      - task: :donothing
+      - task: go:vet
+
+  go:vet:
+    deps:
+      - :install:software:go
+    summary: |
+      # Inspect with Go Vet
+
+      This task inspects the source code with `go vet`.
+
+      If you need to add flags to the command, you can specify them in
+      `blueprint.goVetFlags`. `goVetFlags` can also be set in upstream variable
+      sources but this lint command does not force the generation of the
+      `.variables.json` file. If it cannot read `goVetFlags` in the `.variables.json` file
+      (perhaps because it was not generated yet), it will read `.blueprint.goVetFlags`
+      from `package.json`.
+
+      If you would like to run `go vet` on a specific path then you can pass the path
+      in as a CLI argument.
+
+      **Example of running `go vet` on a specific path:**
+      `task lint:go:vet -- path/to/file.go`
+    vars:
+      GO_VET_FLAGS:
+        sh: |
+          if [ -f .variables.json ]; then
+            echo " $(jq -r '.goVetFlags' .variables.json)"
+          else
+            echo " $(jq -r '.blueprint.goVetFlags' package.json | sed 's/null//')"
+          fi
+    cmds:
+      - go vet{{.GO_VET_FLAGS}}{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}
 
   js:
     deps:

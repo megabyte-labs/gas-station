@@ -44,10 +44,16 @@ tasks:
       success: Successfully merged shared `package.json` settings
     cmds:
       - curl -s https://gitlab.com/megabyte-labs/common/shared/-/raw/master/package.json > package-reference.json
+      - task: prime:package:ensure-deps
+        vars:
+          PKG_FILE: package.json
+      - task: prime:package:ensure-deps
+        vars:
+          PKG_FILE: package-reference.json
       - |
-        DEPS="$(jq -s '.[0].dependencies // {} * .[1].dependencies // {}' package-reference.json package.json)"
-        DEV_DEPS="$(jq -s '.[0].devDependencies // {} * .[1].devDependencies // {}' package-reference.json package.json)"
-        OPT_DEPS="$(jq -s '.[0].optionalDependencies // {} * .[1].optionalDependencies // {}' package-reference.json package.json)"
+        DEPS="$(jq -s '.[0].dependencies * .[1].dependencies' package-reference.json package.json)"
+        DEV_DEPS="$(jq -s '.[0].devDependencies * .[1].devDependencies' package-reference.json package.json)"
+        OPT_DEPS="$(jq -s '.[0].optionalDependencies * .[1].optionalDependencies' package-reference.json package.json)"
         ESLINT_CONFIG="$(jq -r '.eslintConfig.extends' package-reference.json)"
         PRETTIER_CONFIG="$(jq -r '.prettier' package-reference.json)"
         TMP="$(mktemp)"
@@ -57,6 +63,29 @@ tasks:
           | .prettier = $prettier' package.json > "$TMP"
         mv "$TMP" package.json
       - rm package-reference.json
+
+  prime:package:ensure-deps:
+    deps:
+      - :install:software:jq
+    cmds:
+      - |
+        if [ "$(jq -r '.dependencies' {{.PKG_FILE}})" == 'null' ]; then
+          TMP="$(mktemp)"
+          jq '.dependencies = {}' {{.PKG_FILE}} > "$TMP"
+          mv "$TMP" {{.PKG_FILE}}
+        fi
+      - |
+        if [ "$(jq -r '.devDependencies' {{.PKG_FILE}})" == 'null' ]; then
+          TMP="$(mktemp)"
+          jq '.devDependencies = {}' {{.PKG_FILE}} > "$TMP"
+          mv "$TMP" {{.PKG_FILE}}
+        fi
+      - |
+        if [ "$(jq -r '.optionalDependencies' {{.PKG_FILE}})" == 'null' ]; then
+          TMP="$(mktemp)"
+          jq '.optionalDependencies = {}' {{.PKG_FILE}} > "$TMP"
+          mv "$TMP" {{.PKG_FILE}}
+        fi
 
   update:taskfile:
     deps:

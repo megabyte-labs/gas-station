@@ -122,8 +122,6 @@ tasks:
     deps:
       - :install:software:docker
     desc: Lint Dockerfiles using Hadolint (requires Docker)
-    hide:
-      sh: '[ ! -f Dockerfile ]'
     summary: |
       # Lint Dockerfiles using Hadolint
 
@@ -151,6 +149,11 @@ tasks:
       `task lint:docker -- CustomDockerfile`
 
       For more information, see [Hadolint's GitHub page](https://github.com/hadolint/hadolint).
+    vars:
+      PWD:
+        sh: echo "${PWD}/"
+    hide:
+      sh: '[ ! -f Dockerfile ]'
     log:
       error: Hadolint reported errors
       start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with Hadolint
@@ -159,7 +162,7 @@ tasks:
       - |
         .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}all Dockerfiles{{end}} with a Hadolint Docker image'
         {{if .CLI_ARGS}}
-          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS}}
+          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS | replace .PWD ""}}
         {{else}}
           find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name Dockerfile -o \
             -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 docker run -v "$PWD:/work" -w /work \

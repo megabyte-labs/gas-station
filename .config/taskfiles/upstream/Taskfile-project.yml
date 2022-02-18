@@ -62,11 +62,20 @@ tasks:
       start: Copying pre-generated files
       success: Copied pre-generated files
     cmds:
-      - rm -rf .config
+      - mv .config .config-old
       - |
         PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         cp -rT {{.SHARED_FOLDER}}/_generated_/common .
         cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
+      - |
+        if [ -f .config-old/package-lock.json ]; then
+          cp .config-old/package-lock.json .config/package-lock.json
+        fi
+      - |
+        if [ -f .config-old/yarn.lock ]; then
+          cp .config-old/yarn.lock .config/yarn.lock
+        fi
+      - rm -rf .config-old
       - task: :common:husky:permissions
       - task: save:common:keywords
 

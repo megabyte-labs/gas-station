@@ -8,6 +8,7 @@ tasks:
     cmds:
       - task: commit:config
       - task: checkout
+      - task: lockfiles
       - task: before:npm
 
   before:npm:
@@ -44,6 +45,7 @@ tasks:
       start: Bypassing git hooks and pushing changes to master (if there are any changes)
     cmds:
       - task: commit:config
+      - task: lockfiles:clean
       - git add --all
       - git diff --cached "*"
       - |
@@ -68,6 +70,28 @@ tasks:
       - sh: '[[ ! -z "$GITLAB_CI_NAME" ]]'
         msg: 'The `GITLAB_CI_NAME` GitLab CI variable must be set to the name you would like associated with automated commits
           (e.g. "CI Automation").'
+
+  lockfiles:
+    cmds:
+      - |
+        if [ -f .config/package-lock.json ]; then
+          cp .config/package-lock.json package-lock.json
+        fi
+      - |
+        if [ -f .config/yarn.lock ]; then
+          cp .config/yarn.lock yarn.lock
+        fi
+
+  lockfiles:clean:
+    cmds:
+      - |
+        if [ -f .config/package-lock.json ]; then
+          rm -f package-lock.json
+        fi
+      - |
+        if [ -f .config/yarn.lock ];then
+          rm -f yarn.lock
+        fi
 
   submodules:
     deps:

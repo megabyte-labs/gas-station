@@ -24,6 +24,17 @@ tasks:
         sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
       REVISION:
         sh: git rev-parse HEAD
+      SLUG:
+        sh: |
+          {{if .CLI_ARGS}}
+          if echo '{{.CLI_ARGS}}' | grep 'codeclimate-' > /dev/null; then
+            echo '{{.CLI_ARGS}}'
+          else
+            echo 'false'
+          fi
+          {{else}}
+          echo "codeclimate-$(jq -r '.blueprint.slug' package.json)"
+          {{end}}
       VERSION: latest
     log:
       error: Error building `{{.DOCKER_IMAGE}}:{{.VERSION}}`
@@ -31,11 +42,11 @@ tasks:
       success: Successfully built Docker container named `{{.DOCKER_IMAGE}}:{{.VERSION}}`
     cmds:
       - .config/log info 'Running `docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
-        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/codeclimate-{{.SLUG}}:latest{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .`'
+        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}} {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}{{if ne .SLUG "false"}}
+        --tag codeclimate/{{.SLUG}}:latest{{end}}{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .`'
       - docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
-        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/codeclimate-{{.SLUG}}:latest{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .
+        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}{{if eq .REPOSITORY_SUBTYPE "codeclimate"}}{{if ne .SLUG "false"}}
+        --tag codeclimate/{{.SLUG}}:latest{{end}}{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .
     sources:
       - Dockerfile
       - package.json

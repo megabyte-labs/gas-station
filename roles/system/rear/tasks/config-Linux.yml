@@ -1,0 +1,22 @@
+---
+- name: Ensure Relax-and-Recover Config files are created
+  copy:
+    content: "{{ rearconf.settings }}"
+    dest: "/etc/rear/{{ rearconf.name }}.conf"
+    mode: 0600
+  loop: "{{ rear_config }}"
+  loop_control:
+    label: "{{ rearconf.name }}"
+    loop_var: rearconf
+
+- name: Ensure Crontab entries are created
+  lineinfile:
+    path: /etc/cron.d/rear
+    mode: 0644
+    create: true
+    regex: '^.* {{ rearconf.name }} mkrescue$'
+    line: "{{ rearconf.cron }} root /usr/sbin/rear checklayout || /usr/sbin/rear -C {{ rearconf.name }} mkrescue"
+  loop: "{{ rear_config }}"
+  loop_control:
+    label: "{{ rearconf.name }}"
+    loop_var: rearconf

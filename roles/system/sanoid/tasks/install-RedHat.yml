@@ -1,0 +1,57 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  dnf:
+    name: "{{ sanoid_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ sanoid_src_dir }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  git:
+    dest: "{{ sanoid_src_dir }}"
+    repo: "{{ sanoid_git_url }}"
+    version: master
+  register: sanoid_git
+
+- name: Copy the executables
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/sbin/
+    mode: preserve
+    remote_src: true
+  loop:
+    - "{{ sanoid_src_dir }}/sanoid"
+    - "{{ sanoid_src_dir }}/syncoid"
+    - "{{ sanoid_src_dir }}/findoid"
+    - "{{ sanoid_src_dir }}/sleepymutex"
+
+- name: Ensure /etc/sanoid directory exists
+  file:
+    path: /etc/sanoid
+    mode: 0755
+    state: directory
+
+- name: Copy sanoid.defaults.conf to /etc/sanoid
+  copy:
+    src: "{{ sanoid_src_dir }}/sanoid.defaults.conf"
+    dest: /etc/sanoid/
+    mode: preserve
+    remote_src: true
+
+- name: Setup Systemd Services and Timers
+  copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system/
+    mode: 0644
+  loop:
+    - sanoid.service
+    - sanoid.timer
+    - sanoid-prune.service
+
+- name: Run generic configuration tasks
+  include_tasks: config-Linux.yml

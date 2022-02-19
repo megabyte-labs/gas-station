@@ -75,14 +75,12 @@ tasks:
       success: Updated miscellaneous files
     cmds:
       - |
-        {{if eq .REPOSITORY_SUBTYPE "ci-pipeline"}}
-          if [[ "{{.FIRST_LINE}}" == *"debian"* ]] || [[ "{{.FIRST_LINE}}" == *"ubuntu"* ]]; then
-            cp .config/initctl initctl
-            .config/log info 'Added initctl faker file to repository root'
-          fi
-        {{else}}
-          true
-        {{end}}
+        if ([ '{{.REPOSITORY_SUBTYPE}}' == 'ci-pipeline' ] || [ '{{.REPOSITORY_SUBTYPE}}' == 'codeclimate' ]) \
+        && ([[ "{{.FIRST_LINE}}" == *"debian"* ]] || [[ "{{.FIRST_LINE}}" == *"ubuntu"* ]]) \
+        && [ -f .config/initctl ]; then
+          cp .config/initctl initctl
+          .config/log info 'Added an `initctl` polyfill file to the repository root'
+        fi
       - |
         if [ -f .dockerignore ]; then
           TMP="$(mktemp)"

@@ -355,7 +355,7 @@ if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYP
       . "$HOME/.profile"
     fi
     if ! type poetry &> /dev/null; then
-      brew install poetry
+      brew install poetry || logger info 'There may have been an issue installing `poetry` with `brew`'
     fi
     if ! type jq &> /dev/null; then
       brew install jq

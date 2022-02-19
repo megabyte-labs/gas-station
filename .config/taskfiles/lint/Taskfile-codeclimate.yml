@@ -7,13 +7,18 @@ tasks:
       - :install:software:docker
     env:
       CUSTOM_ENGINES:
-        sh: |
-          echo 'editorconfig'
-          echo 'eslint'
+        sh: yq e -o=j '.' .codeclimate.yml | jq -r '.plugins | keys[]'
     cmds:
       - |
-        for ENGINE in "$CUSTOM_ENGINES"; do
-          docker pull "{{.DOCKERHUB_PROFILE}}/codeclimate-$ENGINE" &
-          docker tag "{{.DOCKERHUB_PROFILE}}/codeclimate-$ENGINE" "codeclimate/codeclimate-$ENGINE"
+        function dockerGet() {
+          if ! docker images {{.DOCKERHUB_PROFILE}}/codeclimate-$1 | grep ' slim ' > /dev/null; then
+            docker pull "{{.DOCKERHUB_PROFILE}}/codeclimate-$1:slim"
+          fi
+          docker tag "{{.DOCKERHUB_PROFILE}}/codeclimate-$1:slim" "codeclimate/codeclimate-$1:latest"
+        }
+        for ENGINE in $CUSTOM_ENGINES; do
+          if [ "$(yq e -o=j '.' .codeclimate.yml | jq --arg engine $ENGINE -r '.plugins[$engine].enabled')" == 'true' ]; then
+            dockerGet "$ENGINE" &
+          fi
         done
         wait

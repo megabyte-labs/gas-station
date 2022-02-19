@@ -28,7 +28,9 @@ tasks:
       - |
         if [ -f Dockerfile.test.yml ]; then
           task docker:build:fat
-          task docker:build:slim
+          if [ "$(jq -r '.blueprint.dockerSlimCommand' package.json)" != 'null' ]; then
+            task docker:build:slim
+          fi
         fi
       - |
         for TESTFILE in Dockerfile-*.test.yml; do
@@ -238,7 +240,9 @@ tasks:
       - |
         if [ -f Dockerfile.test.yml ]; then
           task docker:test:container-structure-test
-          task docker:test:output
+          if [ -d test-output ]; then
+            task docker:test:output
+          fi
         fi
       - |
         for TESTFILE in Dockerfile-*.test.yml; do

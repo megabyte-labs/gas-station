@@ -331,10 +331,11 @@ if [[ "$OSTYPE" == 'darwin'* ]]; then
     sudo xcode-select --install
   fi
 elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
-  if ! type curl &> /dev/null || ! type git &> /dev/null; then
+  if ! type curl &> /dev/null || ! type git &> /dev/null || ! type gzip &> /dev/null; then
     ensurePackageInstalled "curl"
     ensurePackageInstalled "file"
     ensurePackageInstalled "git"
+    ensurePackageInstalled "gzip"
   fi
 fi
 

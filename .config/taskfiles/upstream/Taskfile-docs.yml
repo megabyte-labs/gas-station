@@ -55,13 +55,19 @@ tasks:
       - rm -rf {{.SHARED_FOLDER}}/.git
 
   copy:
+    deps:
+      - :install:software:yq
     log:
       error: Error encountered in copy sequence
       start: Beginning copy sequence
       success: Completed copy sequence
     cmds:
       - mv .config .config-old
+      - mv .gitlab-ci.yml old.gitlab-ci.yml
       - task: copy:before
+      - |
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
+        mv old.gitlab-ci.yml .gitlab-ci.yml
       - |
         if [ -f .config-old/package-lock.json ]; then
           cp .config-old/package-lock.json .config/package-lock.json

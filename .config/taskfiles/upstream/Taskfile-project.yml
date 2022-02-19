@@ -57,16 +57,21 @@ tasks:
   copy:
     deps:
       - :install:software:coreutils
+      - :install:software:yq
     log:
       error: Error copying pre-generated files
       start: Copying pre-generated files
       success: Copied pre-generated files
     cmds:
       - mv .config .config-old
+      - mv .gitlab-ci.yml old.gitlab-ci.yml
       - |
         PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         cp -rT {{.SHARED_FOLDER}}/_generated_/common .
         cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
+      - |
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
+        mv old.gitlab-ci.yml .gitlab-ci.yml
       - |
         if [ -f .config-old/package-lock.json ]; then
           cp .config-old/package-lock.json .config/package-lock.json

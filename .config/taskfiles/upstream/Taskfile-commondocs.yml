@@ -27,15 +27,20 @@ tasks:
   copy:
     deps:
       - :install:software:coreutils
+      - :install:software:yq
     log:
       error: Error copying common files
       start: Copying common files
       success: Copied common files
     cmds:
       - mv .config .config-old
+      - mv .gitlab-ci.yml old.gitlab-ci.yml
       - |
         PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         cp -rT ./{{.COMMON_FOLDER}}/common/ .
+      - |
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
+        mv old.gitlab-ci.yml .gitlab-ci.yml
       - |
         if [ -f .config-old/package-lock.json ]; then
           cp .config-old/package-lock.json .config/package-lock.json

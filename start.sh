@@ -370,7 +370,18 @@ fi
 if [ -d .git ] && type git &> /dev/null; then
   HTTPS_VERSION="$(git remote get-url origin | sed 's/git@gitlab.com:/https:\/\/gitlab.com\//')"
   git pull "$HTTPS_VERSION" master --ff-only
-  git submodule update --init --recursive
+  ROOT_DIR="$PWD"
+  if ls .modules/*/ > /dev/null 2>&1; then
+    for SUBMODULE_PATH in .modules/*/; do
+      cd $SUBMODULE_PATH
+      DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+      git reset --hard HEAD
+      git checkout "$DEFAULT_BRANCH"
+      git pull origin "$DEFAULT_BRANCH" --ff-only || true
+    done
+    cd "$ROOT_DIR"
+    logger success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
+  fi
 fi
 
 # @description Ensures Task is installed and properly configured

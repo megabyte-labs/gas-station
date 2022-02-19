@@ -35,7 +35,8 @@ tasks:
           {{else}}
           echo "codeclimate-$(jq -r '.blueprint.slug' package.json)"
           {{end}}
-      VERSION: latest
+      VERSION:
+        sh: jq -r '.version' package.json
     log:
       error: Error building `{{.DOCKER_IMAGE}}:{{.VERSION}}`
       start: Building Docker container `{{.DOCKER_IMAGE}}:{{.VERSION}}` (also tagged as latest)
@@ -47,9 +48,6 @@ tasks:
       - docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
         --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}{{if eq .REPOSITORY_SUBTYPE "codeclimate"}}{{if ne .SLUG "false"}}
         --tag codeclimate/{{.SLUG}}:latest{{end}}{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .
-    sources:
-      - Dockerfile
-      - package.json
 
   slim:
     deps:
@@ -71,9 +69,6 @@ tasks:
       - task: fat
       - task: slim:command
       - task: slim:finish
-    sources:
-      - Dockerfile
-      - package.json
 
   slim:command:
     vars:
@@ -104,9 +99,6 @@ tasks:
         docker-slim build --tag {{.DOCKER_IMAGE}}:slim
         {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/codeclimate-{{.SLUG}}:slim {{end}}
         {{.SLIM_COMMAND | replace "'" "\""}} {{.DOCKER_IMAGE}}:latest
-    sources:
-      - Dockerfile
-      - package.json
 
   slim:finish:
     deps:

@@ -64,16 +64,16 @@ tasks:
       start: Installing local NPM dependencies
       success: Successfully installed local NPM dependencies
     cmds:
-      - cmd: |
-          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
+      - |
+        if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
+          {{.NPM_PROGRAM_LOCAL}} update
+        else
+          {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
             {{.NPM_PROGRAM_LOCAL}} update
-          else
-            {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
-            if [ "$EXIT_CODE" != "0" ]; then
-              {{.NPM_PROGRAM_LOCAL}} update
-            fi
           fi
-        ignore_error: true
+        fi
       - |
         if [ "$(jq -r '.devDependencies.glob' package.json)" == 'null' ] && [ "$(jq -r '.dependencies.glob' package.json)" == 'null' ]; then
           pnpm install --save-dev glob
@@ -93,10 +93,12 @@ tasks:
         fi
         if [ ! -f yarn.lock ] && [ -f package-lock.json ]; then
           synp --source-file package-lock.json
-          mv yarn.lock .config/yarn.lock
+          mkdir -p local
+          mv yarn.lock local/yarn.lock
         fi
         if [ -n "$MOVE_PACKAGE_LOCK" ]; then
-          mv package-lock.json .config/package-lock.json
+          mkdir -p local
+          mv package-lock.json local/package-lock.json
         fi
     sources:
       - pnpm-lock.yaml

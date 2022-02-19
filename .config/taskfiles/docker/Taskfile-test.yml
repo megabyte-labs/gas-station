@@ -44,6 +44,35 @@ tasks:
     status:
       - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim 2> /dev/null)" == "" ]]'
 
+  gitlab-runner:
+    deps:
+      - :install:software:docker
+      - :install:software:gitlab-runner
+      - :install:software:jq
+      - :install:software:yq
+    env:
+      CI_TESTS:
+        sh: yq e 'keys | .[] | select( . | test("integration"))' .gitlab-ci.yml
+    log:
+      error: Error encountered while validating with the integration tests in `.gitlab-ci.yml`
+      start: Running integration tests defined in `.gitlab-ci.yml`
+      success: Successfully passed the integration tests defined in `.gitlab-ci.yml`
+    cmds:
+      - |
+        for CI_TEST in $CI_TESTS; do
+          export CI_TEST
+          if [ "$(yq e '.[strenv(CI_TEST)].image' .gitlab-ci.yml)" != 'null' ]; then
+            .config/log info 'Simulating the `'"$CI_TEST"'` job in `.gitlab-ci.yml`'
+            gitlab-runner exec "$CI_TEST"
+            .config/log success 'Successfully ran the `'"$CI_TEST"'` job in `.gitlab-ci.yml`'
+          else
+            .config/log warn "$CI_TEST does not appear to be an option in .gitlab-ci.yml"
+          fi
+        done
+    status:
+      - >
+        ! yq e 'keys | .[] | select( . | test("integration"))' .gitlab-ci.yml | grep 'integration:' > /dev/null
+
   output:
     deps:
       - :install:software:docker

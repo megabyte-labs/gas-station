@@ -67,18 +67,20 @@ tasks:
         if [[ "$(docker images -q {{.IMAGE_NAME}}:slim 2> /dev/null)" != "" ]] && \
         [[ "$(docker images -q {{.IMAGE_NAME}}:latest 2>/dev/null)" != "" ]]; then
           for TEST_SCENARIO in test-output/*/; do
-            .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
-            LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:latest .)
-            .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
-            .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
-            SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:slim .)
-            .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
-            if [ "$LATEST_OUTPUT" != "$SLIM_OUTPUT" ]; then
-              .config/log error 'The `latest` image output did not match the `slim` image output'
-              echo "$LATEST_OUTPUT" > latest.log
-              .config/log info 'The `latest` image output has been written to `latest.log`'
-              echo "$SLIM_OUTPUT" > slim.log
-              .config/log info 'The `slim` image output has been written to `slim.log`'
+            if [ "$TEST_SCENARIO" != 'test-output/*/' ]; then
+              .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
+              LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:latest .)
+              .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
+              .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
+              SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:slim .)
+              .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
+              if [ "$LATEST_OUTPUT" != "$SLIM_OUTPUT" ]; then
+                .config/log error 'The `latest` image output did not match the `slim` image output'
+                echo "$LATEST_OUTPUT" > latest.log
+                .config/log info 'The `latest` image output has been written to `latest.log`'
+                echo "$SLIM_OUTPUT" > slim.log
+                .config/log info 'The `slim` image output has been written to `slim.log`'
+              fi
             fi
           done
         else

@@ -129,6 +129,7 @@ tasks:
     cmds:
       - task: slim:sizes:assets
       - task: slim:sizes:calculate
+      - task: slim:sizes:clean
 
   slim:sizes:assets:
     deps:
@@ -155,6 +156,8 @@ tasks:
     vars:
       DOCKER_IMAGE_SLUG:
         sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+      PREVIOUS_REGULAR_SIZE:
+        sh: jq --arg slug '{{.DOCKER_IMAGE_SLUG}}' -r '.blueprint.dockerLatestSize[$slug]' package.json
       PREVIOUS_SLIM_SIZE:
         sh: jq --arg slug '{{.DOCKER_IMAGE_SLUG}}' -r '.blueprint.dockerSlimSize[$slug]' package.json
       REGULAR_SIZE:
@@ -170,10 +173,18 @@ tasks:
         jq --arg a '{{.SLIM_SIZE}}' --arg b '{{.REGULAR_SIZE}}' --arg slug '{{.DOCKER_IMAGE_SLUG}}' \
         '.blueprint.dockerSlimSize[$slug] = $a | .blueprint.dockerLatestSize[$slug] = $b' package.json > "$TMP"
         mv "$TMP" package.json
+      - task: slim:sizes:clean
+      - task: :common:update:update
+    status:
+      - '[[ "{{.PREVIOUS_SLIM_SIZE}}" == "{{.SLIM_SIZE}}" ]]'
+      - '[[ "{{.PREVIOUS_REGULAR_SIZE}}" == "{{.REGULAR_SIZE}}" ]]'
+
+  slim:sizes:clean:
+    cmds:
       - rm -f *-latest.tar.gz
       - rm -f *-latest.tar
       - rm -f *-slim.tar.gz
       - rm -f *-slim.tar
-      - task: :common:update:update
     status:
-      - '[[ "{{.PREVIOUS_SLIM_SIZE}}" == "{{.SLIM_SIZE}}" ]]'
+      - >
+        ! test -n "$(find . -maxdepth 1 -name '*.tar.gz' -print -quit)"

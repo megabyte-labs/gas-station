@@ -23,6 +23,7 @@ fi
 #
 # @arg $1 string The message to be formatted
 function format() {
+  # shellcheck disable=SC2001,SC2016
   ANSI_STR="$(echo "$1" | sed 's/^\([^`]*\)`\([^`]*\)`/\1\\e[100;1m \2 \\e[0;39m/')"
   if [[ $ANSI_STR == *'`'*'`'* ]]; then
     ANSI_STR="$(format "$ANSI_STR")"
@@ -375,7 +376,7 @@ fi
 ensureTaskInstalled
 
 # @description Run the start logic, if appropriate
-if [ -z "$GITLAB_CI" ] && [ -z "$INIT_CWD" ]; then
+if [ -z "$GITLAB_CI" ] && [ -z "$INIT_CWD" ] && [ -f Taskfile.yml ]; then
   # shellcheck disable=SC1091
   . "$HOME/.profile"
   task start

@@ -210,6 +210,8 @@ tasks:
       will ensure that the `slim` output matches the `latest` output. Each folder in the `test-output/` folder must
       have a `package.json` file present with the `test:dockerslim` script defined under `scripts`.
 
+      If there is no `test-output/` folder, then this kind of test is skipped.
+
       ## `dockerSlimCommand` with Multiple Build Targets
 
       If there are multiple build targets, then the `dockerSlimCommand` should be an object with keys equal to
@@ -228,6 +230,10 @@ tasks:
         }
       }
       ```
+
+      ## CodeClimate CLI Testing
+
+      Any folder in the `test/` folder that starts with `codeclimate` gets scanned by CodeClimate CLI.
     cmds:
       - |
         if [ -f Dockerfile.test.yml ]; then
@@ -239,9 +245,22 @@ tasks:
           if [ "$TESTFILE" != 'Dockerfile-*.test.yml' ]; then
             TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Dockerfile-//' | sed 's/.test.yml$//')"
             task docker:test:container-structure-test -- "$TEST_IMAGE_SLUG"
-            task docker:test:output -- "$TEST_IMAGE_SLUG"
           fi
         done
+      - |
+        for FOLDER of test/codeclimate*/; do
+          if [ "$FOLDER" != 'test/codeclimate*/' ]; then
+            task lint:codeclimate -- " $FOLDER"
+          fi
+        done
+      - |
+        if [ -d test-output ]; then
+          for TESTFILE in Dockerfile-*.test.yml; do
+            if [ "$TESTFILE" != 'Dockerfile-*.test.yml' ]; then
+              task docker:test:output -- "$TEST_IMAGE_SLUG"
+            fi
+          done
+        fi
       - task: :docker:test:gitlab-runner
 
   verify:

@@ -97,6 +97,7 @@ vars:
   INIT_SCRIPT: https://gitlab.com/megabyte-labs/gitlab-ci/-/raw/master/scripts/update-init.sh
   LOG_FIX:
     sh: chmod +x .config/log && echo "heyhey"
+  MODEL_TASKFILE: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/Taskfile.yml
   NPM_KEEP_UPDATED: glob
   NPM_PROGRAM: npm
   NPM_PROGRAM_LOCAL: pnpm
@@ -314,6 +315,10 @@ tasks:
       success: Successfully bootstrapped project by running initialization script
     cmds:
       - git init
+      - |
+        TMP="$(mktemp)" && curl -sSL {{.MODEL_TASKFILE}} > "$TMP"
+        .config/log info 'Ensuring new additions to the model `Taskfile.yml` are present in the project `Taskfile.yml`'
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' "$TMP" Taskfile.yml
       - |
         if [ -n "$UPDATE_INIT_SCRIPT" ]; then
           bash <(curl -sSL "$UPDATE_INIT_SCRIPT")

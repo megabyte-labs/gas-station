@@ -8,6 +8,7 @@ tasks:
     cmds:
       - task: commit:config
       - task: checkout
+      - task: lockfiles
       - task: before:npm
 
   before:npm:
@@ -26,6 +27,7 @@ tasks:
       start: Pulling latest changes
       success: Successfully pulled latest changes
     cmds:
+      - git fetch --all --tags -f
       - |
         if [[ "$CI_COMMIT_REF_NAME" == 'synchronize' ]]; then
           git checkout -q master
@@ -42,8 +44,8 @@ tasks:
       error: Encountered error while pushing changes to master
       start: Bypassing git hooks and pushing changes to master (if there are any changes)
     cmds:
-      - task donothing
       - task: commit:config
+      - task: lockfiles:clean
       - git add --all
       - git diff --cached "*"
       - |
@@ -68,6 +70,28 @@ tasks:
       - sh: '[[ ! -z "$GITLAB_CI_NAME" ]]'
         msg: 'The `GITLAB_CI_NAME` GitLab CI variable must be set to the name you would like associated with automated commits
           (e.g. "CI Automation").'
+
+  lockfiles:
+    cmds:
+      - |
+        if [ -f local/package-lock.json ]; then
+          cp local/package-lock.json package-lock.json
+        fi
+      - |
+        if [ -f local/yarn.lock ]; then
+          cp local/yarn.lock yarn.lock
+        fi
+
+  lockfiles:clean:
+    cmds:
+      - |
+        if [ -f local/package-lock.json ]; then
+          rm -f package-lock.json
+        fi
+      - |
+        if [ -f local/yarn.lock ];then
+          rm -f yarn.lock
+        fi
 
   submodules:
     deps:

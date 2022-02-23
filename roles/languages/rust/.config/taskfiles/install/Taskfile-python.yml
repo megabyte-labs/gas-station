@@ -15,17 +15,15 @@ tasks:
       - type {{.PACKAGE}} > /dev/null
 
   pipx:
+    deps:
+      - :install:software:pipx
     run: when_changed
     log:
       error: Failed to install `{{.PACKAGE}}` with pipx
       start: Installing `{{.PACKAGE}}` with pipx
       success: Successfully installed `{{.PACKAGE}}` with pipx
     cmds:
-      - task: :install:software:pipx
-      - |
-        .config/log info 'Installing `{{.PACKAGE}}` with pipx'
-        pipx install {{.PACKAGE}}
-        .config/log success 'Successfully installed `{{.PACKAGE}}` with pipx'
+      - pipx install {{.PACKAGE}}
     status:
       - type {{.PACKAGE}} > /dev/null
 
@@ -50,10 +48,12 @@ tasks:
       - task: requirements:poetry:prereqs
       - task: requirements:poetry
       - task: :{{if eq .REPOSITORY_TYPE "ansible"}}ansible:galaxy:requirements{{else}}donothing{{end}}
-    status:
-      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
 
   requirements:poetry:
+    summary: |
+      # Poetry Requirements
+
+      `poetry publish -r gitlab` will publish to GitLab registry on GitLab CI
     run: once
     log:
       error: Failed to configure / install via `poetry`
@@ -61,10 +61,28 @@ tasks:
       success: Successfully ran `poetry install`
     cmds:
       - task: :install:software:poetry
-      - poetry config virtualenvs.create {{.PYTHON_VIRTUALENV}}
+      - poetry env use "$(which python3.10)"
+      - poetry config virtualenvs.create {{if .PYTHON_VIRTUALENV}}{{.PYTHON_VIRTUALENV}}{{else}}false{{end}}
       - poetry config virtualenvs.in-project true
-      - poetry update {{.PYTHON_KEEP_UPDATED}}
-      - poetry install
+      - |
+        if [ -n "$PYPI_TOKEN" ]; then
+          poetry config pypi-token.pypi "$PYPI_TOKEN"
+        fi
+      - |
+        if [ -n "$GITLAB_CI" ]; then
+          poetry config repositories.gitlab "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi"
+        fi
+      - |
+        if [ -n "$GITLAB_CI" ]; then
+          poetry config http-basic.gitlab gitlab-ci-token "${CI_JOB_TOKEN}"
+        fi
+      - .config/log info "Installing/updating poetry install options -> {{.INSTALL_OPTIONS}}"
+      - |
+        if [ -n "$AUTO_UPDATE_PIP_PACKAGES" ]; then
+          poetry update{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
+        else
+          poetry install{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
+        fi
     sources:
       - pyproject.toml
     preconditions:
@@ -73,8 +91,9 @@ tasks:
 
   requirements:poetry:prereqs:
     vars:
-      GCC5_MISSING_MESSAGE: 'It looks like your system is missing gcc-5 but gcc is available. You might be prompted
-        for your sudo password to run the following command:'
+      GCC5_MISSING_MESSAGE: |
+        It looks like your system is missing gcc-5 but gcc is available. You might be prompted
+        for your sudo password to run the following command:
     log:
       error: Error checking `gcc`
       start: Checking if `gcc` should be symlinked to `gcc-5`
@@ -96,20 +115,44 @@ tasks:
       - which gcc-5
 
   venv:node:
+    deps:
+      - :install:software:dasel
+      - :install:software:python
+    vars:
+      POETRY_MANUAL_SETUP_MSG: Adding semantic-release-python plugin Python dependencies by
+        running `poetry add pip@latest setuptools@latest twine@latest wheel@latest`
     log:
-      error: Encountered error while setting up `.venv` environment.. Is Python 3 installed?
-      start: Setting up a Python 3 `.venv`
-      success: Finished setting up `.venv`. Run `. .venv/bin/activate` to load the environment into your shell.
+      error: Encountered error while installing Python dependencies for `semantic-release-python`
+      start: Installing `semantic-release-python` Python dependencies
+      success: Successfully installed `semantic-release-python` Python dependencies
     cmds:
-      - task: :install:software:python
       - |
-        REQUIREMENTS_PATH="$PWD/.config/requirements.txt"
+        REQUIREMENTS_PATH="$PWD/lib/requirements.txt"
         cd "$INIT_CWD" || exit
-        if [ ! -f venv/bin/activate ]; then
-          python3 -m venv venv || exit 0
+        if type poetry > /dev/null && test -f pyproject.toml; then
+          .config/log info 'Poetry installation detected. Using Poetry to install NPM package Python dependencies.'
+          if dasel select -f pyproject.toml '.tool.poetry.extras.semantic' > /dev/null; then
+            .config/log info '`semantic` extras bundle detected.. Installing via `poetry install -E semantic`'
+            poetry install -E semantic
+          else
+            .config/log info '{{.POETRY_MANUAL_SETUP_MSG}}'
+            poetry add pip@latest setuptools@latest twine@latest wheel@latest
+          fi
+        else
+          if [ -f venv/bin/activate ]; then
+            .config/log info 'Using existing virtualenv found at `venv/`'
+            . venv/bin/activate
+          elif [ -f .venv/bin/activate ]; then
+            .config/log info 'Using existing virtualenv found at `.venv/`'
+            . .venv/bin/activate
+          else
+            .config/log info 'No virtualenv detected.. Creating virtualenv in `.venv/`'
+            python3 -m venv .venv
+            . .venv/bin/activate
+          fi
+          .config/log info 'Installing Python dependencies into virtualenv'
+          pip3 install -U pip setuptools
+          pip3 install -r "$REQUIREMENTS_PATH"
         fi
-        . .venv/bin/activate || exit 0
-        pip3 install -U pip setuptools || exit 0
-        pip3 install -r "$REQUIREMENTS_PATH" || exit 0
     sources:
-      - requirements.txt
+      - lib/requirements.txt

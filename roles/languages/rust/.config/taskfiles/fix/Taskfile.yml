@@ -24,8 +24,9 @@ tasks:
       - :install:modules:local
       - :install:npm:eslint
     desc: Fix JavaScript/TypeScript errors automatically
+    hide: '{{not (has .REPOSITORY_TYPE (list "angular" "npm"))}}'
     summary: |
-      # Fix JavaScript/TypeScript errors automatically with `eslint`
+      # Fix JavaScript/TypeScript Errors with ESLint
 
       This task is an [`eslint`](https://eslint.org/) task. It will attempt to automatically fix
       `eslint` issues. It will report any issues it was unable to fix. The configuration found in
@@ -44,6 +45,42 @@ tasks:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache --cache-location .cache/eslintcache
         --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
+  go:
+    desc: Fix Go with all available Go fixers
+    summary: |
+      # Auto-Fix Go Files
+
+      This task will attempt to auto-fix Go files with the following auto-fixers:
+
+      * [go]()
+
+      If you would like to skip auto-fixing on the whole project and instead auto-fix an
+      individual file, then you can do so by passing the file path as a CLI
+      parameter like so:
+
+      **Example auto-fixing an individual file:**
+      `task fix:go -- path/filename.go`
+    cmds:
+      - task: go:fmt
+
+  go:fmt:
+    deps:
+      - :install:software:go
+    summary: |
+      # Auto-Fix Go Files with `gofmt`
+
+      Running this task will auto-format the Go code in the project with `gofmt`.
+      In addition to writing the files (via the `-w` flag), it also attempts to
+      simplify the files (via the `-s` flag).
+
+      By default, this task will format the entire project. However, you can target
+      specific files by passing the path of the `.go` file as a CLI argument.
+
+      **Example formatting specific file:**
+      `task fix:go:fmt -- path/to/file.go`
+    cmds:
+      - gofmt -s -w {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
   js:
     cmds:
       - task: eslint
@@ -52,9 +89,9 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:eslint
-    desc: Alphabetically sort JSON
+    desc: Format and sort JSON
     summary: |
-      # Automatically alphabetize JSON
+      # Automatically Alphabetize and Format JSON
 
       This task will format and organize JSON files based on the configuration stored in
       `.eslintrc.cjs`.
@@ -75,7 +112,6 @@ tasks:
   misc:
     deps:
       - :install:python:requirements
-    desc: Perform miscellaneous fixes such as removing BOM and ensuring LF line endings
     summary: |
       # Miscellaneous fixes
 
@@ -104,15 +140,15 @@ tasks:
           misc '{{.CLI_ARGS}}'
         {{else}}
           while read PATHH; do
-            misc "$PATHH" &
+            misc "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f)
-          wait
         {{end}}
 
   packer:
     deps:
       - :install:software:packer
     desc: Automatically fix and format Packer templates
+    hide: '{{ne .REPOSITORY_TYPE "packer"}}'
     summary: |
       # Automatically fix and format Packer templates
 
@@ -143,10 +179,27 @@ tasks:
           packerFix '{{.CLI_ARGS}}'
         {{else}}
           for TEMPLATE in *template.json; do
-            packerFix "$TEMPLATE" &
+            packerFix "$TEMPLATE"
           done
-          wait
         {{end}}
+
+  php:
+    desc: Fix PHP with all available PHP auto-fixers
+    summary: |
+      # Auto-Fix PHP Files
+
+      This task will attempt to auto-fix PHP files with the following auto-fixers:
+
+      * [go]()
+
+      If you would like to skip auto-fixing on the whole project and instead auto-fix an
+      individual file, then you can do so by passing the file path as a CLI
+      parameter like so:
+
+      **Example auto-fixing an individual file:**
+      `task fix:php -- path/filename.php`
+    cmds:
+      - task: :donothing
 
   prettier:
     deps:
@@ -154,7 +207,7 @@ tasks:
       - :install:npm:prettier
     desc: Automatically format most files using Prettier
     summary: |
-      # Automatically format most files using Prettier
+      # Automatically Format Files Using Prettier
 
       This task will run Prettier on the project. Prettier will automatically fix formatting
       mistakes like inconsistent indent lengths, trailing spaces, and more. It will use the
@@ -179,8 +232,9 @@ tasks:
     deps:
       - :install:python:requirements
     desc: Automatically format Python files using Black
+    hide: '{{ne .REPOSITORY_TYPE "python"}}'
     summary: |
-      # Automatically format Python files using Black
+      # Automatically Format Python Files with Black
 
       Black is the defacto standard when it comes to autoformatting Python files. This task will
       automatically format files that end with the `.py` extension. It ignores `.py` files that are
@@ -203,9 +257,8 @@ tasks:
           {{.PYTHON_HANDLE}}black {{.CLI_ARGS}}
         {{else}}
           while read PATHH; do
-            {{.PYTHON_HANDLE}}black "$PATHH" &
+            {{.PYTHON_HANDLE}}black "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \))
-          wait
         {{end}}
 
   shell:
@@ -216,7 +269,7 @@ tasks:
   shellcheck:
     deps:
       - :install:npm:shellcheck
-    desc: (Experimental) Automatically apply fixes to .sh and .sh.j2 files using Shellcheck
+    desc: Automatically apply fixes to `.sh` and `.sh.j2` files using Shellcheck
     summary: |
       # Automatically apply fixes to shell scripts using Shellcheck
 
@@ -255,7 +308,6 @@ tasks:
   xml:
     deps:
       - :install:npm:eslint
-    desc: Autofix XML files
     summary: |
       # Autofix XML files
 
@@ -276,9 +328,9 @@ tasks:
         --format pretty --ext .xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
   yaml:
-    desc: Autofix YML files
+    desc: Auto-format and sort YML files
     summary: |
-      # Autofix YML files
+      # Auto-Format and Sort YML files
 
       This task will automatically apply updates to YML files. It currently performs the following
       tasks:
@@ -329,9 +381,8 @@ tasks:
           yamlDashes '{{.CLI_ARGS}}'
         {{else}}
           while read YML_FILE; do
-            yamlDashes "$YML_FILE" &
+            yamlDashes "$YML_FILE"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.yml' -o -name '*.yaml' \))
-          wait
         {{end}}
 
   yaml:order:

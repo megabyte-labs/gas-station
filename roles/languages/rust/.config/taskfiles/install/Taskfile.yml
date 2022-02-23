@@ -10,11 +10,10 @@ tasks:
       start: Installing Homebrew software bundle defined in `.config/Brewfile`
       success: Successfully installed Homebrew software bundle defined in `.config/Brewfile`
     cmds:
-      - |
-        brew tap Homebrew/bundle
-        cd .config
-        brew bundle
-        .config/log warn 'A reboot is recommended'
+      - brew tap Homebrew/bundle
+      - mkdir -p local
+      - cp .config/Brewfile local/Brewfile
+      - brew bundle install --file local/Brewfile
 
   install-doctor:
     log:
@@ -56,17 +55,53 @@ tasks:
     deps:
       - :install:npm:{{.NPM_PROGRAM_LOCAL}}
       - :install:npm:cz-emoji
+      - :install:software:jq
+    env:
+      SEMANTIC_PYTHON_POST_INSTALL: '{{if eq .SEMANTIC_RELEASE "true"}}true{{else}}false{{end}}'
     run: once
     log:
       error: Encountered error while installing local NPM dependencies
       start: Installing local NPM dependencies
       success: Successfully installed local NPM dependencies
     cmds:
-      - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
-        ignore_error: true
-      - task: modules:local:sync
+      - |
+        if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
+          {{.NPM_PROGRAM_LOCAL}} update
+        else
+          {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+            {{.NPM_PROGRAM_LOCAL}} update
+          fi
+        fi
+      - |
+        if [ "$(jq -r '.devDependencies.glob' package.json)" == 'null' ] && [ "$(jq -r '.dependencies.glob' package.json)" == 'null' ]; then
+          pnpm install --save-dev glob
+        fi
     sources:
       - package.json
+
+  modules:local:lockfiles:
+    deps:
+      - :install:npm:pnpm-lock-export
+      - :install:npm:synp
+    cmds:
+      - |
+        if [ ! -f package-lock.json ]; then
+          pnpm-lock-export
+          MOVE_PACKAGE_LOCK=true
+        fi
+        if [ ! -f yarn.lock ] && [ -f package-lock.json ]; then
+          synp --source-file package-lock.json
+          mkdir -p local
+          mv yarn.lock local/yarn.lock
+        fi
+        if [ -n "$MOVE_PACKAGE_LOCK" ]; then
+          mkdir -p local
+          mv package-lock.json local/package-lock.json
+        fi
+    sources:
+      - pnpm-lock.yaml
 
   modules:local:sync:
     log:
@@ -131,8 +166,8 @@ tasks:
       - |
         if [[ '{{.UNAME}}' == 'Darwin' ]] || [[ '{{.UNAME}}' == 'Linux' ]]; then
           # shellcheck disable=SC2016
-          local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
-          if ! grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+          PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
+          if ! grep "$PATH_STRING" "$HOME/.profile" > /dev/null; then
             echo -e "export ${PATH_STRING}\n" >> "$HOME/.profile"
             .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $HOME/.profile"
           fi
@@ -143,6 +178,10 @@ tasks:
         else
           .config/log error "System type not recognized ($OSTYPE)"
         fi
+
+  pipx:bundle:
+    cmds:
+      - task: pipx:global
 
   pipx:global:
     deps:
@@ -177,8 +216,8 @@ tasks:
       - |
         if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
           # shellcheck disable=SC2016
-          local PROFILE_STRING='{{.PROFILE_STRING}}'
-          if ! grep -L "$PROFILE_STRING" "$HOME/.profile" > /dev/null; then
+          PROFILE_STRING='{{.PROFILE_STRING}}'
+          if ! grep "$PROFILE_STRING" "$HOME/.profile" > /dev/null; then
             echo -e "${PROFILE_STRING}\n" >> "$HOME/.profile"
             .config/log info 'Added `{{.PROFILE_STRING}}` to '"$HOME/.profile"
           fi
@@ -191,7 +230,7 @@ tasks:
         fi
 
   tslib:
-    env:
+    vars:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
         in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
         install tslib.
@@ -202,15 +241,15 @@ tasks:
     cmds:
       - |
         if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
-          if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
+          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
             .config/log info '{{.TSLIB_MSG}}'
           else
             .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
-            {{.NPM_PROGRAM}} install --save tslib@latest
+            {{.NPM_PROGRAM_LOCAL}} install --save tslib@latest
             .config/log success 'Successfully installed `tslib`'
           fi
         else
-          task install:modules:local:sync -- "tslib"
+          task install:modules:local:sync -- tslib
         fi
     status:
       - '[ ! -f tsconfig.json ]'

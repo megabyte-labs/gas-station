@@ -12,6 +12,12 @@ vars:
   VARIABLES_PATH: .variables.json
 
 tasks:
+  build:none:
+    log:
+      start: Skipping build stage because Ansible project's do not require building
+    cmds:
+      - task: :donothing
+
   collection-dependencies:
     deps:
       - :install:software:jq
@@ -97,6 +103,10 @@ tasks:
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
+  init:
+    cmds:
+      - ansible-galaxy init --role-skeleton=/path/to/skeleton role_name
+
   keywords:sync:
     deps:
       - :install:npm:prettier
@@ -154,8 +164,6 @@ tasks:
       - task: :install:python:pipx
         vars:
           PACKAGE: ansible-autodoc-fork
-    status:
-      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
 
   mod-ansible-autodoc:generate:
     deps:
@@ -205,10 +213,26 @@ tasks:
         jq --arg vars "$ROLE_VARIABLES" '.role_variables = ($vars | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
 
+  prepare:
+    log:
+      error: Failed to ensure GitLab and GitHub are in sync
+      start: Preparing for Ansible Galaxy upload
+      success: GitLab and GitHub are in sync
+    cmds:
+      - task: :git:remotes
+      - git pull origin master
+      - git push github master
+
+  publish:
+    cmds:
+      - task: galaxy:import
+
   quickstart:
     deps:
       - :ansible:symlink:{{.REPOSITORY_SUBTYPE}}
-      - :install:python:requirements
+      - task: :install:python:requirements
+        vars:
+          INSTALL_OPTIONS: --no-dev
     vars:
       INSTALLING:
         sh: if test -f install_in_progress; then echo 'true'; else echo 'false'; fi
@@ -329,3 +353,14 @@ tasks:
             exit 1
           fi
         }
+
+  verify:
+    deps:
+      - :install:software:poetry
+    log:
+      error: Failed to connect to Ansible Galaxy with provided token
+      start: Verifying connection can be made to Ansible Galaxy
+      success: Successfully connected to Ansible Galaxy
+    cmds:
+      - poetry update ansible
+      - poetry run ansible-galaxy role setup --token "$ANSIBLE_GALAXY_TOKEN" null null null null --list

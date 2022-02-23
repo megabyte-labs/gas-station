@@ -8,6 +8,10 @@ tasks:
   descriptions:
     deps:
       - :install:software:jq
+    log:
+      error: Error populating `{{.TEMPLATE_FILE}}` with descriptions
+      start: Populating `{{.TEMPLATE_FILE}}` with descriptions
+      success: Populated `{{.TEMPLATE_FILE}}` with descriptions
     cmds:
       - |
         DESCRIPTION_TEMPLATE="$(jq -r '.description_template' '{{.VARIABLES_PATH}}')"
@@ -21,6 +25,10 @@ tasks:
       - '{{.VARIABLES_PATH}}'
 
   readme:
+    log:
+      error: Encountered error while updating README.md for Packer template
+      start: Updating README.md for Packer template
+      success: Updated README.md for Packer template
     cmds:
       - task: readme:platform
         vars:
@@ -39,15 +47,29 @@ tasks:
           TYPE: vmware-iso
 
   readme:platform:
+    log:
+      start: Determining whether to update README.md for `{{.TYPE}}`
     cmds:
       - task: readme:platform:{{OS}}
     status:
       - |
         ! grep -q '"type": "{{.TYPE}}"' {{.TEMPLATE_FILE}}
 
-  readme:platform:darwin: sed -i .bak '/SUPPORTED_OS_{{.TYPE}}/d' README.md && rm README.md.bak
+  readme:platform:darwin:
+    log:
+      error: Error updating README.md with supported OS information for Packer template
+      start: Updating README.md with supported OS information for Packer template
+      success: Updated README.md with supported OS information for Packer template
+    cmds:
+      - sed -i .bak '/SUPPORTED_OS_{{.TYPE}}/d' README.md && rm README.md.bak
 
-  readme:platform:linux: sed -i '/SUPPORTED_OS_{{.TYPE}}/d' README.md
+  readme:platform:linux:
+    log:
+      error: Error updating README.md with supported OS information for Packer template
+      start: Updating README.md with supported OS information for Packer template
+      success: Updated README.md with supported OS information for Packer template
+    cmds:
+      - sed -i '/SUPPORTED_OS_{{.TYPE}}/d' README.md
 
   variables:
     deps:
@@ -59,6 +81,10 @@ tasks:
         sh: cut -d '.' -f 1 <<< {{.ISO_VERSION}}
       MINOR_VERSION:
         sh: cut -d '.' -f 2 <<< {{.ISO_VERSION}}
+    log:
+      error: Error updating `{{.VARIABLES_PATH}}` with variables from `{{.TEMPLATE_FILE}}`
+      start: Updating `{{.VARIABLES_PATH}}` with variables from `{{.TEMPLATE_FILE}}`
+      success: Updated `{{.VARIABLES_PATH}}` with variables from `{{.TEMPLATE_FILE}}`
     cmds:
       - |
         TEMPLATE_JSON="$(jq -r '.' {{.TEMPLATE_FILE}})"
@@ -78,12 +104,20 @@ tasks:
         msg: 'The `{{.VARIABLES_PATH}}` file is missing!'
 
   variables:darwin:
+    log:
+      error: Error updating major version
+      start: Updating major version
+      success: Updated major version
     cmds:
       - sed -i .bak "s^MAJOR_VERSION^{{.MAJOR_VERSION}}^g" '{{.VARIABLES_PATH}}' && rm '{{.VARIABLES_PATH}}.bak'
       - sed -i .bak "s^MINOR_VERSION^{{.MINOR_VERSION}}^g" '{{.VARIABLES_PATH}}' && rm '{{.VARIABLES_PATH}}.bak'
       - sed -i .bak "s^ISO_VERSION^{{.ISO_VERSION}}^g" '{{.VARIABLES_PATH}}' && rm '{{.VARIABLES_PATH}}.bak'
 
   variables:linux:
+    log:
+      error: Error updating major version
+      start: Updating major version
+      success: Updated major version
     cmds:
       - sed -i "s^MAJOR_VERSION^{{.MAJOR_VERSION}}^g" '{{.VARIABLES_PATH}}'
       - sed -i "s^MINOR_VERSION^{{.MINOR_VERSION}}^g" '{{.VARIABLES_PATH}}'

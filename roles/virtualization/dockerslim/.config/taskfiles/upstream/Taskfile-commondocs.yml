@@ -6,21 +6,40 @@ vars:
   COMMON_FOLDER: .common
 
 tasks:
-  clean: rm -rf {{.COMMON_FOLDER}}
+  clean:
+    log:
+      error: Error while running `rm -rf {{.COMMON_FOLDER}}`
+      start: Running `rm -rf {{.COMMON_FOLDER}}`
+      success: Successfully ran `rm -rf {{.COMMON_FOLDER}}`
+    cmds:
+      - rm -rf {{.COMMON_FOLDER}}
 
   clone:
+    log:
+      error: Error in cloning logic for {{.COMMON_FILES_URL}}
+      start: Cloning {{.COMMON_FILES_URL}}
+      success: Successfully cloned {{.COMMON_FILES_URL}}
     cmds:
       - rm -rf {{.COMMON_FOLDER}}
       - git clone --depth=1 {{.COMMON_FILES_URL}} {{.COMMON_FOLDER}}
       - rm -rf {{.COMMON_FOLDER}}/.git
 
   copy:
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+    deps:
+      - :install:software:coreutils
+      - :install:software:yq
+    log:
+      error: Error copying common files
+      start: Copying common files
+      success: Copied common files
     cmds:
-      - rm -rf .config
-      - cp -rT ./{{.COMMON_FOLDER}}/common/ .
+      - mv .gitlab-ci.yml old.gitlab-ci.yml
+      - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+        cp -rT ./{{.COMMON_FOLDER}}/common/ .
+      - |
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
+        mv old.gitlab-ci.yml .gitlab-ci.yml
       - task: :common:husky:permissions
       - mv {{.COMMON_FOLDER}}/.gitlab-ci.yml .gitlab-ci.yml
 

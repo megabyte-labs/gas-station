@@ -40,6 +40,8 @@ env:
 
 tasks:
   commit:automated:
+    log:
+      start: Running automated commit
     cmds:
       - cmd: |
           if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
@@ -57,6 +59,10 @@ tasks:
         sh: basename "$PWD"
       GITLAB_REPO:
         sh: jq -r '.blueprint.repository.gitlab' package.json
+    log:
+      error: Error converting `{{.BASENAME}}` to a submodule
+      start: Converting `{{.BASENAME}}` directory into a submodule
+      success: Converted the `{{.BASENAME}}` directory to a submodule
     cmds:
       - git init
       - git remote add origin "{{.GITLAB_REPO}}"
@@ -72,7 +78,7 @@ tasks:
         git add {{.BASENAME}}
         git commit --quiet -m "refactor(convert-dir-to-submodule) Adding new submodule which was previously a directory."
         git push --quiet -u --no-progress origin HEAD
-      - .config/log success 'Converted the `{{.BASENAME}}` directory to a submodule'
+      - .config/log success ''
     preconditions:
       - sh: '[[ ! $(git rev-parse --git-dir) =~ ".git/modules" ]]'
         msg: Cannot convert the directory to a submodule - the directory already appears to be a submodule.
@@ -85,6 +91,10 @@ tasks:
         sh: basename "$PWD"
       GITLAB_REPO:
         sh: jq -r '.blueprint.repository.gitlab' package.json
+    log:
+      error: Error encountered while converting `{{.BASENAME}}` into a sub-repo
+      start: Converting `{{.BASENAME}}` into a sub-repo
+      success: Converted `{{.BASENAME}}` into a sub-repo
     cmds:
       - rm -rf .git
       - |
@@ -95,10 +105,14 @@ tasks:
         HUSKY=0 git subrepo clone {{.BASENAME}} "$RELATIVE_DIR" -b master
 
   push:all:
+    log:
+      error: Encountered error while running `git push all master --force || git push origin master`
+      start: Running `git push all master --force || git push origin master`
+      success: Successfully ran `git push all master --force || git push origin master`
     cmds:
       - |
         if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
-          git push all master
+          git push all master --force || git push origin master
         fi
 
   remotes:
@@ -106,13 +120,13 @@ tasks:
       - :install:software:git
       - :install:software:jq
       - :install:software:subrepo
-    desc: Configure the git remote `origin` to point to GitLab and the git remote `all` to point to GitLab and GitHub
+    desc: Configure the the `origin`, `gitlab`, `github`, and `all` git remotes
     summary: |
-      # Configure git remote
+      # Configure Git Remotes
 
       This task will set the origin to the GitLab repository associated with this project. It will then also create
       a remote named `all` which will point to both the GitLab repository and the GitHub mirror. You can then
-      push to both repositories at the same time by running `git push origin master`.
+      push to both repositories at the same time by running `git push all master`.
 
       **Example usage:**
       `task git:remotes`
@@ -122,6 +136,10 @@ tasks:
       GITLAB_REPO:
         sh: jq -r '.blueprint.repository.gitlab' package.json | sed 's/^https:\/\//git@/' | sed 's/gitlab.com\//gitlab.com:/'
     run: once
+    log:
+      error: Error setting git remotes
+      start: Setting up git remotes
+      success: Git remotes are set up
     cmds:
       - git init -q
       - |
@@ -163,6 +181,16 @@ tasks:
       - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
       - '[[ "$(git config remote.gitlab.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
 
+  remove:history:cli:
+    deps:
+      - :install:software:git
+    log:
+      error: Failed to remove `{{.CLI_ARGS}}` from the git history
+      start: Removing `{{.CLI_ARGS}}` from the git history
+      success: Removed `{{.CLI_ARGS}}` from the git history
+    cmds:
+      - git filter-branch --index-filter 'git rm -rf --cached --ignore-unmatch {{.CLI_ARGS}}' HEAD
+
   remove:submodules:
     deps:
       - :install:software:git
@@ -193,6 +221,10 @@ tasks:
       # /home/hawkwood/Downloads/Backup/Code/docker/ci-pipeline/hadolint
       TOP_LEVEL:
         sh: git rev-parse --show-toplevel
+    log:
+      error: Error encountered while attempting to remove submodules
+      start: Attempting to remove submodules
+      success: Successfully removed submodules
     cmds:
       - |
         if [ -f '.gitmodules' ]; then
@@ -229,4 +261,8 @@ tasks:
       - :git:gitlab:update
       - :git:github:update
     cmds:
-      - git push -u origin master
+      - |
+        if ! git push -u origin master; then
+          git pull origin master --allow-unrelated-histories
+          git push origin -u origin master
+        fi

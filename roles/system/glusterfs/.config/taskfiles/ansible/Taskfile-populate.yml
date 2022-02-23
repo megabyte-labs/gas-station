@@ -9,6 +9,9 @@ tasks:
   collection:
     deps:
       - :install:software:yq
+    log:
+      error: Failed to auto-populate the `{{.KEY}}` collection
+      start: Determining if the `{{.KEY}}` collection should be added to the `{{.REQUIREMENTS_PATH}}`
     cmds:
       - |
         COLLECTIONS="$(yq eval '.collections' '{{.REQUIREMENTS_PATH}}')"
@@ -20,12 +23,27 @@ tasks:
       - task: :fix:yaml:dashes
         vars:
           CLI_ARGS: '{{.REQUIREMENTS_PATH}}'
-    status:
-      - '[[ "$COLLECTIONS" =~ "{{.KEY}}" ]] || [ ! "$REFERENCES" ]'
+
+  collection:force:
+    deps:
+      - :install:software:yq
+    log:
+      error: Failed to forcefully auto-populate the `{{.KEY}}` collection
+      start: Determining if the `{{.KEY}}` collection should be added to the `{{.REQUIREMENTS_PATH}}` (forcefully)
+    cmds:
+      - |
+        COLLECTIONS="$(yq eval '.collections' '{{.REQUIREMENTS_PATH}}')"
+        if [[ ! "$COLLECTIONS" =~ '{{.KEY}}' ]]; then
+          yq eval -i -P '.collections = .collections + {{.VAL}}' '{{.REQUIREMENTS_PATH}}'
+          .config/log success 'Automatically added `{{.VAL}}` to {{.REQUIREMENTS_PATH}}'
+        fi
+      - task: :fix:yaml:dashes
+        vars:
+          CLI_ARGS: '{{.REQUIREMENTS_PATH}}'
 
   dependencies:
-    # @desc_when [ansible/Taskfile-populate.yml] ansible/role
     desc: 'Attempt to automatically populate `{{.META_PATH}}` and `{{.REQUIREMENTS_PATH}}`'
+    hide: '{{ne (print .REPOSITORY_TYPE "-" .REPOSITORY_SUBTYPE) "ansible-role"}}'
     summary: |
       # Automatically populate `{{.META_PATH}}` and `{{.REQUIREMENTS_PATH}}`
 
@@ -44,6 +62,9 @@ tasks:
       * community.general.gem
       * community.general.npm
       * community.general.snap
+    log:
+      start: Auto-populating the `{{.META_PATH}}` and `{{.REQUIREMENTS_PATH}}` with common dependencies (when appropriate)
+      success: Auto-populated the `{{.META_PATH}}` and `{{.REQUIREMENTS_PATH}}` with common dependencies
     cmds:
       - task: collection
         vars:
@@ -52,9 +73,19 @@ tasks:
             {"name": "chocolatey.chocolatey", "source": "https://galaxy.ansible.com"}
       - task: collection
         vars:
+          KEY: community.crypto
+          VAL: >-
+            {"name": "community.crypto", "source": "https://galaxy.ansible.com"}
+      - task: collection
+        vars:
           KEY: community.general
           VAL: >-
             {"name": "community.general", "source": "https://galaxy.ansible.com"}
+      - task: collection:force
+        vars:
+          KEY: google.cloud
+          VAL: >-
+            {"name": "google.cloud", "source": "https://galaxy.ansible.com"}
       - task: dependency
         vars:
           KEY: community.general.homebrew
@@ -79,6 +110,12 @@ tasks:
           ROLE: professormanhattan.snapd
           VAL: >-
             {"role": "professormanhattan.snapd", "when": "ansible_system == 'Linux'"}
+      - task: dependency
+        vars:
+          KEY: professormanhattan.startmenu
+          ROLE: professormanhattan.startmenu
+          VAL: >-
+            {"role": "professormanhattan.startmenu", "when": "ansible_system == 'Windows'"}
       - task: :ansible:sync:requirements
     sources:
       - '{{.META_PATH}}'
@@ -88,6 +125,9 @@ tasks:
   dependency:
     deps:
       - :install:software:yq
+    log:
+      error: Failed to auto-populate the `{{.KEY}}` role
+      start: Determining if the `{{.KEY}}` role should be added to the `{{.META_PATH}}`
     cmds:
       - |
         DEPENDENCIES="$(yq eval '.dependencies' '{{.META_PATH}}')"
@@ -108,11 +148,16 @@ tasks:
     deps:
       - :install:npm:prettier
       - :install:software:jq
+      - :install:software:yq
     vars:
       DESCRIPTION:
         sh: yq eval '.galaxy_info.description' '{{.META_PATH}}'
       REFERENCE_LINK: Take a look at an [example meta/main.yml
         file](https://gitlab.com/megabyte-labs/ansible-roles/androidstudio/-/blob/master/{{.META_PATH}}).
+    log:
+      error: Failed to synchronize `package.json` with `{{.META_PATH}}`
+      start: Updating `package.json` blueprint description and slug using values present in `{{.META_PATH}}`
+      success: Ensured `package.json` is synchronized with `{{.META_PATH}}`
     cmds:
       - |
         TMP="$(mktemp)"

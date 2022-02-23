@@ -5,11 +5,11 @@ tasks:
   prose:
     deps:
       - :install:python:requirements
-    desc: Lint for English prose
+    desc: Lint text/markdown for English prose with `proselint`
     summary: |
-      # Lint for English prose
+      # Lint for English Prose
 
-      This task uses Proselint to analyze markdown files for prose. It will generate recommendations
+      This task uses `proselint` to analyze markdown files for prose. It will generate recommendations
       based on typography, grammar, and wording.
 
       **Example scanning all markdown files:**
@@ -19,6 +19,10 @@ tasks:
       `task lint:prose -- myfile.js`
 
       For more information, see [Proselint's GitHub page](https://github.com/amperser/proselint).
+    log:
+      error: Error encountered while validating {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with Proselint
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} prose with Proselint
+      success: Successfully validated {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with Proselint
     cmds:
       - task: prose:config
       - |
@@ -30,6 +34,10 @@ tasks:
       - task: prose:config:restore
 
   prose:config:
+    log:
+      error: Error encountered while ensuring Proselint configuration is in proper location
+      start: Moving Proselint configuration to proper location
+      success: Ensured Proselint configuration is in proper location
     cmds:
       - |
         if [ -f ~/.config/proselint/config.json ]; then
@@ -40,9 +48,10 @@ tasks:
       - cp .config/proselint.json ~/.config/proselint/config.json
 
   prose:config:restore:
+    log:
+      error: Error restoring original Proselint configuration
+      start: Restoring original Proselint configuration
     cmds:
-      - |
-        if [ -f ~/.config/proselint/config.json.backup ]; then
-          .config/log info "Restoring original Proselint configuration"
-          mv ~/.config/proselint/config.json.backup ~/.config/proselint/config
-        fi
+      - mv ~/.config/proselint/config.json.backup ~/.config/proselint/config
+    status:
+      - '[ ! -f ~/.config/proselint/config.json.backup ]'

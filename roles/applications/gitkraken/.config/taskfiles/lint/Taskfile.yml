@@ -13,18 +13,18 @@ tasks:
   all:
     deps:
       - '{{.REPOSITORY_TYPE}}'
-      - prettier
+      - eslint
       - :lint:markdown:markdown
       - :lint:prose:prose
       - shellcheck
       - yaml
-    desc: Lint with all available linters
 
   ansible:
     deps:
       - :symlink:{{.REPOSITORY_SUBTYPE}}
       - :install:python:requirements
     desc: Lint Ansible projects using Ansible Lint
+    hide: '{{ne .REPOSITORY_TYPE "ansible"}}'
     summary: |
       # Lint an Ansible project using Ansible Lint
 
@@ -37,15 +37,20 @@ tasks:
       [syntax described in this link](https://ansible-lint.readthedocs.io/en/latest/rules.html#false-positives-skipping-rules).
 
       For more information, see [Ansible Lint's GitHub page](https://github.com/ansible-community/ansible-lint).
+    log:
+      error: Ansible Lint has detected possible errors!
+      start: Linting project with Ansible Lint
+      success: Validated project with Ansible Lint
     cmds:
-      - |
-        .config/log info 'Linting the project with ansible-lint'
-        {{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}
+      - '{{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}'
 
   any:
     deps:
       - :install:python:requirements
     desc: Generic linting of files for things like destroyed-symlinks, merge conflicts, etc.
+    log:
+      error: Errors were reported by the global linters for `{{.CLI_ARGS}}`
+      start: Linting `{{.CLI_ARGS}}` with global linters
     cmds:
       - '{{.PYTHON_HANDLE}}blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}'
       - '{{.PYTHON_HANDLE}}check-merge-conflict {{.CLI_ARGS}}'
@@ -56,8 +61,36 @@ tasks:
   codeclimate:
     deps:
       - :install:software:codeclimate
+      - :lint:codeclimate:load:custom-engines
+    desc: Run CodeClimate with all available linters
+    summary: |
+      # Run CodeClimate
+
+      CodeClimate provides a birds-eye view of all the various possible issues that there may be
+      with a project by leveraging various plugins called CodeClimate engines.
+
+      This task will run all available linters defined in `.codeclimate.yml` after substituting
+      some of the standard linters with custom engines built by Megabyte Labs.
+
+      **Example:**
+      `task lint:codeclimate`
+
+      You can optionally output the results in HTML format. To do so, pass in the name of the output
+      HTML file you would like to generate.
+
+      **Example generating HTML results:**
+      `task lint:codeclimate -- ' -f html > codeclimate.html'`
+
+      You can also specify a specific path for CodeClimate to scan:
+
+      **Example specifying specific path to analyze:**
+      `task lint:codeclimate -- ' ./src/component'
+    log:
+      error: '`codeclimate` has detected errors'
+      start: Running `codeclimate`
+      success: Successfully validated the project by running `codeclimate`
     cmds:
-      - codeclimate
+      - CODECLIMATE_DEBUG=1 codeclimate analyze --dev{{if .CLI_ARGS}}{{.CLI_ARGS}}{{end}}
 
   commit:
     deps:
@@ -71,9 +104,12 @@ tasks:
 
       **Example:**
       `task lint:commit -- 'My commit message'`
+    log:
+      error: Encountered error while linting commit message ({{.CLI_ARGS}})
     cmds:
       - |
-        if [ ! -z '{{.CLI_ARGS}}' ] && [ '{{.CLI_ARGS}}' != '.git/MERGE_MSG' ] && [ "$(head -c12 < .git/MERGE_MSG)" != 'Merge branch' ]; then
+        if [ ! -z '{{.CLI_ARGS}}' ] && [ '{{.CLI_ARGS}}' != '.git/MERGE_MSG' ] \
+        && [ "$(test -f .git/MERGE_MSG && head -c12 < .git/MERGE_MSG)" != 'Merge branch' ]; then
           cp '{{.CLI_ARGS}}' '{{.CLI_ARGS}}.bak'
           TMP="$(mktemp)"
           COMMIT_MSG_NOEMOJI="$(sed 's/^..//' < '{{.CLI_ARGS}}' | xargs)"
@@ -119,22 +155,35 @@ tasks:
       `task lint:docker -- CustomDockerfile`
 
       For more information, see [Hadolint's GitHub page](https://github.com/hadolint/hadolint).
+    vars:
+      PWD:
+        sh: echo "${PWD}/"
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    log:
+      error: Hadolint reported errors
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with Hadolint
+      success: Hadolint reported no errors
     cmds:
       - |
         .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}all Dockerfiles{{end}} with a Hadolint Docker image'
         {{if .CLI_ARGS}}
-          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS}}
+          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS | replace .PWD ""}}
         {{else}}
           find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name Dockerfile -o \
             -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 docker run -v "$PWD:/work" -w /work \
             megabytelabs/hadolint:slim
         {{end}}
 
+  dockerfile:
+    cmds:
+      - task: docker
+
   eslint:
     deps:
       - :install:modules:local
       - :install:npm:eslint
-    desc: Lint with `eslint`
+    desc: Lint with ESLint
     summary: |
       # Lint with `eslint`
 
@@ -150,21 +199,105 @@ tasks:
 
       **Example linting specific pattern of files:**
       `task lint:eslint -- '**/*.js'`
+    log:
+      error: ESLint has detected errors that need to be addressed
+      start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint
+      success: Successfully passed the ESLint test (please still address warnings)
     cmds:
       - >
-        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint'
-
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  eslint:warn-all:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Convert ESLint errors into warnings by saving the modified configuration inside `package.json`
+    summary: |
+      # Convert ESLint Errors into Warnings
+
+      This task will run ESLint against the project and then automatically inline
+      all reported errors as warnings in `package.json`.
+    log:
+      error: Encountered error while converting `eslint` errors to warnings
+      start: Overriding all errors reported from `eslint` as `warnings` in `package.json`
+      success: Successfully overrode `eslint` errors as warnings
+    cmds:
+      - >
+        ESLINT_TMP="$(mktemp)"
+
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format summary --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} |
+        tee "$ESLINT_TMP"
+
+        while read LINE; do
+          TMP="$(mktemp)";
+          ESLINT_RULE="$(echo "$LINE" | grep 'errors ' | sed 's/.*rule:\ //')";
+          if [ -n "$ESLINT_RULE" ] && [ "$ESLINT_RULE" != 'syntax error' ]; then
+            jq --arg rule "$ESLINT_RULE" '.eslintConfig.rules[$rule] = "warn"' package.json > "$TMP";
+            mv "$TMP" package.json;
+          fi;
+        done < "$ESLINT_TMP"
+
+  go:
+    desc: Lint Go with all available Go linters
+    summary: |
+      # Lint Go Files
+
+      This task will lint Go files with the following linters:
+
+      * [go]()
+
+      If you would like to skip linting the whole project and instead lint an
+      individual file, then you can do so by passing the file path as a CLI
+      parameter like so:
+
+      **Example linting individual file:**
+      `task lint:go -- path/filename.go`
+    cmds:
+      - task: go:vet
+
+  go:vet:
+    deps:
+      - :install:software:go
+    summary: |
+      # Inspect with Go Vet
+
+      This task inspects the source code with `go vet`.
+
+      If you need to add flags to the command, you can specify them in
+      `blueprint.goVetFlags`. `goVetFlags` can also be set in upstream variable
+      sources but this lint command does not force the generation of the
+      `.variables.json` file. If it cannot read `goVetFlags` in the `.variables.json` file
+      (perhaps because it was not generated yet), it will read `.blueprint.goVetFlags`
+      from `package.json`.
+
+      If you would like to run `go vet` on a specific path then you can pass the path
+      in as a CLI argument.
+
+      **Example of running `go vet` on a specific path:**
+      `task lint:go:vet -- path/to/file.go`
+    vars:
+      GO_VET_FLAGS:
+        sh: |
+          if [ -f .variables.json ]; then
+            echo " $(jq -r '.goVetFlags' .variables.json)"
+          else
+            echo " $(jq -r '.blueprint.goVetFlags' package.json | sed 's/null//')"
+          fi
+    cmds:
+      - go vet{{.GO_VET_FLAGS}}{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}
 
   js:
     deps:
       - :install:modules:local
       - :install:npm:eslint
+    log:
+      error: Errors were reported by ESLint for {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}JavaScript/TypeScript files{{end}}
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}JavaScript/TypeScript files{{end}} with ESLint
+      success: Successfully passed ESLint checks for {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}JavaScript/TypeScript files{{end}}
     cmds:
       - >
-        .config/log info 'Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}JavaScript/TypeScript files{{end}} with ESLint'
-
         {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
@@ -173,15 +306,18 @@ tasks:
       - :install:modules:global
       - :install:modules:local
       - :install:python:requirements
+    log:
+      error: Errors were encountered when validating the staged files
+      start: Linting staged files
+      success: The staged files appear to be good!
     cmds:
-      - |
-        .config/log info 'Linting changed files'
-        {{.NPX_HANDLE}}lint-staged
+      - '{{.NPX_HANDLE}}lint-staged'
 
   packer:
     deps:
       - :install:software:packer
     desc: Validate the Packer templates ending with `template.json`
+    hide: '{{ne .REPOSITORY_TYPE "packer"}}'
     summary: |
       # Validate Packer templates
 
@@ -196,6 +332,10 @@ tasks:
       `task lint:packer -- filename.json`
 
       For more information on `packer validate`, see the [Packer website](https://www.packer.io/docs/commands/validate).
+    log:
+      error: Error while running `packer validate`
+      start: Running {{if .CLI_ARGS}}`packer validate {{.CLI_ARGS}}`{{else}}`packer validate` on all files ending with `template.json`{{end}}
+      success: '`packer validate` reported no issues'
     cmds:
       - |
         {{if .CLI_ARGS}}
@@ -207,6 +347,24 @@ tasks:
             packer validate "$TEMPLATE"
           done
         {{end}}
+
+  php:
+    desc: Lint PHP with all available PHP linters
+    summary: |
+      # Lint PHP Files
+
+      This task will lint PHP files with the following linters:
+
+      * [go]()
+
+      If you would like to skip linting the whole project and instead lint an
+      individual file, then you can do so by passing the file path as a CLI
+      parameter like so:
+
+      **Example linting individual file:**
+      `task lint:php -- path/filename.php`
+    cmds:
+      - task: :donothing
 
   prettier:
     deps:
@@ -225,16 +383,19 @@ tasks:
       file.
 
       For more information, see [Prettier's website](https://prettier.io/).
+    log:
+      error: Errors were encountered by Prettier
+      start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with Prettier
+      success: Prettier successfully finished
     cmds:
-      - |
-        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with Prettier'
-        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
   python:
     deps:
       - :install:python:requirements
     label: lint:python
     desc: Lint Python files using Flake8
+    hide: '{{ne .REPOSITORY_TYPE "python"}}'
     summary: |
       # Lint Python files using Flake8
 
@@ -257,13 +418,15 @@ tasks:
       `task lint:python -- myfile.py`
 
       For more information, see [Flake8's GitHub page](https://github.com/PyCQA/flake8).
+    log:
+      error: flake8 detected some issues
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with flake8
+      success: flake8 validation was successful
     cmds:
       - |
         {{if .CLI_ARGS}}
-          .config/log info 'Linting {{.CLI_ARGS}} with flake8'
           {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
         {{else}}
-          .config/log info 'Linting the project with flake8'
           {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} .
         {{end}}
 
@@ -294,6 +457,10 @@ tasks:
       `task lint:scripts -- myfile.sh`
 
       For more information, see [Shellcheck's GitHub page](https://github.com/koalaman/shellcheck).
+    log:
+      error: Shellcheck reported errors for {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}}
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with Shellcheck
+      success: Linted {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with no errors from Shellcheck
     cmds:
       - |
         .config/log info 'Linting with Shellcheck'
@@ -329,11 +496,12 @@ tasks:
       - task: spelling:{{if .CLI_ARGS}}cli{{else}}staged{{end}}
 
   spelling:cli:
+    log:
+      start: Running a spell-check with `cspell`
     cmds:
       - cmd: |
           set -e
           EXIT_CODE=0
-          .config/log info 'Running a spell-check with `cspell`'
           {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}} || EXIT_CODE=$?
           if [ "$EXIT_CODE" != '0' ]; then
             .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
@@ -344,6 +512,8 @@ tasks:
     deps:
       - :install:npm:cspell
       - :install:software:git
+    log:
+      start: Detecting possible spelling errors in staged files
     cmds:
       - cmd: |
           STAGED_FILES="$(git diff --cached --name-only)"
@@ -362,7 +532,6 @@ tasks:
   toml:
     deps:
       - :install:python:requirements
-    desc: Lint TOML files
     summary: |
       # Lint TOML files
 
@@ -374,15 +543,19 @@ tasks:
 
       **Example scanning specific file:**
       `task lint:toml -- myfile.toml`
+    log:
+      error: Possible TOML errors were detected
+      start: Ensuring {{if .CLI_ARGS}}`{{.CLI_ARGS}}` is valid TOML{{else}}the project'\''s TOML files are valid{{end}}
+      success: The TOML appears to be valid!
     cmds:
-      - |
-        .config/log info 'Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid TOML{{else}}the project'\''s TOML files are valid{{end}}'
-        {{.PYTHON_HANDLE}}check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - '{{.PYTHON_HANDLE}}check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
   vagrant:
     deps:
       - :install:software:vagrant
     desc: Validate the Vagrantfile
+    hide:
+      sh: '[ ! -f Vagrantfile ]'
     summary: |
       # Validate the Vagrantfile
 
@@ -391,15 +564,16 @@ tasks:
       is using valid syntax.
 
       For more information on `vagrant validate`, see the [Vagrant website](https://www.vagrantup.com/docs/cli/validate).
+    log:
+      error: '`vagrant validate` detected one or more issues with the Vagrantfile'
+      start: Validating the Vagrantfile
+      success: The Vagrantfile passed `vagrant validate`
     cmds:
-      - |
-        .config/log info 'Validating the Vagrantfile'
-        vagrant validate
+      - vagrant validate
 
   xml:
     deps:
       - :install:python:requirements
-    desc: Lint XML files
     summary: |
       # Lint XML files
 
@@ -411,15 +585,17 @@ tasks:
 
       **Example scanning specific file:**
       `task lint:xml -- myfile.xml`
+    log:
+      error: Possible issues were detected with the XML{{if .CLI_ARGS}}(`{{.CLI_ARGS}}`){{end}}
+      start: Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid XML{{else}}the project contains only valid XML{{end}}
+      success: The XML appears to be valid
     cmds:
-      - |
-        .config/log info 'Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid XML{{else}}the project contains only valid XML{{end}}'
-        {{.PYTHON_HANDLE}}check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - '{{.PYTHON_HANDLE}}check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
   yaml:
     deps:
       - :install:python:requirements
-    desc: Lint .yml files using YAML Lint
+    desc: Lint `.yml` files using YAML Lint
     summary: |
       # Lint YML files using YAML Lint
 
@@ -440,7 +616,9 @@ tasks:
       `task lint:yaml -- myfile.sh`
 
       For more information, see the [YAML Lint GitHub page](https://github.com/adrienverge/yamllint).
+    log:
+      error: Possible issues were detected by `yamllint`
+      start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with `yamllint`
+      success: No issues were detected by `yamllint`
     cmds:
-      - |
-        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with `yamllint`'
-        {{.PYTHON_HANDLE}}yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - '{{.PYTHON_HANDLE}}yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'

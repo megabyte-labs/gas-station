@@ -6,13 +6,27 @@ vars:
   SHELLCHECK_EXCLUDE: SC1091
 
 tasks:
+  all:
+    deps:
+      - eslint
+      - misc
+      - '{{if .REPOSITORY_TYPE eq "packer"}}packer{{else}}:donothing{{end}}'
+      - '{{if .REPOSITORY_TYPE eq "python"}}python{{else}}:donothing{{end}}'
+      - toml
+      - xml
+    log:
+      start: Running all stable fixers in parallel
+    cmds:
+      - task: yaml:dashes
+
   eslint:
     deps:
       - :install:modules:local
       - :install:npm:eslint
     desc: Fix JavaScript/TypeScript errors automatically
+    hide: '{{not (has .REPOSITORY_TYPE (list "angular" "npm"))}}'
     summary: |
-      # Fix JavaScript/TypeScript errors automatically with `eslint`
+      # Fix JavaScript/TypeScript Errors with ESLint
 
       This task is an [`eslint`](https://eslint.org/) task. It will attempt to automatically fix
       `eslint` issues. It will report any issues it was unable to fix. The configuration found in
@@ -23,9 +37,49 @@ tasks:
 
       **Example fixing all JS/TS files in a project:**
       `task fix:js`
+    log:
+      error: ESLint found some issues that need to be fixed manually
+      start: Auto-fixing with ESLint
+      success: ESLint fixing appears to have corrected all the issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache --cache-location .cache/eslintcache
         --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+
+  go:
+    desc: Fix Go with all available Go fixers
+    summary: |
+      # Auto-Fix Go Files
+
+      This task will attempt to auto-fix Go files with the following auto-fixers:
+
+      * [go]()
+
+      If you would like to skip auto-fixing on the whole project and instead auto-fix an
+      individual file, then you can do so by passing the file path as a CLI
+      parameter like so:
+
+      **Example auto-fixing an individual file:**
+      `task fix:go -- path/filename.go`
+    cmds:
+      - task: go:fmt
+
+  go:fmt:
+    deps:
+      - :install:software:go
+    summary: |
+      # Auto-Fix Go Files with `gofmt`
+
+      Running this task will auto-format the Go code in the project with `gofmt`.
+      In addition to writing the files (via the `-w` flag), it also attempts to
+      simplify the files (via the `-s` flag).
+
+      By default, this task will format the entire project. However, you can target
+      specific files by passing the path of the `.go` file as a CLI argument.
+
+      **Example formatting specific file:**
+      `task fix:go:fmt -- path/to/file.go`
+    cmds:
+      - gofmt -s -w {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   js:
     cmds:
@@ -35,9 +89,9 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:eslint
-    desc: Alphabetically sort JSON
+    desc: Format and sort JSON
     summary: |
-      # Automatically alphabetize JSON
+      # Automatically Alphabetize and Format JSON
 
       This task will format and organize JSON files based on the configuration stored in
       `.eslintrc.cjs`.
@@ -47,6 +101,10 @@ tasks:
 
       **Example looping through project:**
       `task fix:json`
+    log:
+      error: '{{if .CLI_ARGS}}Manual fixing is still required for `{{.CLI_ARGS}}`{{else}}Failed to fix all project JSON issues with ESLint{{end}}'
+      start: Linting JSON with ESLint
+      success: ESLint has fixed all of the JSON issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
         --format pretty --ext .json {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
@@ -54,7 +112,6 @@ tasks:
   misc:
     deps:
       - :install:python:requirements
-    desc: Perform miscellaneous fixes such as removing BOM and ensuring LF line endings
     summary: |
       # Miscellaneous fixes
 
@@ -69,23 +126,29 @@ tasks:
 
       **Example applying fixes to single file:**
       `task fix:misc -- singlefile.js`
+    log:
+      error: Encountered an error while performing miscellaneous fixes{{if .CLI_ARGS}} on `{{.CLI_ARGS}}`{{end}}
+      start: Performing miscellaneous fixes such as removing BOM and ensuring LF line endings
+      success: Finished performing miscellaneous fixes{{if .CLI_ARGS}} on `{{.CLI_ARGS}}`{{end}}
     cmds:
       - |
         function misc() {
-          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1" &
-          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1" &
+          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1"
+          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1"
         }
         {{if .CLI_ARGS}}
           misc '{{.CLI_ARGS}}'
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f -print0 | xargs -0 -r -n1 misc
+          while read PATHH; do
+            misc "$PATHH"
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f)
         {{end}}
-        wait
 
   packer:
     deps:
       - :install:software:packer
     desc: Automatically fix and format Packer templates
+    hide: '{{ne .REPOSITORY_TYPE "packer"}}'
     summary: |
       # Automatically fix and format Packer templates
 
@@ -100,6 +163,10 @@ tasks:
       `task fix:packer -- mytemplate.json`
 
       For more information on `packer fix`, see [Packer's website](https://www.packer.io/docs/commands/fix).
+    log:
+      start: Attempting to fix Packer template{{if .CLI_ARGS}}{{else}}s{{end}}
+      stop: Error running `packer fix`
+      success: Successfully ran `packer fix` on the template(s)
     cmds:
       - |
         function packerFix() {
@@ -112,10 +179,27 @@ tasks:
           packerFix '{{.CLI_ARGS}}'
         {{else}}
           for TEMPLATE in *template.json; do
-            packerFix "$TEMPLATE" &
+            packerFix "$TEMPLATE"
           done
-          wait
         {{end}}
+
+  php:
+    desc: Fix PHP with all available PHP auto-fixers
+    summary: |
+      # Auto-Fix PHP Files
+
+      This task will attempt to auto-fix PHP files with the following auto-fixers:
+
+      * [go]()
+
+      If you would like to skip auto-fixing on the whole project and instead auto-fix an
+      individual file, then you can do so by passing the file path as a CLI
+      parameter like so:
+
+      **Example auto-fixing an individual file:**
+      `task fix:php -- path/filename.php`
+    cmds:
+      - task: :donothing
 
   prettier:
     deps:
@@ -123,7 +207,7 @@ tasks:
       - :install:npm:prettier
     desc: Automatically format most files using Prettier
     summary: |
-      # Automatically format most files using Prettier
+      # Automatically Format Files Using Prettier
 
       This task will run Prettier on the project. Prettier will automatically fix formatting
       mistakes like inconsistent indent lengths, trailing spaces, and more. It will use the
@@ -139,6 +223,8 @@ tasks:
       `task fix:formatting -- path/filename.ext`
 
       For more information, see [Prettier's website](https://prettier.io/).
+    log:
+      start: Running Prettier on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
     cmds:
       - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
@@ -146,8 +232,9 @@ tasks:
     deps:
       - :install:python:requirements
     desc: Automatically format Python files using Black
+    hide: '{{ne .REPOSITORY_TYPE "python"}}'
     summary: |
-      # Automatically format Python files using Black
+      # Automatically Format Python Files with Black
 
       Black is the defacto standard when it comes to autoformatting Python files. This task will
       automatically format files that end with the `.py` extension. It ignores `.py` files that are
@@ -160,12 +247,18 @@ tasks:
       `task fix:python -- myfile.py`
 
       For more information, see [Black's GitHub page](https://github.com/psf/black).
+    log:
+      error: Error while running `black` auto-fixer
+      start: Fixing Python with `black`
+      success: Fixed {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} with `black`
     cmds:
       - |
         {{if .CLI_ARGS}}
           {{.PYTHON_HANDLE}}black {{.CLI_ARGS}}
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \) -print0 | xargs -0 -r -n1 {{.PYTHON_HANDLE}}black
+          while read PATHH; do
+            {{.PYTHON_HANDLE}}black "$PATHH"
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \))
         {{end}}
 
   shell:
@@ -176,7 +269,7 @@ tasks:
   shellcheck:
     deps:
       - :install:npm:shellcheck
-    desc: (Experimental) Automatically apply fixes to .sh and .sh.j2 files using Shellcheck
+    desc: Automatically apply fixes to `.sh` and `.sh.j2` files using Shellcheck
     summary: |
       # Automatically apply fixes to shell scripts using Shellcheck
 
@@ -198,6 +291,10 @@ tasks:
       `task fix:scripts -- myfile.sh`
 
       For more information, see [Shellcheck's GitHub page](https://github.com/koalaman/shellcheck).
+    log:
+      error: Encountered an error while linting with `shellcheck` on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
+      start: Running `shellcheck` auto-fixer
+      success: Autofixed {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} with `shellcheck`
     cmds:
       - |
         .config/log warn 'This is an experimental fix method - please manually inspect and test the scripts'
@@ -211,7 +308,6 @@ tasks:
   xml:
     deps:
       - :install:npm:eslint
-    desc: Autofix XML files
     summary: |
       # Autofix XML files
 
@@ -223,14 +319,18 @@ tasks:
 
       **Example fixing specific `.xml` file(s):**
       `task fix:xml -- 'file_name.xml'`
+    log:
+      error: Errors were reported by ESLint when auto-fixing XML
+      start: Attempting to auto-fix any XML files with ESLint
+      success: Any XML files present in the project were successfully fixed/validated by ESLint
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
         --format pretty --ext .xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
   yaml:
-    desc: Autofix YML files
+    desc: Auto-format and sort YML files
     summary: |
-      # Autofix YML files
+      # Auto-Format and Sort YML files
 
       This task will automatically apply updates to YML files. It currently performs the following
       tasks:
@@ -264,6 +364,10 @@ tasks:
 
       **Example usage for one specific file:**
       `task fix:yaml:dashes -- path/filename.yml`
+    log:
+      error: Error encountered while ensuring YML dashes
+      start: Ensuring {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} has YML files that start with `---`
+      success: Successfully ensured {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} has YML files that start with `---`
     cmds:
       - |
         function yamlDashes() {
@@ -276,10 +380,9 @@ tasks:
         {{if .CLI_ARGS}}
           yamlDashes '{{.CLI_ARGS}}'
         {{else}}
-          for YML_FILE in `find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.yml' -o -name '*.yaml' \)`; do
-            yamlDashes "$YML_FILE" &
-          done
-          wait
+          while read YML_FILE; do
+            yamlDashes "$YML_FILE"
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.yml' -o -name '*.yaml' \))
         {{end}}
 
   yaml:order:
@@ -301,6 +404,10 @@ tasks:
 
       **Example fixing specific `.yml` file(s):**
       `task fix:yaml:order -- 'file_name.{yml,yaml}'`
+    log:
+      error: There are still some errors. Try running the command again.
+      start: Ensuring YML file(s) are in order specified in configuration
+      success: Successfully ensured YML file order
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --fix --cache
         --cache-location .cache/eslintcache --ext yml,yaml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'

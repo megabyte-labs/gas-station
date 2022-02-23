@@ -8,7 +8,14 @@ vars:
   SHARED_FOLDER: .shared
 
 tasks:
-  clean: rm -rf {{.SHARED_FOLDER}}
+  clean:
+    log:
+      error: Error running `rm -rf {{.SHARED_FOLDER}}`
+      start: Running `rm -rf {{.SHARED_FOLDER}}`
+      success: Removed `{{.SHARED_FOLDER}}`
+    cmds:
+      - rm -rf {{.SHARED_FOLDER}}
+      - rm -f .config/docs/Taskfile.yml
 
   clone:
     cmds:
@@ -16,12 +23,20 @@ tasks:
       - task: clone:docs
 
   clone:common:
+    log:
+      error: Error cloning Shared Common to `{{.SHARED_FOLDER}}`
+      start: Cloning Shared Common to `{{.SHARED_FOLDER}}`
+      success: Cloned Shared Common to `{{.SHARED_FOLDER}}`
     cmds:
       - rm -rf ./{{.SHARED_FOLDER}}
       - git clone --depth=1 {{.SHARED_COMMON_URL}} ./{{.SHARED_FOLDER}}
       - rm -rf ./{{.SHARED_FOLDER}}/.git
 
   clone:docs:
+    log:
+      error: Error cloning / cleaning up {{.REPOSITORY_SUBTYPE}} docs repo
+      start: Cloning {{.REPOSITORY_SUBTYPE}} docs repo and pruning unnecessary files
+      success: Cloned sub-type documentation repository and pruned unnecessary files
     cmds:
       - mkdir -p ./{{.SHARED_FOLDER}}/common/.config
       - rm -rf ./{{.SHARED_FOLDER}}/.config/docs
@@ -30,9 +45,13 @@ tasks:
         cd ./{{.SHARED_FOLDER}}/common/.config/docs
         rm -rf .git .config .github .gitlab .vscode .editorconfig .gitignore .gitlab-ci.yml
         rm -rf LICENSE Taskfile.yml package-lock.json package.json poetry.lock pyproject.toml
-        rm -rf docs common.json pnpm-lock.yaml
+        rm -rf docs common.json pnpm-lock.yaml start.sh logo.png yarn.lock local/yarn.lock local/package-lock.json
 
   combine:
+    log:
+      error: Error combining generated files
+      start: Combining generated files
+      success: Combined generated files
     cmds:
       - mkdir -p _generated_
       - mv .common* _generated_
@@ -44,9 +63,18 @@ tasks:
         done
 
   copy:
+    deps:
+      - :install:software:yq
+    log:
+      error: Error removing `.config/`
+      start: Removing `.config/`
+      success: Removed `.config/`
     cmds:
-      - rm -rf .config
+      - mv .gitlab-ci.yml old.gitlab-ci.yml
       - task: copy:begin
+      - |
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
+        mv old.gitlab-ci.yml .gitlab-ci.yml
 
   copy:begin:
     deps:
@@ -55,28 +83,42 @@ tasks:
       - copy:project:subtype
 
   copy:common:
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+    deps:
+      - :install:software:coreutils
+    log:
+      error: Error copying common files
+      start: Copying common files
+      success: Copied common files
     cmds:
-      - cp -rT ./{{.SHARED_FOLDER}}/common/ .
+      - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+        cp -rT ./{{.SHARED_FOLDER}}/common/ .
       - task: :common:husky:permissions
 
   copy:project:
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
-    cmds:
-      - cp -rT ./{{.SHARED_FOLDER}}/common ./{{.COMMON_FOLDER}}
-      - if [ ! -d project ]; then mkdir project; fi
-      - cp -rT project ./{{.COMMON_FOLDER}}
-
-  copy:project:subtype:
-    env:
-      PATH:
-        sh: echo "$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+    deps:
+      - :install:software:coreutils
+    log:
+      error: Error copying project files
+      start: Copying project files
+      success: Copied project files
     cmds:
       - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+        cp -rT ./{{.SHARED_FOLDER}}/common ./{{.COMMON_FOLDER}}
+        if [ ! -d project ]; then mkdir project; fi
+        cp -rT project ./{{.COMMON_FOLDER}}
+
+  copy:project:subtype:
+    deps:
+      - :install:software:coreutils
+    log:
+      error: Error copying project sub-type files
+      start: Copying project sub-type files
+      success: Copied project sub-type files
+    cmds:
+      - |
+        PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         for FOLDER in project-*/; do
           SUBTYPE="$(echo "$FOLDER" | sed 's/project-\(.*\)\//\1/')"
           cp -rT "$FOLDER" "./{{.COMMON_FOLDER}}-$SUBTYPE"
@@ -95,12 +137,16 @@ tasks:
   merge:package:project:
     deps:
       - :install:software:jq
+    log:
+      error: Error merging `package.json.liquid` templates
+      start: Merging `package.json.liquid` templates
+      success: Merged `package.json.liquid` templates
     cmds:
       - |
         function ensureKeywords() {
           if [ ! -f "$1" ]; then echo "{}" > "$1"; fi
           KEYWORDS="$(jq -r '.keywords' "$1")"
-          if [ "$KEYWORDS" == 'null' ] || [ "$KEYWORDS" == '' ]; then
+          if [[ "$KEYWORDS" == 'null' ]] || [[ "$KEYWORDS" == '' ]]; then
             TMP="$(mktemp)"
             jq -r '.keywords = [] | .' "$1" > "$TMP"
             mv "$TMP" "$1"
@@ -124,12 +170,16 @@ tasks:
   merge:package:project:subtype:
     deps:
       - :install:software:jq
+    log:
+      error: Error merging `package.json.liquid` templates for sub-type
+      start: Merging `package.json.liquid` templates for sub-type
+      success: Merged `package.json.liquid` templates for sub-type
     cmds:
       - |
         function ensureKeywords() {
           if [ ! -f "$1" ]; then echo "{}" > "$1"; fi
           KEYWORDS="$(jq -r '.keywords' "$1")"
-          if [ "$KEYWORDS" == 'null' ] || [ "$KEYWORDS" == '' ]; then
+          if [[ "$KEYWORDS" == 'null' ]] || [[ "$KEYWORDS" == '' ]]; then
             TMP="$(mktemp)"
             jq -r '.keywords = [] | .' "$1" > "$TMP"
             mv "$TMP" "$1"
@@ -161,6 +211,10 @@ tasks:
   merge:variables:project:
     deps:
       - :install:software:jq
+    log:
+      error: Error merging variables files
+      start: Merging variables.json files
+      success: Merged variables.json files
     cmds:
       - |
         if [ -f "project/.config/variables.json" ]; then
@@ -173,12 +227,16 @@ tasks:
   merge:variables:subtype:
     deps:
       - :install:software:jq
+    log:
+      error: Error merging variables files for sub-type
+      start: Merging variables.json files for sub-type
+      success: Merged variables.json files for sub-type
     cmds:
       - |
         GROUP="$(jq -r '.blueprint.group' package.json)"
-        if [ "$GROUP" == 'null' ]; then
+        if [[ "$GROUP" == 'null' ]]; then
           GROUP="$(yq e '.vars.REPOSITORY_TYPE' Taskfile.yml)"
-          if [ "$GROUP" == 'null' ]; then
+          if [[ "$GROUP" == 'null' ]]; then
             echo "ERROR '.blueprint.group' did not exist in the package.json and the fallback '.vars.REPOSITORY_TYPE' did not exist in the Taskfile.yml"
           fi
         fi
@@ -200,6 +258,10 @@ tasks:
         wait
 
   reset:
+    log:
+      error: Error removing `.common*` and `_generated_`
+      start: Removing `.common*` and `_generated_`
+      success: Removed `.common*` and `_generated_`
     cmds:
       - rm -rf .common*
       - rm -rf _generated_

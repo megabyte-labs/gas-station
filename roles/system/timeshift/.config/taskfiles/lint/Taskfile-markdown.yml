@@ -6,7 +6,7 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:remark
-    desc: Lint markdown files
+    desc: Lint markdown files with `remark`
     summary: |
       # Lint markdown files
 
@@ -21,12 +21,19 @@ tasks:
       For more information on `remark`, see the [GitHub page](https://github.com/remarkjs/remark).
 
       For more information on `remark-lint`, see the [GitHub page](https://github.com/remarkjs/remark-lint).
+    log:
+      error: Error running `remark`
+      start: Filtering markdown files with `remark`
+      success: Successfully filtered markdown files with `remark`
     cmds:
       - |
         {{if .CLI_ARGS}}
           {{.NPX_HANDLE}}remark {{.CLI_ARGS}}
         {{else}}
-          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \) -print0 | xargs -0 -r -n1 {{.NPX_HANDLE}}remark
+          while read PATHH; do
+            {{.NPX_HANDLE}}remark --no-stdout "$PATHH" &
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \))
+          wait
         {{end}}
 
   markdown:links:
@@ -46,6 +53,10 @@ tasks:
       `task lint:markdown-broken-links -- filename.md`
 
       For more information on `markdown-link-check`, see their [GitHub page](https://github.com/tcort/markdown-link-check).
+    log:
+      error: Errors reported by `markdown-link-check`
+      start: Checking for broken links in markdown files with `markdown-link-check`
+      success: Successfully passed `markdown-link-check`
     cmds:
       - |
         {{if .CLI_ARGS}}

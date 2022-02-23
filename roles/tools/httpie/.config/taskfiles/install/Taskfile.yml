@@ -5,24 +5,25 @@ tasks:
   brewfile:
     deps:
       - :install:software:brew
+    log:
+      error: Encountered error while installing Homebrew software bundle defined in `.config/Brewfile`
+      start: Installing Homebrew software bundle defined in `.config/Brewfile`
+      success: Successfully installed Homebrew software bundle defined in `.config/Brewfile`
     cmds:
-      - |
-        .config/log info 'Installing software bundle defined in `.config/Brewfile`'
-        brew tap Homebrew/bundle
-        cd .config
-        brew bundle
-        .config/log success 'Successfully installed common dependencies defined in `.config/Brewfile`'
-        .config/log warn 'A reboot is recommended'
-        .config/log info 'Some of the software you may have installed might require a reboot'
+      - brew tap Homebrew/bundle
+      - mkdir -p local
+      - cp .config/Brewfile local/Brewfile
+      - brew bundle install --file local/Brewfile
 
   install-doctor:
+    log:
+      error: Error encountered while installing {{.SOFTWARE}} via https://install.doctor
+      start: Ensuring {{.SOFTWARE}} is installed using Install Doctor
+      success: Successfully installed `{{.SOFTWARE}}` via Install Doctor
     cmds:
       - |
-        if ! type {{.SOFTWARE}} &> /dev/null; then
-          .config/log info 'Installing `{{.SOFTWARE}}` via `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
-          curl -sS https://install.doctor/{{.SOFTWARE}} | bash
-          .config/log success 'Successfully installed `{{.SOFTWARE}}`'
-        fi
+        .config/log info 'Installing `{{.SOFTWARE}}` by running `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
+        curl -sS https://install.doctor/{{.SOFTWARE}} | bash
     status:
       - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
 
@@ -31,6 +32,10 @@ tasks:
       - :install:npm:{{.NPM_PROGRAM}}
       - :install:software:yq
     run: once
+    log:
+      error: Error pre-loading NPM global packages
+      start: Pre-loading NPM global packages
+      success: Finished pre-loading NPM global packages
     cmds:
       - |
         PKGS="$(yq eval '.tasks[].cmds[0].vars.NPM_PACKAGE' .config/taskfiles/install/Taskfile-npm.yml | tr '\n' ' ')"
@@ -43,7 +48,6 @@ tasks:
           .config/log info "Installing the following NPM packages globally - $LIST"
           npm install -g $LIST
         fi
-        .config/log success 'Finished preloading global NPM packages'
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
@@ -51,17 +55,59 @@ tasks:
     deps:
       - :install:npm:{{.NPM_PROGRAM_LOCAL}}
       - :install:npm:cz-emoji
+      - :install:software:jq
+    env:
+      SEMANTIC_PYTHON_POST_INSTALL: '{{if eq .SEMANTIC_RELEASE "true"}}true{{else}}false{{end}}'
     run: once
+    log:
+      error: Encountered error while installing local NPM dependencies
+      start: Installing local NPM dependencies
+      success: Successfully installed local NPM dependencies
     cmds:
-      - .config/log info 'Installing local NPM dependencies'
-      - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
-        ignore_error: true
-      - task: modules:local:sync
-      - .config/log success 'Successfully installed local NPM dependencies'
+      - |
+        if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
+          {{.NPM_PROGRAM_LOCAL}} update
+        else
+          {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+            {{.NPM_PROGRAM_LOCAL}} update
+          fi
+        fi
+      - |
+        if [ "$(jq -r '.devDependencies.glob' package.json)" == 'null' ] && [ "$(jq -r '.dependencies.glob' package.json)" == 'null' ]; then
+          pnpm install --save-dev glob
+        fi
     sources:
       - package.json
 
+  modules:local:lockfiles:
+    deps:
+      - :install:npm:pnpm-lock-export
+      - :install:npm:synp
+    cmds:
+      - |
+        if [ ! -f package-lock.json ]; then
+          pnpm-lock-export
+          MOVE_PACKAGE_LOCK=true
+        fi
+        if [ ! -f yarn.lock ] && [ -f package-lock.json ]; then
+          synp --source-file package-lock.json
+          mkdir -p local
+          mv yarn.lock local/yarn.lock
+        fi
+        if [ -n "$MOVE_PACKAGE_LOCK" ]; then
+          mkdir -p local
+          mv package-lock.json local/package-lock.json
+        fi
+    sources:
+      - pnpm-lock.yaml
+
   modules:local:sync:
+    log:
+      error: Error while synchronizing `NPM_KEEP_UPDATED` packages with the latest version(s)
+      start: Ensuring `NPM_KEEP_UPDATED` NPM packages are the latest version
+      success: '`NPM_KEEP_UPDATED` packages are all the latest version'
     cmds:
       - |
         TMP_REFRESH="$(mktemp)"
@@ -69,14 +115,11 @@ tasks:
         function updateAvailable() {
           LATEST="$(npm view $1 version)"
           LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
-          COMPARE="$(.config/scripts/lib/semver-compare.sh "$LOCAL" "$LATEST")"
-          if [[ "$COMPARE" == '-1' ]]; then
+          if ! printf '%s\n%s\n' "$LATEST" "$LOCAL" | sort -V -c > /dev/null; then
             .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
             echo "true" > "$TMP_REFRESH"
           fi
         }
-        chmod +x .config/log
-        chmod +x .config/scripts/lib/semver-compare.sh
         for PATTERN in {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.NPM_KEEP_UPDATED}}{{end}}; do
            while read PATHH; do
             if [ -f "$PATHH/package.json" ]; then
@@ -113,40 +156,32 @@ tasks:
       - .config/scripts/prompts/**
 
   path:add:
+    vars:
+      UNAME:
+        sh: uname
+    log:
+      error: Failed to modify PATH
+      start: Adding `$HOME/{{.PATH_STRING}}` to the PATH in $HOME/.profile
     cmds:
       - |
-        function ensureLocalPath() {
-          case "${SHELL}" in
-            */bash*)
-              if [[ -r "${HOME}/.bash_profile" ]]; then
-                SHELL_PROFILE="${HOME}/.bash_profile"
-              else
-                SHELL_PROFILE="${HOME}/.profile"
-              fi
-              ;;
-            */zsh*)
-              SHELL_PROFILE="${HOME}/.zshrc"
-              ;;
-            *)
-              SHELL_PROFILE="${HOME}/.profile"
-              ;;
-          esac
-          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
-            # shellcheck disable=SC2016
-            local PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
-            if ! grep -L "$PATH_STRING" "$SHELL_PROFILE" > /dev/null; then
-              echo -e "export ${PATH_STRING}\n" >> "$SHELL_PROFILE"
-              .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $SHELL_PROFILE"
-            fi
-          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-            .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
-          elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-            .config/log error "FreeBSD support not added yet" && exit 1
-          else
-            .config/log error "System type not recognized"
+        if [[ '{{.UNAME}}' == 'Darwin' ]] || [[ '{{.UNAME}}' == 'Linux' ]]; then
+          # shellcheck disable=SC2016
+          PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
+          if ! grep "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+            echo -e "export ${PATH_STRING}\n" >> "$HOME/.profile"
+            .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $HOME/.profile"
           fi
-        }
-        ensureLocalPath
+        elif [[ '{{.UNAME}}' == 'CYGWIN'* ]] || [[ '{{.UNAME}}' == 'MINGW'* ]]; then
+          .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+        elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+          .config/log error "FreeBSD support not added yet" && exit 1
+        else
+          .config/log error "System type not recognized ($OSTYPE)"
+        fi
+
+  pipx:bundle:
+    cmds:
+      - task: pipx:global
 
   pipx:global:
     deps:
@@ -156,6 +191,10 @@ tasks:
       PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
         mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
         proselint python-vagrant pywinrm
+    log:
+      error: Error encountered while pre-loading common pipx packages
+      start: Pre-loading common pipx packages
+      success: Finished pre-loading common pipx packages
     cmds:
       - |
         for PKG in {{.PIPX_PACKAGES}}; do
@@ -167,65 +206,50 @@ tasks:
           fi
         done
         wait
-        .config/log success 'Successfully preloaded commonly used Python packages'
 
   profile:add:
+    log:
+      error: Error modifying $HOME/.profile
+      start: Adding `{{.PROFILE_STRING}}` to $HOME/.profile
+      success: Successfully modified $HOME/.profile
     cmds:
       - |
-        function addToProfile() {
-          case "${SHELL}" in
-            */bash*)
-              if [[ -r "${HOME}/.bash_profile" ]]; then
-                SHELL_PROFILE="${HOME}/.bash_profile"
-              else
-                SHELL_PROFILE="${HOME}/.profile"
-              fi
-              ;;
-            */zsh*)
-              SHELL_PROFILE="${HOME}/.zshrc"
-              ;;
-            *)
-              SHELL_PROFILE="${HOME}/.profile"
-              ;;
-          esac
-          if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
-            # shellcheck disable=SC2016
-            local PROFILE_STRING='{{.PROFILE_STRING}}'
-            if ! grep -L "$PROFILE_STRING" "$SHELL_PROFILE" > /dev/null; then
-              echo -e "${PROFILE_STRING}\n" >> "$SHELL_PROFILE"
-              .config/log info 'Added `{{.PROFILE_STRING}}` to '"$SHELL_PROFILE"
-            fi
-          elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-            .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
-          elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-            .config/log error "FreeBSD support not added yet" && exit 1
-          else
-            .config/log error "System type not recognized"
+        if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+          # shellcheck disable=SC2016
+          PROFILE_STRING='{{.PROFILE_STRING}}'
+          if ! grep "$PROFILE_STRING" "$HOME/.profile" > /dev/null; then
+            echo -e "${PROFILE_STRING}\n" >> "$HOME/.profile"
+            .config/log info 'Added `{{.PROFILE_STRING}}` to '"$HOME/.profile"
           fi
-        }
-        addToProfile
+        elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+          .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+        elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+          .config/log error "FreeBSD support not added yet" && exit 1
+        else
+          .config/log error "System type not recognized"
+        fi
 
   tslib:
-    env:
+    vars:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
         in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
         install tslib.
     run: once
+    log:
+      error: Failed to probe `tslib`
+      start: Checking if `tslib` is being used
     cmds:
       - |
-        if [ -f 'tsconfig.json' ]; then
-          if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
-            if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
-              .config/log info '{{.TSLIB_MSG}}'
-            else
-              .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
-              {{.NPM_PROGRAM}} install --save tslib@latest
-              .config/log success 'Successfully installed `tslib`'
-            fi
+        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
+          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
+            .config/log info '{{.TSLIB_MSG}}'
           else
-            task install:modules:local:sync -- "tslib"
+            .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
+            {{.NPM_PROGRAM_LOCAL}} install --save tslib@latest
+            .config/log success 'Successfully installed `tslib`'
           fi
+        else
+          task install:modules:local:sync -- tslib
         fi
-    sources:
-      - package.json
-      - tsconfig.json
+    status:
+      - '[ ! -f tsconfig.json ]'

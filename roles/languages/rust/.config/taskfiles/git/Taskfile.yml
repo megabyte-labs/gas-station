@@ -106,12 +106,13 @@ tasks:
 
   push:all:
     log:
-      start: Running `git push all master`
+      error: Encountered error while running `git push all master --force || git push origin master`
+      start: Running `git push all master --force || git push origin master`
+      success: Successfully ran `git push all master --force || git push origin master`
     cmds:
       - |
         if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
-          git push all master
-          git push origin master
+          git push all master --force || git push origin master
         fi
 
   remotes:
@@ -119,13 +120,13 @@ tasks:
       - :install:software:git
       - :install:software:jq
       - :install:software:subrepo
-    desc: Configure the git remote `origin` to point to GitLab and the git remote `all` to point to GitLab and GitHub
+    desc: Configure the the `origin`, `gitlab`, `github`, and `all` git remotes
     summary: |
-      # Configure git remote
+      # Configure Git Remotes
 
       This task will set the origin to the GitLab repository associated with this project. It will then also create
       a remote named `all` which will point to both the GitLab repository and the GitHub mirror. You can then
-      push to both repositories at the same time by running `git push origin master`.
+      push to both repositories at the same time by running `git push all master`.
 
       **Example usage:**
       `task git:remotes`
@@ -260,4 +261,8 @@ tasks:
       - :git:gitlab:update
       - :git:github:update
     cmds:
-      - git push -u origin master
+      - |
+        if ! git push -u origin master; then
+          git pull origin master --allow-unrelated-histories
+          git push origin -u origin master
+        fi

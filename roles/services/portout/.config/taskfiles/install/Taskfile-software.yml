@@ -1,14 +1,21 @@
-# eslint-disable eslint-comments/disable-enable-pair, max-lines
 ---
 version: '3'
 
 tasks:
   act:
+    summary: |
+      ## Act
+
+      A program that allows you to simulate GitHub Actions locally.
+
+      [GitHub](https://github.com/nektos/act)
     run: once
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: act
+    status:
+      - type act > /dev/null
 
   allure:
     run: once
@@ -16,56 +23,59 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: allure
+    status:
+      - type allure > /dev/null
 
   brew:
-    deps:
-      - common
     run: once
+    log:
+      error: Failed to install or load Homebrew
+      start: Ensuring Homebrew is installed and available
+      success: Successfully ensured Homebrew is installed
     cmds:
+      - task: common
       - task: brew:{{OS}}
+    status:
+      - type brew > /dev/null
 
   brew:cask:
-    deps:
-      - brew
     run: when_changed
+    log:
+      error: Failed to install `{{.CASK}}`
+      start: Ensuring the `{{.CASK}}` Homebrew cask is installed
+      success: Successfully installed `{{.CASK}}`
     cmds:
-      - |
-        .config/log info 'Installing the `{{.CASK}}` Homebrew cask'
-        brew install --cask {{.CASK}}
-        .config/log success 'Successfully installed the `{{.CASK}}` Homebrew cask'
+      - task: brew
+      - brew install --cask {{.CASK}}
     status:
       - type {{.CASK}} &> /dev/null
 
   brew:darwin:
     cmds:
       - |
-        .config/log info 'Ensuring Homebrew is installed and available'
         if ! type brew &> /dev/null; then
-          rm -rf ~/.local/homebrew
-          mkdir -p ~/.local/homebrew
-          git clone https://github.com/Homebrew/brew ~/.local/homebrew
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
-          .config/log info "Updating Homebrew"
-          brew update --force --quiet
-          chmod -R go-w "$(brew --prefix)/share/zsh"
-          .config/log success "Successfully installed Homebrew"
-          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
-          .config/log info 'Please close/open the terminal and re-run the same command to continue'
-          exit 1
+          if sudo -n bash; then
+            echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          if [ '{{.BODEGA}}' != 'true' ]; then
+            task install:software:exit:notice:reload
+          fi
         fi
       - task: brew:utils
     status:
       - type brew &> /dev/null
 
   brew:formulae:
-    deps:
-      - brew
     run: when_changed
+    log:
+      error: Failed to install `{{.FORMULAE}}`
+      start: Ensuring the `{{.FORMULAE}}` Homebrew formulae is installed
+      success: Successfully installed `{{.FORMULAE}}`
     cmds:
-      - |
-        .config/log info 'Installing the `{{.FORMULAE}}` Homebrew package'
-        brew install {{.FORMULAE}}
-        .config/log success 'Successfully installed the `{{.FORMULAE}}` Homebrew package'
+      - task: brew
+      - brew install {{.FORMULAE}}
     status:
       - type {{.FORMULAE}} &> /dev/null
 
@@ -73,70 +83,41 @@ tasks:
     run: once
     cmds:
       - |
-        .config/log info 'Ensuring Homebrew is installed and available'
         function ensureSource() {
           if ! (grep "/bin/brew shellenv" < "$1" &> /dev/null); then
-            echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> "$1"
+            echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$1"
           fi
         }
-        case "${SHELL}" in
-          */bash*)
-            if [[ -r "${HOME}/.bash_profile" ]]; then
-              SHELL_PROFILE="${HOME}/.bash_profile"
-            else
-              SHELL_PROFILE="${HOME}/.profile"
-            fi
-            ;;
-          */zsh*)
-            SHELL_PROFILE="${HOME}/.zshrc"
-            ;;
-          *)
-            SHELL_PROFILE="${HOME}/.profile"
-            ;;
-        esac
         if ! type brew &> /dev/null; then
-          rm -rf ~/.local/homebrew
-          mkdir -p ~/.local/homebrew
-          git clone https://github.com/Homebrew/brew ~/.local/homebrew
-          eval "$(~/.local/homebrew/bin/brew shellenv)"
-          brew update --force --quiet
-          ensureSource "$SHELL_PROFILE"
-          .config/log warn 'Homebrew was installed and requires a terminal profile reload'
-          .config/log info 'Please close/open the terminal and re-run the same command to continue'
-          exit 1
+          if sudo -n bash; then
+            echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ensureSource "$HOME/.profile"
+          if [ '{{.BODEGA}}' != 'true' ]; then
+            task install:software:exit:notice:reload
+          fi
         fi
     status:
-      - type brew &> /dev/null || [[ "$OPTIMIZED_IMAGE" == 'true' ]]
+      - type brew &> /dev/null
 
   brew:utils:
     run: once
+    log:
+      error: Failed to setup GNU-compatibility tools
+      start: Installing GNU-compatibility tools for macOS via Homebrew
+      success: Successfully installed GNU-compatibility tools
     cmds:
-      - |
-        .config/log info "Installing GNU-compatibility tools for macOS via Homebrew"
-        brew install coreutils findutils gnu-sed grep gnu-tar gawk
-        .config/log success "Successfully installed GNU-compatibility tools"
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/findutils/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/gnu-sed/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/grep/libexec/gnubin
-      - task: :install:path:add
-        vars:
-          PATH_STRING: $(brew --prefix)/opt/gnu-tar/libexec/gnubin
+      - task: compatibility:coreutils
+      - task: compatibility:findutils
+      - task: compatibility:gnu-sed
+      - task: compatibility:grep
+      - task: compatibility:gnu-tar
+      - task: compatibility:gawk
     status:
-      - type gcp > /dev/null
-      - type gfind > /dev/null
-      - type gsed > /dev/null
-      - type ggrep > /dev/null
-      - type gtar > /dev/null
-      - type gawk > /dev/null
+      - '[ "{{OS}}" != "darwin" ]'
 
   brew:windows:
     cmds:
@@ -152,6 +133,10 @@ tasks:
 
   common:
     run: once
+    log:
+      error: There was an error ensuring common system tools are present
+      start: Ensuring common system tools are present
+      success: Ensured common system tools are present
     cmds:
       - task: common:{{OS}}
 
@@ -163,12 +148,12 @@ tasks:
     vars:
       CLT_STATUS:
         sh: brew config | grep CLT
+    log:
+      error: Failed to run `sudo xcode-select --install`
+      start: Running `sudo xcode-select --install` to install macOS developer tools
+      success: Successfully ran `sudo xcode-select --install`
     cmds:
-      - |
-        .config/log info "Installing xcode-select.. You might be prompted for a password"
-        .config/log info 'Running `xcode-select --install`'
-        xcode-select --install
-        .config/log success "Successfully installed xcode-select"
+      - sudo xcode-select --install
     status:
       - '[ "{{.CLT_STATUS}}" != "CLT: N/A" ]'
 
@@ -185,21 +170,26 @@ tasks:
           else
             echo "unknown"
           fi
+    log:
+      error: Failed to ensure basic system dependencies are installed
+      start: Ensuring basic system dependencies are installed
+      success: Basic system dependencies are installed!
     cmds:
       - task: common:linux:{{.LINUX_FAMILY}}
-    status:
-      - '[[ "$OPTIMIZED_IMAGE" == "true" ]]'
 
   common:linux:archlinux:
     interactive: true
     cmds:
       - .config/log warn "Archlinux support for Homebrew is not very well documented.. if this does not work and you can get it working, please open a PR :)"
       - |
+        .config/log info 'Attempting to run `sudo pacman update` (for Homebrew dependencies)'
         sudo pacman update
-        sudo pacman -S base-devel curl file git procps-ng
+        .config/log info 'Attempting to run `sudo pacman -S base-devel curl file git gzip procps-ng` (for Homebrew dependencies)'
+        sudo pacman -S base-devel curl file git gzip procps-ng
     status:
       - type curl &> /dev/null
       - type git &> /dev/null
+      - type gzip &> /dev/null
       - ldconfig -p | grep base-devel
       - ldconfig -p | grep file
       - ldconfig -p | grep procps-ng
@@ -208,12 +198,14 @@ tasks:
     interactive: true
     cmds:
       - |
-        .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+        .config/log info 'Attempting to run `sudo apt-get -y update` (for Homebrew dependencies)'
         sudo apt-get -y update
-        sudo apt-get install -y build-essential curl file git procps
+        .config/log info 'Attempting to run `sudo apt-get install -y build-essential curl file git procps` (Homebrew dependencies)'
+        sudo apt-get install -y build-essential curl file git gzip procps
     status:
       - type curl &> /dev/null
       - type git &> /dev/null
+      - type gzip &> /dev/null
       - dpkg-query -l build-essential &> /dev/null
       - dpkg-query -l file &> /dev/null
       - dpkg-query -l procps &> /dev/null
@@ -221,39 +213,83 @@ tasks:
   common:linux:redhat:
     interactive: true
     cmds:
-      - mkdir -p "$HOME/.config/mblabs"
+      - mkdir -p "$HOME/.config/bodega"
       - |
-        if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
-          yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
-          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+        if [ ! -f "$HOME/.config/bodega/yum-devtools-check-ran" ]; then
+          yum grouplist 'Development Tools' &> "$HOME/.config/bodega/yum-devtools-check-ran"
+          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/bodega/yum-devtools-check-ran" > /dev/null)"
           if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+            .config/log info 'Attempting to run `sudo yum groupinstall -y "Development Tools"`'
             sudo yum groupinstall -y 'Development Tools'
           fi
-          touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+          touch "$HOME/.config/bodega/yum-devtools-check-ran"
         fi
-        if ! rpm --quiet --query curl file git procps-ng; then
-          .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
-          sudo yum install -y curl file git procps-ng
+        if ! rpm --quiet --query curl file git gzip procps-ng; then
+          .config/log info 'Attempting to run `sudo yum install -y curl file git procps-ng`'
+          sudo yum install -y curl file git gzip procps-ng
         fi
         if [ -f '/etc/os-release' ]; then
           source /etc/os-release
           if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
             if ! rpm --quiet --query libxcrypt-compat; then
-              .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+              .config/log info 'Attempting to run `sudo yum -y install libxcrypt-compat` (Homebrew dependencies)'
               sudo yum -y install libxcrypt-compat
             fi
           fi
         fi
 
   common:linux:unknown:
+    log:
+      start: You are using an operating system that we do not directly support. Please make sure
+        the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.
     cmds:
-      - .config/log warn 'You are using an operating system that we do not directly support. Please make sure
-        the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.'
+      - .config/log warn "*** Unknown OS -> $OSTYPE ***"
 
   common:windows:
+    log:
+      error: Windows is not supported. Try using a Windows WSL environment.
     cmds:
-      - .config/log error "Windows is not supported. Try using a Windows WSL environment."
       - exit 1
+
+  compatibility:findutils:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: findutils
+    status:
+      - type gfind > /dev/null
+
+  compatibility:gawk:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gawk
+    status:
+      - type gawk > /dev/null
+
+  compatibility:gnu-sed:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gnu-sed
+    status:
+      - type gsed > /dev/null
+
+  compatibility:gnu-tar:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gnu-tar
+    status:
+      - type gtar > /dev/null
+
+  compatibility:grep:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: grep
+    status:
+      - type ggrep > /dev/null
 
   container-structure-test:
     run: once
@@ -263,26 +299,36 @@ tasks:
           FORMULAE: container-structure-test
 
   coreutils:
-    deps:
-      - brew
-    run: once
     cmds:
-      - |
-        if [ '{{OS}}' == 'darwin' ] && ! type gsed > /dev/null; then
-          .config/log info 'Installing GNU compatibility tools (i.e. `coreutils`)'
-          brew install coreutils
-          .config/log success 'Successfully installed GNU compatibility tools (i.e. `coreutils`)'
-        fi
-      - task: :install:path:add
+      - task: brew:formulae
         vars:
-          PATH_STRING: $(brew --prefix)/opt/coreutils/libexec/gnubin
+          FORMULAE: coreutils
     status:
-      - '[[ "{{OS}}" != "darwin" ]] && type gsed > /dev/null'
+      - type gcp > /dev/null || [ "{{OS}}" != "darwin" ]
+
+  dasel:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: dasel
+    status:
+      - type dasel > /dev/null
 
   docker:
     run: once
     cmds:
       - task: docker:{{OS}}
+    status:
+      - type docker > /dev/null
+
+  docker-slim:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: docker-slim
+    status:
+      - type docker-slim > /dev/null
 
   docker:darwin:
     run: once
@@ -323,6 +369,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: exiftool
+    status:
+      - type exiftool > /dev/null
 
   exit:notice:reload:
     cmds:
@@ -348,6 +396,8 @@ tasks:
       - task: brew:cask
         vars:
           CASK: google-cloud-sdk
+    status:
+      - type gcloud > /dev/null
 
   gcloud:linux:
     cmds:
@@ -365,11 +415,24 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gh
+    status:
+      - type gh > /dev/null
 
   git:
-    deps:
-      - common
     run: once
+    cmds:
+      - task: common
+    status:
+      - type git > /dev/null
+
+  gitlab-runner:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gitlab-runner
+    status:
+      - type gitlab-runner > /dev/null
 
   gitleaks:
     run: once
@@ -377,6 +440,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gitleaks
+    status:
+      - type gitleaks > /dev/null
 
   glab:
     run: once
@@ -384,13 +449,45 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: glab
+    status:
+      - type glab > /dev/null
 
   go:
+    run: once
+    cmds:
+      - task: go:gopath
+      - task: go:goroot
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
+      - task: go:install
+
+  go:gopath:
+    run: once
+    cmds:
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export GOPATH="${HOME}/.local/go"
+    status:
+      - '[ -n "$GOPATH" ]'
+
+  go:goroot:
+    run: once
+    cmds:
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export GOROOT="$(brew --prefix golang)/libexec"
+    status:
+      - '[ -n "$GOROOT" ]'
+
+  go:install:
     run: once
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: go
+    status:
+      - type go > /dev/null
 
   grype:
     run: once
@@ -401,12 +498,23 @@ tasks:
     status:
       - type grype > /dev/null
 
+  gzip:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gzip
+    status:
+      - type gzip > /dev/null
+
   jq:
     run: once
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: jq
+    status:
+      - type jq > /dev/null
 
   node:
     run: once
@@ -414,35 +522,36 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: node
+    status:
+      - type node > /dev/null
 
   pipx:
     run: once
+    log:
+      error: Failed to ensure `pipx` is installed
+      start: Ensuring `pipx` is installed
+      success: Successfully ensured `pipx` is installed
     cmds:
+      - task: python
       - task: pipx:{{OS}}
     status:
       - type pipx > /dev/null
 
   pipx:darwin:
-    deps:
-      - brew
     cmds:
-      - .config/log info 'Installing pipx and running `pipx ensurepath`'
+      - task: brew
       - brew install pipx
       - pipx ensurepath
-      - .config/log success 'Successfully installed pipx'
 
   pipx:linux:
-    deps:
-      - :install:software:python
     cmds:
-      - .config/log info 'Installing pipx and running `pipx ensurepath`'
       - python3 -m pip install --user pipx
       - python3 -m pipx ensurepath
-      - .config/log success 'Successfully installed pipx'
 
   pipx:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
-      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
       - exit 1
 
   poetry:
@@ -461,27 +570,25 @@ tasks:
           FORMULAE: poetry
 
   poetry:linux:
-    deps:
-      - pipx
+    run: once
     cmds:
-      - pipx install poetry
-      - task: :install:path:add
+      - task: brew:formulae
         vars:
-          PATH_STRING: .local/pipx/venvs/poetry/bin
-    status:
-      - type poetry > /dev/null
+          FORMULAE: poetry
 
   poetry:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
-      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
       - exit 1
 
   python:
-    deps:
-      - brew # bug fix
     run: once
     cmds:
+      - task: brew
       - task: python:{{OS}}
+    status:
+      - type python3 > /dev/null
 
   python:darwin:
     run: once
@@ -495,13 +602,16 @@ tasks:
   python:linux:
     run: once
     cmds:
-      - task: :install:install-doctor
+      - task: brew:formulae
         vars:
-          SOFTWARE: python
+          FORMULAE: python@3.10
+    status:
+      - type python3 > /dev/null
 
   python:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
     cmds:
-      - .config/log error 'These scripts are not currently compatible with Windows. Try using WSL.'
       - exit 1
 
   rsync:
@@ -510,6 +620,35 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: rsync
+    status:
+      - type rsync &> /dev/null
+
+  rust:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: rust
+    status:
+      - type rust &> /dev/null
+
+  sentry:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: getsentry/tools/sentry-cli
+    status:
+      - type sentry-cli > /dev/null
+
+  snapcraft:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: snapcraft
+    status:
+      - type snapcraft > /dev/null
 
   sshpass:
     run: once
@@ -535,6 +674,8 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: tokei
+    status:
+      - type tokei > /dev/null
 
   trivy:
     run: once
@@ -548,6 +689,8 @@ tasks:
   vagrant:
     cmds:
       - task: vagrant:{{OS}}
+    status:
+      - type vagrant > /dev/null
 
   vagrant:darwin:
     run: once
@@ -605,9 +748,20 @@ tasks:
         vars:
           SOFTWARE: vmware
 
+  yarn:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: yarn
+    status:
+      - type yarn > /dev/null
+
   yq:
     run: once
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: yq
+    status:
+      - type yq > /dev/null

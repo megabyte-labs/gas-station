@@ -17,21 +17,19 @@ tasks:
       PROJECT_TYPE:
         sh: if [[ $(jq -r '.private' package.json) == 'true' ]]; then echo '--private'; else echo '--public'; fi
     run: once
+    log:
+      error: Error while ensuring GitHub repository exists
+      start: Checking for presence of GitHub repository and creating one if it does not exist
+      success: Ensure GitHub repository is present
     cmds:
-      - cmd: |
-          TMP="$(mktemp)"
-          if [ ! -z "$GITHUB_TOKEN" ] && test -e .git && ! gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} > /dev/null; then
-            gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}" \
-              --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} > /dev/null
-            .config/log success 'Created a GitHub repository - `https://github.com/{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}`'
-            git add --all
-            git commit --quiet -m "🎂 Birth" -n
-            git push --quiet -u --no-progress github master
-          fi
+      - cmd: gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}"
+          --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} > /dev/null
         ignore_error: true
-    sources:
-      - .variables.json
-      - package.json
+      - git add --all
+      - git commit --quiet -m "🎂 Birth" -n
+      - git push --quiet -u --no-progress github master
+    status:
+      - '[ -z "$GITHUB_TOKEN" ] || ! test -e .git || gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} > /dev/null'
     preconditions:
       - sh: '[ "{{.DESCRIPTION}}" != "null" ]'
         msg: The `.description` in `package.json` must be set.
@@ -45,12 +43,19 @@ tasks:
       - :install:software:gh
       - :install:software:jq
       - create
+    vars:
+      CURRENT_PROJECT_ID:
+        sh: jq -r '.blueprint.github_id' package.json
+      PROJECT_ID:
+        sh: gh repo view --json id | jq -r '.id'
+    log:
+      error: Failed to add GitHub project ID to package.json
+      start: Saving GitHub project ID to package.json
+      success: Added GitHub project ID to package.json
     cmds:
-      - |
-        PROJECT_ID="$(gh repo view --json id | jq -r '.id')"
-        TMP="$(mktemp)" && jq --arg projectId "$PROJECT_ID" '.blueprint.github_id = $projectId' package.json > "$TMP"
-        mv "$TMP" package.json
-        .config/log success 'Added GitHub project ID to package.json'
+      - TMP="$(mktemp)" && jq --arg projectId "{{.PROJECT_ID}}" '.blueprint.github_id = $projectId' package.json > "$TMP" && mv "$TMP" package.json
+    status:
+      - '[[ "{{.CURRENT_PROJECT_ID}}" == "{{.PROJECT_ID}}" ]]'
 
   update:
     deps:
@@ -72,6 +77,10 @@ tasks:
         sh: jq -r '.homepage' package.json
       PRIVATE:
         sh: jq -r '.private' package.json | sed 's/null/false/'
+    log:
+      error: Error while updating GitHub repository metadata
+      start: Updating GitHub project metadata
+      success: Updated GitHub repository metadata
     cmds:
       - |
         OPTIONAL_TAGS="$(jq '.keywords' .config/common-keywords.json)"
@@ -115,11 +124,11 @@ tasks:
     deps:
       - :install:software:gh
       - create
+    log:
+      error: Error setting GitHub Actions Ansible Galaxy token
+      start: Setting GitHub Actions Ansible Galaxy token
+      success: GitHub Actions Ansible Galaxy token set
     cmds:
-      - |
-        if [ ! -z "$GITHUB_TOKEN" ] && [ ! -z "$ANSIBLE_GALAXY_TOKEN" ] && [ '{{.REPOSITORY_TYPE}}' == 'ansible' ]; then
-          gh secret set ANSIBLE_GALAXY_TOKEN -b "$ANSIBLE_GALAXY_TOKEN"
-          .config/log success 'Updated GitHub Actions `ANSIBLE_GALAXY_TOKEN` environment variable successfully'
-        fi
+      - gh secret set ANSIBLE_GALAXY_TOKEN -b "$ANSIBLE_GALAXY_TOKEN"
     status:
       - '[ -z "$GITHUB_TOKEN" ] || [ -z "$ANSIBLE_GALAXY_TOKEN" ] || [ "{{.REPOSITORY_TYPE}}" != "ansible" ]'

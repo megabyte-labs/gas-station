@@ -3,6 +3,10 @@ version: '3'
 
 tasks:
   common:
+    log:
+      error: Error updating common repository
+      start: Updating common repository
+      success: Finished updating common repository
     cmds:
       - task: :upstream:common:reset
       - task: :upstream:common:clone
@@ -12,18 +16,28 @@ tasks:
       - task: :upstream:common:template
       - task: :upstream:common:combine
       - task: :vscode:generate
+      - task: :install:modules:local:lockfiles
       - task: :fix:eslint
 
   commondocs:
+    log:
+      error: Error updating common documents repository
+      start: Updating common documents repository
+      success: Finished updating common documents repository
     cmds:
       - task: :upstream:commondocs:clone
       - task: :upstream:commondocs:copy
       - task: :upstream:commondocs:clean
       - task: :upstream:commondocs:template
       - task: :vscode:generate
+      - task: :install:modules:local:lockfiles
       - task: :fix:eslint
 
   docs:
+    log:
+      error: Error updating document repository
+      start: Updating document repository
+      success: Finished updating document repository
     cmds:
       - task: :upstream:docs:clone
       - task: :upstream:docs:copy
@@ -31,9 +45,14 @@ tasks:
       - task: :upstream:docs:clean
       - task: :upstream:docs:template
       - task: :vscode:generate
+      - task: :install:modules:local:lockfiles
       - task: :fix:eslint
 
   project:
+    log:
+      error: Error updating project repository
+      start: Running project update logic
+      success: Finished running project update logic
     cmds:
       - task: pull
       - task: :upstream:project:clone
@@ -44,12 +63,17 @@ tasks:
       - task: :vscode:generate
       - task: :upstream:project:merge:package:overrides
       - task: :common:update:update
+      - task: :install:modules:local:lockfiles
       - task: :fix:eslint
       - task: :git:commit:automated
       - task: :git:push:all
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:galaxy:import{{else}}donothing{{end}}
 
   project:scaffold-only:
+    log:
+      error: Error scaffolding project
+      start: Scaffolding project
+      success: Finished scaffolding project
     cmds:
       - task: pull
       - task: :upstream:project:clone
@@ -60,11 +84,16 @@ tasks:
       - task: :vscode:generate
       - task: :upstream:project:merge:package:overrides
       - SKIP_UPLOADING=true task common:update:update
+      - task: :install:modules:local:lockfiles
       - task: :fix:eslint
 
   pull:
     deps:
       - :install:software:git
+    log:
+      error: Error executing initial `git pull` logic
+      start: Determining whether or not to `git pull`
+      success: Finished initial `git pull` logic
     cmds:
       - |
         if ([ -f "$HOME/.ssh/known_hosts" ] && [ ! -n "$(grep "^gitlab.com " "$HOME/.ssh/known_hosts")" ]) || [[ "${container:=}" == "docker" ]]; then
@@ -75,18 +104,23 @@ tasks:
             git config url."https://gitlab.com/".insteadOf git@gitlab.com:
           fi
         fi
-      - cmd: git pull --ff-only
+      - cmd: if git branch -r | grep origin > /dev/null; then git pull --ff-only; fi
         ignore_error: true
       - cmd: git config --unset url."https://gitlab.com/".insteadOf
         ignore_error: true
 
   shared:
+    log:
+      error: Error running shared repository update logic
+      start: Running shared repository update logic
+      success: Finished running shared repository update logic
     cmds:
       - task: pull
       - task: :upstream:shared:copy
       - task: :upstream:shared:variables
       - task: :upstream:shared:template
       - task: :vscode:generate
+      - task: :install:modules:local:lockfiles
       - task: :fix:eslint
 
   template:
@@ -97,12 +131,17 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:liquidjs
+      - :install:software:jq
     vars:
       PYTHON_BREW_NOTICE: In order for this file to be generated, the customPyPiPackageName needs to be specified in the
         blueprint section of package.json and the PyPi package needs to be installed on the system.
     env:
       TMP:
         sh: mktemp
+    log:
+      error: Error encountered while generating files from `liquid` template files
+      start: Generating files from `liquid` template files
+      success: Successfully generated files from templates
     cmds:
       - |
         if [[ '{{.REPOSITORY_TYPE}}' == 'python' ]] && [ -f '.config/brew/python.rb.liquid' ]; then
@@ -124,7 +163,7 @@ tasks:
           handlebars "$FILE" &
         done < <(find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid')
         while read CONFIG_FILE; do
-          handlebars "$CONFIG_FILE" &
+          handlebars "$CONFIG_FILE"
         done < <(find .config -type f -name '*.liquid')
         wait
       - |
@@ -155,6 +194,10 @@ tasks:
         sh: if [ -f '{{.INPUT_FILE}}' ]; then echo {{.INPUT_FILE}}; else echo ".variables.json"; fi
       TMP:
         sh: mktemp
+    log:
+      error: Encountered error while injecting `{{.OUTPUT_FILE}}` with variables
+      start: Injecting `{{.OUTPUT_FILE}}` with variables
+      success: Successfully injected `{{.OUTPUT_FILE}}` with variables
     cmds:
       - |
         if [[ "$(jq '.keywords' package.json)" == 'null' ]]; then

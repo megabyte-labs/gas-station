@@ -75,12 +75,25 @@ tasks:
       success: Updated miscellaneous files
     cmds:
       - |
-        {{if eq .REPOSITORY_SUBTYPE "ci-pipeline"}}
-          if [[ "{{.FIRST_LINE}}" == *"debian"* ]] || [[ "{{.FIRST_LINE}}" == *"ubuntu"* ]]; then
-            cp .config/initctl initctl
-            .config/log info 'Added initctl faker file to repository root'
+        if [ -f initctl ] && [ -f .config/initctl ]; then
+          cp .config/initctl initctl
+          .config/log info 'Ensured that the `initctl` polyfill file is synchronized with the upstream version'
+        fi
+      - |
+        if [ -f .dockerignore ]; then
+          TMP="$(mktemp)"
+          echo '# To keep changes, only add items to end of file' > "$TMP"
+          cat .gitignore >> "$TMP"
+          if [ ! -f .config/dockerignore ]; then
+            curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/common/.config/dockerignore > .config/dockerignore
           fi
-        {{end}}
+          cat .config/dockerignore >> "$TMP"
+          echo '# Saved entries below' >> "$TMP"
+          cat .dockerignore | sed -n '/# Saved entries below/,$p' | sed 's/# Saved entries below//' | awk 'NF' >> "$TMP"
+          mv "$TMP" .dockerignore
+        elif [ '{{.PROJECT_TYPE}}' == 'project' ]; then
+          rm .config/dockerignore
+        fi
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
 
@@ -156,6 +169,7 @@ tasks:
       success: Successfully ensured submodules in the `.modules/` folder are up-to-date
     cmds:
       - |
+        ROOT_DIR="$PWD"
         if ls .modules/*/ > /dev/null 2>&1; then
           for SUBMODULE_PATH in .modules/*/; do
             cd $SUBMODULE_PATH
@@ -164,6 +178,7 @@ tasks:
             git checkout "$DEFAULT_BRANCH"
             git pull origin "$DEFAULT_BRANCH" --ff-only || true
           done
+          cd "$ROOT_DIR"
           .config/log success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
         fi
     status:
@@ -251,7 +266,7 @@ tasks:
     cmds:
       - task: start
       - task: all
-      - task: ':{{if eq .REPOSITORY_TYPE "docker"}}docker:update-labels{{else}}donothing{{end}}'
+      - task: ':{{if eq .REPOSITORY_TYPE "docker"}}docker:update:labels{{else}}donothing{{end}}'
       - task: update:git
 
   update:git:

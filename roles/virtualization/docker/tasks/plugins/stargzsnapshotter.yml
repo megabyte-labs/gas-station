@@ -1,0 +1,95 @@
+---
+- name: Ensure FUSE is installed
+  package:
+    name: fuse
+    state: present
+
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ plugins_src_dir }} directory exists"
+  file:
+    path: "{{ plugins_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Detect the latest stargz-snapshotter version
+  uri:
+    url: https://api.github.com/repos/containerd/stargz-snapshotter/releases/latest
+  register: stargz_latest_release_tag
+
+- name: Determine whether or not the latest version of stargz-snapshotter's AppImage is already installed
+  set_fact:
+    install_stargz: "{{ (ansible_local.stargz is not defined) or \
+      ((ansible_local.stargz is defined) and \
+      (ansible_local['stargz']['settings']['version'] != stargz_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: Fetch CHECKSUMS file of stargz-snapshotter installer
+  uri:
+    url: "https://github.com/containerd/stargz-snapshotter/releases/download/{{ stargz_latest_release_tag.json.tag_name }}/\
+      stargz-snapshotter-{{ stargz_latest_release_tag.json.tag_name }}-linux-amd64.tar.gz.sha256sum"
+    return_content: true
+  register: stargz_checksum_file
+  when: install_stargz
+
+- name: Find the Checksum of stargz-snapshotter installer
+  set_fact:
+    stargz_checksum: "{{ stargz_checksum_file.content | regex_search('.*stargz-snapshotter-v((\\d*.)*\\d*)-linux-amd64.tar.gz') | \
+      regex_replace('  stargz-snapshotter-v((\\d*.)*\\d*)-linux-amd64.tar.gz','') }}"
+  when: install_stargz
+
+- name: Acquire stargz-snapshotter's installer
+  get_url:
+    url: "https://github.com/containerd/stargz-snapshotter/releases/download/{{ stargz_latest_release_tag.json.tag_name }}/\
+      stargz-snapshotter-v{{ stargz_latest_release_tag.json.tag_name }}-linux-amd64.tar.gz"
+    dest: "{{ plugins_src_dir }}/stargz-snapshotter-v{{ stargz_latest_release_tag.json.tag_name }}-linux-amd64.tar.gz"
+    checksum: "sha256:{{ stargz_checksum }}"
+    mode: 0755
+  when: install_stargz
+
+- name: Ensure stargz-snapshotter is installed
+  unarchive:
+    path: "{{ plugins_src_dir }}/stargz-snapshotter-v{{ stargz_latest_release_tag.json.tag_name }}-linux-amd64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+  when: install_stargz
+
+- name: Ensure /etc/containerd-stargz-grpc directory exists
+  file:
+    path: /etc/containerd-stargz-grpc
+    mode: 0755
+    state: directory
+
+- name: Ensure configuration and Service files are copied
+  copy:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    mode: 0644
+  loop:
+    - name: grpc-config.toml
+      dest: /etc/containerd-stargz-grpc/config.toml
+    - name: config.toml
+      dest: /etc/continerd/
+    - name: stargz-snapshotter.service
+      dest: /etc/systemd/system/
+
+- name: Ensure stargz-snapshotter service is enabled and started
+  systemd:
+    name: stargz-snapshotter
+    enabled: true
+    state: started
+  notify: restart containerd
+
+- name: Save meta information about the version of stargz-snapshotter that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/stargz.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ stargz_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_stargz

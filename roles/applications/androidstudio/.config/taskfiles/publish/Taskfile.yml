@@ -21,3 +21,20 @@ tasks:
       - :publish:opera:release
       - :publish:menubar:release
     desc: Publish a production release of all the targets
+
+  semantic-release:
+    deps:
+      - :install:modules:local
+      - :install:npm:semantic-release
+      - :install:software:git
+      - :install:software:poetry
+    env:
+      GITHUB_URL:
+        sh: jq -r '.blueprint.repository.github' package.json
+    log:
+      error: Error while running `semantic-release`
+      start: Releasing with `semantic-release`..
+      success: Finished running `semantic-release`
+    cmds:
+      - git pull origin master
+      - semantic-release -r "$(git remote get-url origin)"{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}

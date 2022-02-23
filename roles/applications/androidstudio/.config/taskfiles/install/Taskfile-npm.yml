@@ -102,13 +102,12 @@ tasks:
     vars:
       PACKAGE_BIN: '{{if index . "NPM_PACKAGE_BIN"}}{{.NPM_PACKAGE_BIN}}{{else}}{{.NPM_PACKAGE}}{{end}}'
     run: when_changed
+    log:
+      error: Failed to install NPM package `{{.NPM_PACKAGE}}` globally
+      start: Installing NPM package `{{.NPM_PACKAGE}}` globally
+      success: Installed NPM package `{{.NPM_PACKAGE}}` globally
     cmds:
-      - |
-        if ! type {{.PACKAGE_BIN}} > /dev/null; then
-          .config/log info 'Installing _NPM CLI_ package `{{.NPM_PACKAGE}}` globally'
-          {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}
-          .config/log success 'Successfully installed `{{.NPM_PACKAGE}}` globally'
-        fi
+      - '{{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}'
     status:
       - type {{.PACKAGE_BIN}} > /dev/null
 
@@ -125,27 +124,24 @@ tasks:
             echo 'false'
           fi
     run: once
+    log:
+      error: Error installing `{{.NPM_PACKAGE}}` globally
+      start: Installing NPM global library `{{.NPM_PACKAGE}}` which does not have a CLI
+      success: '`{{.NPM_PACKAGE}}` has been installed globally'
     cmds:
-      - |
-        if [[ "$PACKAGE_EXISTS" == 'false' ]]; then
-          .config/log info "Installing _NPM library_ package `{{.NPM_PACKAGE}}` globally"
-          {{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}
-          .config/log success 'Successfully installed `{{.NPM_PACKAGE}}` globally'
-        fi
+      - '{{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}'
     status:
       - '[[ "$PACKAGE_EXISTS" == "true" ]]'
 
   global:package-manager:
-    deps:
-      - :install:software:node
     run: once
+    log:
+      error: Failed to install `{{.NPM_PROGRAM}}`
+      start: Installing `{{.NPM_PROGRAM}}`
+      success: Successfully installed `{{.NPM_PROGRAM}}`
     cmds:
-      - |
-        if ! type {{.NPM_PROGRAM}} > /dev/null; then
-          .config/log info 'Installing `{{.NPM_PROGRAM}}'
-          npm install -g {{.NPM_PROGRAM}}
-          .config/log success 'Successfully installed `{{.NPM_PROGRAM}}`'
-        fi
+      - task: :install:software:node
+      - npm install -g {{.NPM_PROGRAM}}
     status:
       - type {{.NPM_PROGRAM}} > /dev/null
 
@@ -280,9 +276,20 @@ tasks:
       - task: global
         vars:
           NPM_PACKAGE: pnpm
-      - if [ -f package-lock.json ] || [ -f yarn.lock ] || [ -f npm-shrinkwrap.json ]; then pnpm import; fi
+      - task: pnpm:import
     status:
       - type pnpm &> /dev/null
+
+  pnpm:import:
+    run: once
+    log:
+      error: Error running `pnpm import`
+      start: Running `pnpm import`
+      success: '`pnpm import` finished successfully!'
+    cmds:
+      - pnpm import
+    status:
+      - '[ ! -f package-lock.json ] && [ ! -f yarn.lock ] && [ ! -f npm-shrinkwrap.json ]'
 
   prettier:
     run: once

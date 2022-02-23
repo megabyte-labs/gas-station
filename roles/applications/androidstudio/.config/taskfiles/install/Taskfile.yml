@@ -19,14 +19,12 @@ tasks:
   install-doctor:
     log:
       error: Error encountered while installing {{.SOFTWARE}} via https://install.doctor
-      start: Ensuring {{.SOFTWARE}} is installed
+      start: Ensuring {{.SOFTWARE}} is installed using Install Doctor
+      success: Successfully installed `{{.SOFTWARE}}` via Install Doctor
     cmds:
       - |
-        if ! type {{.SOFTWARE}} &> /dev/null; then
-          .config/log info 'Installing `{{.SOFTWARE}}` by running `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
-          curl -sS https://install.doctor/{{.SOFTWARE}} | bash
-          .config/log success 'Successfully installed `{{.SOFTWARE}}`'
-        fi
+        .config/log info 'Installing `{{.SOFTWARE}}` by running `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
+        curl -sS https://install.doctor/{{.SOFTWARE}} | bash
     status:
       - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
 
@@ -35,6 +33,10 @@ tasks:
       - :install:npm:{{.NPM_PROGRAM}}
       - :install:software:yq
     run: once
+    log:
+      error: Error pre-loading NPM global packages
+      start: Pre-loading NPM global packages
+      success: Finished pre-loading NPM global packages
     cmds:
       - |
         PKGS="$(yq eval '.tasks[].cmds[0].vars.NPM_PACKAGE' .config/taskfiles/install/Taskfile-npm.yml | tr '\n' ' ')"
@@ -47,7 +49,6 @@ tasks:
           .config/log info "Installing the following NPM packages globally - $LIST"
           npm install -g $LIST
         fi
-        .config/log success 'Finished preloading global NPM packages'
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
@@ -56,16 +57,22 @@ tasks:
       - :install:npm:{{.NPM_PROGRAM_LOCAL}}
       - :install:npm:cz-emoji
     run: once
+    log:
+      error: Encountered error while installing local NPM dependencies
+      start: Installing local NPM dependencies
+      success: Successfully installed local NPM dependencies
     cmds:
-      - .config/log info 'Installing local NPM dependencies'
       - cmd: '{{.NPM_PROGRAM_LOCAL}} i --shamefully-hoist --no-frozen-lockfile'
         ignore_error: true
       - task: modules:local:sync
-      - .config/log success 'Successfully installed local NPM dependencies'
     sources:
       - package.json
 
   modules:local:sync:
+    log:
+      error: Error while synchronizing `NPM_KEEP_UPDATED` packages with the latest version(s)
+      start: Ensuring `NPM_KEEP_UPDATED` NPM packages are the latest version
+      success: '`NPM_KEEP_UPDATED` packages are all the latest version'
     cmds:
       - |
         TMP_REFRESH="$(mktemp)"
@@ -117,6 +124,9 @@ tasks:
     vars:
       UNAME:
         sh: uname
+    log:
+      error: Failed to modify PATH
+      start: Adding `$HOME/{{.PATH_STRING}}` to the PATH in $HOME/.profile
     cmds:
       - |
         if [[ '{{.UNAME}}' == 'Darwin' ]] || [[ '{{.UNAME}}' == 'Linux' ]]; then
@@ -131,7 +141,7 @@ tasks:
         elif [[ "$OSTYPE" == 'freebsd'* ]]; then
           .config/log error "FreeBSD support not added yet" && exit 1
         else
-          .config/log error "System type not recognized"
+          .config/log error "System type not recognized ($OSTYPE)"
         fi
 
   pipx:global:
@@ -142,6 +152,10 @@ tasks:
       PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
         mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
         proselint python-vagrant pywinrm
+    log:
+      error: Error encountered while pre-loading common pipx packages
+      start: Pre-loading common pipx packages
+      success: Finished pre-loading common pipx packages
     cmds:
       - |
         for PKG in {{.PIPX_PACKAGES}}; do
@@ -153,9 +167,12 @@ tasks:
           fi
         done
         wait
-        .config/log success 'Successfully preloaded commonly used Python packages'
 
   profile:add:
+    log:
+      error: Error modifying $HOME/.profile
+      start: Adding `{{.PROFILE_STRING}}` to $HOME/.profile
+      success: Successfully modified $HOME/.profile
     cmds:
       - |
         if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
@@ -179,21 +196,21 @@ tasks:
         in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
         install tslib.
     run: once
+    log:
+      error: Failed to probe `tslib`
+      start: Checking if `tslib` is being used
     cmds:
       - |
-        if [ -f 'tsconfig.json' ]; then
-          if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
-            if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
-              .config/log info '{{.TSLIB_MSG}}'
-            else
-              .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
-              {{.NPM_PROGRAM}} install --save tslib@latest
-              .config/log success 'Successfully installed `tslib`'
-            fi
+        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
+          if [ "$(jq -r '.compilerOptions.importHelpers')" != 'true' ]; then
+            .config/log info '{{.TSLIB_MSG}}'
           else
-            task install:modules:local:sync -- "tslib"
+            .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
+            {{.NPM_PROGRAM}} install --save tslib@latest
+            .config/log success 'Successfully installed `tslib`'
           fi
+        else
+          task install:modules:local:sync -- "tslib"
         fi
-    sources:
-      - package.json
-      - tsconfig.json
+    status:
+      - '[ ! -f tsconfig.json ]'

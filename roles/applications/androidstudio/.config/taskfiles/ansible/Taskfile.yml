@@ -97,6 +97,10 @@ tasks:
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
+  init:
+    cmds:
+      - ansible-galaxy init --role-skeleton=/path/to/skeleton role_name
+
   keywords:sync:
     deps:
       - :install:npm:prettier
@@ -204,6 +208,20 @@ tasks:
         TMP="$(mktemp)"
         jq --arg vars "$ROLE_VARIABLES" '.role_variables = ($vars | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
+
+  prepare:
+    log:
+      error: Failed to ensure GitLab and GitHub are in sync
+      start: Preparing for Ansible Galaxy upload
+      success: GitLab and GitHub are in sync
+    cmds:
+      - task: :git:remotes
+      - git pull origin master
+      - git push github master
+
+  publish:
+    cmds:
+      - task: galaxy:import
 
   quickstart:
     deps:
@@ -329,3 +347,11 @@ tasks:
             exit 1
           fi
         }
+
+  verify:
+    log:
+      error: Failed to connect to Ansible Galaxy with provided token
+      start: Verifying connection can be made to Ansible Galaxy
+      success: Successfully connected to Ansible Galaxy
+    cmds:
+      - ansible-galaxy role setup --token "$ANSIBLE_GALAXY_TOKEN" null null null null --list > /dev/null

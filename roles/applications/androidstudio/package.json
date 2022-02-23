@@ -16,27 +16,33 @@
   },
   "type": "module",
   "scripts": {
-    "help": "task --list",
+    "build": "task ansible:build:none",
+    "bump": "npm run build && npm version patch --no-commit-hooks --no-git-tag-version --force && npm publish",
+    "help": "task --menu",
     "info": "task --list",
-    "prepare": "task common:husky",
+    "prepare": "npm run start && (test -f Taskfile.yml && task common:husky) || true",
     "repair": "bash <(curl -sS https://install.doctor/repair)",
-    "start": "bash .config/start.sh",
-    "test": "cd share && git pull origin master && cd .. && cp -rT share/common/.config/taskfiles .config/taskfiles && task start"
+    "start": "bash start.sh",
+    "test": "[[ $- == *i* ]] && task ansible:test:prompt || task ansible:test:default"
   },
   "config": {
     "commitizen": {
-      "path": "node_modules/cz-emoji-conventional"
+      "path": "node_modules/git-cz-emoji"
     }
   },
   "dependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
-    "@washingtondc/development": "^1.0.2",
-    "@washingtondc/prettier": "^1.0.0",
-    "@washingtondc/release": "^0.0.2",
-    "eslint-config-strict-mode": "^1.0.0",
-    "semantic-release-config": "^0.0.2",
-    "sleekfast": "^0.0.1"
+    "@commitlint/config-conventional": "^16.0.0",
+    "@washingtondc/development": "latest",
+    "cz-emoji-conventional": "^1.0.1",
+    "eslint-config-strict-mode": "latest",
+    "git-cz-emoji": "latest",
+    "glob": "^7.2.0",
+    "handlebars-helpers": "^0.10.0",
+    "prettier-config-sexy-mode": "latest",
+    "semantic-release-config": "latest",
+    "typescript": "^4.5.5"
   },
   "keywords": [
     "adb",
@@ -78,17 +84,18 @@
     "node": ">=14.18.0"
   },
   "publishConfig": {
+    "@megabyte:registry": "https://gitlab.com/api/v4/projects/24464026/packages/npm/",
     "access": "public"
   },
   "blueprint": {
     "ansible_galaxy_project_id": "56329",
     "description": "Installs Android Studio and sets up Android SDKs on nearly any OS",
     "github_id": "MDEwOlJlcG9zaXRvcnk0MDczNDE1MDk=",
-    "gitlab_group_id": "",
+    "gitlab_group_id": "12261670",
     "gitlab_project_id": "24464026",
     "group": "ansible",
     "name": "Android Studio",
-    "overview": "[Android Studio](https://developer.android.com/studio) is the official integrated development environment for Google's Android operating system, built on JetBrains' IntelliJ IDEA software and designed specifically for Android development. This role installs Android Studio on nearly any operating system and also ensures a configurable list of command-line tools and SDKs are installed and seamlessly integrated with the system (i.e. the role adds items to the `PATH`).",
+    "overview": "[Android Studio](https://developer.android.com/studio) is the official integrated development environment for Google's Android operating system, built on JetBrains' IntelliJ IDEA software and designed specifically for Android development. This role installs Android Studio on nearly any operating system and also ensures a configurable list of command-line tools and SDKs are installed and seamlessly integrated with the system (i.e. the role adds the appropriate items to the `PATH` environment variable).",
     "repository": {
       "github": "https://github.com/ProfessorManhattan/ansible-androidstudio",
       "gitlab": "https://gitlab.com/megabyte-labs/ansible-roles/androidstudio"
@@ -96,6 +103,16 @@
     "slug": "androidstudio",
     "subgroup": "role",
     "title": "Android Studio - An IDE for Android Development"
+  },
+  "changelog": {
+    "displayTypes": [
+      "feat",
+      "fix",
+      "perf",
+      "refactor",
+      "revert"
+    ],
+    "showAuthor": true
   },
   "commitlint": {
     "extends": [
@@ -122,42 +139,64 @@
     }
   ],
   "lint-staged": {
+    "(Brewfile|composer.lock|Gemfile|Gopkg.lock|Pipfile.lock)": [
+      "task fix:prettier --"
+    ],
     "**/!(logo).(jpg|png)": [
       "task image:compress --"
     ],
     "**/*": [
       "task lint:any --"
     ],
-    "**/*.(css|html|less|md|mjml|php|scss|sh|xml)": [
+    "**/*.(bash|cfg|cgi|command|css|env|env.*|handlebars|hbs|html|less|fcgi|java|md|mdx|mjml|php|phtml|properties|reg|scss|tmpl|tmux|tool|tpl|zsh)": [
       "task fix:prettier --"
     ],
-    "**/*.(js|jsx|ts|tsx)": [
+    "**/*.(cjs|js|jsx|mjs|ts|tsx)": [
       "task fix:js --",
       "task lint:js --"
     ],
-    "**/*.json": [
+    "**/*.(json|webapp|webmanifest)": [
       "task fix:json --"
+    ],
+    "**/*.(yml|yaml)": [
+      "task fix:yaml --",
+      "task lint:yaml --"
+    ],
+    "**/*.go": [
+      "task fix:go --",
+      "task lint:go --"
+    ],
+    "**/*.php": [
+      "task fix:php --",
+      "task lint:php --"
     ],
     "**/*.py": [
       "task fix:python --",
       "task lint:python --"
     ],
     "**/*.sh": [
+      "task fix:prettier --",
+      "task fix:shell --",
       "task lint:shell --"
     ],
     "**/*.toml": [
+      "task fix:prettier --",
       "task lint:toml --"
     ],
     "**/*.xml": [
       "task fix:xml --",
       "task lint:xml --"
     ],
-    "**/*.yml": [
-      "task fix:yaml --",
-      "task lint:yaml --"
-    ],
     "**/*vault.yml": [
       "task ansible:vault:lint:file --"
+    ],
+    "Dockerfile": [
+      "task fix:prettier --",
+      "task lint:docker --"
+    ],
+    "Vagrantfile": [
+      "task fix:prettier --",
+      "task lint:vagrant"
     ],
     "logo.png": [
       "task image:resize -- 200 200",
@@ -166,13 +205,36 @@
   },
   "ntl": {
     "descriptions": {
-      "help": "Display a list of tasks that can be run via the Taskfile.yml",
-      "prepare": "Hook, triggered by running npm install, that runs logic such as installing pre-commit hooks",
+      "build": "Builds the project using the build command specified under scripts in package.json",
+      "bump": "Used to quickly build, increase the package.json version, and publish the package",
+      "help": "Display the Bodega Taskfile.yml interactive help menu",
+      "prepare": "A hook triggered by running npm install that runs logic such as installing pre-commit hooks",
       "repair": "Fixes basic issues in projects that are having trouble running basic commands like 'task start'",
-      "start": "Entrypoint for new developers that installs requirements and then runs 'task start'"
+      "start": "Entrypoint for new developers that installs requirements and then runs 'task start'",
+      "test": "Runs the appropriate test logic by running the test command defined under scripts in package.json"
     }
   },
-  "prettier": "@washingtondc/prettier",
+  "pnpm": {
+    "allowedVersions": {
+      "@typescript-eslint/eslint-plugin": "5",
+      "eslint": "8",
+      "typescript": "4"
+    },
+    "neverBuiltDependencies": [
+      "core-js",
+      "core-js-pure",
+      "highlight.js"
+    ],
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "@typescript-eslint/eslint-plugin",
+        "eslint",
+        "prettier",
+        "typescript"
+      ]
+    }
+  },
+  "prettier": "prettier-config-sexy-mode",
   "release": {
     "branches": [
       "main",

@@ -33,10 +33,24 @@ tasks:
         jq -s -S '.[0] + .[1]' '{{.VARIABLES_PATH}}' .cache/compatibility-chart.json > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
 
+  compatibility-chart:ansifilter:
+    deps:
+      - :install:software:ansifilter
+    cmds:
+      - |
+        for LOG in {{.MOLECULE_RESULTS_PATH}}; do
+          if [ "$LOG" != '{{.MOLECULE_RESULTS_PATH}}' ]; then
+            TMP="$(mktemp)" && cat "$LOG" | ansifilter > "$TMP" && mv "$TMP" "$LOG"
+          fi
+        done
+    sources:
+      - '{{.MOLECULE_RESULTS_PATH}}/*'
+
   compatibility-chart:generate:
     deps:
       - :install:python:requirements
     cmds:
+      - task: compatibility-chart:ansifilter
       - >
         {{.PYTHON_HANDLE}}ansibler --generate-compatibility-chart --molecule-results-dir '{{.MOLECULE_RESULTS_PATH}}'
         --json-file .cache/compatibility-chart.json

@@ -305,6 +305,35 @@ tasks:
             -print0 | xargs -0 {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff | git apply
         {{end}}
 
+  toml:
+    deps:
+      - :install:python:requirements
+    desc: Format `.toml` files by alphabetizing and flattening
+    summary: |
+      # Automatically format `.toml` files
+
+      [toml-sort](https://pypi.org/project/toml-sort/) will automatically alphabetize and flatten
+      `.toml` files.
+
+      **Example running on whole project:**
+      `task fix:toml`
+
+      **Example usage on specific file:**
+      `task fix:toml -- pyproject.toml`
+    log:
+      error: Encountered an error while running `toml-sort`
+      start: Running `toml-sort` auto-fixer
+      success: Successfully ran the `toml-sort` auto-fixer
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          {{.PYTHON_HANDLE}}toml-sort -i --all {{.CLI_ARGS}}
+        {{else}}
+          while read PATHH; do
+            {{.PYTHON_HANDLE}}toml-sort -i --all "$PATHH"
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.toml' \))
+        {{end}}
+
   xml:
     deps:
       - :install:npm:eslint

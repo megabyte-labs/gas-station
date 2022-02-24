@@ -1,0 +1,27 @@
+---
+update:common:
+  stage: update
+  image: $UPDATER_IMAGE
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: ($CI_PIPELINE_SOURCE == 'pipeline' || $CI_PIPELINE_SOURCE == 'web') && $CI_COMMIT_REF_NAME == 'synchronize'
+  variables:
+    GIT_DEPTH: 1
+    GIT_SUBMODULE_STRATEGY: recursive
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .npm/
+      - .pnpm-store/
+      - .venv/
+  before_script:
+    - if [ "${UPDATER_IMAGE:0:20}" != 'megabytelabs/updater' ]; then bash .config/scripts/start.sh; fi
+    - if [ -n "$UPDATE_INIT_SCRIPT" ]; then curl -s "$UPDATE_INIT_SCRIPT" | bash; fi
+    - task ci:before
+  script:
+    - task start
+    - if [ "$REPOSITORY_UPDATE" == 'true' ]; then task services; fi
+    - task ci:commit
+    - task ci:synchronize

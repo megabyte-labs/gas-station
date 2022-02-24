@@ -10,6 +10,8 @@ vars:
 
 tasks:
   all:after:
+    deps:
+      - :install:software:jq
     cmds:
       - |
         if [ "$(jq -r '.blueprint.overview' package.json)" == 'null' ]; then
@@ -34,33 +36,8 @@ tasks:
           .config/log error 'The `package.json` file must exist. See `https://gitlab.com/megabyte-labs/ansible-roles/androidstudio` for an example of one.'
           exit 1
         fi
-      - |
-        GROUP="$(jq -r '.blueprint.group' package.json)"
-        SUBGROUP="$(jq -r '.blueprint.subgroup' package.json)"
-        TASK_GROUP="{{.REPOSITORY_TYPE}}"
-        TASK_SUBGROUP="{{.REPOSITORY_SUBTYPE}}"
-        if ([ "$GROUP" != 'null' ] && [ "$TASK_GROUP" != 'null' ] && [ "$GROUP" != "$TASK_GROUP" ]) || \
-        ([ "$GROUP" == 'null' ] && [ "$TASK_GROUP" != 'null' ]); then
-          .config/log info 'Setting `blueprint.group` in `package.json` equal to `vars.REPOSITORY_TYPE` from `Taskfile.yml`'
-          TMP="$(mktemp)" && jq --arg group "$TASK_GROUP" '.blueprint.group = $group' package.json > "$TMP" && mv "$TMP" package.json
-        elif [ "$GROUP" != 'null' ] && [ "$TASK_GROUP" == 'null' ]; then
-          .config/log info 'Setting `vars.REPOSITORY_TYPE` equal to value in `blueprint.group` in `package.json`'
-          yq e -i '.vars.REPOSITORY_TYPE = env(GROUP)' Taskfile.yml
-        elif [ "$GROUP" == 'null' ] && [ "$TASK_GROUP" == 'null' ]; then
-          .config/log error 'Either `blueprint.group` in `package.json` or `vars.REPOSITORY_TYPE` in `Taskfile.yml` must be defined'
-          exit 1
-        fi
-        if ([ "$SUBGROUP" != 'null' ] && [ "$TASK_SUBGROUP" != 'null' ] && [ "$SUBGROUP" != "$TASK_SUBGROUP" ]) || \
-        ([ "$SUBGROUP" == 'null' ] && [ "$TASK_SUBGROUP" != 'null' ]); then
-          .config/log info 'Setting `blueprint.subgroup` in `package.json` equal to `vars.REPOSITORY_SUBTYPE` from `Taskfile.yml`'
-          TMP="$(mktemp)" && jq --arg group "$TASK_SUBGROUP" '.blueprint.subgroup = $group' package.json > "$TMP" && mv "$TMP" package.json
-        elif [ "$SUBGROUP" != 'null' ] && [ "$TASK_SUBGROUP" == 'null' ]; then
-          .config/log info 'Setting `vars.REPOSITORY_SUBTYPE` equal to value in `blueprint.subgroup` in `package.json`'
-          yq e -i '.vars.REPOSITORY_SUBTYPE = env(SUBGROUP)' Taskfile.yml
-        elif [ "$SUBGROUP" == 'null' ] && [ "$TASK_SUBGROUP" == 'null' ]; then
-          .config/log error 'Either `blueprint.subgroup` in `package.json` or `vars.REPOSITORY_SUBTYPE` in `Taskfile.yml` must be defined'
-          exit 1
-        fi
+      - task: group
+      - task: subgroup
 
   angular: 'true'
 
@@ -73,6 +50,9 @@ tasks:
   ansible:playbook: 'true'
 
   ansible:role:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
     cmds:
       - |
         if [ ! -f meta/main.yml ]; then
@@ -128,8 +108,17 @@ tasks:
           yq e -i '.galaxy_info.issue_tracker_url = env(ISSUE_TRACKER)' meta/main.yml
         fi
       - |
-        if [ "$(yq e '.galaxy_info.description' meta/main.yml)" == 'null' ]; then
-          BP_DESC="$($(jq -r '.blueprint.description' package.json)"
+        NAME="$(jq -r '.blueprint.name' package.json)"
+        if [ "$NAME" != 'null' ]; then
+          if [ "$(jq -r '.blueprint.title' package.json)" == 'null' ]; then
+            .config/log info 'Populating the `blueprint.title` in package.json using the `blueprint.name` value'
+            TMP="$(mktemp)" && jq --arg title "$NAME Ansible Role" '.blueprint.title = $title' package.json > "$TMP" && mv "$TMP" package.json
+          fi
+        fi
+      - |
+        DESC="$(yq e '.galaxy_info.description' meta/main.yml)"
+        if [ "$DESC" == 'null' ]; then
+          BP_DESC="$(jq -r '.blueprint.description' package.json)"
           if [ "$BP_DESC" == 'null' ]; then
             .config/log error 'The `description` in `meta/main.yml` is missing. It must be present.'
             .config/log info 'For an example `meta/main.yml` file see `https://gitlab.com/megabyte-labs/ansible-roles/androidstudio`.'
@@ -138,14 +127,60 @@ tasks:
             yq e -i '.galaxy_info.description = env(BP_DESC)' meta/main.yml
             .config/log info '`meta/main.yml` description populated using value from `package.json` `blueprint.description`'
           fi
+        else
+          if [ "$(jq -r '.blueprint.description' package.json)" == 'null' ]; then
+            TMP="$(mktemp)" && jq --arg desc "$DESC" '.blueprint.description = $desc' package.json > "$TMP" && mv "$TMP" package.json
+          fi
         fi
+
+  common: 'true'
 
   docker: 'true'
 
+  documentation: 'true'
+
   go: 'true'
+
+  group:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
+    cmds:
+      - |
+        GROUP="$(jq -r '.blueprint.group' package.json)"
+        SUBGROUP="$(jq -r '.blueprint.subgroup' package.json)"
+        TASK_GROUP="{{.REPOSITORY_TYPE}}"
+        TASK_SUBGROUP="{{.REPOSITORY_SUBTYPE}}"
+        if ([ "$GROUP" != 'null' ] && [ "$TASK_GROUP" != 'null' ] && [ "$GROUP" != "$TASK_GROUP" ]) || \
+        ([ "$GROUP" == 'null' ] && [ "$TASK_GROUP" != 'null' ]); then
+          .config/log info 'Setting `blueprint.group` in `package.json` equal to `vars.REPOSITORY_TYPE` from `Taskfile.yml`'
+          TMP="$(mktemp)" && jq --arg group "$TASK_GROUP" '.blueprint.group = $group' package.json > "$TMP" && mv "$TMP" package.json
+        elif [ "$GROUP" != 'null' ] && [ "$TASK_GROUP" == 'null' ]; then
+          .config/log info 'Setting `vars.REPOSITORY_TYPE` equal to value in `blueprint.group` in `package.json`'
+          yq e -i '.vars.REPOSITORY_TYPE = env(GROUP)' Taskfile.yml
+        elif [ "$GROUP" == 'null' ] && [ "$TASK_GROUP" == 'null' ]; then
+          .config/log error 'Either `blueprint.group` in `package.json` or `vars.REPOSITORY_TYPE` in `Taskfile.yml` must be defined'
+        fi
 
   npm: 'true'
 
   packer: 'true'
 
   python: 'true'
+
+  subgroup:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
+    cmds:
+      - |
+        if ([ "$SUBGROUP" != 'null' ] && [ "$TASK_SUBGROUP" != 'null' ] && [ "$SUBGROUP" != "$TASK_SUBGROUP" ]) || \
+        ([ "$SUBGROUP" == 'null' ] && [ "$TASK_SUBGROUP" != 'null' ]); then
+          .config/log info 'Setting `blueprint.subgroup` in `package.json` equal to `vars.REPOSITORY_SUBTYPE` from `Taskfile.yml`'
+          TMP="$(mktemp)" && jq --arg group "$TASK_SUBGROUP" '.blueprint.subgroup = $group' package.json > "$TMP" && mv "$TMP" package.json
+        elif [ "$SUBGROUP" != 'null' ] && [ "$TASK_SUBGROUP" == 'null' ]; then
+          .config/log info 'Setting `vars.REPOSITORY_SUBTYPE` equal to value in `blueprint.subgroup` in `package.json`'
+          yq e -i '.vars.REPOSITORY_SUBTYPE = env(SUBGROUP)' Taskfile.yml
+        elif [ "$SUBGROUP" == 'null' ] && [ "$TASK_SUBGROUP" == 'null' ]; then
+          .config/log error 'Either `blueprint.subgroup` in `package.json` or `vars.REPOSITORY_SUBTYPE` in `Taskfile.yml` must be defined'
+        fi

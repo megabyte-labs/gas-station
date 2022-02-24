@@ -242,7 +242,12 @@ tasks:
     log:
       start: Running Prettier on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
     cmds:
-      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+          .config/log warn 'Failed to run `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
+          prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+        fi
 
   python:
     deps:

@@ -91,7 +91,11 @@ if [ "$EUID" -eq 0 ] && [ -z "$INIT_CWD" ] && type useradd &> /dev/null; then
   # shellcheck disable=SC2016
   logger info 'Running as root - creating seperate user named `megabyte` to run script with'
   echo "megabyte ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-  useradd -m -s "$(which bash)" -c "Megabyte Labs Homebrew Account" megabyte
+  useradd -m -s "$(which bash)" -c "Megabyte Labs Homebrew Account" megabyte > /dev/null || EXIT_CODE=$?
+  if [ -n "$EXIT_CODE" ]; then
+    # shellcheck disable=SC2016
+    logger info 'User `megabyte` already exists'
+  fi
   ensureRootPackageInstalled "sudo"
   # shellcheck disable=SC2016
   logger info 'Reloading the script with the `megabyte` user'

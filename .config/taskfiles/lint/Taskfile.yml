@@ -388,7 +388,12 @@ tasks:
       start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with Prettier
       success: Prettier successfully finished
     cmds:
-      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+          .config/log warn 'Failed to lint with `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
+          prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+        fi
 
   python:
     deps:

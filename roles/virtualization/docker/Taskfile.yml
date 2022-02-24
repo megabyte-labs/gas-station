@@ -117,6 +117,12 @@ vars:
   TIMEZONE: America/New_York
 
 env:
+  OSTYPE:
+    sh: |
+      {{if (eq OS "linux")}}LINUX_FLAVOR='linux-gnu'
+      LIBC=$(ldd /bin/ls | grep 'musl' | head -1 | cut -d ' ' -f1)
+      if [ -n "$LIBC" ]; then LINUX_FLAVOR='linux-musl'; fi{{end}}
+      echo "{{if (eq OS "linux")}}$LINUX_FLAVOR{{else}}darwin{{end}}"
   SENTRY_DSN: ''
 
 profile: |
@@ -366,8 +372,6 @@ tasks:
       - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
 
   preload:
-    deps:
-      - install:brewfile
     desc: Set up your workstation in advance by installing commonly used programs
     summary: |
       # Speed Up Future Development by Preloading Common System Applications
@@ -400,8 +404,13 @@ tasks:
       success: Successfully preloaded system with common dependencies (REBOOT RECOMMENDED)
     cmds:
       - task: install:brewfile
-      - task: install:modules:global
-      - task: install:pipx:global
+      - task: install:go:bundle
+      - task: install:rust:bundle
+      - task: install:github:bundle
+      - task: install:npm:bundle
+      - task: install:pipx:bundle
+      - task: install:python:requirements
+      - task: install:modules:local
 
   prepare:
     desc: Prepares the project for the normal start command
@@ -419,6 +428,54 @@ tasks:
     cmds:
       - task: boilerplate:check:package
       - task: boilerplate:clean
+
+  publish:
+    desc: Publish a semantic release via `semantic-release`
+    summary: |
+      # Publish the Project
+
+      Using this task, you can publish a project to all its targets. The targets
+      depend on the project type. Most projects will include:
+
+      1. Updating version numbers in `package.json`, `pyproject.toml`, etc.
+      2. Adding a new git tag at the version and publishing it with updated assets
+      3. Publishing repository-specific items like NPM packages, PyPi packages, etc.
+      4. Publishing artifacts to GitLab Releases and GitHub Releases
+      5. Updating the `docs/CHANGELOG.md`
+
+      ## Packages Used
+
+      This task runs `semantic-release` using the `semantic-release-config` package. The package
+      includes release instructions for:
+
+      1. Python packages
+      2. NPM packages
+      3. Dockerfile projects
+      4. Go projects
+      5. Ansible roles
+
+      ## Formats
+
+      It does its best to ship projects out in as many formats (that make sense) as possible.
+      For instance, an NPM CLI gets published as:
+
+      1. NPM package
+      2. Binaries (including deb and rpm) available on GitHub/GitLab releases
+      3. Brew formulae
+      4. Snapcraft
+      5. Probably more implemented after writing this
+
+      ## Python Package Notes
+
+      If `setup.cfg` is present, then the project is assumed to be a legacy Python
+      project that needs to run in environment with access to the `python-semantic`
+      extras defined in `pyproject.toml`.
+    log:
+      error: Error forcing a Semantic release via `task publish`
+      start: Manually forcing a Semantic release via `task publish`
+      success: Successfully released the next version via `task publish`
+    cmds:
+      - task: publish:semantic-release
 
   reset:
     desc: Resets the project by removing all caches and then re-generating templated files

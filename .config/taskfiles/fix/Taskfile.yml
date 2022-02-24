@@ -23,6 +23,7 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:eslint
+      - :install:software:expect
     desc: Fix JavaScript/TypeScript errors automatically
     hide: '{{not (has .REPOSITORY_TYPE (list "angular" "npm"))}}'
     summary: |
@@ -42,8 +43,23 @@ tasks:
       start: Auto-fixing with ESLint
       success: ESLint fixing appears to have corrected all the issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache --cache-location .cache/eslintcache
-        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - 'unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache
+        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log'
+      - |
+        if [ '{{.ESLINT_FIX_RECURSIVE}}' == 'true' ]; then
+          COUNT=0
+          while [ $COUNT -le 5 ]; do
+            COUNT=$((COUNT + 1))
+            if grep 'potentially fixable with the `--fix` option' < eslint.log > /dev/null; then
+              COUNT="$COUNT"
+              unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache \
+              --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log
+            else
+              echo '' > eslint.log
+            fi
+          done
+        fi
+      - rm eslint.log
 
   go:
     desc: Fix Go with all available Go fixers

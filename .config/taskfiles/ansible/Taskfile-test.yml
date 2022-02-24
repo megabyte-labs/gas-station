@@ -32,7 +32,7 @@ tasks:
     deps:
       - :install:software:ansifilter
     cmds:
-      - TMP="$(mktemp)" && cat {{.FILE}} | ansifilter > "$TMP" && mv "$TMP" {{.FILE}}
+      - TMP="$(mktemp)" && cat {{.RESULTS_FILE}} | ansifilter > "$TMP" && mv "$TMP" {{.RESULTS_FILE}}
     status:
       - '[ -n "$CI" ]'
 
@@ -127,7 +127,7 @@ tasks:
         {{.PYTHON_MOLECULE_HANDLE}} ansible-playbook -i inventory{{.SUDO_PASS_PARAM}} test/{{OS}}/test.yml 2>&1 | tee debug.log || EXIT_CODE=$?
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   local:test:playbook:
     vars:
@@ -228,7 +228,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   molecule:docker:matrix:
     deps:
@@ -256,7 +256,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt'
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt'
 
   molecule:docker:prompt:
     vars:
@@ -317,7 +317,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   molecule:gcp:matrix:
     deps:
@@ -343,7 +343,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt'
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt'
       - |
         RESULTS="{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt"
         PLATFORM_LENGTH="$(yq e '.platforms | length' molecule/gcp/molecule.yml)"
@@ -445,7 +445,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
 
   molecule:ssh:
     desc: Runs a Molecule test over SSH
@@ -476,7 +476,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   molecule:ssh:prompt:
     vars:
@@ -596,7 +596,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   molecule:virtualbox:converge:
     desc: Provisions a desktop VirtualBox VM and then runs a Molecule test
@@ -644,7 +644,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   molecule:virtualbox:converge:prompt:
     vars:
@@ -709,7 +709,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
 
   # yamllint enable rule:truthy
   molecule:virtualbox:prompt:
@@ -756,16 +756,18 @@ tasks:
         msg: The `molecule/default/molecule.yml` file must be present and in the proper format
 
   post:molecule:log:
-    deps:
-      - ansifilter
     cmds:
+      - task: ansifilter
+        vars:
+          RESULTS_FILE: '{{.RESULTS_FILE}}'
       - task: :ci:commit:config
       - git pull --ff-only origin master
-      - git add '{{.FILE}}'
-      - git commit -m "📝 docs(test results): new Molecule test results added"
+      - git add '{{.RESULTS_FILE}}'
+      - |
+        HUSKY=0 git commit -m "📝 docs(test results): new molecule test results added [ci skip]" -n
       - git push origin master
     status:
-      - '[ "{{.FILE}}" == "debug.log" ] || [ -z "$GITLAB_CI ]'
+      - '[ "{{.RESULTS_FILE}}" == "debug.log" ]'
 
   prompt:
     vars:
@@ -917,7 +919,7 @@ tasks:
         fi
       - task: post:molecule:log
         vars:
-          FILE: debug.log
+          RESULTS_FILE: debug.log
 
   vagrant:prompt:
     vars:

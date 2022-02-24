@@ -1,7 +1,43 @@
 ---
+# @var docker_apt_arch: amd64
+# The processor architecture to use (Debian/Ubuntu only)
+docker_apt_arch: amd64
+
+# @var docker_apt_gpg_key: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+# The URL of the apt repository's GPG key (Debian/Ubuntu only)
+docker_apt_gpg_key: 'https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg'
+
+# @var docker_apt_ignore_key_error: true
+# Whether or not to ignore errors when adding the apt repository's GPG key (Debian/Ubuntu only)
+docker_apt_ignore_key_error: true
+
+# @var docker_apt_release_channel: stable
+# The release channel to use on Debian/Ubuntu. You can set the value of this variable to either `stable` or `edge`.
+docker_apt_release_channel: stable
+
+# @var docker_apt_repository: See defaults/main.yml
+# The apt repository to use (Debian/Ubuntu only)
+docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ https_repository_prefix }}\
+  download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} \
+  {{ docker_apt_release_channel }}"
+
+# @var docker_compose_path: /usr/local/bin/docker-compose
+# The target destination of the `docker-compose` binary that will be installed
+docker_compose_path: /usr/local/bin/docker-compose
+
 # @var docker_edition: ce
 # Edition can be either `ce` (Community Edition) or `ee` (Enterprise Edition).
-docker_edition: "ce"
+docker_edition: ce
+# @var docker_install_compose: true
+# Whether or not to install `docker-compose`
+docker_install_compose: true
+
+# @var docker_no_plugins: false
+# Should the below Docker plugins be installed?
+# Fast container image distribution plugin with lazy pulling - https://github.com/containerd/stargz-snapshotter
+# A Docker volume plugin, managing persistent container volumes - https://github.com/rancher/convoy
+# Docker Client Plugins Manager - build new plugins, publish them on Docker Hub - https://github.com/lukaszlach/clip
+docker_no_plugins: false
 # @example #
 # docker_edition:
 #  - subitem: string
@@ -10,61 +46,12 @@ docker_edition: "ce"
 
 # @var docker_package: docker-{{ docker_edition }}
 # The name of the Docker package to install
-docker_package: "docker-{{ docker_edition }}"
+docker_package: 'docker-{{ docker_edition }}'
 
 # @var docker_restart_handler_state: restarted
 # The state that the Docker service should assume when a restart event is triggered
 docker_restart_handler_state: restarted
 
-# @var docker_install_compose: true
-# Whether or not to install `docker-compose`
-docker_install_compose: true
-
-# @var docker_compose_path: /usr/local/bin/docker-compose
-# The target destination of the `docker-compose` binary that will be installed
-docker_compose_path: /usr/local/bin/docker-compose
-
-# @var docker_apt_release_channel: stable
-# The release channel to use on Debian/Ubuntu. You can set the value of this variable to either `stable` or `edge`.
-docker_apt_release_channel: stable
-
-# @var docker_apt_arch: amd64
-# The processor architecture to use (Debian/Ubuntu only)
-docker_apt_arch: amd64
-
-# @var https_repository_prefix: https://
-# Allows you to customize what the apt repository URL starts with. This is useful if you are using something like
-# apt-cacher-ng as a proxy cache which requires the URL to start with http://HTTPS/. (Debian/Ubuntu only)
-https_repository_prefix: https://
-
-# @var docker_apt_repository: See defaults/main.yml
-# The apt repository to use (Debian/Ubuntu only)
-docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ https_repository_prefix }}\
-  download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} \
-  {{ docker_apt_release_channel }}"
-
-# @var docker_apt_ignore_key_error: true
-# Whether or not to ignore errors when adding the apt repository's GPG key (Debian/Ubuntu only)
-docker_apt_ignore_key_error: true
-
-# @var docker_apt_gpg_key: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
-# The URL of the apt repository's GPG key (Debian/Ubuntu only)
-docker_apt_gpg_key: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
-
-# @var docker_yum_repo_url: See defaults/main.yml
-# The yum repository URL to retrieve the installation packages (CentOS/Fedora/RedHat only)
-docker_yum_repo_url: "https://download.docker.com/linux/{{ (ansible_distribution == 'Fedora') \
-  | ternary('fedora','centos') }}/docker-{{ docker_edition }}.repo"
-docker_yum_repo_enable_edge: "0"
-docker_yum_repo_enable_test: "0"
-
-# @var docker_yum_gpg_key: https://download.docker.com/linux/centos/gpg
-# The URL of the GPG key to validate against when downloading from the specified yum repository
-docker_yum_gpg_key: https://download.docker.com/linux/centos/gpg
-
-# @var docker_users: []
-# A list of users to add to the docker group
-docker_users: []
 # @example #
 # docker_users:
 #  - "{{ ansible_user }}"
@@ -90,9 +77,13 @@ docker_tls: true
 # The country to use when configuring TLS
 docker_tls_country: US
 
-# @var docker_tls_state: New Jersey
-# The state to use when configuring TLS
-docker_tls_state: New Jersey
+# @var docker_tls_division: Megabyte Labs
+# The division to use when configuring TLS
+docker_tls_division: Megabyte Labs
+
+# @var docker_tls_fqdn: {{ fqdn | default('machine.example.com') }}
+# The FQDN to use when configuring TLS - this should be set to the FQDN of the Docker host that's being configured
+docker_tls_fqdn: "{{ fqdn | default('machine.example.com') }}"
 
 # @var docker_tls_locality: The Hood
 # The locality to use when configuring TLS
@@ -102,17 +93,23 @@ docker_tls_locality: The Hood
 # The organization to use when configuring TLS
 docker_tls_organization: Megabyte LLC
 
-# @var docker_tls_division: Megabyte Labs
-# The division to use when configuring TLS
-docker_tls_division: Megabyte Labs
+# @var docker_tls_state: New Jersey
+# The state to use when configuring TLS
+docker_tls_state: New Jersey
+# @var docker_users: []
+# A list of users to add to the docker group
+docker_users: []
+# @var docker_yum_gpg_key: https://download.docker.com/linux/centos/gpg
+# The URL of the GPG key to validate against when downloading from the specified yum repository
+docker_yum_gpg_key: https://download.docker.com/linux/centos/gpg
 
-# @var docker_tls_fqdn: {{ fqdn | default('machine.example.com') }}
-# The FQDN to use when configuring TLS - this should be set to the FQDN of the Docker host that's being configured
-docker_tls_fqdn: "{{ fqdn | default('machine.example.com') }}"
-
-# @var docker_no_plugins: false
-# Should the below Docker plugins be installed?
-# Fast container image distribution plugin with lazy pulling - https://github.com/containerd/stargz-snapshotter
-# A Docker volume plugin, managing persistent container volumes - https://github.com/rancher/convoy
-# Docker Client Plugins Manager - build new plugins, publish them on Docker Hub - https://github.com/lukaszlach/clip
-docker_no_plugins: false
+docker_yum_repo_enable_edge: '0'
+docker_yum_repo_enable_test: '0'
+# @var docker_yum_repo_url: See defaults/main.yml
+# The yum repository URL to retrieve the installation packages (CentOS/Fedora/RedHat only)
+docker_yum_repo_url: "https://download.docker.com/linux/{{ (ansible_distribution == 'Fedora') \
+  | ternary('fedora','centos') }}/docker-{{ docker_edition }}.repo"
+# @var https_repository_prefix: https://
+# Allows you to customize what the apt repository URL starts with. This is useful if you are using something like
+# apt-cacher-ng as a proxy cache which requires the URL to start with http://HTTPS/. (Debian/Ubuntu only)
+https_repository_prefix: https://

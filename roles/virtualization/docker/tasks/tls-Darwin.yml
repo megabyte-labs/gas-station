@@ -7,47 +7,47 @@
   become: true
   command: security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.pem
   args:
-    chdir: "/usr/local/share/.docker/certs.d"
+    chdir: /usr/local/share/.docker/certs.d
   when: ansible_distribution_major_version | int < 11
 
 - name: Copy Docker server certificates to User directories
   become: true
-  become_user: "{{ user.username }}"
+  become_user: '{{ user.username }}'
   copy:
     src: /usr/local/share/.docker/certs.d/
     dest: ~/.docker/certs.d/
-    owner: "{{ user.username }}"
-    group: "{{ user.group | default(omit) }}"
+    owner: '{{ user.username }}'
+    group: '{{ user.group | default(omit) }}'
     mode: 0700
     directory_mode: 0700
     remote_src: true
-  loop: "{{ user_configs }}"
+  loop: '{{ user_configs }}'
   loop_control:
-    label: "{{ user.username }}"
+    label: '{{ user.username }}'
     loop_var: user
   when: (user.system is not defined) or ((user.system is defined) and (not user.system))
 
 - name: Ensure daemon.json is created
   become: true
-  become_user: "{{ user.username }}"
+  become_user: '{{ user.username }}'
   template:
     src: daemon.json.j2
     dest: ~/.docker/daemon.json
-    owner: "{{ user.username }}"
-    group: "{{ user.group | default(omit) }}"
+    owner: '{{ user.username }}'
+    group: '{{ user.group | default(omit) }}'
     mode: 0600
-  loop: "{{ user_configs }}"
+  loop: '{{ user_configs }}'
   loop_control:
-    label: "{{ user.username }}"
+    label: '{{ user.username }}'
     loop_var: user
   when: (user.system is not defined) or ((user.system is defined) and (not user.system))
 
 - name: Copy certificates to the ~/.docker folder on the machine running Ansible
   fetch:
-    dest: "~/.docker/certs.d/{{ ansible_host }}-{{ item }}"
+    dest: '~/.docker/certs.d/{{ ansible_host }}-{{ item }}'
     flat: true
     mode: 0400
-    src: "~/.docker/certs.d/{{ item }}"
+    src: '~/.docker/certs.d/{{ item }}'
   loop:
     - ca.pem
     - cert.pem

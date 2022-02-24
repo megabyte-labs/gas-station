@@ -66,7 +66,10 @@ tasks:
       - poetry config virtualenvs.in-project true
       - |
         if [ -n "$PYPI_TOKEN" ]; then
-          poetry config pypi-token.pypi "$PYPI_TOKEN"
+          poetry config pypi-token.pypi "$PYPI_TOKEN" || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            .config/log warn 'Failed to run `poetry config pypi-token.pypi`'
+          fi
         fi
       - |
         if [ -n "$GITLAB_CI" ]; then
@@ -74,7 +77,10 @@ tasks:
         fi
       - |
         if [ -n "$GITLAB_CI" ]; then
-          poetry config http-basic.gitlab gitlab-ci-token "${CI_JOB_TOKEN}"
+          poetry config http-basic.gitlab gitlab-ci-token "${CI_JOB_TOKEN}" || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            .config/log warn 'Failed to run `poetry config http-basic.gitlab gitlab-ci-token`'
+          fi
         fi
       - |
         if [ -n "$AUTO_UPDATE_PIP_PACKAGES" ]; then

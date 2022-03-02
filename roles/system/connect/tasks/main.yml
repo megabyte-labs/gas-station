@@ -90,3 +90,26 @@
     dns_fallback_provider: 1.0.0.1#cloudflare-dns.com
     https_repository_prefix: https://
   when: vlan == 'cloud'
+
+- name: Check if connection is possible
+  expect:
+    command: "ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no ubuntu@{{ ansible_host }} -p {{ ansible_port }}"
+    timeout: 2
+    responses:
+      (.*)password(.*):
+        - "{{ ansible_password }}"      # Fit the password
+        - "\x03"          # Ctrl-C
+      (.*)\$(.*): "exit"  # Fit the prompt
+  register: can_connect_as_ubuntu
+  connection: local
+  ignore_errors: true
+  changed_when: false
+
+- name: Save the name of the user to be created
+  set_fact:
+    ansible_user_new: "{{ ansible_user }}"
+  when: not can_connect_as_ubuntu.failed
+
+- name: Set the value of ansible_user
+  set_fact:
+    ansible_user: "{{ ansible_user_remove | default('ubuntu') if not can_connect_as_ubuntu.failed else ansible_user }}"

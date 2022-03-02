@@ -42,8 +42,34 @@
     label: "{{ user.username }}"
     loop_var: user
 
-- name: Ensure user 'Ubuntu' is renamed
+- name: Ensure user 'ubuntu' is removed if present
   become: true
   block:
-    - include_tasks: linux/renameuser.yml
-  when: default_username is defined
+    - name: "Create new user account for {{ ansible_user_new }}"
+      become_user: root
+      user:
+        name: "{{ ansible_user_new }}"
+        state: present
+        password: "{{ ansible_password | password_hash('sha512', 'mysecretsalt') }}"
+    - name: "Add the user {{ ansible_user_new }} to passwordless sudoers"
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: "^{{ ansible_user_new }}"
+        line: "{{ ansible_user_new }} ALL=(ALL) NOPASSWD: ALL"
+        state: present
+        validate: "visudo -cf %s"
+        mode: 0644
+    - name: Set fact to use the newly created user for connections
+      set_fact:
+        ansible_user: "{{ ansible_user_new }}"
+    - wait_for_connection:
+        timeout: 10
+    - name: Kill processes owned by ubuntu user # noqa 301
+      command: "pkill -u ubuntu"
+      ignore_errors: true
+    - name: Remove old user
+      user:
+        name: ubuntu
+        state: absent
+        remove: true
+  when: can_connect_as_ubuntu is defined and not can_connect_as_ubuntu.failed

@@ -1,0 +1,26 @@
+---
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ jenv_src_folder }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  git:
+    dest: "{{ jenv_src_folder }}"
+    repo: https://github.com/jenv/jenv.git
+    version: master
+
+- name: "Ensure {{ app_name }} is installed"
+  file:
+    src: "{{ jenv_src_folder }}/bin/jenv"
+    dest: /usr/local/bin/jenv
+    mode: 0755
+    state: link
+
+- name: Run generic tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

@@ -1,0 +1,1434 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.go"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.go"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  18:03:43 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  18:03:53 -0500 (0:00:09.642)       0:00:09.657 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  18:03:53 -0500 (0:00:00.373)       0:00:10.030 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  18:04:22 -0500 (0:00:28.699)       0:00:38.730 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  18:04:22 -0500 (0:00:00.179)       0:00:38.909 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Thursday 06 January 2022  18:04:23 -0500 (0:00:00.332)       0:00:39.241 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.70s
+Gathering Facts --------------------------------------------------------- 9.64s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.33s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+
+playbook: /home/hawkwood/gas-station/roles/languages/go/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  18:04:26 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  18:04:35 -0500 (0:00:09.615)       0:00:09.629 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Thursday 06 January 2022  18:04:36 -0500 (0:00:00.365)       0:00:09.994 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Thursday 06 January 2022  18:13:49 -0500 (0:09:13.016)       0:09:23.011 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/go/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/go/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Thursday 06 January 2022  18:13:50 -0500 (0:00:01.006)       0:09:24.017 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  18:13:50 -0500 (0:00:00.190)       0:09:24.207 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  18:13:51 -0500 (0:00:01.026)       0:09:25.234 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 553.02s
+Gathering Facts --------------------------------------------------------- 9.62s
+Dump instance config ---------------------------------------------------- 1.03s
+Populate instance config dict ------------------------------------------- 1.01s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.19s
+Playbook run took 0 days, 0 hours, 9 minutes, 25 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Thursday 06 January 2022  18:13:53 -0500 (0:00:00.027)       0:00:00.027 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  18:14:28 -0500 (0:00:34.624)       0:00:34.651 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 34.62s
+Playbook run took 0 days, 0 hours, 0 minutes, 34 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  18:14:30 -0500 (0:00:00.027)       0:00:00.027 ******
+ok: [Debian-9-Stretch]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [Debian-10-Buster]
+ok: [CentOS-7]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Thursday 06 January 2022  18:14:34 -0500 (0:00:04.040)       0:00:04.067 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Thursday 06 January 2022  18:14:34 -0500 (0:00:00.141)       0:00:04.209 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Thursday 06 January 2022  18:14:34 -0500 (0:00:00.131)       0:00:04.341 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Thursday 06 January 2022  18:14:35 -0500 (0:00:00.187)       0:00:04.528 ******
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Thursday 06 January 2022  18:14:35 -0500 (0:00:00.151)       0:00:04.679 ******
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Thursday 06 January 2022  18:14:35 -0500 (0:00:00.138)       0:00:04.818 ******
+
+TASK [professormanhattan.go : include_tasks] ***********************************
+Thursday 06 January 2022  18:14:35 -0500 (0:00:00.193)       0:00:05.012 ******
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.go : Ensure Go is installed] **************************
+Thursday 06 January 2022  18:14:35 -0500 (0:00:00.212)       0:00:05.225 ******
+fatal: [ArchLinux-Latest]: FAILED! => changed=false
+  msg: |-
+    failed to install go: error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from arch.mirror.constant.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.chaoticum.net : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.pseudoform.org : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.selfnet.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from ftp.halifax.rwth-aachen.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from archlinux.mailtunnel.eu : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.lty.me : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from asia.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.f4st.host : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.cyberbits.asia : Could not resolve host: mirror.cyberbits.asia
+    warning: too many errors from mirror.cyberbits.asia, skipping for the remainder of this transaction
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.theash.xyz : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr: |-
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from arch.mirror.constant.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.chaoticum.net : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.pseudoform.org : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.selfnet.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from ftp.halifax.rwth-aachen.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from archlinux.mailtunnel.eu : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.lty.me : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from asia.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.f4st.host : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.cyberbits.asia : Could not resolve host: mirror.cyberbits.asia
+    warning: too many errors from mirror.cyberbits.asia, skipping for the remainder of this transaction
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    error: failed retrieving file 'go-2:1.17.3-1-x86_64.pkg.tar.zst' from mirror.theash.xyz : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr_lines: <omitted>
+  stdout: |-
+    resolving dependencies...
+    looking for conflicting packages...
+
+    Packages (1) go-2:1.17.3-1
+
+    Total Download Size:    97.41 MiB
+    Total Installed Size:  432.26 MiB
+
+    :: Proceed with installation? [Y/n]
+    :: Retrieving packages...
+     go-2:1.17.3-1-x86_64 downloading...
+    Errors occurred, no packages were upgraded.
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.go : Ensure Go is installed] **************************
+Thursday 06 January 2022  18:14:44 -0500 (0:00:08.630)       0:00:13.855 ******
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: Repository epel not found.
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.go : Run user configuration tasks] ********************
+Thursday 06 January 2022  18:16:56 -0500 (0:02:12.125)       0:02:25.980 ******
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/user-Linux.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=vagrant)
+
+TASK [professormanhattan.go : Ensure GOPATH is added to .bashrc] ***************
+Thursday 06 January 2022  18:16:56 -0500 (0:00:00.106)       0:02:26.087 ******
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.go : Ensure packages are installed] *******************
+Thursday 06 January 2022  18:16:57 -0500 (0:00:00.721)       0:02:26.808 ******
+failed: [Fedora-33] (item=github.com/uudashr/gopkgs) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/uudashr/gopkgs@latest
+  delta: '0:00:00.033924'
+  end: '2022-01-06 23:16:57.822831'
+  msg: non-zero return code
+  package: github.com/uudashr/gopkgs
+  rc: 1
+  start: '2022-01-06 23:16:57.788907'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Fedora-33] (item=github.com/ramya-rao-a/go-outline) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/ramya-rao-a/go-outline@latest
+  delta: '0:00:00.005240'
+  end: '2022-01-06 23:16:58.100886'
+  msg: non-zero return code
+  package: github.com/ramya-rao-a/go-outline
+  rc: 1
+  start: '2022-01-06 23:16:58.095646'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Fedora-33] (item=github.com/cweill/gotests) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/cweill/gotests@latest
+  delta: '0:00:00.005236'
+  end: '2022-01-06 23:16:58.408444'
+  msg: non-zero return code
+  package: github.com/cweill/gotests
+  rc: 1
+  start: '2022-01-06 23:16:58.403208'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Fedora-33] (item=github.com/fatih/gomodifytags) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/fatih/gomodifytags@latest
+  delta: '0:00:00.005393'
+  end: '2022-01-06 23:16:58.696013'
+  msg: non-zero return code
+  package: github.com/fatih/gomodifytags
+  rc: 1
+  start: '2022-01-06 23:16:58.690620'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+changed: [CentOS-8] => (item=github.com/uudashr/gopkgs)
+failed: [Fedora-33] (item=github.com/josharian/impl) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/josharian/impl@latest
+  delta: '0:00:00.005791'
+  end: '2022-01-06 23:16:59.010510'
+  msg: non-zero return code
+  package: github.com/josharian/impl
+  rc: 1
+  start: '2022-01-06 23:16:59.004719'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Fedora-33] (item=github.com/haya14busa/goplay) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/haya14busa/goplay@latest
+  delta: '0:00:00.005741'
+  end: '2022-01-06 23:16:59.312758'
+  msg: non-zero return code
+  package: github.com/haya14busa/goplay
+  rc: 1
+  start: '2022-01-06 23:16:59.307017'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+changed: [CentOS-Stream-8] => (item=github.com/uudashr/gopkgs)
+failed: [Fedora-33] (item=github.com/go-delve/delve/cmd/dlv) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/go-delve/delve/cmd/dlv@latest
+  delta: '0:00:00.005260'
+  end: '2022-01-06 23:16:59.610067'
+  msg: non-zero return code
+  package: github.com/go-delve/delve/cmd/dlv
+  rc: 1
+  start: '2022-01-06 23:16:59.604807'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Fedora-33] (item=golang.org/x/tools/gopls) => changed=true
+  ansible_loop_var: package
+  cmd: go get golang.org/x/tools/gopls@latest
+  delta: '0:00:00.006817'
+  end: '2022-01-06 23:16:59.903082'
+  msg: non-zero return code
+  package: golang.org/x/tools/gopls
+  rc: 1
+  start: '2022-01-06 23:16:59.896265'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Fedora-33] (item=honnef.co/go/tools/staticcheck) => changed=true
+  ansible_loop_var: package
+  cmd: go get honnef.co/go/tools/staticcheck@latest
+  delta: '0:00:00.005350'
+  end: '2022-01-06 23:17:00.201310'
+  msg: non-zero return code
+  package: honnef.co/go/tools/staticcheck
+  rc: 1
+  start: '2022-01-06 23:17:00.195960'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+changed: [Fedora-35] => (item=github.com/uudashr/gopkgs)
+changed: [Fedora-34] => (item=github.com/uudashr/gopkgs)
+changed: [CentOS-8] => (item=github.com/ramya-rao-a/go-outline)
+changed: [CentOS-Stream-8] => (item=github.com/ramya-rao-a/go-outline)
+changed: [CentOS-8] => (item=github.com/cweill/gotests)
+changed: [CentOS-Stream-8] => (item=github.com/cweill/gotests)
+changed: [CentOS-8] => (item=github.com/fatih/gomodifytags)
+changed: [CentOS-Stream-8] => (item=github.com/fatih/gomodifytags)
+changed: [CentOS-8] => (item=github.com/josharian/impl)
+changed: [CentOS-Stream-8] => (item=github.com/josharian/impl)
+changed: [CentOS-8] => (item=github.com/haya14busa/goplay)
+changed: [CentOS-Stream-8] => (item=github.com/haya14busa/goplay)
+changed: [Fedora-35] => (item=github.com/ramya-rao-a/go-outline)
+changed: [Fedora-34] => (item=github.com/ramya-rao-a/go-outline)
+changed: [Fedora-35] => (item=github.com/cweill/gotests)
+changed: [Fedora-34] => (item=github.com/cweill/gotests)
+changed: [Fedora-35] => (item=github.com/fatih/gomodifytags)
+changed: [Fedora-34] => (item=github.com/fatih/gomodifytags)
+changed: [CentOS-8] => (item=github.com/go-delve/delve/cmd/dlv)
+changed: [Fedora-35] => (item=github.com/josharian/impl)
+changed: [CentOS-Stream-8] => (item=github.com/go-delve/delve/cmd/dlv)
+changed: [Fedora-34] => (item=github.com/josharian/impl)
+changed: [Fedora-35] => (item=github.com/haya14busa/goplay)
+changed: [Fedora-34] => (item=github.com/haya14busa/goplay)
+changed: [CentOS-8] => (item=golang.org/x/tools/gopls)
+changed: [CentOS-Stream-8] => (item=golang.org/x/tools/gopls)
+changed: [CentOS-8] => (item=honnef.co/go/tools/staticcheck)
+changed: [CentOS-Stream-8] => (item=honnef.co/go/tools/staticcheck)
+changed: [Fedora-34] => (item=github.com/go-delve/delve/cmd/dlv)
+changed: [Fedora-35] => (item=github.com/go-delve/delve/cmd/dlv)
+changed: [Fedora-34] => (item=golang.org/x/tools/gopls)
+changed: [Fedora-35] => (item=golang.org/x/tools/gopls)
+changed: [Fedora-34] => (item=honnef.co/go/tools/staticcheck)
+changed: [Fedora-35] => (item=honnef.co/go/tools/staticcheck)
+
+TASK [professormanhattan.go : Ensure Go is installed] **************************
+Thursday 06 January 2022  18:21:57 -0500 (0:05:00.391)       0:07:27.200 ******
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  msg: No package matching 'golang' is available
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  cache_update_time: 1635199175
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'golang'' failed: E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/l/linux/linux-libc-dev_4.9.272-2_amd64.deb  404  Not Found [IP: 151.101.66.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/l/linux/linux-libc-dev_4.9.272-2_amd64.deb  404  Not Found [IP: 151.101.66.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      g++ g++-6 gcc gcc-6 golang-1.7 golang-1.7-doc golang-1.7-go golang-1.7-src
+      golang-doc golang-go golang-src libasan3 libatomic1 libc-dev-bin libc6-dev
+      libcc1-0 libcilkrts5 libgcc-6-dev libgomp1 libitm1 liblsan0 libmpx2
+      libquadmath0 libstdc++-6-dev libtsan0 libubsan0 linux-libc-dev manpages-dev
+      pkg-config
+    Suggested packages:
+      g++-multilib g++-6-multilib gcc-6-doc libstdc++6-6-dbg gcc-multilib make
+      autoconf automake libtool flex bison gdb gcc-doc gcc-6-multilib
+      gcc-6-locales libgcc1-dbg libgomp1-dbg libitm1-dbg libatomic1-dbg
+      libasan3-dbg liblsan0-dbg libtsan0-dbg libubsan0-dbg libcilkrts5-dbg
+      libmpx2-dbg libquadmath0-dbg bzr git mercurial subversion glibc-doc
+      libstdc++-6-doc
+    The following NEW packages will be installed:
+      g++ g++-6 gcc gcc-6 golang golang-1.7 golang-1.7-doc golang-1.7-go
+      golang-1.7-src golang-doc golang-go golang-src libasan3 libatomic1
+      libc-dev-bin libc6-dev libcc1-0 libcilkrts5 libgcc-6-dev libgomp1 libitm1
+      liblsan0 libmpx2 libquadmath0 libstdc++-6-dev libtsan0 libubsan0
+      linux-libc-dev manpages-dev pkg-config
+    0 upgraded, 30 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 54.7 MB of archives.
+    After this operation, 255 MB of additional disk space will be used.
+    Err:1 http://security.debian.org/debian-security stretch/updates/main amd64 linux-libc-dev amd64 4.9.272-2
+      404  Not Found [IP: 151.101.66.132 80]
+    Get:2 http://httpredir.debian.org/debian stretch/main amd64 libcc1-0 amd64 6.3.0-18+deb9u1 [30.6 kB]
+    Get:3 http://httpredir.debian.org/debian stretch/main amd64 libgomp1 amd64 6.3.0-18+deb9u1 [73.3 kB]
+    Get:4 http://httpredir.debian.org/debian stretch/main amd64 libitm1 amd64 6.3.0-18+deb9u1 [27.3 kB]
+    Get:5 http://httpredir.debian.org/debian stretch/main amd64 libatomic1 amd64 6.3.0-18+deb9u1 [8966 B]
+    Get:6 http://httpredir.debian.org/debian stretch/main amd64 libasan3 amd64 6.3.0-18+deb9u1 [311 kB]
+    Get:7 http://security.debian.org/debian-security stretch/updates/main amd64 golang-1.7-src amd64 1.7.4-2+deb9u3 [7682 kB]
+    Get:8 http://httpredir.debian.org/debian stretch/main amd64 liblsan0 amd64 6.3.0-18+deb9u1 [115 kB]
+    Get:9 http://httpredir.debian.org/debian stretch/main amd64 libtsan0 amd64 6.3.0-18+deb9u1 [257 kB]
+    Get:10 http://httpredir.debian.org/debian stretch/main amd64 libubsan0 amd64 6.3.0-18+deb9u1 [107 kB]
+    Get:11 http://httpredir.debian.org/debian stretch/main amd64 libcilkrts5 amd64 6.3.0-18+deb9u1 [40.5 kB]
+    Get:12 http://httpredir.debian.org/debian stretch/main amd64 libmpx2 amd64 6.3.0-18+deb9u1 [11.2 kB]
+    Get:13 http://httpredir.debian.org/debian stretch/main amd64 libquadmath0 amd64 6.3.0-18+deb9u1 [131 kB]
+    Get:14 http://httpredir.debian.org/debian stretch/main amd64 libgcc-6-dev amd64 6.3.0-18+deb9u1 [2296 kB]
+    Get:15 http://httpredir.debian.org/debian stretch/main amd64 gcc-6 amd64 6.3.0-18+deb9u1 [6900 kB]
+    Get:16 http://security.debian.org/debian-security stretch/updates/main amd64 golang-1.7-go amd64 1.7.4-2+deb9u3 [19.4 MB]
+    Get:17 http://httpredir.debian.org/debian stretch/main amd64 gcc amd64 4:6.3.0-4 [5196 B]
+    Get:18 http://httpredir.debian.org/debian stretch/main amd64 libc-dev-bin amd64 2.24-11+deb9u4 [259 kB]
+    Get:19 http://httpredir.debian.org/debian stretch/main amd64 libc6-dev amd64 2.24-11+deb9u4 [2364 kB]
+    Get:20 http://httpredir.debian.org/debian stretch/main amd64 libstdc++-6-dev amd64 6.3.0-18+deb9u1 [1420 kB]
+    Get:21 http://httpredir.debian.org/debian stretch/main amd64 g++-6 amd64 6.3.0-18+deb9u1 [7094 kB]
+    Get:22 http://httpredir.debian.org/debian stretch/main amd64 g++ amd64 4:6.3.0-4 [1546 B]
+    Get:23 http://httpredir.debian.org/debian stretch/main amd64 golang-src amd64 2:1.7~5 [3560 B]
+    Get:24 http://security.debian.org/debian-security stretch/updates/main amd64 golang-1.7-doc all 1.7.4-2+deb9u3 [2392 kB]
+    Get:25 http://httpredir.debian.org/debian stretch/main amd64 golang-go amd64 2:1.7~5 [22.7 kB]
+    Get:26 http://httpredir.debian.org/debian stretch/main amd64 golang-doc all 2:1.7~5 [3600 B]
+    Get:27 http://httpredir.debian.org/debian stretch/main amd64 golang amd64 2:1.7~5 [3540 B]
+    Get:28 http://httpredir.debian.org/debian stretch/main amd64 manpages-dev all 4.10-2 [2145 kB]
+    Get:29 http://httpredir.debian.org/debian stretch/main amd64 pkg-config amd64 0.29-4+b1 [63.3 kB]
+    Get:30 http://security.debian.org/debian-security stretch/updates/main amd64 golang-1.7 all 1.7.4-2+deb9u3 [28.0 kB]
+    Fetched 53.2 MB in 3s (16.9 MB/s)
+  stdout_lines: <omitted>
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=false
+  cache_update_time: 1639942925
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'golang'' failed: E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_5.4.0-91.102_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_5.4.0-91.102_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      g++ g++-9 gcc gcc-9 golang-1.13 golang-1.13-doc golang-1.13-go
+      golang-1.13-race-detector-runtime golang-1.13-src golang-doc golang-go
+      golang-race-detector-runtime golang-src libasan5 libatomic1 libc-dev-bin
+      libc6-dev libcc1-0 libcrypt-dev libdpkg-perl libfile-fcntllock-perl
+      libgcc-9-dev libgomp1 libitm1 liblsan0 libquadmath0 libstdc++-9-dev libtsan0
+      libubsan1 linux-libc-dev manpages-dev pkg-config
+    Suggested packages:
+      g++-multilib g++-9-multilib gcc-9-doc gcc-multilib make autoconf automake
+      libtool flex bison gdb gcc-doc gcc-9-multilib gcc-9-locales bzr | brz
+      mercurial subversion glibc-doc debian-keyring bzr libstdc++-9-doc dpkg-dev
+    The following NEW packages will be installed:
+      g++ g++-9 gcc gcc-9 golang golang-1.13 golang-1.13-doc golang-1.13-go
+      golang-1.13-race-detector-runtime golang-1.13-src golang-doc golang-go
+      golang-race-detector-runtime golang-src libasan5 libatomic1 libc-dev-bin
+      libc6-dev libcc1-0 libcrypt-dev libdpkg-perl libfile-fcntllock-perl
+      libgcc-9-dev libgomp1 libitm1 liblsan0 libquadmath0 libstdc++-9-dev libtsan0
+      libubsan1 linux-libc-dev manpages-dev pkg-config
+    0 upgraded, 33 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 95.0 MB of archives.
+    After this operation, 472 MB of additional disk space will be used.
+    Get:1 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libcc1-0 amd64 10.3.0-1ubuntu1~20.04 [48.8 kB]
+    Get:2 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgomp1 amd64 10.3.0-1ubuntu1~20.04 [102 kB]
+    Get:3 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libitm1 amd64 10.3.0-1ubuntu1~20.04 [26.2 kB]
+    Get:4 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libatomic1 amd64 10.3.0-1ubuntu1~20.04 [9284 B]
+    Get:5 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libasan5 amd64 9.3.0-17ubuntu1~20.04 [394 kB]
+    Get:6 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 liblsan0 amd64 10.3.0-1ubuntu1~20.04 [835 kB]
+    Get:7 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libtsan0 amd64 10.3.0-1ubuntu1~20.04 [2009 kB]
+    Get:8 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libubsan1 amd64 10.3.0-1ubuntu1~20.04 [784 kB]
+    Get:9 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libquadmath0 amd64 10.3.0-1ubuntu1~20.04 [146 kB]
+    Get:10 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libgcc-9-dev amd64 9.3.0-17ubuntu1~20.04 [2360 kB]
+    Get:11 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 gcc-9 amd64 9.3.0-17ubuntu1~20.04 [8241 kB]
+    Get:12 http://us.archive.ubuntu.com/ubuntu focal/main amd64 gcc amd64 4:9.3.0-1ubuntu2 [5208 B]
+    Get:13 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libc-dev-bin amd64 2.31-0ubuntu9.2 [71.8 kB]
+    Ign:14 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 linux-libc-dev amd64 5.4.0-91.102
+    Get:15 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libcrypt-dev amd64 1:4.4.10-10ubuntu4 [104 kB]
+    Get:16 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libc6-dev amd64 2.31-0ubuntu9.2 [2520 kB]
+    Get:17 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 libstdc++-9-dev amd64 9.3.0-17ubuntu1~20.04 [1714 kB]
+    Get:18 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 g++-9 amd64 9.3.0-17ubuntu1~20.04 [8405 kB]
+    Get:19 http://us.archive.ubuntu.com/ubuntu focal/main amd64 g++ amd64 4:9.3.0-1ubuntu2 [1604 B]
+    Get:20 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-1.13-src amd64 1.13.8-1ubuntu1 [12.6 MB]
+    Get:21 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-1.13-go amd64 1.13.8-1ubuntu1 [47.6 MB]
+    Get:22 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-1.13-doc all 1.13.8-1ubuntu1 [2525 kB]
+    Get:23 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-1.13 all 1.13.8-1ubuntu1 [11.2 kB]
+    Get:24 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-src amd64 2:1.13~1ubuntu2 [4044 B]
+    Get:25 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-go amd64 2:1.13~1ubuntu2 [22.0 kB]
+    Get:26 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-doc all 2:1.13~1ubuntu2 [2948 B]
+    Get:27 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang amd64 2:1.13~1ubuntu2 [2900 B]
+    Get:28 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-1.13-race-detector-runtime amd64 0.0+svn332029-0ubuntu2 [713 kB]
+    Get:29 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libdpkg-perl all 1.19.7ubuntu3 [230 kB]
+    Get:30 http://us.archive.ubuntu.com/ubuntu focal/main amd64 libfile-fcntllock-perl amd64 0.22-3build4 [33.1 kB]
+    Get:31 http://us.archive.ubuntu.com/ubuntu focal/main amd64 manpages-dev all 5.05-1 [2266 kB]
+    Get:32 http://us.archive.ubuntu.com/ubuntu focal/main amd64 pkg-config amd64 0.29.1-0ubuntu4 [45.5 kB]
+    Get:33 http://us.archive.ubuntu.com/ubuntu focal/main amd64 golang-race-detector-runtime amd64 2:1.13~1ubuntu2 [3836 B]
+    Err:14 http://us.archive.ubuntu.com/ubuntu focal-updates/main amd64 linux-libc-dev amd64 5.4.0-91.102
+      404  Not Found [IP: 91.189.91.39 80]
+    Fetched 93.8 MB in 7s (13.3 MB/s)
+  stdout_lines: <omitted>
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=false
+  cache_update_time: 1635200926
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'golang'' failed: E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_5.11.0-38.42_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://us.archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_5.11.0-38.42_amd64.deb  404  Not Found [IP: 91.189.91.39 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      cpp cpp-10 fontconfig-config fonts-dejavu-core g++ g++-10 gcc gcc-10
+      gcc-10-base golang-1.16 golang-1.16-doc golang-1.16-go golang-1.16-src
+      golang-doc golang-go golang-src libasan6 libatomic1 libc-dev-bin
+      libc-devtools libc6-dev libcc1-0 libcrypt-dev libdeflate0 libdpkg-perl
+      libfile-fcntllock-perl libfontconfig1 libgcc-10-dev libgd3 libgomp1 libisl23
+      libitm1 libjbig0 libjpeg-turbo8 libjpeg8 liblsan0 libmpc3 libnsl-dev
+      libquadmath0 libstdc++-10-dev libtiff5 libtirpc-dev libtsan0 libubsan1
+      libwebp6 libx11-6 libx11-data libxau6 libxcb1 libxdmcp6 libxpm4
+      linux-libc-dev manpages-dev pkg-config rpcsvc-proto
+    Suggested packages:
+      cpp-doc gcc-10-locales g++-multilib g++-10-multilib gcc-10-doc gcc-multilib
+      make autoconf automake libtool flex bison gdb gcc-doc gcc-10-multilib bzr
+      | brz mercurial subversion glibc-doc debian-keyring bzr libgd-tools
+      libstdc++-10-doc dpkg-dev
+    The following NEW packages will be installed:
+      cpp cpp-10 fontconfig-config fonts-dejavu-core g++ g++-10 gcc gcc-10
+      gcc-10-base golang golang-1.16 golang-1.16-doc golang-1.16-go
+      golang-1.16-src golang-doc golang-go golang-src libasan6 libatomic1
+      libc-dev-bin libc-devtools libc6-dev libcc1-0 libcrypt-dev libdeflate0
+      libdpkg-perl libfile-fcntllock-perl libfontconfig1 libgcc-10-dev libgd3
+      libgomp1 libisl23 libitm1 libjbig0 libjpeg-turbo8 libjpeg8 liblsan0 libmpc3
+      libnsl-dev libquadmath0 libstdc++-10-dev libtiff5 libtirpc-dev libtsan0
+      libubsan1 libwebp6 libx11-6 libx11-data libxau6 libxcb1 libxdmcp6 libxpm4
+      linux-libc-dev manpages-dev pkg-config rpcsvc-proto
+    0 upgraded, 56 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 122 MB of archives.
+    After this operation, 587 MB of additional disk space will be used.
+    Get:1 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxau6 amd64 1:1.0.9-1build3 [7360 B]
+    Get:2 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxdmcp6 amd64 1:1.1.3-0ubuntu3 [10.3 kB]
+    Get:3 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxcb1 amd64 1.14-3ubuntu1 [45.3 kB]
+    Get:4 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-data all 2:1.7.0-2ubuntu0.1 [112 kB]
+    Get:5 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libx11-6 amd64 2:1.7.0-2ubuntu0.1 [577 kB]
+    Get:6 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 gcc-10-base amd64 10.3.0-1ubuntu1 [20.1 kB]
+    Get:7 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libisl23 amd64 0.23-1build1 [661 kB]
+    Get:8 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libmpc3 amd64 1.2.0-1build1 [44.1 kB]
+    Get:9 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 cpp-10 amd64 10.3.0-1ubuntu1 [8612 kB]
+    Get:10 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 cpp amd64 4:10.3.0-1ubuntu1 [27.7 kB]
+    Get:11 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fonts-dejavu-core all 2.37-2build1 [1041 kB]
+    Get:12 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 fontconfig-config all 2.13.1-4.2ubuntu3 [28.2 kB]
+    Get:13 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libcc1-0 amd64 11.1.0-1ubuntu1~21.04 [48.8 kB]
+    Get:14 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgomp1 amd64 11.1.0-1ubuntu1~21.04 [107 kB]
+    Get:15 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libitm1 amd64 11.1.0-1ubuntu1~21.04 [26.4 kB]
+    Get:16 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libatomic1 amd64 11.1.0-1ubuntu1~21.04 [9236 B]
+    Get:17 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libasan6 amd64 11.1.0-1ubuntu1~21.04 [2139 kB]
+    Get:18 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 liblsan0 amd64 11.1.0-1ubuntu1~21.04 [893 kB]
+    Get:19 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libtsan0 amd64 11.1.0-1ubuntu1~21.04 [2090 kB]
+    Get:20 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libubsan1 amd64 11.1.0-1ubuntu1~21.04 [844 kB]
+    Get:21 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libquadmath0 amd64 11.1.0-1ubuntu1~21.04 [146 kB]
+    Get:22 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libgcc-10-dev amd64 10.3.0-1ubuntu1 [2337 kB]
+    Get:23 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 gcc-10 amd64 10.3.0-1ubuntu1 [17.5 MB]
+    Get:24 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 gcc amd64 4:10.3.0-1ubuntu1 [5212 B]
+    Get:25 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libc-dev-bin amd64 2.33-0ubuntu5 [19.3 kB]
+    Ign:26 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 linux-libc-dev amd64 5.11.0-38.42
+    Get:27 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libcrypt-dev amd64 1:4.4.17-1ubuntu3 [104 kB]
+    Get:28 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 rpcsvc-proto amd64 1.4.2-0ubuntu4 [62.8 kB]
+    Get:29 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libtirpc-dev amd64 1.3.1-1build1 [183 kB]
+    Get:30 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libnsl-dev amd64 1.3.0-0ubuntu3 [66.4 kB]
+    Get:31 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libc6-dev amd64 2.33-0ubuntu5 [2143 kB]
+    Get:32 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libstdc++-10-dev amd64 10.3.0-1ubuntu1 [1754 kB]
+    Get:33 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 g++-10 amd64 10.3.0-1ubuntu1 [9803 kB]
+    Get:34 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 g++ amd64 4:10.3.0-1ubuntu1 [1608 B]
+    Get:35 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-1.16-src amd64 1.16.2-0ubuntu1 [14.2 MB]
+    Get:36 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-1.16-go amd64 1.16.2-0ubuntu1 [51.4 MB]
+    Get:37 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-1.16-doc all 1.16.2-0ubuntu1 [88.6 kB]
+    Get:38 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-1.16 all 1.16.2-0ubuntu1 [11.3 kB]
+    Get:39 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-src amd64 2:1.16~0ubuntu1 [4120 B]
+    Get:40 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-go amd64 2:1.16~0ubuntu1 [22.0 kB]
+    Get:41 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang-doc all 2:1.16~0ubuntu1 [2952 B]
+    Get:42 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 golang amd64 2:1.16~0ubuntu1 [2916 B]
+    Get:43 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libfontconfig1 amd64 2.13.1-4.2ubuntu3 [116 kB]
+    Get:44 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjpeg-turbo8 amd64 2.0.6-0ubuntu2 [117 kB]
+    Get:45 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjpeg8 amd64 8c-2ubuntu8 [2194 B]
+    Get:46 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdeflate0 amd64 1.7-1ubuntu1 [52.6 kB]
+    Get:47 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libjbig0 amd64 2.1-3.1build1 [26.7 kB]
+    Get:48 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libwebp6 amd64 0.6.1-2ubuntu0.21.04.1 [184 kB]
+    Get:49 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libtiff5 amd64 4.2.0-1build1 [168 kB]
+    Get:50 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libxpm4 amd64 1:3.5.12-1 [34.0 kB]
+    Get:51 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 libgd3 amd64 2.3.0-2ubuntu0.1 [116 kB]
+    Get:52 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libc-devtools amd64 2.33-0ubuntu5 [27.2 kB]
+    Get:53 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libdpkg-perl all 1.20.9ubuntu1 [232 kB]
+    Get:54 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 libfile-fcntllock-perl amd64 0.22-3build5 [33.1 kB]
+    Get:55 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 manpages-dev all 5.10-1ubuntu0.1 [2309 kB]
+    Get:56 http://us.archive.ubuntu.com/ubuntu hirsute/main amd64 pkg-config amd64 0.29.2-1ubuntu1 [46.2 kB]
+    Err:26 http://us.archive.ubuntu.com/ubuntu hirsute-updates/main amd64 linux-libc-dev amd64 5.11.0-38.42
+      404  Not Found [IP: 91.189.91.39 80]
+    Fetched 121 MB in 8s (16.0 MB/s)
+  stdout_lines: <omitted>
+fatal: [Debian-11-Bullseye]: FAILED! => changed=false
+  cache_update_time: 1635193539
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'golang'' failed: E: Failed to fetch http://httpredir.debian.org/debian/pool/main/l/linux/linux-libc-dev_5.10.70-1_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15-src_1.15.9-6_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15-go_1.15.9-6_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15-doc_1.15.9-6_all.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15_1.15.9-6_all.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/l/linux/linux-libc-dev_5.10.70-1_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15-src_1.15.9-6_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15-go_1.15.9-6_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15-doc_1.15.9-6_all.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/g/golang-1.15/golang-1.15_1.15.9-6_all.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      cpp cpp-10 fontconfig-config fonts-dejavu-core g++ g++-10 gcc gcc-10
+      golang-1.15 golang-1.15-doc golang-1.15-go golang-1.15-src golang-doc
+      golang-go golang-src libasan6 libatomic1 libc-dev-bin libc-devtools
+      libc6-dev libcc1-0 libcrypt-dev libdeflate0 libdpkg-perl
+      libfile-fcntllock-perl libfontconfig1 libgcc-10-dev libgd3 libgomp1 libisl23
+      libitm1 libjbig0 libjpeg62-turbo liblsan0 libmpc3 libmpfr6 libnsl-dev
+      libquadmath0 libstdc++-10-dev libtiff5 libtirpc-dev libtsan0 libubsan1
+      libwebp6 libx11-6 libx11-data libxau6 libxcb1 libxdmcp6 libxpm4
+      linux-libc-dev manpages-dev pkg-config
+    Suggested packages:
+      cpp-doc gcc-10-locales g++-multilib g++-10-multilib gcc-10-doc gcc-multilib
+      make autoconf automake libtool flex bison gdb gcc-doc gcc-10-multilib bzr
+      | brz git mercurial subversion glibc-doc debian-keyring patch bzr
+      libgd-tools libstdc++-10-doc dpkg-dev
+    The following NEW packages will be installed:
+      cpp cpp-10 fontconfig-config fonts-dejavu-core g++ g++-10 gcc gcc-10 golang
+      golang-1.15 golang-1.15-doc golang-1.15-go golang-1.15-src golang-doc
+      golang-go golang-src libasan6 libatomic1 libc-dev-bin libc-devtools
+      libc6-dev libcc1-0 libcrypt-dev libdeflate0 libdpkg-perl
+      libfile-fcntllock-perl libfontconfig1 libgcc-10-dev libgd3 libgomp1 libisl23
+      libitm1 libjbig0 libjpeg62-turbo liblsan0 libmpc3 libmpfr6 libnsl-dev
+      libquadmath0 libstdc++-10-dev libtiff5 libtirpc-dev libtsan0 libubsan1
+      libwebp6 libx11-6 libx11-data libxau6 libxcb1 libxdmcp6 libxpm4
+      linux-libc-dev manpages-dev pkg-config
+    0 upgraded, 54 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 124 MB of archives.
+    After this operation, 574 MB of additional disk space will be used.
+    Get:1 http://httpredir.debian.org/debian bullseye/main amd64 libisl23 amd64 0.23-1 [676 kB]
+    Get:2 http://httpredir.debian.org/debian bullseye/main amd64 libmpfr6 amd64 4.1.0-3 [2012 kB]
+    Get:3 http://httpredir.debian.org/debian bullseye/main amd64 libmpc3 amd64 1.2.0-1 [45.0 kB]
+    Get:4 http://httpredir.debian.org/debian bullseye/main amd64 cpp-10 amd64 10.2.1-6 [8528 kB]
+    Get:5 http://httpredir.debian.org/debian bullseye/main amd64 cpp amd64 4:10.2.1-1 [19.7 kB]
+    Get:6 http://httpredir.debian.org/debian bullseye/main amd64 fonts-dejavu-core all 2.37-2 [1069 kB]
+    Get:7 http://httpredir.debian.org/debian bullseye/main amd64 fontconfig-config all 2.13.1-4.2 [281 kB]
+    Get:8 http://httpredir.debian.org/debian bullseye/main amd64 libcc1-0 amd64 10.2.1-6 [47.0 kB]
+    Get:9 http://httpredir.debian.org/debian bullseye/main amd64 libgomp1 amd64 10.2.1-6 [99.9 kB]
+    Get:10 http://httpredir.debian.org/debian bullseye/main amd64 libitm1 amd64 10.2.1-6 [25.8 kB]
+    Get:11 http://httpredir.debian.org/debian bullseye/main amd64 libatomic1 amd64 10.2.1-6 [9008 B]
+    Get:12 http://httpredir.debian.org/debian bullseye/main amd64 libasan6 amd64 10.2.1-6 [2065 kB]
+    Get:13 http://httpredir.debian.org/debian bullseye/main amd64 liblsan0 amd64 10.2.1-6 [828 kB]
+    Get:14 http://httpredir.debian.org/debian bullseye/main amd64 libtsan0 amd64 10.2.1-6 [2000 kB]
+    Get:15 http://httpredir.debian.org/debian bullseye/main amd64 libubsan1 amd64 10.2.1-6 [777 kB]
+    Get:16 http://httpredir.debian.org/debian bullseye/main amd64 libquadmath0 amd64 10.2.1-6 [145 kB]
+    Get:17 http://httpredir.debian.org/debian bullseye/main amd64 libgcc-10-dev amd64 10.2.1-6 [2328 kB]
+    Get:18 http://httpredir.debian.org/debian bullseye/main amd64 gcc-10 amd64 10.2.1-6 [17.0 MB]
+    Get:19 http://httpredir.debian.org/debian bullseye/main amd64 gcc amd64 4:10.2.1-1 [5192 B]
+    Get:20 http://httpredir.debian.org/debian bullseye/main amd64 libc-dev-bin amd64 2.31-13+deb11u2 [275 kB]
+    Err:21 http://httpredir.debian.org/debian bullseye/main amd64 linux-libc-dev amd64 5.10.70-1
+      404  Not Found [IP: 151.101.210.132 80]
+    Get:22 http://httpredir.debian.org/debian bullseye/main amd64 libcrypt-dev amd64 1:4.4.18-4 [104 kB]
+    Get:23 http://httpredir.debian.org/debian bullseye/main amd64 libtirpc-dev amd64 1.3.1-1 [190 kB]
+    Get:24 http://httpredir.debian.org/debian bullseye/main amd64 libnsl-dev amd64 1.3.0-2 [66.4 kB]
+    Get:25 http://httpredir.debian.org/debian bullseye/main amd64 libc6-dev amd64 2.31-13+deb11u2 [2344 kB]
+    Get:26 http://httpredir.debian.org/debian bullseye/main amd64 libstdc++-10-dev amd64 10.2.1-6 [1741 kB]
+    Get:27 http://httpredir.debian.org/debian bullseye/main amd64 g++-10 amd64 10.2.1-6 [9380 kB]
+    Get:28 http://httpredir.debian.org/debian bullseye/main amd64 g++ amd64 4:10.2.1-1 [1644 B]
+    Err:29 http://httpredir.debian.org/debian bullseye/main amd64 golang-1.15-src amd64 1.15.9-6
+      404  Not Found [IP: 151.101.210.132 80]
+    Err:30 http://httpredir.debian.org/debian bullseye/main amd64 golang-1.15-go amd64 1.15.9-6
+      404  Not Found [IP: 151.101.210.132 80]
+    Err:31 http://httpredir.debian.org/debian bullseye/main amd64 golang-1.15-doc all 1.15.9-6
+      404  Not Found [IP: 151.101.210.132 80]
+    Err:32 http://httpredir.debian.org/debian bullseye/main amd64 golang-1.15 all 1.15.9-6
+      404  Not Found [IP: 151.101.210.132 80]
+    Get:33 http://httpredir.debian.org/debian bullseye/main amd64 golang-src amd64 2:1.15~1 [4856 B]
+    Get:34 http://httpredir.debian.org/debian bullseye/main amd64 golang-go amd64 2:1.15~1 [23.9 kB]
+    Get:35 http://httpredir.debian.org/debian bullseye/main amd64 golang-doc all 2:1.15~1 [4888 B]
+    Get:36 http://httpredir.debian.org/debian bullseye/main amd64 golang amd64 2:1.15~1 [4844 B]
+    Get:37 http://httpredir.debian.org/debian bullseye/main amd64 libfontconfig1 amd64 2.13.1-4.2 [347 kB]
+    Get:38 http://httpredir.debian.org/debian bullseye/main amd64 libjpeg62-turbo amd64 1:2.0.6-4 [151 kB]
+    Get:39 http://httpredir.debian.org/debian bullseye/main amd64 libdeflate0 amd64 1.7-1 [53.1 kB]
+    Get:40 http://httpredir.debian.org/debian bullseye/main amd64 libjbig0 amd64 2.1-3.1+b2 [31.0 kB]
+    Get:41 http://httpredir.debian.org/debian bullseye/main amd64 libwebp6 amd64 0.6.1-2.1 [258 kB]
+    Get:42 http://httpredir.debian.org/debian bullseye/main amd64 libtiff5 amd64 4.2.0-1 [289 kB]
+    Get:43 http://httpredir.debian.org/debian bullseye/main amd64 libxau6 amd64 1:1.0.9-1 [19.7 kB]
+    Get:44 http://httpredir.debian.org/debian bullseye/main amd64 libxdmcp6 amd64 1:1.1.2-3 [26.3 kB]
+    Get:45 http://httpredir.debian.org/debian bullseye/main amd64 libxcb1 amd64 1.14-3 [140 kB]
+    Get:46 http://httpredir.debian.org/debian bullseye/main amd64 libx11-data all 2:1.7.2-1 [311 kB]
+    Get:47 http://httpredir.debian.org/debian bullseye/main amd64 libx11-6 amd64 2:1.7.2-1 [772 kB]
+    Get:48 http://httpredir.debian.org/debian bullseye/main amd64 libxpm4 amd64 1:3.5.12-1 [49.1 kB]
+    Get:49 http://httpredir.debian.org/debian bullseye/main amd64 libgd3 amd64 2.3.0-2 [137 kB]
+    Get:50 http://httpredir.debian.org/debian bullseye/main amd64 libc-devtools amd64 2.31-13+deb11u2 [245 kB]
+    Get:51 http://httpredir.debian.org/debian bullseye/main amd64 libdpkg-perl all 1.20.9 [1537 kB]
+    Get:52 http://httpredir.debian.org/debian bullseye/main amd64 libfile-fcntllock-perl amd64 0.22-3+b7 [35.5 kB]
+    Get:53 http://httpredir.debian.org/debian bullseye/main amd64 manpages-dev all 5.10-1 [2309 kB]
+    Get:54 http://httpredir.debian.org/debian bullseye/main amd64 pkg-config amd64 0.29.2-1 [65.1 kB]
+    Fetched 58.9 MB in 14s (4137 kB/s)
+  stdout_lines: <omitted>
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=false
+  cache_update_time: 1639938438
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'golang'' failed: E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_4.15.0-163.171_amd64.deb  404  Not Found [IP: 91.189.88.152 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_4.15.0-163.171_amd64.deb  404  Not Found [IP: 91.189.88.152 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      build-essential dpkg-dev fakeroot g++ g++-7 gcc gcc-7 golang-1.10
+      golang-1.10-doc golang-1.10-go golang-1.10-race-detector-runtime
+      golang-1.10-src golang-doc golang-go golang-race-detector-runtime golang-src
+      libalgorithm-diff-perl libalgorithm-diff-xs-perl libalgorithm-merge-perl
+      libasan4 libatomic1 libc-dev-bin libc6-dev libcc1-0 libcilkrts5 libdpkg-perl
+      libfakeroot libfile-fcntllock-perl libgcc-7-dev libgomp1 libitm1 liblsan0
+      libmpx2 libquadmath0 libstdc++-7-dev libtsan0 libubsan0 linux-libc-dev make
+      manpages-dev pkg-config
+    Suggested packages:
+      debian-keyring g++-multilib g++-7-multilib gcc-7-doc libstdc++6-7-dbg
+      gcc-multilib autoconf automake libtool flex bison gdb gcc-doc gcc-7-multilib
+      gcc-7-locales libgcc1-dbg libgomp1-dbg libitm1-dbg libatomic1-dbg
+      libasan4-dbg liblsan0-dbg libtsan0-dbg libubsan0-dbg libcilkrts5-dbg
+      libmpx2-dbg libquadmath0-dbg bzr mercurial subversion glibc-doc
+      libstdc++-7-doc make-doc
+    The following NEW packages will be installed:
+      build-essential dpkg-dev fakeroot g++ g++-7 gcc gcc-7 golang golang-1.10
+      golang-1.10-doc golang-1.10-go golang-1.10-race-detector-runtime
+      golang-1.10-src golang-doc golang-go golang-race-detector-runtime golang-src
+      libalgorithm-diff-perl libalgorithm-diff-xs-perl libalgorithm-merge-perl
+      libasan4 libatomic1 libc-dev-bin libc6-dev libcc1-0 libcilkrts5 libdpkg-perl
+      libfakeroot libfile-fcntllock-perl libgcc-7-dev libgomp1 libitm1 liblsan0
+      libmpx2 libquadmath0 libstdc++-7-dev libtsan0 libubsan0 linux-libc-dev make
+      manpages-dev pkg-config
+    0 upgraded, 42 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 74.0 MB of archives.
+    After this operation, 352 MB of additional disk space will be used.
+    Get:1 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libc-dev-bin amd64 2.27-3ubuntu1.4 [71.8 kB]
+    Ign:2 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 linux-libc-dev amd64 4.15.0-163.171
+    Get:3 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libc6-dev amd64 2.27-3ubuntu1.4 [2585 kB]
+    Err:2 http://security.ubuntu.com/ubuntu bionic-updates/main amd64 linux-libc-dev amd64 4.15.0-163.171
+      404  Not Found [IP: 91.189.88.152 80]
+    Get:4 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libcc1-0 amd64 8.4.0-1ubuntu1~18.04 [39.4 kB]
+    Get:5 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libgomp1 amd64 8.4.0-1ubuntu1~18.04 [76.5 kB]
+    Get:6 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libitm1 amd64 8.4.0-1ubuntu1~18.04 [27.9 kB]
+    Get:7 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libatomic1 amd64 8.4.0-1ubuntu1~18.04 [9192 B]
+    Get:8 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libasan4 amd64 7.5.0-3ubuntu1~18.04 [358 kB]
+    Get:9 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 liblsan0 amd64 8.4.0-1ubuntu1~18.04 [133 kB]
+    Get:10 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libtsan0 amd64 8.4.0-1ubuntu1~18.04 [288 kB]
+    Get:11 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libubsan0 amd64 7.5.0-3ubuntu1~18.04 [126 kB]
+    Get:12 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libcilkrts5 amd64 7.5.0-3ubuntu1~18.04 [42.5 kB]
+    Get:13 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libmpx2 amd64 8.4.0-1ubuntu1~18.04 [11.6 kB]
+    Get:14 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libquadmath0 amd64 8.4.0-1ubuntu1~18.04 [134 kB]
+    Get:15 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libgcc-7-dev amd64 7.5.0-3ubuntu1~18.04 [2378 kB]
+    Get:16 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 gcc-7 amd64 7.5.0-3ubuntu1~18.04 [9381 kB]
+    Get:17 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 gcc amd64 4:7.4.0-1ubuntu2.3 [5184 B]
+    Get:18 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libstdc++-7-dev amd64 7.5.0-3ubuntu1~18.04 [1471 kB]
+    Get:19 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 g++-7 amd64 7.5.0-3ubuntu1~18.04 [9697 kB]
+    Get:20 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 g++ amd64 4:7.4.0-1ubuntu2.3 [1568 B]
+    Get:21 http://archive.ubuntu.com/ubuntu bionic/main amd64 make amd64 4.1-9.1ubuntu1 [154 kB]
+    Get:22 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 libdpkg-perl all 1.19.0.5ubuntu2.3 [211 kB]
+    Get:23 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 dpkg-dev all 1.19.0.5ubuntu2.3 [607 kB]
+    Get:24 http://archive.ubuntu.com/ubuntu bionic/main amd64 build-essential amd64 12.4ubuntu1 [4758 B]
+    Get:25 http://archive.ubuntu.com/ubuntu bionic/main amd64 libfakeroot amd64 1.22-2ubuntu1 [25.9 kB]
+    Get:26 http://archive.ubuntu.com/ubuntu bionic/main amd64 fakeroot amd64 1.22-2ubuntu1 [62.3 kB]
+    Get:27 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 golang-1.10-src amd64 1.10.4-2ubuntu1~18.04.2 [11.1 MB]
+    Get:28 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 golang-1.10-go amd64 1.10.4-2ubuntu1~18.04.2 [28.6 MB]
+    Get:29 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 golang-1.10-doc all 1.10.4-2ubuntu1~18.04.2 [2419 kB]
+    Get:30 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 golang-1.10 all 1.10.4-2ubuntu1~18.04.2 [11.2 kB]
+    Get:31 http://archive.ubuntu.com/ubuntu bionic/main amd64 golang-src amd64 2:1.10~4ubuntu1 [3676 B]
+    Get:32 http://archive.ubuntu.com/ubuntu bionic/main amd64 golang-go amd64 2:1.10~4ubuntu1 [22.0 kB]
+    Get:33 http://archive.ubuntu.com/ubuntu bionic/main amd64 golang-doc all 2:1.10~4ubuntu1 [2944 B]
+    Get:34 http://archive.ubuntu.com/ubuntu bionic/main amd64 golang amd64 2:1.10~4ubuntu1 [2896 B]
+    Get:35 http://archive.ubuntu.com/ubuntu bionic/main amd64 golang-1.10-race-detector-runtime amd64 0.0+svn285455-0ubuntu1 [478 kB]
+    Get:36 http://archive.ubuntu.com/ubuntu bionic/main amd64 libalgorithm-diff-perl all 1.19.03-1 [47.6 kB]
+    Get:37 http://archive.ubuntu.com/ubuntu bionic/main amd64 libalgorithm-diff-xs-perl amd64 0.04-5 [11.1 kB]
+    Get:38 http://archive.ubuntu.com/ubuntu bionic/main amd64 libalgorithm-merge-perl all 0.08-3 [12.0 kB]
+    Get:39 http://archive.ubuntu.com/ubuntu bionic/main amd64 libfile-fcntllock-perl amd64 0.22-3build2 [33.2 kB]
+    Get:40 http://archive.ubuntu.com/ubuntu bionic/main amd64 manpages-dev all 4.15-1 [2217 kB]
+    Get:41 http://archive.ubuntu.com/ubuntu bionic/main amd64 pkg-config amd64 0.29.1-0ubuntu2 [45.0 kB]
+    Get:42 http://archive.ubuntu.com/ubuntu bionic/main amd64 golang-race-detector-runtime amd64 2:1.10~4ubuntu1 [3456 B]
+    Fetched 73.0 MB in 14s (5094 kB/s)
+  stdout_lines: <omitted>
+changed: [Debian-10-Buster]
+
+TASK [professormanhattan.go : Run user configuration tasks] ********************
+Thursday 06 January 2022  18:22:25 -0500 (0:00:27.887)       0:07:55.088 ******
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/user-Linux.yml for Debian-10-Buster => (item=vagrant)
+
+TASK [professormanhattan.go : Ensure GOPATH is added to .bashrc] ***************
+Thursday 06 January 2022  18:22:25 -0500 (0:00:00.037)       0:07:55.125 ******
+changed: [Debian-10-Buster]
+
+TASK [professormanhattan.go : Ensure packages are installed] *******************
+Thursday 06 January 2022  18:22:25 -0500 (0:00:00.201)       0:07:55.327 ******
+failed: [Debian-10-Buster] (item=github.com/uudashr/gopkgs) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/uudashr/gopkgs@latest
+  delta: '0:00:00.029055'
+  end: '2022-01-06 23:22:24.776777'
+  msg: non-zero return code
+  package: github.com/uudashr/gopkgs
+  rc: 1
+  start: '2022-01-06 23:22:24.747722'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=github.com/ramya-rao-a/go-outline) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/ramya-rao-a/go-outline@latest
+  delta: '0:00:00.005360'
+  end: '2022-01-06 23:22:24.933983'
+  msg: non-zero return code
+  package: github.com/ramya-rao-a/go-outline
+  rc: 1
+  start: '2022-01-06 23:22:24.928623'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=github.com/cweill/gotests) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/cweill/gotests@latest
+  delta: '0:00:00.005407'
+  end: '2022-01-06 23:22:25.095368'
+  msg: non-zero return code
+  package: github.com/cweill/gotests
+  rc: 1
+  start: '2022-01-06 23:22:25.089961'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=github.com/fatih/gomodifytags) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/fatih/gomodifytags@latest
+  delta: '0:00:00.005349'
+  end: '2022-01-06 23:22:25.255712'
+  msg: non-zero return code
+  package: github.com/fatih/gomodifytags
+  rc: 1
+  start: '2022-01-06 23:22:25.250363'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=github.com/josharian/impl) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/josharian/impl@latest
+  delta: '0:00:00.005444'
+  end: '2022-01-06 23:22:25.421050'
+  msg: non-zero return code
+  package: github.com/josharian/impl
+  rc: 1
+  start: '2022-01-06 23:22:25.415606'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=github.com/haya14busa/goplay) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/haya14busa/goplay@latest
+  delta: '0:00:00.005339'
+  end: '2022-01-06 23:22:25.586194'
+  msg: non-zero return code
+  package: github.com/haya14busa/goplay
+  rc: 1
+  start: '2022-01-06 23:22:25.580855'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=github.com/go-delve/delve/cmd/dlv) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/go-delve/delve/cmd/dlv@latest
+  delta: '0:00:00.005985'
+  end: '2022-01-06 23:22:25.752524'
+  msg: non-zero return code
+  package: github.com/go-delve/delve/cmd/dlv
+  rc: 1
+  start: '2022-01-06 23:22:25.746539'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=golang.org/x/tools/gopls) => changed=true
+  ansible_loop_var: package
+  cmd: go get golang.org/x/tools/gopls@latest
+  delta: '0:00:00.005482'
+  end: '2022-01-06 23:22:25.915845'
+  msg: non-zero return code
+  package: golang.org/x/tools/gopls
+  rc: 1
+  start: '2022-01-06 23:22:25.910363'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Debian-10-Buster] (item=honnef.co/go/tools/staticcheck) => changed=true
+  ansible_loop_var: package
+  cmd: go get honnef.co/go/tools/staticcheck@latest
+  delta: '0:00:00.005229'
+  end: '2022-01-06 23:22:26.081565'
+  msg: non-zero return code
+  package: honnef.co/go/tools/staticcheck
+  rc: 1
+  start: '2022-01-06 23:22:26.076336'
+  stderr: 'go: cannot use path@version syntax in GOPATH mode'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.go : Ensure Go is installed] **************************
+Thursday 06 January 2022  18:22:27 -0500 (0:00:01.522)       0:07:56.850 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.go : Run user configuration tasks] ********************
+Thursday 06 January 2022  18:23:06 -0500 (0:00:39.133)       0:08:35.983 ******
+included: /home/hawkwood/gas-station/roles/languages/go/tasks/user-Windows.yml for Windows-10 => (item=vagrant)
+
+TASK [professormanhattan.go : Ensure GOPATH is added to .bashrc] ***************
+Thursday 06 January 2022  18:23:06 -0500 (0:00:00.047)       0:08:36.031 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.go : Ensure packages are installed] *******************
+Thursday 06 January 2022  18:23:08 -0500 (0:00:01.753)       0:08:37.785 ******
+failed: [Windows-10] (item=github.com/uudashr/gopkgs) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/uudashr/gopkgs@latest
+  delta: '0:00:00.641200'
+  end: '2022-01-06 23:23:10.860015'
+  msg: non-zero return code
+  package: github.com/uudashr/gopkgs
+  rc: 1
+  start: '2022-01-06 23:23:10.218815'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=github.com/ramya-rao-a/go-outline) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/ramya-rao-a/go-outline@latest
+  delta: '0:00:00.251049'
+  end: '2022-01-06 23:23:12.908370'
+  msg: non-zero return code
+  package: github.com/ramya-rao-a/go-outline
+  rc: 1
+  start: '2022-01-06 23:23:12.657321'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=github.com/cweill/gotests) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/cweill/gotests@latest
+  delta: '0:00:00.250757'
+  end: '2022-01-06 23:23:14.987194'
+  msg: non-zero return code
+  package: github.com/cweill/gotests
+  rc: 1
+  start: '2022-01-06 23:23:14.736436'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=github.com/fatih/gomodifytags) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/fatih/gomodifytags@latest
+  delta: '0:00:00.250624'
+  end: '2022-01-06 23:23:16.988347'
+  msg: non-zero return code
+  package: github.com/fatih/gomodifytags
+  rc: 1
+  start: '2022-01-06 23:23:16.737722'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=github.com/josharian/impl) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/josharian/impl@latest
+  delta: '0:00:00.250847'
+  end: '2022-01-06 23:23:18.973773'
+  msg: non-zero return code
+  package: github.com/josharian/impl
+  rc: 1
+  start: '2022-01-06 23:23:18.722925'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=github.com/haya14busa/goplay) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/haya14busa/goplay@latest
+  delta: '0:00:00.260488'
+  end: '2022-01-06 23:23:21.031680'
+  msg: non-zero return code
+  package: github.com/haya14busa/goplay
+  rc: 1
+  start: '2022-01-06 23:23:20.771192'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=github.com/go-delve/delve/cmd/dlv) => changed=true
+  ansible_loop_var: package
+  cmd: go get github.com/go-delve/delve/cmd/dlv@latest
+  delta: '0:00:00.251218'
+  end: '2022-01-06 23:23:23.126789'
+  msg: non-zero return code
+  package: github.com/go-delve/delve/cmd/dlv
+  rc: 1
+  start: '2022-01-06 23:23:22.875571'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=golang.org/x/tools/gopls) => changed=true
+  ansible_loop_var: package
+  cmd: go get golang.org/x/tools/gopls@latest
+  delta: '0:00:00.251061'
+  end: '2022-01-06 23:23:25.144213'
+  msg: non-zero return code
+  package: golang.org/x/tools/gopls
+  rc: 1
+  start: '2022-01-06 23:23:24.893152'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+failed: [Windows-10] (item=honnef.co/go/tools/staticcheck) => changed=true
+  ansible_loop_var: package
+  cmd: go get honnef.co/go/tools/staticcheck@latest
+  delta: '0:00:00.251786'
+  end: '2022-01-06 23:23:27.146172'
+  msg: non-zero return code
+  package: honnef.co/go/tools/staticcheck
+  rc: 1
+  start: '2022-01-06 23:23:26.894385'
+  stderr: |-
+    go: GOPATH entry is relative; must be absolute path: "%APPDATA%\\go".
+    For more details see: 'go help gopath'
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-8                   : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+CentOS-Stream-8            : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Debian-10-Buster           : ok=5    changed=2    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-9-Stretch           : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-33                  : ok=5    changed=2    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-34                  : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Fedora-35                  : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=5    changed=2    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+
+Thursday 06 January 2022  18:23:27 -0500 (0:00:18.961)       0:08:56.746 ******
+===============================================================================
+professormanhattan.go : Ensure packages are installed ----------------- 300.39s
+professormanhattan.go : Ensure Go is installed ------------------------ 132.13s
+professormanhattan.go : Ensure Go is installed ------------------------- 39.13s
+professormanhattan.go : Ensure Go is installed ------------------------- 27.89s
+professormanhattan.go : Ensure packages are installed ------------------ 18.96s
+professormanhattan.go : Ensure Go is installed -------------------------- 8.63s
+Gathering Facts --------------------------------------------------------- 4.04s
+professormanhattan.go : Ensure GOPATH is added to .bashrc --------------- 1.75s
+professormanhattan.go : Ensure packages are installed ------------------- 1.52s
+professormanhattan.go : Ensure GOPATH is added to .bashrc --------------- 0.72s
+professormanhattan.go : include_tasks ----------------------------------- 0.21s
+professormanhattan.go : Ensure GOPATH is added to .bashrc --------------- 0.20s
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date --- 0.19s
+professormanhattan.homebrew : include_tasks ----------------------------- 0.19s
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux) --- 0.15s
+professormanhattan.homebrew : Include variables based on the operating system --- 0.14s
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date --- 0.14s
+professormanhattan.homebrew : Register Homebrew bin path information ---- 0.13s
+professormanhattan.go : Run user configuration tasks -------------------- 0.11s
+professormanhattan.go : Run user configuration tasks -------------------- 0.05s
+Playbook run took 0 days, 0 hours, 8 minutes, 56 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  18:23:30 -0500 (0:00:00.019)       0:00:00.019 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  18:23:41 -0500 (0:00:11.131)       0:00:11.151 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  18:23:41 -0500 (0:00:00.402)       0:00:11.554 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  18:26:23 -0500 (0:02:41.279)       0:02:52.833 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  18:26:23 -0500 (0:00:00.140)       0:02:52.973 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  18:26:24 -0500 (0:00:01.000)       0:02:53.974 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 161.28s
+Gathering Facts -------------------------------------------------------- 11.13s
+Dump instance config ---------------------------------------------------- 1.00s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.40s
+Populate instance config ------------------------------------------------ 0.14s
+Playbook run took 0 days, 0 hours, 2 minutes, 53 seconds

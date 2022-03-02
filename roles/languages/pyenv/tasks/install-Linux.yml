@@ -1,0 +1,21 @@
+---
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ pyenv_src_folder }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ pyenv_src_folder }}"
+    repo: https://github.com/pyenv/pyenv.git
+    version: master
+
+- name: Run generic tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

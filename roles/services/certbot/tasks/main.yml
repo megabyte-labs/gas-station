@@ -2,7 +2,15 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+# @action Ensures Certbot is installed
+# Installs Certbot on Archlinux, CentOS, Debian, Fedora, macOS, Ubuntu, and Windows
+# @action Ensures Certbot is installed
+# Installs CloudFlare DNS Plugin for Certbot
+# @action Ensures Let's Encrypt certificates are generated
+# Generates Let's Encrypt certificates if configured
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "setup-{{ ansible_os_family }}.yml"

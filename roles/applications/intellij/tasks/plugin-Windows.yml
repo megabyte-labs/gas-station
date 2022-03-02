@@ -1,0 +1,60 @@
+---
+- name: Ensure plugin is installed
+  become_user: "{{ user.username }}"
+  block:
+    - name: Find the name of the plugin from the URL
+      set_fact:
+        plugin_name: "{{ plugin_url | regex_search('\\d+-.*[^\\/]') | regex_replace('\\d*-(.*)','\\1') }}"
+
+    - name: Ensure Megabyte Labs configuration directory exists
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - '%USERPROFILE%\.config'
+        - '%USERPROFILE%\.config\megabytelabs'
+
+    - name: "Check if {{ plugin_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/idea_plugin_{{ plugin_name }}'"
+      ansible.windows.win_stat:
+        path: '%USERPROFILE%\.config\megabytelabs\idea_plugin_{{ plugin_name }}'
+      register: idea_plugin_config
+
+    - name: "Detect previously installed {{ plugin_name }} version"
+      ansible.windows.win_command: type idea_plugin_{{ plugin_name }}
+      args:
+        chdir: '%USERPROFILE%\.config\megabytelabs'
+      changed_when: false
+      register: current_idea_plugin_version
+      when: idea_plugin_config.stat.exists
+
+    - name: "Detect the latest {{ plugin_name }} version"
+      ansible.windows.win_uri:
+        url: "https://plugins.jetbrains.com/api/plugins/{{ plugin_url | regex_search('\\d+-') | replace('-','') }}/updates"
+        return_content: true
+      register: idea_plugin_latest_release_tag
+
+    - name: "Determine whether or not the latest version of {{ plugin_name }} plugin is already installed"
+      set_fact:
+        install_idea_plugin: "{{ (current_idea_plugin_version.skipped | default(false)) or \
+          ((not current_idea_plugin_version.skipped | default(false)) and \
+          (current_idea_plugin_version.stdout | int != idea_plugin_latest_release_tag.json[0].id)) }}"
+
+    - name: "Ensure the latest version of {{ plugin_name }} plugin is downloaded"
+      ansible.windows.win_get_url:
+        url: "https://plugins.jetbrains.com/files/{{ idea_plugin_latest_release_tag.json[0].file }}"
+        dest: '%TEMP%\{{ plugin_name }}.zip'
+      when: install_idea_plugin
+
+    - name: "Ensure the latest version of {{ plugin_name }} plugin is installed"
+      community.windows.win_unzip:
+        src: '%TEMP%\{{ plugin_name }}.zip'
+        dest: "{{ plugins_folder }}"
+        delete_archive: true
+      when: install_idea_plugin
+
+    - name: "Save meta information about the version of {{ plugin_name }} that was installed"
+      ansible.windows.win_copy:
+        dest: '%USERPROFILE%\.config\megabytelabs\idea_plugin_{{ plugin_name }}'
+        content: |
+          {{ idea_plugin_latest_release_tag.json[0].id }}
+      when: install_idea_plugin

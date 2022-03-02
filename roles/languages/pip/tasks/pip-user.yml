@@ -1,0 +1,16 @@
+---
+- name: "Ensure PIP Packages are installed"
+  become_user: "{{ user.username }}"
+  pip:
+    name: "{{ user.pips | default([]) }}"
+    state: "{{ pips.state | default(omit) }}"
+    executable: "{{ pip_executable }}"
+    extra_args: --user
+  when: ansible_os_family != 'Windows'
+
+- name: "Ensure PIP Packages are installed"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: "pip install --user -U {{ user.pips | join(' ') }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - (user.pips | length > 0)

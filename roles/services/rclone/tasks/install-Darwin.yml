@@ -1,7 +1,15 @@
 ---
-- name: Ensure rclone is installed
-  become: true
+- name: "Ensure {{ app_name }} is installed"
+  become: false
   become_user: "{{ ansible_user }}"
   community.general.homebrew:
     name: rclone
     state: present
+
+- name: Run macOS user tasks
+  include_tasks: user-Darwin.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

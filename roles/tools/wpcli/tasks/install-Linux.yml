@@ -1,0 +1,67 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: Ensure /usr/local/src/wp-cli directory exists
+  file:
+    path: /usr/local/src/wp-cli
+    mode: 0755
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/wpcli"
+  stat:
+    path: "~/.config/megabytelabs/wpcli"
+  register: wpcli_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat wpcli
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_wpcli_version
+  when: wpcli_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/wp-cli/wp-cli/releases/latest
+  register: wpcli_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_wpcli: "{{ (current_wpcli_version.skipped | default(false)) or \
+      ((not current_wpcli_version.skipped | default(false)) and (current_wpcli_version.stdout != wpcli_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/wp
+    state: absent
+  when: install_wpcli
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "{{ 'https://github.com/wp-cli/wp-cli/releases/download/' + wpcli_latest_release_tag.json.tag_name + \
+      '/wp-cli-' + wpcli_latest_release_tag.json.tag_name | replace('v','') + '.phar' }}"
+    dest: /usr/local/bin/wp
+    mode: 0755
+  when: install_wpcli
+
+- name: "Ensure {{ app_name }}'s completion is installed"
+  get_url:
+    url: "{{ 'https://raw.githubusercontent.com/wp-cli/wp-cli/' + wpcli_latest_release_tag.json.tag_name + '/utils/wp-completion.bash' }}"
+    dest: /usr/local/src/wp-cli/wp-completion.bash
+    mode: 0755
+  when: install_wpcli
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/wpcli
+    mode: 0600
+    content: |
+      {{ wpcli_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_wpcli

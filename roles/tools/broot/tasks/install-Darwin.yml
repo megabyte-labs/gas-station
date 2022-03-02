@@ -1,0 +1,19 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: broot
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure br function is setup
+  environment:
+    PATH: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become_user: "{{ user.username }}"
+  command: broot --install
+  args:
+    creates: ~/Library/Application Support/org.dystroy.broot/launcher/bash/1
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

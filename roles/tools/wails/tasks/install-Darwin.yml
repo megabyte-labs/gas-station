@@ -1,0 +1,28 @@
+---
+- name: "Ensure {{ app_name }} is built"
+  command: go get -u github.com/wailsapp/wails/cmd/wails
+  args:
+    creates: "{{ wails_goroot }}/bin/wails"
+  environment:
+    GOPATH: "{{ wails_goroot }}"
+
+- name: "Ensure {{ app_name }} is linked"
+  file:
+    src: "{{ wails_goroot }}/bin/wails"
+    dest: /usr/local/bin/wails
+    state: link
+
+- name: "Ensure {{ app_name }} is setup"
+  become_user: "{{ user.username }}"
+  template:
+    src: wails.json.j2
+    dest: ~/.wails/wails.json
+    mode: 0700
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.wails_name is defined
+    - user.wails_email is defined

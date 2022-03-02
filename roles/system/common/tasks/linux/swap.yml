@@ -1,4 +1,37 @@
 ---
+- name: Determine whether or not a Desktop Environment is installed
+  stat:
+    path: "{{ item }}"
+  with_items:
+    - /usr/bin/gnome-session
+    - /usr/bin/xfce4-session
+    - /usr/bin/lxsession
+    - /usr/bin/kded5
+    - /usr/bin/icewm-session
+    - /usr/bin/mate-session
+    - /usr/bin/cinnamon
+  register: session_files
+
+- name: Set results of checking for Desktop Environment to a variable
+  set_fact:
+    desktop_env_results: "{{ session_files | community.general.json_query('results[*].stat.exists') }}"
+
+- name: Calculate Swap size based on RAM size
+  set_fact:
+    swap_space: "{% set ram = (ansible_memtotal_mb / 1024) | round %}
+      {% if(ram <= 8) %}
+      {{ (ram * 2) | round | int }}G
+      {% elif(ram > 8 and ram <= 32) %}
+      {{ ((ram / 4) + ram) | round | int }}G
+      {% elif(ram > 32 and ram <= 64) %}
+      {{ ((ram / 8) + ram) | round | int }}G
+      {% elif(ram > 64) %}
+      {{ ((ram / 10) + ram) | round | int }}G
+      {% endif %}"
+  when: "true in desktop_env_results"
+
+# @action Ensures common configuration settings are applied
+# Configures Swap volume when ZFS root partition is used
 - name: Create Swap volume (when ZFS is used for the root partition)
   block:
     - name: Check if the ZFS rpool/swapfile volume exists
@@ -40,7 +73,13 @@
       when: zfs_swap.changed
   when: "'ZFS' in ansible_facts.cmdline.root"
 
-- name: Create Swap file
+- name: Find the Filesystem of / partition # noqa 303 305
+  shell: set -o pipefail & mount | grep ' on / type '
+  register: root_fs_type
+  changed_when: false
+  when: "'ZFS' not in ansible_facts.cmdline.root"
+
+- name: Create Swap file (non btrfs, non-ZFS root filesystem)
   block:
     - name: Check if swap file already exists
       stat:
@@ -53,6 +92,7 @@
       file:
         path: /swapfile
         mode: 0600
+      when: not swapfile.stat.exists
     - name: Format /swapfile
       command: mkswap /swapfile
       when: not swapfile.stat.exists
@@ -64,8 +104,52 @@
         dest: /etc/fstab
         regexp: /swapfile
         line: "/swapfile none swap sw 0 0"
-  when: "'ZFS' not in ansible_facts.cmdline.root"
+  when:
+    - root_fs_type.stdout is defined
+    - "'btrfs' not in root_fs_type.stdout"
 
+# @action Ensures common configuration settings are applied
+# Configures Swap file when non-ZFS root partition is used
+- name: Create Swap file (btrfs root filesystem)
+  block:
+    - name: Check if swap file already exists
+      stat:
+        path: /swapfile
+      register: swapfile
+    - name: Create /swapfile
+      command: truncate -s 0 /swapfile
+      when: not swapfile.stat.exists
+    - name: Set properties on the swapfile # noqa 305
+      shell: |
+        chattr +C /swapfile
+        btrfs property set /swapfile compression none
+      when: not swapfile.stat.exists
+    - name: Set the size of the swapfile
+      command: "fallocate -l {{ swap_space }} /swapfile"
+      when: not swapfile.stat.exists
+    - name: Set permissions on /swapfile
+      file:
+        path: /swapfile
+        mode: 0600
+      when: not swapfile.stat.exists
+    - name: Format /swapfile
+      command: mkswap /swapfile
+      when: not swapfile.stat.exists
+    - name: Turn on swap
+      command: swapon /swapfile
+      when: not swapfile.stat.exists
+    - name: Ensure swap loads on boot
+      lineinfile:
+        dest: /etc/fstab
+        regexp: /swapfile
+        line: "/swapfile none swap sw 0 0"
+      when: not swapfile.stat.exists
+  when:
+    - root_fs_type.stdout is defined
+    - "'btrfs' in root_fs_type.stdout"
+
+# @action Ensures common configuration settings are applied
+# Configures Swappiness
 - name: Set swappiness
   sysctl:
     name: vm.swappiness
@@ -74,6 +158,8 @@
     state: present
     reload: true
 
+# @action Ensures common configuration settings are applied
+# Configures vfs_cache_pressure
 - name: Set vfs_cache_pressure
   sysctl:
     name: vm.vfs_cache_pressure

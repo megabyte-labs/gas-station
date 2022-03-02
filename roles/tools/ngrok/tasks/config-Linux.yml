@@ -1,0 +1,24 @@
+---
+- name: Ensure .ngrok2 folder exists
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/.ngrok2
+    state: directory
+    mode: 0750
+    owner: "{{ user.username }}"
+    group: "{{ user.group | default(omit) }}"
+
+- name: Ensure ngrok.yml file exists
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/.ngrok2/ngrok.yml
+    state: touch
+    mode: 0700
+
+- name: Ensure authtoken is added to the configuration file
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.ngrok2/ngrok.yml
+    regex: "^authtoken"
+    line: "authtoken: {{ user.ngrok_token }}"
+  when: (user.ngrok_token is defined) and (user.ngrok_token | bool)

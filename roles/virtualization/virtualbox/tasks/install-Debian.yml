@@ -11,13 +11,48 @@
     state: present
     update_cache: true
 
-- name: "Modify debconf selection for unattended installation of the {{ app_name }} Extension Pack"
-  command: echo virtualbox-ext-pack virtualbox-ext-pack/license select true | debconf-set-selections
-  changed_when: false
-
 - name: "Ensure {{ app_name }} is installed"
   apt:
-    name:
-      - "{{ vbox_package_name }}"
-      - virtualbox-ext-pack
+    name: "{{ vbox_package_name }}"
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  register: install_result
+
+- name: "Ensure {{ app_name }} Extension pack is installed"
+  block:
+    - name: Ensure /usr/lib/virtualbox/ExtensionPacks directory exists
+      file:
+        path: /usr/lib/virtualbox/ExtensionPacks
+        state: directory
+        mode: 0755
+    - name: "Ensure {{ app_name }} Extension pack installer is downloaded and up-to-date"
+      get_url:
+        url: "{{ 'https://download.virtualbox.org/virtualbox/' + vbox_version + '/Oracle_VM_VirtualBox_Extension_Pack-' + vbox_version + '.vbox-extpack' }}"
+        dest: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
+      register: ext_pack_download_result
+    - name: "Ensure older version of {{ app_name }} Extension pack is removed"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+        state: absent
+      when: ext_pack_download_result.changed
+    - name: "Ensure {{ app_name }} Extension pack is installed" # noqa 303
+      shell: |
+        set -o pipefail
+        echo 'y' | VBoxManage extpack install --replace /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack
+      args:
+        creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
+        executable: /bin/bash
+  when: install_result.changed
+  always:
+    - name: "Remove {{ app_name }} Extension pack installer"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
+        state: absent
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,2 +1,89 @@
 ---
-[] # TODO
+- name: Set default incoming policy to deny
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: "^block.*"
+    line: "block in"
+
+- name: Allow SSH connections from select networks
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*{{ ssh_port }}$"
+    line: "{{ 'pass in proto tcp from {' + lan_network.management + ', ' + lan_network.work + ', ' + main_ip_address + '} to any port ' + ssh_port }}"
+  when: vlan != 'cloud'
+
+- name: Allow SSH connections from anywhere
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*{{ ssh_port }}$"
+    line: "{{ 'pass in proto tcp from any to any port ' + ssh_port }}"
+  when: vlan == 'cloud'
+
+- name: Allow RDP access
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*3389$"
+    line: "{{ 'pass in proto tcp from {' +  lan_network.work + '} to any port 3389' }}"
+  when: "'desktop' in group_names"
+
+- name: Allow remote Docker access
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*2424$"
+    line: "{{ 'pass in proto tcp from {' +  hosts.portainer.ip_address + '} to any port 2424' }}"
+  when:
+    - not ('portainer' in apps)
+    - hosts.portainer is defined
+
+- name: Allow TFTP access to Netboot.xyz
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*69$"
+    line: "{{ 'pass in proto tcp from {' + lan_network.iot + ', ' + lan_network.kubernetes + ', ' \
+      + lan_network.management + ', ' + lan_network.offline + ', ' + lan_network.unifi + ', ' + lan_network.work + '} to any port 69' }}"
+  when: ('netboot' in apps)
+
+- name: Allow access to Plex Media Server from LAN
+  include_tasks: Darwin/PlexMediaServer.yml
+  loop:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.work }}"
+  when: ('plex' in apps)
+
+- name: Allow access to Plex Media Server from Internet
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*32400$"
+    line: "pass in proto tcp from any to any port 32400"
+  when: ('plex' in apps)
+
+- name: Allow UniFi access
+  include_tasks: Darwin/UniFi.yml
+  loop:
+    - "{{ lan_network.unifi }}"
+  when: ('unifilab' in apps)
+
+- name: Allow HTTP/HTTPS access from LAN
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: "pass in proto tcp from {{ item }} to any port { 80, 443 }"
+    line: "pass in proto tcp from {{ item }} to any port { 80, 443 }"
+  loop: "{{ rc1918_networks }}"
+  when:
+    - not ('nuc' in apps)
+    - vlan != 'cloud'
+
+- name: Allow HTTP/HTTPS access from internet
+  lineinfile:
+    path: /etc/pf.conf
+    regexp: ".*443 }$"
+    line: "pass in proto tcp from any to any port { 80, 443 }"
+  when: ('nuc' in apps) or (vlan == 'cloud')
+
+- name: Check if Firewall is enabled # noqa 301
+  command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+  register: firewall_state
+
+- name: Enable Firewall # noqa 301 503
+  command: defaults write /Library/Preferences/com.apple.alf globalstate -int 1
+  when: "'enabled' not in firewall_state.stdout"

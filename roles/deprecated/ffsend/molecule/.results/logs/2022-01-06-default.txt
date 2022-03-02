@@ -1,0 +1,739 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.ffsend"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.ffsend"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  08:18:32 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  08:18:42 -0500 (0:00:09.529)       0:00:09.544 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  08:18:42 -0500 (0:00:00.363)       0:00:09.907 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  08:19:11 -0500 (0:00:28.863)       0:00:38.771 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  08:19:11 -0500 (0:00:00.177)       0:00:38.948 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Thursday 06 January 2022  08:19:11 -0500 (0:00:00.328)       0:00:39.277 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.86s
+Gathering Facts --------------------------------------------------------- 9.53s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Dump instance config ---------------------------------------------------- 0.33s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+
+playbook: /home/hawkwood/gas-station/roles/deprecated/ffsend/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  08:19:14 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  08:19:24 -0500 (0:00:09.599)       0:00:09.613 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Thursday 06 January 2022  08:19:24 -0500 (0:00:00.356)       0:00:09.969 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Thursday 06 January 2022  08:28:59 -0500 (0:09:34.616)       0:09:44.585 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/ffsend/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/ffsend/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Thursday 06 January 2022  08:29:00 -0500 (0:00:00.967)       0:09:45.553 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  08:29:00 -0500 (0:00:00.244)       0:09:45.797 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  08:29:01 -0500 (0:00:00.973)       0:09:46.771 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 574.62s
+Gathering Facts --------------------------------------------------------- 9.60s
+Dump instance config ---------------------------------------------------- 0.97s
+Populate instance config dict ------------------------------------------- 0.97s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Convert instance config dict to a list ---------------------------------- 0.24s
+Playbook run took 0 days, 0 hours, 9 minutes, 46 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Thursday 06 January 2022  08:29:04 -0500 (0:00:00.028)       0:00:00.028 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  08:29:20 -0500 (0:00:16.555)       0:00:16.584 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 16.56s
+Playbook run took 0 days, 0 hours, 0 minutes, 16 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  08:29:23 -0500 (0:00:00.030)       0:00:00.030 ******
+ok: [CentOS-7]
+ok: [ArchLinux-Latest]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Thursday 06 January 2022  08:29:25 -0500 (0:00:02.903)       0:00:02.934 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Thursday 06 January 2022  08:29:26 -0500 (0:00:00.140)       0:00:03.074 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Thursday 06 January 2022  08:29:26 -0500 (0:00:00.123)       0:00:03.198 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Thursday 06 January 2022  08:29:26 -0500 (0:00:00.129)       0:00:03.327 ******
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Thursday 06 January 2022  08:29:26 -0500 (0:00:00.145)       0:00:03.472 ******
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Thursday 06 January 2022  08:29:26 -0500 (0:00:00.134)       0:00:03.607 ******
+
+TASK [professormanhattan.ffsend : Include variables based on the operating system] ***
+Thursday 06 January 2022  08:29:26 -0500 (0:00:00.190)       0:00:03.798 ******
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.ffsend : include_tasks] *******************************
+Thursday 06 January 2022  08:29:27 -0500 (0:00:00.169)       0:00:03.968 ******
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.ffsend : Run generic Linux tasks] *********************
+Thursday 06 January 2022  08:29:27 -0500 (0:00:00.213)       0:00:04.181 ******
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-Linux.yml for ArchLinux-Latest
+
+TASK [professormanhattan.ffsend : Ensure ffsend's dependencies are installed] ***
+Thursday 06 January 2022  08:29:27 -0500 (0:00:00.069)       0:00:04.250 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  08:29:29 -0500 (0:00:02.643)       0:00:06.894 ******
+changed: [ArchLinux-Latest] => (item=~/.config)
+changed: [ArchLinux-Latest] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.ffsend : Check if ffsend has configuration stored in ~/.config/megabytelabs/ffsend] ***
+Thursday 06 January 2022  08:29:30 -0500 (0:00:00.552)       0:00:07.447 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Detect previously installed ffsend version] ***
+Thursday 06 January 2022  08:29:30 -0500 (0:00:00.312)       0:00:07.759 ******
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Detect the latest ffsend version] ************
+Thursday 06 January 2022  08:29:30 -0500 (0:00:00.063)       0:00:07.823 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Determine whether or not the latest version of ffsend is already installed] ***
+Thursday 06 January 2022  08:29:31 -0500 (0:00:00.621)       0:00:08.444 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Ensure older version of ffsend is uninstalled] ***
+Thursday 06 January 2022  08:29:31 -0500 (0:00:00.061)       0:00:08.506 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Ensure ffsend is installed] ******************
+Thursday 06 January 2022  08:29:31 -0500 (0:00:00.227)       0:00:08.734 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Save meta information about the version of ffsend that was installed] ***
+Thursday 06 January 2022  08:29:32 -0500 (0:00:01.193)       0:00:09.927 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.ffsend : Run generic Linux tasks] *********************
+Thursday 06 January 2022  08:29:33 -0500 (0:00:00.745)       0:00:10.673 ******
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.ffsend : Ensure ffsend's dependencies are installed] ***
+Thursday 06 January 2022  08:29:33 -0500 (0:00:00.145)       0:00:10.818 ******
+fatal: [CentOS-8]: FAILED! => changed=false
+  failures:
+  - No package xclip available.
+  msg: Failed to install some of the specified packages
+  rc: 1
+  results: []
+fatal: [CentOS-Stream-8]: FAILED! => changed=false
+  failures:
+  - No package xclip available.
+  msg: Failed to install some of the specified packages
+  rc: 1
+  results: []
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: No package matching 'xclip' found available, installed or updated
+  rc: 126
+  results:
+  - 1:openssl-1.0.2k-22.el7_9.x86_64 providing openssl is already installed
+  - ca-certificates-2021.2.50-72.el7_9.noarch providing ca-certificates is already installed
+  - No package matching 'xclip' found available, installed or updated
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.ffsend : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  08:30:37 -0500 (0:01:03.318)       0:01:14.136 ******
+changed: [Fedora-33] => (item=~/.config)
+changed: [Fedora-34] => (item=~/.config)
+changed: [Fedora-35] => (item=~/.config)
+changed: [Fedora-33] => (item=~/.config/megabytelabs)
+changed: [Fedora-34] => (item=~/.config/megabytelabs)
+changed: [Fedora-35] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.ffsend : Check if ffsend has configuration stored in ~/.config/megabytelabs/ffsend] ***
+Thursday 06 January 2022  08:30:38 -0500 (0:00:01.180)       0:01:15.317 ******
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.ffsend : Detect previously installed ffsend version] ***
+Thursday 06 January 2022  08:30:38 -0500 (0:00:00.575)       0:01:15.892 ******
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.ffsend : Detect the latest ffsend version] ************
+Thursday 06 January 2022  08:30:38 -0500 (0:00:00.064)       0:01:15.956 ******
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.ffsend : Determine whether or not the latest version of ffsend is already installed] ***
+Thursday 06 January 2022  08:30:39 -0500 (0:00:00.971)       0:01:16.928 ******
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.ffsend : Ensure older version of ffsend is uninstalled] ***
+Thursday 06 January 2022  08:30:40 -0500 (0:00:00.063)       0:01:16.991 ******
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.ffsend : Ensure ffsend is installed] ******************
+Thursday 06 January 2022  08:30:40 -0500 (0:00:00.596)       0:01:17.587 ******
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.ffsend : Save meta information about the version of ffsend that was installed] ***
+Thursday 06 January 2022  08:30:43 -0500 (0:00:02.630)       0:01:20.218 ******
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.ffsend : Run generic Linux tasks] *********************
+Thursday 06 January 2022  08:30:44 -0500 (0:00:01.137)       0:01:21.355 ******
+included: /home/hawkwood/gas-station/roles/deprecated/ffsend/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.ffsend : Ensure ffsend's dependencies are installed] ***
+Thursday 06 January 2022  08:30:44 -0500 (0:00:00.120)       0:01:21.476 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.ffsend : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  08:31:17 -0500 (0:00:32.663)       0:01:54.139 ******
+changed: [Debian-9-Stretch] => (item=~/.config)
+changed: [Debian-10-Buster] => (item=~/.config)
+changed: [Debian-11-Bullseye] => (item=~/.config)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.config)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.config)
+changed: [Ubuntu-21.10-Impish-Indri] => (item=~/.config)
+changed: [Debian-9-Stretch] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.config)
+changed: [Debian-10-Buster] => (item=~/.config/megabytelabs)
+changed: [Debian-11-Bullseye] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-21.10-Impish-Indri] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.ffsend : Check if ffsend has configuration stored in ~/.config/megabytelabs/ffsend] ***
+Thursday 06 January 2022  08:31:17 -0500 (0:00:00.564)       0:01:54.704 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.ffsend : Detect previously installed ffsend version] ***
+Thursday 06 January 2022  08:31:18 -0500 (0:00:00.298)       0:01:55.003 ******
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.ffsend : Detect the latest ffsend version] ************
+Thursday 06 January 2022  08:31:18 -0500 (0:00:00.083)       0:01:55.086 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.ffsend : Determine whether or not the latest version of ffsend is already installed] ***
+Thursday 06 January 2022  08:31:18 -0500 (0:00:00.524)       0:01:55.610 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.ffsend : Ensure older version of ffsend is uninstalled] ***
+Thursday 06 January 2022  08:31:18 -0500 (0:00:00.094)       0:01:55.705 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-11-Bullseye]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.ffsend : Ensure ffsend is installed] ******************
+Thursday 06 January 2022  08:31:19 -0500 (0:00:00.300)       0:01:56.006 ******
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-9-Stretch]
+
+TASK [professormanhattan.ffsend : Save meta information about the version of ffsend that was installed] ***
+Thursday 06 January 2022  08:31:21 -0500 (0:00:02.925)       0:01:58.931 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.ffsend : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  08:31:22 -0500 (0:00:00.593)       0:01:59.525 ******
+ok: [Windows-10] => (item=%USERPROFILE%\.config)
+ok: [Windows-10] => (item=%USERPROFILE%\.config\megabytelabs)
+
+TASK [professormanhattan.ffsend : Check if ffsend has configuration stored in '%USERPROFILE%/.config/megabytelabs/ffsend'] ***
+Thursday 06 January 2022  08:31:26 -0500 (0:00:03.630)       0:02:03.155 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.ffsend : Detect previously installed ffsend version] ***
+Thursday 06 January 2022  08:31:28 -0500 (0:00:02.285)       0:02:05.441 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.ffsend : Detect the latest ffsend version] ************
+Thursday 06 January 2022  08:31:28 -0500 (0:00:00.062)       0:02:05.504 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.ffsend : Determine whether or not the latest version of ffsend is already installed] ***
+Thursday 06 January 2022  08:31:30 -0500 (0:00:02.461)       0:02:07.965 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.ffsend : Ensure C:/Program Files/ffsend/ directory exists] ***
+Thursday 06 January 2022  08:31:31 -0500 (0:00:00.066)       0:02:08.032 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.ffsend : Ensure older version of ffsend is uninstalled] ***
+Thursday 06 January 2022  08:31:32 -0500 (0:00:01.921)       0:02:09.954 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.ffsend : Ensure ffsend is installed] ******************
+Thursday 06 January 2022  08:31:34 -0500 (0:00:01.863)       0:02:11.817 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.ffsend : Ensure ffsend installation is added to PATH] ***
+Thursday 06 January 2022  08:31:38 -0500 (0:00:03.396)       0:02:15.214 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.ffsend : Save meta information about the version of ffsend that was installed] ***
+Thursday 06 January 2022  08:31:39 -0500 (0:00:01.713)       0:02:16.927 ******
+changed: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+CentOS-7                   : ok=4    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-8                   : ok=4    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-Stream-8            : ok=4    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-10-Buster           : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Debian-9-Stretch           : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-33                  : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-34                  : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-35                  : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Windows-10                 : ok=12   changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+
+Thursday 06 January 2022  08:31:44 -0500 (0:00:04.371)       0:02:21.299 ******
+===============================================================================
+professormanhattan.ffsend : Ensure ffsend's dependencies are installed -- 63.32s
+professormanhattan.ffsend : Ensure ffsend's dependencies are installed -- 32.66s
+professormanhattan.ffsend : Save meta information about the version of ffsend that was installed --- 4.37s
+professormanhattan.ffsend : Ensure Megabyte Labs configuration directory exists --- 3.63s
+professormanhattan.ffsend : Ensure ffsend is installed ------------------ 3.40s
+professormanhattan.ffsend : Ensure ffsend is installed ------------------ 2.93s
+Gathering Facts --------------------------------------------------------- 2.90s
+professormanhattan.ffsend : Ensure ffsend's dependencies are installed --- 2.64s
+professormanhattan.ffsend : Ensure ffsend is installed ------------------ 2.63s
+professormanhattan.ffsend : Detect the latest ffsend version ------------ 2.46s
+professormanhattan.ffsend : Check if ffsend has configuration stored in '%USERPROFILE%/.config/megabytelabs/ffsend' --- 2.29s
+professormanhattan.ffsend : Ensure C:/Program Files/ffsend/ directory exists --- 1.92s
+professormanhattan.ffsend : Ensure older version of ffsend is uninstalled --- 1.86s
+professormanhattan.ffsend : Ensure ffsend installation is added to PATH --- 1.71s
+professormanhattan.ffsend : Ensure ffsend is installed ------------------ 1.19s
+professormanhattan.ffsend : Ensure Megabyte Labs configuration directory exists --- 1.18s
+professormanhattan.ffsend : Save meta information about the version of ffsend that was installed --- 1.14s
+professormanhattan.ffsend : Detect the latest ffsend version ------------ 0.97s
+professormanhattan.ffsend : Save meta information about the version of ffsend that was installed --- 0.75s
+professormanhattan.ffsend : Detect the latest ffsend version ------------ 0.62s
+Playbook run took 0 days, 0 hours, 2 minutes, 21 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  08:31:47 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  08:31:58 -0500 (0:00:11.089)       0:00:11.103 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  08:31:58 -0500 (0:00:00.388)       0:00:11.491 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  08:34:33 -0500 (0:02:35.210)       0:02:46.702 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  08:34:34 -0500 (0:00:00.264)       0:02:46.966 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  08:34:35 -0500 (0:00:00.917)       0:02:47.883 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 155.21s
+Gathering Facts -------------------------------------------------------- 11.09s
+Dump instance config ---------------------------------------------------- 0.92s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Populate instance config ------------------------------------------------ 0.26s
+Playbook run took 0 days, 0 hours, 2 minutes, 47 seconds

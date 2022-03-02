@@ -1,0 +1,42 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/consultemplate"
+  stat:
+    path: ~/.config/megabytelabs/consultemplate
+  register: consultemplate_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat consultemplate
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_consultemplate_version
+  when: consultemplate_config.stat.exists
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_consultemplate: "{{ (current_consultemplate_version.skipped | default(false)) or \
+      ((not current_consultemplate_version.skipped | default(false)) and (current_consultemplate_version.stdout != consultemplate_version)) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://releases.hashicorp.com/consul-template/{{ consultemplate_version }}/consul-template_{{ consultemplate_version }}_linux_amd64.zip"
+    dest: "{{ consultemplate_path }}"
+    remote_src: true
+  when: install_consultemplate
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/consultemplate
+    mode: 0600
+    content: |
+      {{ consultemplate_version }}
+  when: install_consultemplate

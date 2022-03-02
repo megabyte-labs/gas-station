@@ -1,0 +1,46 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: bitwarden-cli
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Detect the latest bitwarden-menubar version
+  uri:
+    url: https://api.github.com/repos/jnsdrtlf/bitwarden-menubar/releases/latest
+  register: bitwarden_menubar_latest_release_tag
+
+- name: Determine whether or not the latest version of bitwarden-menubar is already installed
+  set_fact:
+    install_bitwarden_menubar: "{{ (ansible_local.bitwarden_menubar is not defined) or \
+      ((ansible_local.bitwarden_menubar is defined) and \
+      (ansible_local['bitwarden_menubar']['settings']['version'] != bitwarden_menubar_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: Acquire bitwarden-menubar's latest installer"
+  get_url:
+    url: "https://github.com/jnsdrtlf/bitwarden-menubar/releases/download/{{ bitwarden_menubar_latest_release_tag.json.tag_name }}/BitwardenMenu.zip"
+    dest: "/tmp/BitwardenMenu.zip"
+  when: install_bitwarden_menubar
+
+- name: Ensure bitwarden-menubar is installed # noqa 301 303
+  command: tar -x -f "/tmp/BitwardenMenu.zip" -C /Applications
+  args:
+    creates: /Applications/Bitwarden Menu.app
+  when: install_bitwarden_menubar
+
+- name: Save meta information about the version of bitwarden-menubar that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/bitwarden_menubar.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ bitwarden_menubar_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_bitwarden_menubar

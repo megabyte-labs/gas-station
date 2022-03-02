@@ -6,15 +6,18 @@
   uri:
     url: https://www.virtualbox.org/wiki/Linux_Downloads
     return_content: true
-  register: this
+  register: vbox_page
   when: ansible_system == "Linux"
 
 - name: Find the package name to install {{ app_name }} in Linux OSes
   set_fact:
-    vbox_package_name: "{{ this.content | regex_search('tt\\>virtualbox-\\d\\.\\d') | replace ('tt>','') }}"
+    vbox_package_name: "{{ vbox_page.content | regex_search('tt\\>virtualbox-\\d\\.\\d') | replace ('tt>','') }}"
+    vbox_version: "{{ vbox_page.content | regex_search('(\\d\\.)+\\d+ for') | replace (' for','') }}"
   when: ansible_system == "Linux"
 
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"

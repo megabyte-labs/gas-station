@@ -1,8 +1,19 @@
 ---
 - name: Register display manager path
   command: cat /etc/X11/default-display-manager
-  register: display_manager
+  register: display_man
   changed_when: false
+  when: ansible_os_family != 'RedHat'
+
+- name: Register display manager path (RedHat)
+  command: grep '/usr/s\?bin' /etc/systemd/system/display-manager.service
+  register: display_man_rh
+  changed_when: false
+  when: ansible_os_family == 'RedHat'
+
+- name: Backup the display manager query
+  set_fact:
+    display_manager: "{{ display_man if display_man.stdout is defined else display_man_rh }}"
 
 - name: Set auto login user for LightDM
   blockinfile:
@@ -22,7 +33,17 @@
     block: |
       AutomaticLoginEnable = true
       AutomaticLogin = {{ autologin_user }}
-  when: "'gdm3' in display_manager.stdout"
+  when: "'gdm3' in display_manager.stdout and ansible_os_family != 'RedHat'"
+
+- name: Set auto-login user for GDM
+  blockinfile:
+    path: /etc/gdm/custom.conf
+    insertafter: "\\[daemon]"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUTOLOGIN"
+    block: |
+      AutomaticLoginEnable = true
+      AutomaticLogin = {{ autologin_user }}
+  when: "'gdm' in display_manager.stdout and ansible_os_family == 'RedHat'"
 
 - name: Set auto-login user for SDDM
   blockinfile:

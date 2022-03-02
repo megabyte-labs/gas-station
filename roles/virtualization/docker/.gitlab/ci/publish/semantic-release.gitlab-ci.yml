@@ -1,0 +1,22 @@
+---
+semantic-release:
+  stage: publish
+  image: $UPDATER_IMAGE
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: ($CI_PIPELINE_SOURCE == 'pipeline' || $CI_PIPELINE_SOURCE == 'web') && $CI_COMMIT_REF_NAME == 'synchronize'
+  variables:
+    GIT_DEPTH: 1
+    GIT_SUBMODULE_STRATEGY: recursive
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .npm/
+      - .pnpm-store/
+      - .venv/
+  before_script:
+    - bash start.sh
+  script:
+    - . "$HOME/.profile"
+    - task release:semantic-release

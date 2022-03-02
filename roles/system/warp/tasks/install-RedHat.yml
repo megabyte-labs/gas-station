@@ -1,0 +1,22 @@
+---
+- name: "Add {{ app_name }}'s yum repository"
+  yum_repository:
+    baseurl: "{{ warp_rpm_repository }}"
+    description: "{{ app_name }}'s repository"
+    gpgcheck: false
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+    repo_gpgcheck: false
+
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: cloudflare-warp
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,0 +1,20 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_command: go install github.com/gabrie30/ghorg@latest
+  args:
+    creates: "{{ ghorg_goroot }}/bin/ghorg"
+  environment:
+    GOPATH: "{{ ghorg_goroot }}"
+
+- name: "Ensure {{ app_name }} is added to PATH"
+  ansible.windows.win_path:
+    elements:
+      - "{{ ghorg_goroot }}/bin"
+
+- name: Run Windows user tasks
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

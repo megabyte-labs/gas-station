@@ -1,0 +1,18 @@
+---
+- name: Configure SMB File sharing
+  ansible.windows.win_share:
+    name: "{{ share.id }}"
+    description: "{{ share.comment }}"
+    path: "{{ share.path }}"
+    list: "{{ true if share.public else false }}"
+    full: "{{ share.users if share.users is defined else 'Administrators' }}"
+    read: "{{ share.read_only_users if share.read_only_users is defined else omit }}"
+  loop: "{{ samba_shares }}"
+  loop_control:
+    label: "{{ share.id }}"
+    loop_var: share
+  when:
+    - samba_allowed_hosts is defined
+    - samba_netbios_name is defined
+    - samba_workgroup is defined
+    - samba_shares is defined

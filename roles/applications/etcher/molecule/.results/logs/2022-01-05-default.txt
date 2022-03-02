@@ -1,0 +1,609 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.etcher"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.etcher"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  01:27:04 -0500 (0:00:00.014)       0:00:00.014 *****
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Wednesday 05 January 2022  01:27:12 -0500 (0:00:08.222)       0:00:08.236 *****
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Wednesday 05 January 2022  01:27:12 -0500 (0:00:00.339)       0:00:08.576 *****
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Wednesday 05 January 2022  01:27:41 -0500 (0:00:28.622)       0:00:37.198 *****
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Wednesday 05 January 2022  01:27:41 -0500 (0:00:00.170)       0:00:37.368 *****
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Wednesday 05 January 2022  01:27:41 -0500 (0:00:00.303)       0:00:37.671 *****
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.62s
+Gathering Facts --------------------------------------------------------- 8.22s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.34s
+Dump instance config ---------------------------------------------------- 0.30s
+Populate instance config ------------------------------------------------ 0.17s
+Playbook run took 0 days, 0 hours, 0 minutes, 37 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+playbook: /home/hawkwood/gas-station/roles/applications/etcher/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  01:27:44 -0500 (0:00:00.013)       0:00:00.013 *****
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Wednesday 05 January 2022  01:27:52 -0500 (0:00:08.068)       0:00:08.082 *****
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Wednesday 05 January 2022  01:27:53 -0500 (0:00:00.357)       0:00:08.439 *****
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Wednesday 05 January 2022  01:36:58 -0500 (0:09:05.191)       0:09:13.631 *****
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2222', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2200', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2201', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2202', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2203', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2204', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2205', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2206', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2207', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2208', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2209', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2210', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2211', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2212', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/etcher/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2213', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/etcher/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Wednesday 05 January 2022  01:36:59 -0500 (0:00:00.935)       0:09:14.566 *****
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Wednesday 05 January 2022  01:36:59 -0500 (0:00:00.151)       0:09:14.718 *****
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Wednesday 05 January 2022  01:37:00 -0500 (0:00:00.960)       0:09:15.679 *****
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 545.19s
+Gathering Facts --------------------------------------------------------- 8.07s
+Dump instance config ---------------------------------------------------- 0.96s
+Populate instance config dict ------------------------------------------- 0.94s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Convert instance config dict to a list ---------------------------------- 0.15s
+Playbook run took 0 days, 0 hours, 9 minutes, 15 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Wednesday 05 January 2022  01:37:02 -0500 (0:00:00.029)       0:00:00.029 *****
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Wednesday 05 January 2022  01:37:22 -0500 (0:00:20.066)       0:00:20.096 *****
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 20.07s
+Playbook run took 0 days, 0 hours, 0 minutes, 20 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  01:37:25 -0500 (0:00:00.026)       0:00:00.026 *****
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [CentOS-8]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:04.985)       0:00:05.011 *****
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:00.136)       0:00:05.147 *****
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:00.126)       0:00:05.274 *****
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:00.163)       0:00:05.438 *****
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:00.139)       0:00:05.577 *****
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:00.131)       0:00:05.709 *****
+
+TASK [professormanhattan.etcher : Include variables based on the operating system] ***
+Wednesday 05 January 2022  01:37:30 -0500 (0:00:00.180)       0:00:05.889 *****
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.etcher : include_tasks] *******************************
+Wednesday 05 January 2022  01:37:31 -0500 (0:00:00.137)       0:00:06.027 *****
+included: /home/hawkwood/gas-station/roles/applications/etcher/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/applications/etcher/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/applications/etcher/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/applications/etcher/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.etcher : Ensure etcher's dependencies are installed] ***
+Wednesday 05 January 2022  01:37:31 -0500 (0:00:00.230)       0:00:06.257 *****
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.etcher : Ensure etcher's source directory is present] ***
+Wednesday 05 January 2022  01:38:17 -0500 (0:00:46.088)       0:00:52.346 *****
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.etcher : Ensure etcher's source is cloned and up-to-date] ***
+Wednesday 05 January 2022  01:38:17 -0500 (0:00:00.409)       0:00:52.755 *****
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.etcher : Remove /usr/bin/balena-etcher-electron if the source files have changed] ***
+Wednesday 05 January 2022  01:38:20 -0500 (0:00:02.653)       0:00:55.409 *****
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.etcher : Ensure etcher is installed] ******************
+Wednesday 05 January 2022  01:38:20 -0500 (0:00:00.212)       0:00:55.621 *****
+fatal: [ArchLinux-Latest]: FAILED! => changed=true
+  cmd:
+  - makepkg
+  - -sic
+  - --noconfirm
+  delta: '0:00:08.306045'
+  end: '2022-01-05 06:38:29.281690'
+  msg: non-zero return code
+  rc: 8
+  start: '2022-01-05 06:38:20.975645'
+  stderr: |-
+    error: unresolvable package conflicts detected
+    error: failed to prepare transaction (conflicting dependencies)
+    ==> ERROR: 'pacman' failed to install missing dependencies.
+    ==> ERROR: Could not resolve all dependencies.
+  stderr_lines: <omitted>
+  stdout: |-
+    ==> Making package: balena-etcher 1.7.3-1 (Wed Jan  5 06:38:22 2022)
+    ==> Checking runtime dependencies...
+    ==> Installing missing dependencies...
+    resolving dependencies...
+    looking for conflicting packages...
+
+    Packages (1) electron12-12.2.3-2
+
+    Total Download Size:    48.14 MiB
+    Total Installed Size:  158.76 MiB
+
+    :: Proceed with installation? [Y/n]
+    :: Retrieving packages...
+     electron12-12.2.3-2-x86_64 downloading...
+    checking keyring...
+    checking package integrity...
+    loading package files...
+    checking for file conflicts...
+    checking available disk space...
+    :: Processing package changes...
+    installing electron12...
+    Optional dependencies for electron12
+        kde-cli-tools: file deletion support (kioclient5)
+        libappindicator-gtk3: StatusNotifierItem support
+        pipewire: WebRTC desktop sharing under Wayland
+        trash-cli: file deletion support (trash-put)
+        xdg-utils: open URLs with desktop's default (xdg-email, xdg-open)
+    :: Running post-transaction hooks...
+    (1/2) Arming ConditionNeedsUpdate...
+    (2/2) Updating the desktop file MIME type cache...
+    ==> Checking buildtime dependencies...
+    ==> Installing missing dependencies...
+    :: There are 3 providers available for nodejs<17:
+    :: Repository community
+       1) nodejs-lts-erbium  2) nodejs-lts-fermium  3) nodejs-lts-gallium
+
+    Enter a number (default=1):
+    resolving dependencies...
+    looking for conflicting packages...
+    :: nodejs-lts-erbium and nodejs are in conflict. Remove nodejs? [y/N]
+    :: nodejs-lts-erbium and nodejs are in conflict
+    ==> Missing dependencies:
+      -> python2
+      -> nodejs<17
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.etcher : Add etcher's yum repository] *****************
+Wednesday 05 January 2022  01:38:29 -0500 (0:00:08.635)       0:01:04.257 *****
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.etcher : Ensure etcher is installed] ******************
+Wednesday 05 January 2022  01:38:29 -0500 (0:00:00.568)       0:01:04.826 *****
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [CentOS-7]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.etcher : Add etcher's apt key] ************************
+Wednesday 05 January 2022  01:39:46 -0500 (0:01:16.139)       0:02:20.966 *****
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+
+TASK [professormanhattan.etcher : Add etcher's apt repository] *****************
+Wednesday 05 January 2022  01:39:48 -0500 (0:00:02.177)       0:02:23.143 *****
+changed: [Debian-10-Buster]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  msg: 'Failed to update apt cache: E:The method driver /usr/lib/apt/methods/https could not be found., W:Is the package apt-transport-https installed?, E:Failed to fetch https://dl.cloudsmith.io/public/balena/etcher/deb/debian/dists/stretch/InRelease  , E:Some index files failed to download. They have been ignored, or old ones used instead.'
+
+TASK [professormanhattan.etcher : Ensure etcher is installed] ******************
+Wednesday 05 January 2022  01:40:20 -0500 (0:00:32.052)       0:02:55.195 *****
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.etcher : Ensure etcher is installed] ******************
+Wednesday 05 January 2022  01:45:05 -0500 (0:04:45.524)       0:07:40.720 *****
+changed: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=7    changed=3    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=5    changed=2    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+CentOS-8                   : ok=5    changed=2    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+CentOS-Stream-8            : ok=5    changed=2    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Debian-10-Buster           : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Debian-9-Stretch           : ok=4    changed=1    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-33                  : ok=5    changed=2    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Fedora-34                  : ok=5    changed=2    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Fedora-35                  : ok=5    changed=2    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=6    changed=3    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=4    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+
+Wednesday 05 January 2022  01:45:27 -0500 (0:00:21.235)       0:08:01.956 *****
+===============================================================================
+professormanhattan.etcher : Ensure etcher is installed ---------------- 285.52s
+professormanhattan.etcher : Ensure etcher is installed ----------------- 76.14s
+professormanhattan.etcher : Ensure etcher's dependencies are installed -- 46.09s
+professormanhattan.etcher : Add etcher's apt repository ---------------- 32.05s
+professormanhattan.etcher : Ensure etcher is installed ----------------- 21.24s
+professormanhattan.etcher : Ensure etcher is installed ------------------ 8.64s
+Gathering Facts --------------------------------------------------------- 4.99s
+professormanhattan.etcher : Ensure etcher's source is cloned and up-to-date --- 2.65s
+professormanhattan.etcher : Add etcher's apt key ------------------------ 2.18s
+professormanhattan.etcher : Add etcher's yum repository ----------------- 0.57s
+professormanhattan.etcher : Ensure etcher's source directory is present --- 0.41s
+professormanhattan.etcher : include_tasks ------------------------------- 0.23s
+professormanhattan.etcher : Remove /usr/bin/balena-etcher-electron if the source files have changed --- 0.21s
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date --- 0.18s
+professormanhattan.homebrew : include_tasks ----------------------------- 0.16s
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux) --- 0.14s
+professormanhattan.etcher : Include variables based on the operating system --- 0.14s
+professormanhattan.homebrew : Include variables based on the operating system --- 0.14s
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date --- 0.13s
+professormanhattan.homebrew : Register Homebrew bin path information ---- 0.13s
+Playbook run took 0 days, 0 hours, 8 minutes, 1 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Wednesday 05 January 2022  01:45:29 -0500 (0:00:00.014)       0:00:00.014 *****
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Wednesday 05 January 2022  01:45:39 -0500 (0:00:09.211)       0:00:09.225 *****
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Wednesday 05 January 2022  01:45:39 -0500 (0:00:00.408)       0:00:09.634 *****
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Wednesday 05 January 2022  01:48:26 -0500 (0:02:46.801)       0:02:56.436 *****
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Wednesday 05 January 2022  01:48:26 -0500 (0:00:00.132)       0:02:56.569 *****
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Wednesday 05 January 2022  01:48:27 -0500 (0:00:01.005)       0:02:57.575 *****
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 166.80s
+Gathering Facts --------------------------------------------------------- 9.21s
+Dump instance config ---------------------------------------------------- 1.01s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.41s
+Populate instance config ------------------------------------------------ 0.13s
+Playbook run took 0 days, 0 hours, 2 minutes, 57 seconds

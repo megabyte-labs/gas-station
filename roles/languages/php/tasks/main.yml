@@ -1,4 +1,7 @@
 ---
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+
 - name: Include distribution and version-specific vars
   include_vars: "{{ item }}"
   with_first_found:
@@ -10,9 +13,6 @@
   set_fact:
     php_default_version_debian: "{{ __php_default_version_debian }}"
   when: ansible_os_family == 'Debian'
-
-- name: Include OS-specific variables
-  include_vars: "{{ ansible_os_family }}.yml"
 
 - name: Define php_packages
   set_fact:
@@ -54,12 +54,18 @@
     php_fpm_conf_path: "{{ __php_fpm_conf_path }}"
   when: php_fpm_conf_path is not defined
 
+# @action Installs PHP
+# Ensures PHP is installed on macOS, Linux, and Windows systems
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "setup-{{ ansible_os_family }}.yml"
   when: not php_install_from_source
 
+# @action Installs PHP
+# Has the capability of installing PHP from source
 - name: Include tasks based on the operating system (for building PHP from source)
   become: true
   block:

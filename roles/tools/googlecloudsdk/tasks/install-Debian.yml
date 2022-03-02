@@ -1,0 +1,24 @@
+---
+- name: "Ensure {{ app_name }}'s apt key is added"
+  apt_key:
+    url: "{{ gcloud_deb_gpg }}"
+    state: present
+
+- name: "Ensure {{ app_name }}'s apt repository is added"
+  apt_repository:
+    filename: google-cloud-sdk
+    repo: "{{ gcloud_deb_repo }}"
+    state: present
+    update_cache: true
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name: google-cloud-sdk
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: "Ensure {{ app_name }}'s optional components are installed"
+  apt:
+    name: "{{ optional_components }}"
+    state: present
+  when: optional_components is defined

@@ -1,28 +1,30 @@
 ---
 - name: Ensure .ssh folder exists
-  win_file:
+  ansible.windows.win_file:
     path: "{{ ssh_folder }}"
     state: directory
 
 - name: Copy SSH private keys
-  win_copy:
+  ansible.windows.win_copy:
     src: "{{ item }}"
     dest: "{{ ssh_folder }}\\{{ item }}"
-  loop: "{{ user.keys }}"
+  loop: "{{ user.ssh_private_keys }}"
+  when: (user.ssh_private_keys is defined) and (user.ssh_private_keys | bool)
 
 - name: Copy SSH known hosts
-  win_copy:
+  ansible.windows.win_copy:
     src: known_hosts
     dest: "{{ ssh_folder }}\\known_hosts"
 
 - name: Copy SSH config
-  win_template:
-    src: config
+  ansible.windows.win_template:
+    src: config.j2
     dest: "{{ ssh_folder }}\\config"
 
-- name: Ensure proper permissions on the SSH keys # TODO: Verify this actually does something
-  win_command: |
+- name: Ensure proper permissions on the SSH keys
+  ansible.windows.win_command: |
     Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Inheritance:d
     Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Grant %UserName%:F
-    Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Remove Administrator BUILTIN\Administrators BUILTIN Everyone System Users
-  loop: "{{ user.keys }}"
+    Cmd /c Icacls {{ ssh_folder }}\\{{ item }} /c /t /Remove Administrator BUILTIN\Administrators BUILTIN Everyone System Users "Authenticated Users"
+  loop: "{{ user.ssh_private_keys }}"
+  when: (user.ssh_private_keys is defined) and (user.ssh_private_keys | bool)

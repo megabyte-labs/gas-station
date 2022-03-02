@@ -1,0 +1,61 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Ensure {{ app_name }}'s directory exists"
+  ansible.windows.win_file:
+    path: '%PROGRAMFILES%\direnv'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/direnv'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\direnv'
+  register: direnv_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type direnv
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_direnv_version
+  when: direnv_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/direnv/direnv/releases/latest
+    return_content: true
+  register: direnv_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_direnv: "{{ (current_direnv_version.skipped) or \
+      ((not current_direnv_version.skipped) and (current_direnv_version.stdout | trim != direnv_latest_release_tag.json.tag_name | replace('v','') )) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  ansible.windows.win_file:
+    path: '%PROGRAMFILES%\direnv\direnv.exe'
+    state: absent
+  when: install_direnv
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_get_url:
+    url: "{{ 'https://github.com/direnv/direnv/releases/download/' + direnv_latest_release_tag.json.tag_name + '/direnv.windows-amd64.exe' }}"
+    dest: '%PROGRAMFILES%\direnv\direnv.exe'
+  when: install_direnv
+
+- name: "Add new {{ app_name }} PATH"
+  win_path:
+    elements: '%PROGRAMFILES%\direnv\'
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\direnv'
+    content: |
+      {{ direnv_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_direnv

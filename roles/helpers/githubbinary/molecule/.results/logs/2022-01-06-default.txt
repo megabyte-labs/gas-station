@@ -1,0 +1,912 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Skipping install, no requirements found
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.githubbinary"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.githubbinary"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:26:14 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  14:26:23 -0500 (0:00:09.581)       0:00:09.595 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  14:26:24 -0500 (0:00:00.381)       0:00:09.977 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  14:26:53 -0500 (0:00:29.004)       0:00:38.981 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  14:26:53 -0500 (0:00:00.176)       0:00:39.158 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:26:53 -0500 (0:00:00.337)       0:00:39.495 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.00s
+Gathering Facts --------------------------------------------------------- 9.58s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.38s
+Dump instance config ---------------------------------------------------- 0.34s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+
+playbook: /home/hawkwood/gas-station/roles/helpers/githubbinary/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:26:56 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  14:27:06 -0500 (0:00:09.554)       0:00:09.568 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Thursday 06 January 2022  14:27:06 -0500 (0:00:00.370)       0:00:09.938 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Thursday 06 January 2022  14:37:05 -0500 (0:09:59.184)       0:10:09.123 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/githubbinary/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/githubbinary/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Thursday 06 January 2022  14:37:06 -0500 (0:00:01.053)       0:10:10.176 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  14:37:06 -0500 (0:00:00.192)       0:10:10.369 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:37:08 -0500 (0:00:01.028)       0:10:11.398 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 599.18s
+Gathering Facts --------------------------------------------------------- 9.55s
+Populate instance config dict ------------------------------------------- 1.05s
+Dump instance config ---------------------------------------------------- 1.03s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.19s
+Playbook run took 0 days, 0 hours, 10 minutes, 11 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Thursday 06 January 2022  14:37:10 -0500 (0:00:00.028)       0:00:00.028 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:37:30 -0500 (0:00:20.035)       0:00:20.063 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 20.04s
+Playbook run took 0 days, 0 hours, 0 minutes, 20 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:37:32 -0500 (0:00:00.024)       0:00:00.024 ******
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-8]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Include variables based on the operating system] ***
+Thursday 06 January 2022  14:37:35 -0500 (0:00:02.901)       0:00:02.926 ******
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.githubbinary : include_tasks] *************************
+Thursday 06 January 2022  14:37:35 -0500 (0:00:00.128)       0:00:03.054 ******
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.githubbinary : Run generic Linux tasks] ***************
+Thursday 06 January 2022  14:37:35 -0500 (0:00:00.201)       0:00:03.255 ******
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/goodwithtech/dockle)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/gravitational/teleport)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/stedolan/jq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/mikefarah/yq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/docker-slim/docker-slim)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/profclems/glab)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/zricethezav/gitleaks)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/go-task/task)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/aquasecurity/trivy)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/akopytov/sysbench)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/dandavison/delta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/agalwood/Motrix)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/marktext/marktext)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/Eugeny/tabby)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/oldj/SwitchHosts)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/webtorrent/webtorrent-desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/cerebroapp/cerebro)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/nukeop/nuclear)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/FaisalUmair/udemy-downloader-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/hql287/Manta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/sqlectron/sqlectron-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/altair-graphql/altair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/henryboldi/felony)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/manosim/gitify)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/trufflesuite/ganache)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/mockoon/mockoon)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/bitwarden/desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/Tomotoes/scrcpy-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/antonreshetov/massCode)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/mullvad/mullvadvpn-app)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/lukehaas/RunJS)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/gillesdemey/Cumulus)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/emqx/MQTTX)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/jitsi/jitsi-meet-electron)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/kubenav/kubenav)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/datproject/dat)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/quay/clair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/mattolenik/hclq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/amiechen/pretzel)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/jackd248/temps)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/raviqqe/muffet)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/deta/deta-cli)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/XAMPPRocky/tokei)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/jarun/nnn)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/digitalocean/doctl)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/bcicen/ctop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for ArchLinux-Latest => (item=github.com/sharkdp/hyperfine)
+
+TASK [professormanhattan.githubbinary : Ensure custom facts directory exists] ***
+Thursday 06 January 2022  14:37:36 -0500 (0:00:00.633)       0:00:03.889 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Save GitHub Repository information as facts] ***
+Thursday 06 January 2022  14:37:36 -0500 (0:00:00.339)       0:00:04.229 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Ensure source directory for dockle exists] ***
+Thursday 06 January 2022  14:37:36 -0500 (0:00:00.104)       0:00:04.333 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Detect the latest version of dockle] ***
+Thursday 06 January 2022  14:37:37 -0500 (0:00:00.217)       0:00:04.551 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Provide instructions if Releases are not published] ***
+Thursday 06 January 2022  14:37:37 -0500 (0:00:00.783)       0:00:05.334 ******
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Determine whether or not the latest version of dockle is already installed] ***
+Thursday 06 January 2022  14:37:38 -0500 (0:00:00.062)       0:00:05.397 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Filter the release file names based on System Architecture] ***
+Thursday 06 January 2022  14:37:38 -0500 (0:00:00.058)       0:00:05.455 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Find the list of extensions based on preferred_install_method provided] ***
+Thursday 06 January 2022  14:37:38 -0500 (0:00:00.074)       0:00:05.530 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Find the name of the installer file for dockle] ***
+Thursday 06 January 2022  14:37:38 -0500 (0:00:00.074)       0:00:05.604 ******
+fatal: [ArchLinux-Latest -> localhost]: FAILED! => changed=false
+  module_stderr: |2-
+
+    Sorry, try again.
+    [sudo via ansible, key=jiblwarunlmlberbpxjolfxgcshhuulh] password:
+    sudo: timed out reading password
+    sudo: 1 incorrect password attempt
+  module_stdout: ''
+  msg: |-
+    MODULE FAILURE
+    See stdout/stderr for the exact error
+  rc: 1
+
+TASK [professormanhattan.githubbinary : Reset variables] ***********************
+Thursday 06 January 2022  14:42:43 -0500 (0:05:04.834)       0:05:10.439 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.githubbinary : Run generic Linux tasks] ***************
+Thursday 06 January 2022  14:43:48 -0500 (0:01:05.554)       0:06:15.993 ******
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/goodwithtech/dockle)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/gravitational/teleport)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/stedolan/jq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/mikefarah/yq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/docker-slim/docker-slim)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/profclems/glab)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/zricethezav/gitleaks)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/go-task/task)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/aquasecurity/trivy)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/akopytov/sysbench)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/dandavison/delta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/agalwood/Motrix)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/marktext/marktext)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/Eugeny/tabby)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/oldj/SwitchHosts)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/webtorrent/webtorrent-desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/cerebroapp/cerebro)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/nukeop/nuclear)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/FaisalUmair/udemy-downloader-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/hql287/Manta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/sqlectron/sqlectron-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/altair-graphql/altair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/henryboldi/felony)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/manosim/gitify)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/trufflesuite/ganache)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/mockoon/mockoon)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/bitwarden/desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/Tomotoes/scrcpy-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/antonreshetov/massCode)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/mullvad/mullvadvpn-app)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/lukehaas/RunJS)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/gillesdemey/Cumulus)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/emqx/MQTTX)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/jitsi/jitsi-meet-electron)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/kubenav/kubenav)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/datproject/dat)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/quay/clair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/mattolenik/hclq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/amiechen/pretzel)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/jackd248/temps)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/raviqqe/muffet)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/deta/deta-cli)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/XAMPPRocky/tokei)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/jarun/nnn)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/digitalocean/doctl)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/bcicen/ctop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for CentOS-7, Fedora-34, CentOS-8, Fedora-33, CentOS-Stream-8, Fedora-35 => (item=github.com/sharkdp/hyperfine)
+
+TASK [professormanhattan.githubbinary : Ensure custom facts directory exists] ***
+Thursday 06 January 2022  14:43:49 -0500 (0:00:00.979)       0:06:16.973 ******
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [CentOS-7]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.githubbinary : Save GitHub Repository information as facts] ***
+Thursday 06 January 2022  14:43:50 -0500 (0:00:00.712)       0:06:17.685 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Ensure source directory for dockle exists] ***
+Thursday 06 January 2022  14:43:50 -0500 (0:00:00.100)       0:06:17.785 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.githubbinary : Detect the latest version of dockle] ***
+Thursday 06 January 2022  14:43:50 -0500 (0:00:00.466)       0:06:18.252 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Provide instructions if Releases are not published] ***
+Thursday 06 January 2022  14:43:51 -0500 (0:00:00.737)       0:06:18.989 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Determine whether or not the latest version of dockle is already installed] ***
+Thursday 06 January 2022  14:43:51 -0500 (0:00:00.100)       0:06:19.090 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Filter the release file names based on System Architecture] ***
+Thursday 06 January 2022  14:43:51 -0500 (0:00:00.095)       0:06:19.185 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Find the list of extensions based on preferred_install_method provided] ***
+Thursday 06 January 2022  14:43:51 -0500 (0:00:00.108)       0:06:19.294 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Find the name of the installer file for dockle] ***
+Thursday 06 January 2022  14:43:52 -0500 (0:00:00.102)       0:06:19.396 ******
+fatal: [CentOS-7 -> localhost]: FAILED! => changed=false
+  module_stderr: |2-
+
+    Sorry, try again.
+    [sudo via ansible, key=kmbyvvnwymqadoyniptrefgjiinrskoy] password:
+    sudo: timed out reading password
+    sudo: 1 incorrect password attempt
+  module_stdout: ''
+  msg: |-
+    MODULE FAILURE
+    See stdout/stderr for the exact error
+  rc: 1
+fatal: [CentOS-8 -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [CentOS-Stream-8 -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Fedora-33 -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Fedora-34 -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Fedora-35 -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+
+TASK [professormanhattan.githubbinary : Reset variables] ***********************
+Thursday 06 January 2022  15:14:08 -0500 (0:30:16.747)       0:36:36.144 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.githubbinary : Run generic Linux tasks] ***************
+Thursday 06 January 2022  15:14:49 -0500 (0:00:40.563)       0:37:16.707 ******
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/goodwithtech/dockle)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/gravitational/teleport)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/stedolan/jq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/mikefarah/yq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/docker-slim/docker-slim)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/profclems/glab)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/zricethezav/gitleaks)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/go-task/task)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/aquasecurity/trivy)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/akopytov/sysbench)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/dandavison/delta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/agalwood/Motrix)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/marktext/marktext)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/Eugeny/tabby)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/oldj/SwitchHosts)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/webtorrent/webtorrent-desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/cerebroapp/cerebro)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/nukeop/nuclear)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/FaisalUmair/udemy-downloader-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/hql287/Manta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/sqlectron/sqlectron-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/altair-graphql/altair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/henryboldi/felony)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/manosim/gitify)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/trufflesuite/ganache)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/mockoon/mockoon)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/bitwarden/desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/Tomotoes/scrcpy-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/antonreshetov/massCode)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/mullvad/mullvadvpn-app)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/lukehaas/RunJS)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/gillesdemey/Cumulus)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/emqx/MQTTX)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/jitsi/jitsi-meet-electron)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/kubenav/kubenav)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/datproject/dat)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/quay/clair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/mattolenik/hclq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/amiechen/pretzel)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/jackd248/temps)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/raviqqe/muffet)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/deta/deta-cli)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/XAMPPRocky/tokei)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/jarun/nnn)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/digitalocean/doctl)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/bcicen/ctop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/install-Linux.yml for Debian-11-Bullseye, Ubuntu-21.04-Hirsute-Hippo, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.10-Impish-Indri, Debian-10-Buster => (item=github.com/sharkdp/hyperfine)
+
+TASK [professormanhattan.githubbinary : Ensure custom facts directory exists] ***
+Thursday 06 January 2022  15:14:50 -0500 (0:00:01.197)       0:37:17.904 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.githubbinary : Save GitHub Repository information as facts] ***
+Thursday 06 January 2022  15:14:51 -0500 (0:00:00.800)       0:37:18.705 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Ensure source directory for dockle exists] ***
+Thursday 06 January 2022  15:14:51 -0500 (0:00:00.114)       0:37:18.819 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Detect the latest version of dockle] ***
+Thursday 06 January 2022  15:14:51 -0500 (0:00:00.320)       0:37:19.140 ******
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.githubbinary : Provide instructions if Releases are not published] ***
+Thursday 06 January 2022  15:14:52 -0500 (0:00:00.564)       0:37:19.705 ******
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Determine whether or not the latest version of dockle is already installed] ***
+Thursday 06 January 2022  15:14:52 -0500 (0:00:00.108)       0:37:19.813 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Filter the release file names based on System Architecture] ***
+Thursday 06 January 2022  15:14:52 -0500 (0:00:00.122)       0:37:19.935 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Find the list of extensions based on preferred_install_method provided] ***
+Thursday 06 January 2022  15:14:52 -0500 (0:00:00.123)       0:37:20.058 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Find the name of the installer file for dockle] ***
+Thursday 06 January 2022  15:14:52 -0500 (0:00:00.116)       0:37:20.175 ******
+fatal: [Debian-10-Buster -> localhost]: FAILED! => changed=false
+  module_stderr: |2-
+
+    Sorry, try again.
+    [sudo via ansible, key=nnavdejtwgcqtthfwudveeoenpwsfman] password:
+    sudo: timed out reading password
+    sudo: 1 incorrect password attempt
+  module_stdout: ''
+  msg: |-
+    MODULE FAILURE
+    See stdout/stderr for the exact error
+  rc: 1
+fatal: [Debian-11-Bullseye -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Debian-9-Stretch -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Ubuntu-18.04-Bionic-Beaver -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Ubuntu-20.04-Focal-Fossa -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Ubuntu-21.04-Hirsute-Hippo -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+fatal: [Ubuntu-21.10-Impish-Indri -> localhost]: FAILED! =>
+  msg: |-
+    timeout waiting for privilege escalation password prompt:
+
+TASK [professormanhattan.githubbinary : Reset variables] ***********************
+Thursday 06 January 2022  15:50:10 -0500 (0:35:17.307)       1:12:37.483 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.githubbinary : Run generic Windows tasks] *************
+Thursday 06 January 2022  15:50:43 -0500 (0:00:33.238)       1:13:10.722 ******
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/goodwithtech/dockle)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/gravitational/teleport)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/stedolan/jq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/mikefarah/yq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/docker-slim/docker-slim)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/profclems/glab)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/zricethezav/gitleaks)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/go-task/task)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/aquasecurity/trivy)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/akopytov/sysbench)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/dandavison/delta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/agalwood/Motrix)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/marktext/marktext)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/Eugeny/tabby)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/oldj/SwitchHosts)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/webtorrent/webtorrent-desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/cerebroapp/cerebro)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/nukeop/nuclear)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/FaisalUmair/udemy-downloader-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/hql287/Manta)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/sqlectron/sqlectron-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/altair-graphql/altair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/henryboldi/felony)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/manosim/gitify)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/trufflesuite/ganache)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/mockoon/mockoon)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/bitwarden/desktop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/Tomotoes/scrcpy-gui)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/antonreshetov/massCode)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/mullvad/mullvadvpn-app)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/lukehaas/RunJS)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/gillesdemey/Cumulus)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/emqx/MQTTX)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/jitsi/jitsi-meet-electron)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/kubenav/kubenav)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/datproject/dat)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/quay/clair)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/mattolenik/hclq)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/amiechen/pretzel)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/jackd248/temps)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/raviqqe/muffet)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/deta/deta-cli)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/XAMPPRocky/tokei)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/jarun/nnn)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/digitalocean/doctl)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/bcicen/ctop)
+included: /home/hawkwood/gas-station/roles/helpers/githubbinary/tasks/continue-Windows.yml for Windows-10 => (item=github.com/sharkdp/hyperfine)
+
+TASK [professormanhattan.githubbinary : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  15:50:44 -0500 (0:00:00.714)       1:13:11.437 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Save GitHub Repository information as facts] ***
+Thursday 06 January 2022  15:50:46 -0500 (0:00:01.937)       1:13:13.374 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Ensure installation folder for dockle exists] ***
+Thursday 06 January 2022  15:50:46 -0500 (0:00:00.081)       1:13:13.455 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Check if dockle has configuration stored in '%USERPROFILE%/.config/megabytelabs/dockle'] ***
+Thursday 06 January 2022  15:50:47 -0500 (0:00:01.833)       1:13:15.288 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Detect previously installed dockle version] ***
+Thursday 06 January 2022  15:50:50 -0500 (0:00:02.221)       1:13:17.509 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Detect the latest dockle version] ******
+Thursday 06 January 2022  15:50:50 -0500 (0:00:00.070)       1:13:17.580 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.githubbinary : Provide instructions if Releases are not published] ***
+Thursday 06 January 2022  15:50:52 -0500 (0:00:02.483)       1:13:20.063 ******
+fatal: [Windows-10]: FAILED! => changed=false
+  msg: dockle does not have releases published as GitHub Releases. Please check the repository for installation steps
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+CentOS-7                   : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+CentOS-8                   : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+CentOS-Stream-8            : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Debian-10-Buster           : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Debian-9-Stretch           : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Fedora-33                  : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Fedora-34                  : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Fedora-35                  : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=59   changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Windows-10                 : ok=56   changed=1    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  15:51:41 -0500 (0:00:48.455)       1:14:08.519 ******
+===============================================================================
+professormanhattan.githubbinary : Find the name of the installer file for dockle  2117.31s
+professormanhattan.githubbinary : Find the name of the installer file for dockle  1816.75s
+professormanhattan.githubbinary : Find the name of the installer file for dockle - 304.83s
+professormanhattan.githubbinary : Reset variables ---------------------- 65.55s
+professormanhattan.githubbinary : Provide instructions if Releases are not published -- 48.46s
+professormanhattan.githubbinary : Reset variables ---------------------- 40.56s
+professormanhattan.githubbinary : Reset variables ---------------------- 33.24s
+Gathering Facts --------------------------------------------------------- 2.90s
+professormanhattan.githubbinary : Detect the latest dockle version ------ 2.48s
+professormanhattan.githubbinary : Check if dockle has configuration stored in '%USERPROFILE%/.config/megabytelabs/dockle' --- 2.22s
+professormanhattan.githubbinary : Ensure Megabyte Labs configuration directory exists --- 1.94s
+professormanhattan.githubbinary : Ensure installation folder for dockle exists --- 1.83s
+professormanhattan.githubbinary : Run generic Linux tasks --------------- 1.20s
+professormanhattan.githubbinary : Run generic Linux tasks --------------- 0.98s
+professormanhattan.githubbinary : Ensure custom facts directory exists --- 0.80s
+professormanhattan.githubbinary : Detect the latest version of dockle --- 0.78s
+professormanhattan.githubbinary : Detect the latest version of dockle --- 0.74s
+professormanhattan.githubbinary : Run generic Windows tasks ------------- 0.71s
+professormanhattan.githubbinary : Ensure custom facts directory exists --- 0.71s
+professormanhattan.githubbinary : Run generic Linux tasks --------------- 0.63s
+Playbook run took 0 days, 1 hours, 14 minutes, 8 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  15:51:44 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  15:51:55 -0500 (0:00:11.055)       0:00:11.069 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  15:51:55 -0500 (0:00:00.384)       0:00:11.454 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  15:54:31 -0500 (0:02:35.750)       0:02:47.204 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  15:54:31 -0500 (0:00:00.134)       0:02:47.339 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  15:54:32 -0500 (0:00:00.945)       0:02:48.284 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 155.75s
+Gathering Facts -------------------------------------------------------- 11.06s
+Dump instance config ---------------------------------------------------- 0.95s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.38s
+Populate instance config ------------------------------------------------ 0.13s
+Playbook run took 0 days, 0 hours, 2 minutes, 48 seconds

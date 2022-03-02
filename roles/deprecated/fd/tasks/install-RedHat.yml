@@ -1,0 +1,53 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: fd-find
+    state: "{{ app_state | default('present') }}"
+  when: ansible_distribution == 'Fedora'
+
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: Ensure custom facts directory exists
+      file:
+        path: /etc/ansible/facts.d
+        mode: 0755
+        state: directory
+    - name: "Ensure {{ fd_src_directory }} exists"
+      file:
+        path: "{{ fd_src_directory }}"
+        mode: 0755
+        state: directory
+    - name: "Detect the latest {{ app_name }} version"
+      uri:
+        url: https://api.github.com/repos/sharkdp/fd/releases/latest
+      register: fd_latest_release_tag
+    - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+      set_fact:
+        install_fd: "{{ (ansible_local.fd is not defined) or \
+          ((ansible_local.fd is defined) and \
+          (ansible_local['fd']['settings']['version'] != fd_latest_release_tag.json.tag_name | replace('v',''))) }}"
+    - name: "Ensure {{ app_name }} is downloaded"
+      unarchive:
+        src: "https://github.com/sharkdp/fd/releases/download/{{ fd_latest_release_tag.json.tag_name }}/\
+          fd-{{ fd_latest_release_tag.json.tag_name }}-x86_64-unknown-linux-musl.tar.gz"
+        dest: "{{ fd_src_directory }}"
+        extra_opts:
+          - --strip-components=1
+        remote_src: true
+      when: install_fd
+    - name: "Ensure {{ app_name }} is linked"
+      file:
+        src: "{{ fd_src_directory }}/fd"
+        dest: /usr/local/bin/fd
+        state: link
+    - name: "Save meta information about the version of {{ app_name }} that was installed"
+      community.general.ini_file:
+        path: /etc/ansible/facts.d/fd.fact
+        mode: 0644
+        section: settings
+        option: version
+        value: "{{ fd_latest_release_tag.json.tag_name | replace('v','') }}"
+        backup: true
+        no_extra_spaces: true
+      when: install_fd
+  when: ansible_distribution != 'Fedora'

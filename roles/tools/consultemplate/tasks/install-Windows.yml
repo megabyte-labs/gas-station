@@ -1,0 +1,65 @@
+---
+- name: "Find the latest version of {{ app_name }} from the release page"
+  ansible.windows.win_uri:
+    url: https://releases.hashicorp.com/consul-template/
+    return_content: true
+  register: consultemplate_version
+
+- name: "Save the version of {{ app_name }} to a variable"
+  set_fact:
+    consultemplate_version: "{{ consultemplate_version.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/consultemplate'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\consultemplate'
+  register: consultemplate_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type consultemplate
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_consultemplate_version
+  when: consultemplate_config.stat.exists
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_consultemplate: "{{ (current_consultemplate_version.skipped | default(false)) or \
+      ((not current_consultemplate_version.skipped | default(false)) and (current_consultemplate_version.stdout | trim != consultemplate_version)) }}"
+
+- name: "Ensure {{ consultemplate_path }} directory exists"
+  ansible.windows.win_file:
+    path: "{{ consultemplate_path }}"
+    state: directory
+
+- name: "Ensure {{ app_name }} is downloaded and up-to-date"
+  ansible.windows.win_get_url:
+    url: "https://releases.hashicorp.com/consul-template/{{ consultemplate_version }}/consul-template_{{ consultemplate_version }}_windows_amd64.zip"
+    dest: "{{ consultemplate_path }}/consul-template.zip"
+  when: install_consultemplate
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: "{{ consultemplate_path }}/consul-template.zip"
+    dest: "{{ consultemplate_path }}"
+    delete_archive: true
+  when: install_consultemplate
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: "{{ consultemplate_path }}"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\consultemplate'
+    content: |
+      {{ consultemplate_version }}
+  when: install_consultemplate

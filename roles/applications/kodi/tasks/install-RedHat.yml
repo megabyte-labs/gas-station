@@ -1,0 +1,44 @@
+---
+- name: Add EPEL repository
+  dnf:
+    name: "{{ epel_repo_url }}"
+    state: present
+    disable_gpg_check: true
+  when: ansible_distribution != 'Fedora'
+
+- name: Add RPM Fusion Free repository
+  dnf:
+    name: "{{ rpmfusion_repo_url }}"
+    state: present
+    disable_gpg_check: true
+  register: rpm_fusion_install
+
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: kodi
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ true if rpm_fusion_install.changed else false }}"
+
+- name: Ensure add-ons are installed
+  dnf:
+    name: "{{ kodi_addons }}"
+    state: present
+  when: kodi_addons is defined
+
+- name: Ensure MariaDB is installed
+  dnf:
+    name: mariadb-server
+    state: present
+  when: kodi_mysql_ishost
+
+- name: Run SQL tasks
+  include_tasks: sql-Linux.yml
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

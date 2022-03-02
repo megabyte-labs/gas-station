@@ -1,0 +1,118 @@
+---
+version: '3'
+
+vars:
+  TINYPNG_API_KEY: z4qhFBLRvNMG9rHmdkSLx1DR1FNZN5gc
+
+tasks:
+  compress:
+    deps:
+      - :install:npm:tinypng
+      - :install:software:exiftool
+    desc: Compress JPG/PNG images via TinyPNG
+    summary: |
+      # Compress JPG/PNG images via TinyPNG
+
+      Finding the best stack for compressing images is not easy. All the best stacks seem to
+      only be available for macOS. This task gets around this shortcoming by using [TinyPNG](https://tinypng.org)
+      to compress images. Although relying on a third-party service is not ideal, TinyPNG does
+      a fantastic job compressing images. After an image is compressed, file meta is stored to the
+      image using 'exiftool'. This helps us avoid compressing the same image twice.
+
+      An API key is embedded in these Taskfiles but it is a free one and has usage limits. If you
+      would like to use your own credits then you can [sign up for a developer account here]
+      (https://tinypng.com/developers). After you sign up, save your key to a file at `~/.tinypng`
+      and this task will use your API key instead.
+
+      **Example of compressing all '**.*.(jpg|png)' files in a project:**
+      `task image:compress`
+
+      **Example of compressing single image:**
+      `task image:compress -- ./path/image.png`
+    cmds:
+      - task: compress:{{if .CLI_ARGS}}cli{{else}}default{{end}}
+
+  compress:cli:
+    cmds:
+      - |
+        function compressImage() {
+          if exiftool "$1" &> /dev/null; then
+            if (exiftool "$1" | grep Comment | grep tinypng-compressed) > /dev/null; then
+              .config/log info '`'"$1"'` has already been compressed by TinyPNG'
+            else
+              if [ -f ~/.tinypng ]; then
+                {{.NPX_HANDLE}}tinypng "$1"
+              else
+                {{.NPX_HANDLE}}tinypng -k "{{.TINYPNG_API_KEY}}" "$1"
+              fi
+              .config/log "Adding 'tinypng-compressed' as a comment in the EXIF data"
+              exiftool -overwrite_original -comment="tinypng-compressed" "$1"
+              .config/log success "Successfully compressed $1"
+            fi
+          else
+            .config/log error 'Failed to extract EXIF data from `$1` so the compression is being skipped'
+          fi
+        }
+        compressImage '{{.CLI_ARGS}}'
+
+  compress:default:
+    cmds:
+      - |
+        function compressImage() {
+          if exiftool "$1" &> /dev/null; then
+            if (exiftool "$1" | grep Comment | grep tinypng-compressed) > /dev/null; then
+              .config/log info '`'"$1"'` has already been compressed by TinyPNG'
+            else
+              if [ -f ~/.tinypng ]; then
+                {{.NPX_HANDLE}}tinypng "$1"
+              else
+                {{.NPX_HANDLE}}tinypng -k "{{.TINYPNG_API_KEY}}" "$1"
+              fi
+              .config/log "Adding 'tinypng-compressed' as a comment in the EXIF data"
+              exiftool -overwrite_original -comment="tinypng-compressed" "$1"
+              .config/log success "Successfully compressed $1"
+            fi
+          else
+            .config/log error 'Failed to extract EXIF data from `$1` so the compression is being skipped'
+          fi
+        }
+        while read PATHH; do
+          compressImage "$PATHH"
+        done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.jpg' -o -name '*.png' \))
+    sources:
+      - '**/*.(jpg|png)'
+
+  resize:
+    deps:
+      - :install:npm:sharp
+      - :install:software:exiftool
+    desc: Resize an image
+    summary: |
+      # Resize images
+
+      This task leverages the NPM package named `sharp` to resize images. To use this task,
+      specify the width, followed by the height, and then the image path (or just the name
+      if it is in the same directory). Alternatively, you can open an interactive dialog
+      to walk you through the process.
+
+      **Example opening an interactive dialog:**
+      `task image:resize`
+
+      **Example changing the width to 200px and height to 240px of an image named `image.png`:**
+      `task image:resize -- 200 240 image.png`
+    cmds:
+      - task: resize:{{if .CLI_ARGS}}cli{{else}}default{{end}}
+
+  resize:cli:
+    cmds:
+      - |
+        ARGS_ARRAY=({{.CLI_ARGS}})
+        if ! exiftool "${ARGS_ARRAY[2]}" | grep "Image Size" | grep "${ARGS_ARRAY[0]}x${ARGS_ARRAY[1]}"; then
+          {{.NPX_HANDLE}}sharp -i "${ARGS_ARRAY[2]}" -o "${ARGS_ARRAY[2]}.resized" resize "${ARGS_ARRAY[0]}" "${ARGS_ARRAY[1]}"
+          mv "${ARGS_ARRAY[2]}.resized" "${ARGS_ARRAY[2]}"
+          .config/log success "Successfully resized ${ARGS_ARRAY[2]}"
+        fi
+    status:
+      - 'exiftool "${ARGS_ARRAY[2]}" | grep "Image Size" | grep "${ARGS_ARRAY[0]}x${ARGS_ARRAY[1]}"'
+
+  resize:default: .config/log info "Interactive dialog coming eventually.."

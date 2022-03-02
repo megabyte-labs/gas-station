@@ -1,0 +1,36 @@
+---
+version: '3.7'
+
+services:
+
+  statup:
+    container_name: StatPing
+    image: statping/statping:latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - 26799:8080
+    volumes:
+      - ./statup/app:/app
+    environment:
+      VIRTUAL_HOST: localhost
+      VIRTUAL_PORT: 8080
+      DB_CONN: postgres
+      DB_HOST: postgres
+      DB_USER: statup
+      DB_PASS: $POSTGRES_PASSWORD
+      DB_DATABASE: statup
+      NAME: Megabyte Labs
+      DESCRIPTION: Uptime and latency reports for endpoints included in the Megabyte Labs ecosystem
+
+  postgres:
+    container_name: Postgres
+    image: postgres:10
+    restart: unless-stopped
+    volumes:
+      - ./statup/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_USER: statup
+      POSTGRES_DB: statup

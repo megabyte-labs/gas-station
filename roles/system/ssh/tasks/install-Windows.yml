@@ -1,2 +1,28 @@
 ---
-# TODO: Ensure Windows software required for SSHing is installed in this file
+- name: Ensure openssh-server is installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: openssh
+    state: "{{ app_state | default('present') }}"
+    package_params: "/SSHServerFeature /SSHAgentFeature"
+
+- name: Ensure Windows Firewall allows SSH
+  community.windows.win_firewall_rule:
+    name: SSH
+    localport: 22
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: true
+
+- name: Ensure SSH daemon is running and that it will start on boot
+  ansible.windows.win_service:
+    name: sshd
+    state: started
+    start_mode: auto
+
+- name: Generate and copy over sshd_config
+  ansible.windows.win_template:
+    src: sshd_config.j2
+    dest: "{{ ssh_config_path }}\\sshd_config"
+  notify: restart sshd win

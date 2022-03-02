@@ -1,36 +1,26 @@
 ---
-image: docker:git
+stages:
+  - update
+  - lint
+  - test
+  - publish
 
-services:
-  - docker:dind
+variables:
+  ANSIBLE_CONFIG: ${CI_PROJECT_DIR}/ansible.cfg
 
-before_script:
-  - apk update && apk add --no-cache \
-    autoconf \
-    automake \
-    build-base \
-    curl \
-    docker \
-    gcc \
-    git \
-    libffi-dev \
-    linux-headers \
-    musl-dev \
-    openssh \
-    openssl-dev \
-    py3-cryptography \
-    py3-pip docker \
-    python3-dev
-  - docker info
-  - python3 --version
-  - pip3 install \
-    ansible \
-    ansiblelint \
-    docker \
-    molecule \
-    yamllint
-
-molecule:
-  stage: test
-  script:
-    - molecule test
+include:
+  - local: .gitlab/ci/lint/ansible-lint.gitlab-ci.yml
+  - local: .gitlab/ci/lint/eslint.gitlab-ci.yml
+  - local: .gitlab/ci/lint/python/flake8.gitlab-ci.yml
+  - local: .gitlab/ci/lint/hadolint.gitlab-ci.yml
+  - local: .gitlab/ci/lint/prettier.gitlab-ci.yml
+  - local: .gitlab/ci/lint/shellcheck.gitlab-ci.yml
+  - local: .gitlab/ci/lint/yamllint.gitlab-ci.yml
+  - local: .gitlab/ci/publish/ansible/galaxy.gitlab-ci.yml
+  - local: .gitlab/ci/test/ansible/role.gitlab-ci.yml
+  - local: .gitlab/ci/test/ansible/role.macos.gitlab-ci.yml
+  - local: .gitlab/ci/test/ansible/role.windows.gitlab-ci.yml
+  - local: .gitlab/ci/update/project.gitlab-ci.yml
+  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml

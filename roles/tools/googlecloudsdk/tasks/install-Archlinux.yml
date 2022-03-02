@@ -1,0 +1,33 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ gcloud_dependencies }}"
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date" # noqa 401
+  git:
+    repo: "{{ gcloud_aur_repo_url }}"
+    dest: "{{ temp_directory }}"
+  register: gcloud_git
+
+- name: "Ensure existing version of {{ app_name }} is removed" # noqa 503
+  file:
+    path: /usr/local/bin/gcloud
+    state: absent
+  when: gcloud_git.changed
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ temp_directory }}"
+    creates: /usr/local/bin/gcloud
+  when: gcloud_git.changed
+
+- name: "Ensure {{ app_name }}'s optional components are installed" # noqa 503
+  command: "gcloud components install {{ component }}"
+  loop: "{{ optional_components }}"
+  loop_control:
+    label: "{{ component }}"
+    loop_var: component
+  when: optional_components is defined

@@ -1,0 +1,27 @@
+---
+- name: Check if source is present
+  ansible.windows.win_stat:
+    path: "{{ repo.dest }}\\.git"
+  register: repo_stat
+
+- name: Ensure Repository containing the Scripts to debloat Windows is cloned
+  ansible.windows.win_command: git clone {{ repo.url }}
+  args:
+    chdir: "{{ repo.dest | win_dirname }}"
+  register: repo_clone
+  when: not repo_stat.stat.exists
+
+- name: Ensure source is up-to-date
+  ansible.windows.win_command: git pull
+  args:
+    chdir: "{{ repo.dest }}"
+  when: repo_stat.stat.exists
+  register: repo_pull
+  changed_when: not (repo_pull.rc == 0 and ('Already up to date' in repo_pull.stdout))
+
+- name: Ensure script is run # noqa 503
+  ansible.windows.win_shell: "{{ item }}"
+  args:
+    chdir: "{{ repo.dest }}"
+  when: repo_clone.changed or repo_pull.changed
+  loop: "{{ repo.commands }}"

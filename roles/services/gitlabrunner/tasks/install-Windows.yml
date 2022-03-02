@@ -1,0 +1,38 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: gitlab-runner
+    state: "{{ app_state | default('present') }}"
+    package_params: /Service /InstallDir:"{{ gitlab_runner_path }}"
+
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/gitlabrunner'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\gitlabrunner'
+  register: gitlabrunner_config
+
+- name: "Ensure {{ app_name }} is registered" # noqa 503
+  ansible.windows.win_command: gitlab-runner.exe register \
+    --non-interactive \
+    --url "{{ gitlab_url }}" \
+    --registration-token "{{ gitlab_registration_token }}" \
+    --executor "{{ gitlab_runner_executor }}" \
+    --docker-image "{{ gitlab_runner_image }}" \
+    --description "{{ gitlab_runner_description }}" \
+    --tag-list "{{ gitlab_runner_tags }}"
+  args:
+    chdir: "{{ gitlab_runner_path }}"
+  when:
+    - (not gitlabrunner_config.stat.exists) or (register_runner | bool)
+    - gitlab_url
+    - gitlab_registration_token
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs\gitlabrunner'
+    state: touch
+  when: (not gitlabrunner_config.stat.exists) or (register_runner | bool)

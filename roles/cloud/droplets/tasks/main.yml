@@ -1,0 +1,60 @@
+---
+- name: Create a droplet for FreeIPA
+  community.digitalocean.digital_ocean:
+    backups: true
+    command: droplet
+    image_id: centos-8-x64
+    monitoring: true
+    name: FreeIPA
+    oauth_token: "{{ do_api_token }}"
+    region_id: nyc3
+    size_id: s-1vcpu-1gb-intel
+    ssh_keys: ["cc:a1:84:8e:d2:59:99:38:f8:12:b5:43:15:81:88:a3"]
+    state: present
+    unique_name: true
+    user_data: "{{ lookup('template', 'cloud-config.yml.j2') | trim }}"
+    wait_timeout: "{{ do_wait_timeout }}"
+  register: freeipa_droplet
+
+- debug:
+    msg: "FreeIPA IP address is {{ freeipa_droplet.data.ip_address }}"
+
+- name: Create a droplet for StatPing/HealthChecks
+  community.digitalocean.digital_ocean:
+    backups: false
+    command: droplet
+    image_id: ubuntu-20-04-x64
+    monitoring: true
+    name: StatusCheck
+    oauth_token: "{{ do_api_token }}"
+    region_id: nyc3
+    size_id: s-1vcpu-1gb-intel
+    ssh_keys: ["cc:a1:84:8e:d2:59:99:38:f8:12:b5:43:15:81:88:a3"]
+    state: present
+    unique_name: true
+    user_data: "{{ lookup('template', 'cloud-config.yml.j2') | trim }}"
+    wait_timeout: "{{ do_wait_timeout }}"
+  register: statuscheck_droplet
+
+- debug:
+    msg: "StatusCheck IP address is {{ freeipa_droplet.data.ip_address }}"
+
+- name: Create a droplet for BitWarden
+  community.digitalocean.digital_ocean:
+    backups: true
+    command: droplet
+    image_id: ubuntu-20-04-x64
+    monitoring: true
+    name: BitWarden
+    oauth_token: "{{ do_api_token }}"
+    region_id: nyc3
+    size_id: s-1vcpu-2gb-intel
+    ssh_keys: ["cc:a1:84:8e:d2:59:99:38:f8:12:b5:43:15:81:88:a3"]
+    state: present
+    unique_name: true
+    user_data: "{{ lookup('template', 'cloud-config.yml.j2') | trim }}"
+    wait_timeout: "{{ do_wait_timeout }}"
+  register: bitwarden_droplet
+
+- debug:
+    msg: "BitWarden IP address is {{ bitwarden_droplet.data.ip_address }}"

@@ -1,0 +1,76 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    path: /etc/ansible/facts.d
+    mode: 0755
+    state: directory
+
+- name: "Ensure {{ zoxide_src_directory }} exists"
+  file:
+    path: "{{ zoxide_src_directory }}"
+    mode: 0755
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/ajeetdsouza/zoxide/releases/latest
+  register: zoxide_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_zoxide: "{{ (ansible_local.zoxide is not defined) or \
+      ((ansible_local.zoxide is defined) and \
+      (ansible_local['zoxide']['settings']['version'] != zoxide_latest_release_tag.json.tag_name | replace('v','') )) }}"
+
+- name: "Ensure {{ app_name }} is extracted"
+  unarchive:
+    src: "https://github.com/ajeetdsouza/zoxide/releases/download/{{ zoxide_latest_release_tag.json.tag_name }}/\
+      zoxide-{{ zoxide_latest_release_tag.json.tag_name }}-x86_64-unknown-linux-musl.tar.gz"
+    dest: "{{ zoxide_src_directory }}"
+    exclude:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+    remote_src: true
+  when: install_zoxide
+
+- name: "Ensure {{ app_name }} is linked"
+  file:
+    src: "{{ zoxide_src_directory }}/zoxide"
+    dest: /usr/local/bin/zoxide
+    state: link
+  when: install_zoxide
+
+- name: "Find man pages of {{ app_name }}"
+  find:
+    paths: "{{ zoxide_src_directory }}/man/"
+    patterns: '*.1'
+  register: zoxide_man_pages
+  when: install_zoxide
+
+- name: "Ensure {{ app_name }} man pages are setup"
+  file:
+    src: "{{ item.path }}"
+    dest: "/usr/local/share/man/man1/{{ item.path.split('/')[-1] }}"
+    state: link
+  loop: "{{ zoxide_man_pages.files }}"
+  when: install_zoxide
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/zoxide.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ zoxide_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_zoxide

@@ -1,0 +1,19 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: watchman
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure system configuration is updated
+  lineinfile:
+    path: /etc/sysctl.conf
+    create: true
+    regex: "{{ item.regex }}"
+    line: "{{ item.value }}"
+    mode: 0644
+  loop:
+    - regex: "^.*kern.maxfilesperproc.*"
+      value: kern.maxfiles=10485760
+    - regex: "^.*kern.maxfilesperproc.*"
+      value: kern.maxfilesperproc=1048576

@@ -1,0 +1,76 @@
+---
+- name: "Ensure {{ plugins_folder }} is created"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ plugins_folder | regex_search('(.*)\\\\') | trim('\\\\') | win_dirname }}"
+    - "{{ plugins_folder | regex_search('(.*)\\\\') }}"
+    - "{{ plugins_folder | win_dirname + '\\options' }}"
+    - "{{ plugins_folder }}"
+    - "{{ colors_folder }}"
+    - "{{ plugin_folder_prefix | win_dirname + '\\consentOptions' }}"
+
+- name: Ensure plugins are installed
+  include_tasks: plugin-Windows.yml
+  loop: "{{ user.intellij_plugins }}"
+  loop_control:
+    loop_var: plugin_url
+    label: plugin_url
+  when: user.intellij_plugins is defined
+
+- name: Check if Terms acceptance file is present
+  become_user: "{{ user.username }}"
+  ansible.windows.win_stat:
+    path: "{{ plugin_folder_prefix | win_dirname + '\\consentOptions\\accepted' }}"
+  register: accepted_file_stat
+
+- name: Ensure Terms acceptance file exists
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    dest: "{{ plugin_folder_prefix | win_dirname + '\\consentOptions\\accepted' }}"
+    content: |
+      rsch.send.usage.stat:1.1:0:{{ ansible_date_time.epoch }}
+  when: not accepted_file_stat.stat.exists
+
+- name: Ensure Solarized theme's source directory is present
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: "{{ solarized_theme_src_dir }}"
+    state: directory
+
+- name: Ensure Solarized theme's source is downloaded
+  become_user: "{{ user.username }}"
+  ansible.windows.win_get_url:
+    url: https://github.com/jkaving/intellij-colors-solarized/archive/refs/heads/master.zip
+    dest: "{{ solarized_theme_src_dir }}/master.zip"
+  register: solarized_theme_git
+
+- name: Ensure Solarized theme's source is extracted
+  community.windows.win_unzip:
+    src: "{{ solarized_theme_src_dir }}/master.zip"
+    dest: "{{ solarized_theme_src_dir }}"
+  when: solarized_theme_git.changed
+
+- name: Ensure Solarized theme files are copied # noqa 503
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    dest: "{{ colors_folder }}"
+    src: "{{ item }}"
+    remote_src: true
+  loop:
+    - "{{ solarized_theme_src_dir }}\\intellij-colors-solarized-master\\Solarized Dark.icls"
+    - "{{ solarized_theme_src_dir }}\\intellij-colors-solarized-master\\Solarized Light.icls"
+  when: solarized_theme_git.changed
+
+- name: Ensrure Color scheme setting is applied
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    dest: "{{ plugins_folder | win_dirname + '\\options\\colors.scheme.xml' }}"
+    content: |
+      <application>
+        <component name="EditorColorsManagerImpl">
+          <global_color_scheme name="Solarized Dark" />
+        </component>
+      </application>

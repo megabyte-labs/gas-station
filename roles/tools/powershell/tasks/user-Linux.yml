@@ -1,25 +1,28 @@
 ---
-- name: Ensure the PowerShell config directory exists
+- name: "Ensure the PowerShell config directory exists (User: {{ user.username }})"
+  become: true
+  become_user: "{{ user.username }}"
   file:
     path: "{{ item }}"
     state: directory
     owner: "{{ user.username }}"
-    group: "{{ user.group | default(user.username) }}"
-    mode: 0660
+    group: "{{ user.group | default(omit) }}"
+    mode: 0700
   loop:
     - ~/.config
     - ~/.config/powershell
 
-- name: Fetch the initialization command # noqa 503
-  command: /snap/bin/starship init powershell
+- name: "Fetch the initialization command (User: {{ user.username }})" # noqa 503
+  command: "{{ starship_path }} init powershell"
   register: starship_out
-  when: install_result.changed
+  changed_when: false
 
-- name: Create the Initialization script for powershell # noqa 503
+- name: "Create the Initialization script for powershell (User: {{ user.username }})" # noqa 503
+  become: true
+  become_user: "{{ user.username }}"
   copy:
     dest: "~/.config/powershell/Microsoft.PowerShell_profile.ps1"
     content: "{{ starship_out.stdout }}"
     owner: "{{ user.username }}"
-    group: "{{ user.group | default(user.username) }}"
-    mode: 0660
-  when: install_result.changed
+    group: "{{ user.group | default(omit) }}"
+    mode: 0700

@@ -1,0 +1,30 @@
+---
+- name: "Download ngrok archive"
+  ansible.windows.win_get_url:
+    url: https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip
+    dest: '%TEMP%\ngrok.zip'
+    force: false
+  register: ngrok_download
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  community.windows.win_unzip:
+    src: '%TEMP%\ngrok.zip'
+    dest: '%PROGRAMFILES%\ngrok\'
+    delete_archive: true
+  when: ngrok_download.changed
+
+- name: "Ensure {{ app_name }} is added to PATH"
+  ansible.windows.win_path:
+    elements:
+      - '%ProgramFiles%\ngrok'
+
+- name: Setup user configuration
+  include_tasks: config-Windows.yml
+  when:
+    - ngrok_download.changed
+    - user.ngrok_token is defined
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

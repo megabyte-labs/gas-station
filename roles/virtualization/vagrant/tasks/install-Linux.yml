@@ -24,3 +24,16 @@
   when:
     - license_local_file.stat.exists
     - vagrant_vmware_support
+
+- name: Ensure plugin dependencies are installed
+  package:
+    name: "{{ vagrant_plugin_dependencies }}"
+    state: present
+
+- name: Run Plugin setup tasks
+  include_tasks: plugins-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

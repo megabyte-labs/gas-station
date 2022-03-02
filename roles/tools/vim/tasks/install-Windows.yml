@@ -1,0 +1,19 @@
+---
+- name: Ensure plugin dependencies are installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ plugin_dependencies }}"
+    state: present
+
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: vim
+    state: "{{ app_state | default('present') }}"
+    package_params: /InstallDir:{{ vim_install_path }}"
+
+- name: Run user configuration tasks
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

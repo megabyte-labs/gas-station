@@ -1,0 +1,696 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.consultemplate"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.consultemplate"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  17:03:01 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  17:03:10 -0500 (0:00:09.508)       0:00:09.522 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  17:03:11 -0500 (0:00:00.363)       0:00:09.886 ********
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  17:03:40 -0500 (0:00:29.111)       0:00:38.997 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  17:03:40 -0500 (0:00:00.177)       0:00:39.175 ********
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  17:03:40 -0500 (0:00:00.321)       0:00:39.497 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.11s
+Gathering Facts --------------------------------------------------------- 9.51s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Dump instance config ---------------------------------------------------- 0.32s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+
+playbook: /home/hawkwood/gas-station/roles/tools/consultemplate/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  17:03:43 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  17:03:53 -0500 (0:00:09.509)       0:00:09.524 ********
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Friday 07 January 2022  17:03:53 -0500 (0:00:00.359)       0:00:09.883 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Friday 07 January 2022  17:13:24 -0500 (0:09:30.601)       0:09:40.485 ********
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/consultemplate/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/consultemplate/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Friday 07 January 2022  17:13:25 -0500 (0:00:00.972)       0:09:41.457 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  17:13:25 -0500 (0:00:00.179)       0:09:41.637 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  17:13:26 -0500 (0:00:01.047)       0:09:42.684 ********
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 570.60s
+Gathering Facts --------------------------------------------------------- 9.51s
+Dump instance config ---------------------------------------------------- 1.05s
+Populate instance config dict ------------------------------------------- 0.97s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Convert instance config dict to a list ---------------------------------- 0.18s
+Playbook run took 0 days, 0 hours, 9 minutes, 42 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Friday 07 January 2022  17:13:28 -0500 (0:00:00.029)       0:00:00.029 ********
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  17:13:42 -0500 (0:00:13.658)       0:00:13.687 ********
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 13.66s
+Playbook run took 0 days, 0 hours, 0 minutes, 13 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  17:13:44 -0500 (0:00:00.027)       0:00:00.027 ********
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-33]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Friday 07 January 2022  17:13:47 -0500 (0:00:02.754)       0:00:02.781 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Friday 07 January 2022  17:13:47 -0500 (0:00:00.129)       0:00:02.911 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Friday 07 January 2022  17:13:47 -0500 (0:00:00.135)       0:00:03.047 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Friday 07 January 2022  17:13:47 -0500 (0:00:00.139)       0:00:03.186 ********
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Friday 07 January 2022  17:13:48 -0500 (0:00:00.159)       0:00:03.345 ********
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Friday 07 January 2022  17:13:48 -0500 (0:00:00.141)       0:00:03.487 ********
+
+TASK [professormanhattan.consultemplate : Include variables based on the operating system] ***
+Friday 07 January 2022  17:13:48 -0500 (0:00:00.201)       0:00:03.689 ********
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Find the latest version of Consul-template from the release page] ***
+Friday 07 January 2022  17:13:48 -0500 (0:00:00.189)       0:00:03.879 ********
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-8]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Fedora-34]
+ok: [Fedora-33]
+ok: [Fedora-35]
+
+TASK [professormanhattan.consultemplate : Save the version of Consul-template to a variable] ***
+Friday 07 January 2022  17:13:49 -0500 (0:00:00.841)       0:00:04.720 ********
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.consultemplate : include_tasks] ***********************
+Friday 07 January 2022  17:13:49 -0500 (0:00:00.143)       0:00:04.863 ********
+included: /home/hawkwood/gas-station/roles/tools/consultemplate/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/tools/consultemplate/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/tools/consultemplate/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/tools/consultemplate/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.consultemplate : Ensure Consul-template is installed] ***
+Friday 07 January 2022  17:13:49 -0500 (0:00:00.197)       0:00:05.061 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.consultemplate : Run generic Linux tasks] *************
+Friday 07 January 2022  17:13:51 -0500 (0:00:01.565)       0:00:06.626 ********
+included: /home/hawkwood/gas-station/roles/tools/consultemplate/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.consultemplate : Ensure Megabyte Labs configuration directory exists] ***
+Friday 07 January 2022  17:13:51 -0500 (0:00:00.116)       0:00:06.743 ********
+changed: [CentOS-7] => (item=~/.config)
+changed: [CentOS-Stream-8] => (item=~/.config)
+changed: [CentOS-8] => (item=~/.config)
+changed: [Fedora-33] => (item=~/.config)
+changed: [Fedora-34] => (item=~/.config)
+changed: [Fedora-35] => (item=~/.config)
+changed: [CentOS-7] => (item=~/.config/megabytelabs)
+changed: [CentOS-Stream-8] => (item=~/.config/megabytelabs)
+changed: [CentOS-8] => (item=~/.config/megabytelabs)
+changed: [Fedora-33] => (item=~/.config/megabytelabs)
+changed: [Fedora-34] => (item=~/.config/megabytelabs)
+changed: [Fedora-35] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.consultemplate : Check if Consul-template has configuration stored in ~/.config/megabytelabs/consultemplate] ***
+Friday 07 January 2022  17:13:52 -0500 (0:00:00.858)       0:00:07.601 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.consultemplate : Detect previously installed Consul-template version] ***
+Friday 07 January 2022  17:13:52 -0500 (0:00:00.481)       0:00:08.082 ********
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.consultemplate : Determine whether or not the latest version of Consul-template is already installed] ***
+Friday 07 January 2022  17:13:52 -0500 (0:00:00.097)       0:00:08.179 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.consultemplate : Ensure Consul-template is installed] ***
+Friday 07 January 2022  17:13:52 -0500 (0:00:00.098)       0:00:08.278 ********
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593633.0257785-1631793-269081341493724/consul-template_0.27.2_linux_amd649P1xwX.zip". Make sure the required command to extract the file is installed. Unable to find required 'unzip' or 'zipinfo' binary in the path. Command "/bin/gtar" could not handle archive.
+changed: [Fedora-35]
+changed: [Fedora-34]
+changed: [Fedora-33]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+
+TASK [professormanhattan.consultemplate : Save meta information about the version of Consul-template that was installed] ***
+Friday 07 January 2022  17:13:54 -0500 (0:00:01.793)       0:00:10.072 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.consultemplate : Run generic Linux tasks] *************
+Friday 07 January 2022  17:13:55 -0500 (0:00:00.750)       0:00:10.822 ********
+included: /home/hawkwood/gas-station/roles/tools/consultemplate/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.consultemplate : Ensure Megabyte Labs configuration directory exists] ***
+Friday 07 January 2022  17:13:55 -0500 (0:00:00.126)       0:00:10.949 ********
+changed: [Debian-9-Stretch] => (item=~/.config)
+changed: [Debian-10-Buster] => (item=~/.config)
+changed: [Debian-11-Bullseye] => (item=~/.config)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.config)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.config)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.config)
+changed: [Ubuntu-21.10-Impish-Indri] => (item=~/.config)
+changed: [Debian-9-Stretch] => (item=~/.config/megabytelabs)
+changed: [Debian-10-Buster] => (item=~/.config/megabytelabs)
+changed: [Debian-11-Bullseye] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-21.10-Impish-Indri] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.consultemplate : Check if Consul-template has configuration stored in ~/.config/megabytelabs/consultemplate] ***
+Friday 07 January 2022  17:13:56 -0500 (0:00:00.586)       0:00:11.536 ********
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.consultemplate : Detect previously installed Consul-template version] ***
+Friday 07 January 2022  17:13:56 -0500 (0:00:00.320)       0:00:11.856 ********
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.consultemplate : Determine whether or not the latest version of Consul-template is already installed] ***
+Friday 07 January 2022  17:13:56 -0500 (0:00:00.092)       0:00:11.949 ********
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.consultemplate : Ensure Consul-template is installed] ***
+Friday 07 January 2022  17:13:56 -0500 (0:00:00.099)       0:00:12.049 ********
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593636.8028924-1632458-75757744131991/consul-template_0.27.2_linux_amd649N2WUX.zip". Make sure the required command to extract the file is installed. Command "/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+fatal: [Debian-10-Buster]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593636.7850304-1632453-40424779360256/consul-template_0.27.2_linux_amd64xsew7_n8.zip". Make sure the required command to extract the file is installed. Unable to find required 'unzip' or 'zipinfo' binary in the path. Command "/usr/bin/tar" could not handle archive.
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593636.8376827-1632478-240420593101635/consul-template_0.27.2_linux_amd64x1071981.zip". Make sure the required command to extract the file is installed. Unable to find required 'unzip' or 'zipinfo' binary in the path. Command "/usr/bin/tar" could not handle archive.
+changed: [Ubuntu-21.10-Impish-Indri]
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593636.8540635-1632487-139892045927095/consul-template_0.27.2_linux_amd64mldlk5lj.zip". Make sure the required command to extract the file is installed. Command "/usr/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+fatal: [Debian-11-Bullseye]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593636.7941616-1632454-65473417227747/consul-template_0.27.2_linux_amd641am7l4tz.zip". Make sure the required command to extract the file is installed. Command "/usr/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=false
+  msg: Failed to find handler for "/home/vagrant/.ansible/tmp/ansible-tmp-1641593636.8272374-1632472-96334608814329/consul-template_0.27.2_linux_amd64iitdd6f_.zip". Make sure the required command to extract the file is installed. Command "/bin/tar" could not handle archive. Unable to find required 'unzip' or 'zipinfo' binary in the path.
+
+TASK [professormanhattan.consultemplate : Save meta information about the version of Consul-template that was installed] ***
+Friday 07 January 2022  17:13:58 -0500 (0:00:02.137)       0:00:14.187 ********
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.consultemplate : Find the latest version of Consul-template from the release page] ***
+Friday 07 January 2022  17:13:59 -0500 (0:00:00.424)       0:00:14.611 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Save the version of Consul-template to a variable] ***
+Friday 07 January 2022  17:14:01 -0500 (0:00:02.494)       0:00:17.105 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Ensure Megabyte Labs configuration directory exists] ***
+Friday 07 January 2022  17:14:01 -0500 (0:00:00.048)       0:00:17.153 ********
+ok: [Windows-10] => (item=%USERPROFILE%\.config)
+ok: [Windows-10] => (item=%USERPROFILE%\.config\megabytelabs)
+
+TASK [professormanhattan.consultemplate : Check if Consul-template has configuration stored in '%USERPROFILE%/.config/megabytelabs/consultemplate'] ***
+Friday 07 January 2022  17:14:05 -0500 (0:00:03.665)       0:00:20.819 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Detect previously installed Consul-template version] ***
+Friday 07 January 2022  17:14:07 -0500 (0:00:02.322)       0:00:23.141 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Determine whether or not the latest version of Consul-template is already installed] ***
+Friday 07 January 2022  17:14:07 -0500 (0:00:00.045)       0:00:23.187 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Ensure %PROGRAMFILES%\consul-template directory exists] ***
+Friday 07 January 2022  17:14:07 -0500 (0:00:00.053)       0:00:23.240 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Ensure Consul-template is downloaded and up-to-date] ***
+Friday 07 January 2022  17:14:09 -0500 (0:00:01.899)       0:00:25.139 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Ensure Consul-template is installed] ***
+Friday 07 January 2022  17:14:12 -0500 (0:00:02.627)       0:00:27.767 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Ensure Consul-template installation is added to PATH] ***
+Friday 07 January 2022  17:14:14 -0500 (0:00:01.851)       0:00:29.618 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.consultemplate : Save meta information about the version of Consul-template that was installed] ***
+Friday 07 January 2022  17:14:16 -0500 (0:00:01.705)       0:00:31.324 ********
+changed: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=6    changed=1    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+CentOS-8                   : ok=11   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+CentOS-Stream-8            : ok=11   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Debian-10-Buster           : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+Debian-9-Stretch           : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+Fedora-33                  : ok=11   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-34                  : ok=11   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-35                  : ok=11   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=9    changed=1    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=11   changed=3    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Windows-10                 : ok=13   changed=5    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+
+Friday 07 January 2022  17:14:20 -0500 (0:00:04.431)       0:00:35.755 ********
+===============================================================================
+professormanhattan.consultemplate : Save meta information about the version of Consul-template that was installed --- 4.43s
+professormanhattan.consultemplate : Ensure Megabyte Labs configuration directory exists --- 3.67s
+Gathering Facts --------------------------------------------------------- 2.75s
+professormanhattan.consultemplate : Ensure Consul-template is downloaded and up-to-date --- 2.63s
+professormanhattan.consultemplate : Find the latest version of Consul-template from the release page --- 2.49s
+professormanhattan.consultemplate : Check if Consul-template has configuration stored in '%USERPROFILE%/.config/megabytelabs/consultemplate' --- 2.32s
+professormanhattan.consultemplate : Ensure Consul-template is installed --- 2.14s
+professormanhattan.consultemplate : Ensure %PROGRAMFILES%\consul-template directory exists --- 1.90s
+professormanhattan.consultemplate : Ensure Consul-template is installed --- 1.85s
+professormanhattan.consultemplate : Ensure Consul-template is installed --- 1.79s
+professormanhattan.consultemplate : Ensure Consul-template installation is added to PATH --- 1.71s
+professormanhattan.consultemplate : Ensure Consul-template is installed --- 1.57s
+professormanhattan.consultemplate : Ensure Megabyte Labs configuration directory exists --- 0.86s
+professormanhattan.consultemplate : Find the latest version of Consul-template from the release page --- 0.84s
+professormanhattan.consultemplate : Save meta information about the version of Consul-template that was installed --- 0.75s
+professormanhattan.consultemplate : Ensure Megabyte Labs configuration directory exists --- 0.59s
+professormanhattan.consultemplate : Check if Consul-template has configuration stored in ~/.config/megabytelabs/consultemplate --- 0.48s
+professormanhattan.consultemplate : Save meta information about the version of Consul-template that was installed --- 0.42s
+professormanhattan.consultemplate : Check if Consul-template has configuration stored in ~/.config/megabytelabs/consultemplate --- 0.32s
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date --- 0.20s
+Playbook run took 0 days, 0 hours, 0 minutes, 35 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  17:14:23 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  17:14:34 -0500 (0:00:11.033)       0:00:11.047 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  17:14:34 -0500 (0:00:00.381)       0:00:11.429 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  17:17:07 -0500 (0:02:32.480)       0:02:43.909 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  17:17:07 -0500 (0:00:00.216)       0:02:44.126 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  17:17:08 -0500 (0:00:00.974)       0:02:45.100 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 152.48s
+Gathering Facts -------------------------------------------------------- 11.03s
+Dump instance config ---------------------------------------------------- 0.97s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.38s
+Populate instance config ------------------------------------------------ 0.22s
+Playbook run took 0 days, 0 hours, 2 minutes, 45 seconds

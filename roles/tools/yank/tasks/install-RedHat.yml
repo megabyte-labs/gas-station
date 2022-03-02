@@ -1,0 +1,98 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  dnf:
+    name: "{{ yank_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: yank
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: ansible_distribution == 'Fedora'
+
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+  when: ansible_distribution != 'Fedora'
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/yank"
+  stat:
+    path: ~/.config/megabytelabs/yank
+  register: yank_config
+  when: ansible_distribution != 'Fedora'
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat yank
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_yank_version
+  when:
+    - ansible_distribution != 'Fedora'
+    - yank_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/mptre/yank/releases/latest
+  register: yank_latest_release_tag
+  when: ansible_distribution != 'Fedora'
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_yank: "{{ (current_yank_version.skipped | default(false)) or \
+      ((not current_yank_version.skipped | default(false)) and (current_yank_version.stdout != yank_latest_release_tag.json.tag_name | replace('v',''))) }}"
+  when: ansible_distribution != 'Fedora'
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ yank_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+  when: ansible_distribution != 'Fedora'
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/yank
+    state: absent
+  when:
+    - ansible_distribution != 'Fedora'
+    - install_yank
+
+- name: "Ensure {{ app_name }}'s source is downloaded and up-to-date"
+  unarchive:
+    src: "https://github.com/mptre/yank/releases/download/{{ yank_latest_release_tag.json.tag_name }}/\
+      yank-{{ yank_latest_release_tag.json.tag_name | replace('v','') }}.tar.gz"
+    dest: "{{ yank_src_dir }}"
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+  when:
+    - ansible_distribution != 'Fedora'
+    - install_yank
+
+- name: "Ensure {{ app_name }} is installed"
+  command: make install
+  args:
+    chdir: "{{ yank_src_dir }}"
+    creates: /usr/local/bin/yank
+  when:
+    - ansible_distribution != 'Fedora'
+    - install_yank
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/yank
+    mode: 0600
+    content: |
+      {{ yank_latest_release_tag.json.tag_name | replace('v','') }}
+  when:
+    - ansible_distribution != 'Fedora'
+    - install_yank

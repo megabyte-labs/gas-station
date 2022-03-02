@@ -1,0 +1,58 @@
+---
+- name: Ensure vim-plug is installed
+  include_tasks: plugins/install-Linux.yml
+
+- name: Ensure vimrc is setup
+  become_user: "{{ user.username }}"
+  template:
+    src: vimrc.j2
+    dest: "~/.vimrc"
+    mode: 0700
+  register: vimrc_status
+
+- name: Ensure vim plugins are installed # noqa 301 503
+  become_user: "{{ user.username }}"
+  command: "vim +PlugUpdate +qa"
+  when: vimrc_status.changed
+
+- name: Ensure vim plugins are setup # noqa 305 503
+  become_user: "{{ user.username }}"
+  shell: "{{ item.command }}"
+  loop: "{{ vim_plugins }}"
+  when:
+    - item.command is defined
+    - vimrc_status.changed
+
+- name: Ensure settings are added to ~/.vimrc where available
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: "~/.vimrc"
+    block: |
+      {{ item.settings }}
+    marker: "{mark}"
+    marker_begin: '" Settings for plugin {{ item.source }}'
+    marker_end: ""
+  loop: "{{ vim_plugins }}"
+  when: item.settings is defined
+
+- name: Ensure ~/.vim/colors/ folder is created
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/.vim/colors
+    state: directory
+    mode: 0700
+
+- name: Ensure Themer theme file is copied
+  become_user: "{{ user.username }}"
+  copy:
+    src: Themer.vim
+    dest: ~/.vim/colors/themer.vim
+    mode: 0700
+
+- name: Ensure Themer theme is configured as default
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.vimrc
+    regex: '^colorscheme'
+    line: 'colorscheme themer'
+    mode: 0700

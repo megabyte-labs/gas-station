@@ -1,9 +1,70 @@
 ---
-- name: "Ensure {{ app_name }} is installed"
+- name: "Fetch {{ app_name }}'s Downloads page"
+  ansible.windows.win_uri:
+    return_content: true
+    url: 'https://developer.android.com/studio'
+  register: android_studio_download_page
+
+- name: Find the checksum of the installer
+  set_fact:
+    cmdline_tools_checksum: "{{ android_studio_download_page.content | regex_search(cmdline_tools_regex) | regex_replace(cmdline_tools_regex, '\\2') }}"
+    cmdline_tools_file_name: "{{ android_studio_download_page.content | regex_search(cmdline_tools_regex) | regex_replace(cmdline_tools_regex, '\\1') }}"
+
+- name: 'Ensure {{ app_name }} is installed'
   chocolatey.chocolatey.win_chocolatey:
     name: androidstudio
     params: /PinnedToTaskbar
+    state: "{{ app_state | default('present') }}"
 
-- name: "Ensure the {{ app_name }} shortcut is at the top level of the Start Menu"
+- name: 'Ensure the {{ app_name }} shortcut is at the top level of the Start Menu'
   include_role:
-    name: windows_startmenu
+    name: startmenu
+
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/cmdlinetools'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\cmdlinetools'
+  register: cmdlinetools_config
+
+- name: 'Detect previously installed {{ app_name }} version'
+  ansible.windows.win_shell: type cmdlinetools
+  changed_when: false
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  register: current_cmdlinetools_version
+  when: cmdlinetools_config.stat.exists
+
+- name: Determine whether or not the latest version of commandline-tools is already installed
+  set_fact:
+    install_cmdlinetools: "{{ (current_cmdlinetools_version.skipped | default(false)) or \
+      ((not current_cmdlinetools_version.skipped | default(false)) and \
+      (current_cmdlinetools_version.stdout | trim != cmdline_tools_file_name | regex_replace('commandlinetools-win-(\\d*).*', '\\1'))) }}"
+
+- name: Ensure commandline-tools archive is downloaded
+  ansible.windows.win_get_url:
+    checksum: '{{ cmdline_tools_checksum }}'
+    checksum_algorithm: sha256
+    dest: '%TEMP%\cmdline-tools.zip'
+    url: 'https://dl.google.com/android/repository/{{ cmdline_tools_file_name }}'
+  when: install_cmdlinetools
+
+- name: Run generic Windows tasks
+  include_tasks: user-Windows.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+- ansible.windows.win_copy:
+    content: "{{ cmdline_tools_file_name | regex_replace('commandlinetools-win-(\\d*).*', '\\1') }}"
+    dest: '%USERPROFILE%\.config\megabytelabs\cmdlinetools'
+  name: 'Save meta information about the version of {{ app_name }} that was installed'
+  when: install_cmdlinetools

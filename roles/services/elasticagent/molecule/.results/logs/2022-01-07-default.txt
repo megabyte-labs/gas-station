@@ -1,0 +1,713 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Skipping install, no requirements found
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.elasticagent"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.elasticagent"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  02:40:40 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  02:40:49 -0500 (0:00:09.472)       0:00:09.486 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  02:40:49 -0500 (0:00:00.369)       0:00:09.856 ********
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  02:41:18 -0500 (0:00:28.909)       0:00:38.765 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  02:41:18 -0500 (0:00:00.177)       0:00:38.943 ********
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  02:41:19 -0500 (0:00:00.322)       0:00:39.266 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.91s
+Gathering Facts --------------------------------------------------------- 9.47s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.32s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+
+playbook: /home/hawkwood/gas-station/roles/services/elasticagent/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  02:41:22 -0500 (0:00:00.013)       0:00:00.013 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  02:41:31 -0500 (0:00:09.566)       0:00:09.580 ********
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Friday 07 January 2022  02:41:32 -0500 (0:00:00.372)       0:00:09.953 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Friday 07 January 2022  02:51:57 -0500 (0:10:25.635)       0:10:35.588 ********
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/elasticagent/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/elasticagent/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Friday 07 January 2022  02:51:58 -0500 (0:00:01.084)       0:10:36.673 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  02:51:59 -0500 (0:00:00.178)       0:10:36.852 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  02:52:00 -0500 (0:00:01.029)       0:10:37.881 ********
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 625.64s
+Gathering Facts --------------------------------------------------------- 9.57s
+Populate instance config dict ------------------------------------------- 1.08s
+Dump instance config ---------------------------------------------------- 1.03s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.18s
+Playbook run took 0 days, 0 hours, 10 minutes, 37 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Friday 07 January 2022  02:52:02 -0500 (0:00:00.030)       0:00:00.030 ********
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Fedora-34]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  02:52:17 -0500 (0:00:14.642)       0:00:14.672 ********
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 14.64s
+Playbook run took 0 days, 0 hours, 0 minutes, 14 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  02:52:19 -0500 (0:00:00.027)       0:00:00.027 ********
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Include variables based on the operating system] ***
+Friday 07 January 2022  02:52:22 -0500 (0:00:03.053)       0:00:03.081 ********
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : include_tasks] *************************
+Friday 07 January 2022  02:52:22 -0500 (0:00:00.133)       0:00:03.215 ********
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.elasticagent : Run generic Linux tasks] ***************
+Friday 07 January 2022  02:52:22 -0500 (0:00:00.214)       0:00:03.429 ********
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-Linux.yml for ArchLinux-Latest
+
+TASK [professormanhattan.elasticagent : Ensure custom facts directory exists] ***
+Friday 07 January 2022  02:52:23 -0500 (0:00:00.084)       0:00:03.514 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Ensure /usr/local/src/elastic directory exists] ***
+Friday 07 January 2022  02:52:23 -0500 (0:00:00.381)       0:00:03.895 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Fetch Elastic Agent's downloads page] ***
+Friday 07 January 2022  02:52:23 -0500 (0:00:00.207)       0:00:04.103 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Find the latest Elastic Agent version] ***
+Friday 07 January 2022  02:52:24 -0500 (0:00:00.576)       0:00:04.680 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Determine whether or not the latest version of Elastic Agent's AppImage is already installed] ***
+Friday 07 January 2022  02:52:24 -0500 (0:00:00.065)       0:00:04.745 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer] ***
+Friday 07 January 2022  02:52:24 -0500 (0:00:00.069)       0:00:04.815 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Find the Checksum of Elastic Agent installer] ***
+Friday 07 January 2022  02:52:24 -0500 (0:00:00.479)       0:00:05.294 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Acquire Elastic Agent's latest installer] ***
+Friday 07 January 2022  02:52:24 -0500 (0:00:00.065)       0:00:05.359 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is extracted] *****
+Friday 07 January 2022  02:52:32 -0500 (0:00:07.609)       0:00:12.969 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is installed] *****
+Friday 07 January 2022  02:52:39 -0500 (0:00:07.260)       0:00:20.229 ********
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Save meta information about the version of Elastic Agent that was installed] ***
+Friday 07 January 2022  02:52:39 -0500 (0:00:00.060)       0:00:20.290 ********
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.elasticagent : Run generic Linux tasks] ***************
+Friday 07 January 2022  02:52:39 -0500 (0:00:00.062)       0:00:20.352 ********
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.elasticagent : Ensure custom facts directory exists] ***
+Friday 07 January 2022  02:52:40 -0500 (0:00:00.115)       0:00:20.467 ********
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.elasticagent : Ensure /usr/local/src/elastic directory exists] ***
+Friday 07 January 2022  02:52:40 -0500 (0:00:00.437)       0:00:20.905 ********
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-34]
+changed: [Fedora-33]
+changed: [Fedora-35]
+
+TASK [professormanhattan.elasticagent : Fetch Elastic Agent's downloads page] ***
+Friday 07 January 2022  02:52:40 -0500 (0:00:00.444)       0:00:21.349 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-34]
+ok: [Fedora-33]
+ok: [Fedora-35]
+
+TASK [professormanhattan.elasticagent : Find the latest Elastic Agent version] ***
+Friday 07 January 2022  02:52:41 -0500 (0:00:00.783)       0:00:22.133 ********
+ok: [CentOS-7]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.elasticagent : Determine whether or not the latest version of Elastic Agent's AppImage is already installed] ***
+Friday 07 January 2022  02:52:41 -0500 (0:00:00.127)       0:00:22.260 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer] ***
+Friday 07 January 2022  02:52:41 -0500 (0:00:00.090)       0:00:22.351 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Fedora-33]
+
+TASK [professormanhattan.elasticagent : Find the Checksum of Elastic Agent installer] ***
+Friday 07 January 2022  02:52:42 -0500 (0:00:00.589)       0:00:22.940 ********
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.elasticagent : Acquire Elastic Agent's latest installer] ***
+Friday 07 January 2022  02:52:42 -0500 (0:00:00.084)       0:00:23.024 ********
+fatal: [Fedora-35]: FAILED! => changed=false
+  dest: /usr/local/src/elastic/elasticagent-7.16.2.tar.bz2
+  elapsed: 10
+  msg: 'Request failed: <urlopen error timed out>'
+  url: https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-7.16.2-linux-x86_64.tar.gz
+changed: [CentOS-7]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is extracted] *****
+Friday 07 January 2022  02:53:10 -0500 (0:00:27.515)       0:00:50.540 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [CentOS-7]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is installed] *****
+Friday 07 January 2022  02:53:18 -0500 (0:00:08.224)       0:00:58.764 ********
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+
+TASK [professormanhattan.elasticagent : Save meta information about the version of Elastic Agent that was installed] ***
+Friday 07 January 2022  02:53:18 -0500 (0:00:00.080)       0:00:58.845 ********
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+
+TASK [professormanhattan.elasticagent : Run generic Linux tasks] ***************
+Friday 07 January 2022  02:53:18 -0500 (0:00:00.097)       0:00:58.943 ********
+included: /home/hawkwood/gas-station/roles/services/elasticagent/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.elasticagent : Ensure custom facts directory exists] ***
+Friday 07 January 2022  02:53:18 -0500 (0:00:00.171)       0:00:59.115 ********
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Ensure /usr/local/src/elastic directory exists] ***
+Friday 07 January 2022  02:53:18 -0500 (0:00:00.316)       0:00:59.432 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Fetch Elastic Agent's downloads page] ***
+Friday 07 January 2022  02:53:19 -0500 (0:00:00.319)       0:00:59.751 ********
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.elasticagent : Find the latest Elastic Agent version] ***
+Friday 07 January 2022  02:53:20 -0500 (0:00:00.781)       0:01:00.533 ********
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Determine whether or not the latest version of Elastic Agent's AppImage is already installed] ***
+Friday 07 January 2022  02:53:20 -0500 (0:00:00.096)       0:01:00.630 ********
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer] ***
+Friday 07 January 2022  02:53:20 -0500 (0:00:00.101)       0:01:00.731 ********
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Find the Checksum of Elastic Agent installer] ***
+Friday 07 January 2022  02:53:20 -0500 (0:00:00.461)       0:01:01.193 ********
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Acquire Elastic Agent's latest installer] ***
+Friday 07 January 2022  02:53:20 -0500 (0:00:00.104)       0:01:01.297 ********
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=false
+  dest: /usr/local/src/elastic/elasticagent-7.16.2.tar.bz2
+  elapsed: 10
+  msg: 'Request failed: <urlopen error timed out>'
+  url: https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-7.16.2-linux-x86_64.tar.gz
+changed: [Debian-11-Bullseye]
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is extracted] *****
+Friday 07 January 2022  02:53:54 -0500 (0:00:33.236)       0:01:34.534 ********
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is installed] *****
+Friday 07 January 2022  02:54:02 -0500 (0:00:08.413)       0:01:42.947 ********
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Save meta information about the version of Elastic Agent that was installed] ***
+Friday 07 January 2022  02:54:02 -0500 (0:00:00.087)       0:01:43.034 ********
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.elasticagent : Ensure Megabyte Labs configuration directory exists] ***
+Friday 07 January 2022  02:54:02 -0500 (0:00:00.115)       0:01:43.149 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Ensure installation folder for Elastic Agent exists] ***
+Friday 07 January 2022  02:54:05 -0500 (0:00:02.903)       0:01:46.053 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Check if Elastic Agent has configuration stored in '%USERPROFILE%/.config/megabytelabs/elasticagent'] ***
+Friday 07 January 2022  02:54:07 -0500 (0:00:01.852)       0:01:47.906 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Detect previously installed Elastic Agent version] ***
+Friday 07 January 2022  02:54:09 -0500 (0:00:02.266)       0:01:50.172 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Fetch Elastic Agent's downloads page] ***
+Friday 07 January 2022  02:54:09 -0500 (0:00:00.064)       0:01:50.237 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Find the latest Elastic Agent version] ***
+Friday 07 January 2022  02:54:13 -0500 (0:00:03.835)       0:01:54.072 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Determine whether or not the latest version of Elastic Agent is already installed] ***
+Friday 07 January 2022  02:54:13 -0500 (0:00:00.068)       0:01:54.141 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer] ***
+Friday 07 January 2022  02:54:13 -0500 (0:00:00.069)       0:01:54.210 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Find the Checksum of Elastic Agent installer] ***
+Friday 07 January 2022  02:54:16 -0500 (0:00:02.388)       0:01:56.599 ********
+ok: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Acquire Elastic Agent's latest installer] ***
+Friday 07 January 2022  02:54:16 -0500 (0:00:00.070)       0:01:56.669 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is unarchived] ****
+Friday 07 January 2022  02:54:24 -0500 (0:00:07.946)       0:02:04.616 ********
+changed: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Ensure Elastic Agent is installed] *****
+Friday 07 January 2022  02:54:27 -0500 (0:00:03.341)       0:02:07.957 ********
+skipping: [Windows-10]
+
+TASK [professormanhattan.elasticagent : Save meta information about the version of Elastic Agent that was installed] ***
+Friday 07 January 2022  02:54:27 -0500 (0:00:00.068)       0:02:08.026 ********
+changed: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+CentOS-7                   : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+CentOS-8                   : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+CentOS-Stream-8            : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Debian-10-Buster           : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Debian-9-Stretch           : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Fedora-33                  : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Fedora-34                  : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Fedora-35                  : ok=11   changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=11   changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=13   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Windows-10                 : ok=14   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  02:54:33 -0500 (0:00:05.826)       0:02:13.852 ********
+===============================================================================
+professormanhattan.elasticagent : Acquire Elastic Agent's latest installer -- 33.24s
+professormanhattan.elasticagent : Acquire Elastic Agent's latest installer -- 27.52s
+professormanhattan.elasticagent : Ensure Elastic Agent is extracted ----- 8.41s
+professormanhattan.elasticagent : Ensure Elastic Agent is extracted ----- 8.22s
+professormanhattan.elasticagent : Acquire Elastic Agent's latest installer --- 7.95s
+professormanhattan.elasticagent : Acquire Elastic Agent's latest installer --- 7.61s
+professormanhattan.elasticagent : Ensure Elastic Agent is extracted ----- 7.26s
+professormanhattan.elasticagent : Save meta information about the version of Elastic Agent that was installed --- 5.83s
+professormanhattan.elasticagent : Fetch Elastic Agent's downloads page --- 3.84s
+professormanhattan.elasticagent : Ensure Elastic Agent is unarchived ---- 3.34s
+Gathering Facts --------------------------------------------------------- 3.05s
+professormanhattan.elasticagent : Ensure Megabyte Labs configuration directory exists --- 2.90s
+professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer --- 2.39s
+professormanhattan.elasticagent : Check if Elastic Agent has configuration stored in '%USERPROFILE%/.config/megabytelabs/elasticagent' --- 2.27s
+professormanhattan.elasticagent : Ensure installation folder for Elastic Agent exists --- 1.85s
+professormanhattan.elasticagent : Fetch Elastic Agent's downloads page --- 0.78s
+professormanhattan.elasticagent : Fetch Elastic Agent's downloads page --- 0.78s
+professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer --- 0.59s
+professormanhattan.elasticagent : Fetch Elastic Agent's downloads page --- 0.58s
+professormanhattan.elasticagent : Fetch CHECKSUMS file of Elastic Agent installer --- 0.48s
+Playbook run took 0 days, 0 hours, 2 minutes, 13 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  02:54:36 -0500 (0:00:00.013)       0:00:00.013 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  02:54:47 -0500 (0:00:10.968)       0:00:10.981 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  02:54:47 -0500 (0:00:00.394)       0:00:11.376 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  02:57:22 -0500 (0:02:34.678)       0:02:46.054 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  02:57:22 -0500 (0:00:00.134)       0:02:46.189 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  02:57:23 -0500 (0:00:00.931)       0:02:47.121 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 154.68s
+Gathering Facts -------------------------------------------------------- 10.97s
+Dump instance config ---------------------------------------------------- 0.93s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Populate instance config ------------------------------------------------ 0.13s
+Playbook run took 0 days, 0 hours, 2 minutes, 47 seconds

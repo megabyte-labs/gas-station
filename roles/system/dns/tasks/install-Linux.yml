@@ -1,0 +1,83 @@
+---
+- name: Ensure Stubby is installed
+  package:
+    name: stubby
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ hostctl_src_dir }} directory exists"
+  file:
+    path: "{{ hostctl_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Detect the latest hostctl version
+  uri:
+    url: https://api.github.com/repos/guumaster/hostctl/releases/latest
+  register: hostctl_latest_release_tag
+
+- name: Determine whether or not the latest version of hostctl is already installed
+  set_fact:
+    install_hostctl: "{{ (ansible_local.hostctl is not defined) or \
+      ((ansible_local.hostctl is defined) and \
+      (ansible_local['hostctl']['settings']['version'] != hostctl_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: Fetch CHECKSUMS file of hostctl installer
+  uri:
+    url: "https://github.com/guumaster/hostctl/releases/download/{{ hostctl_latest_release_tag.json.tag_name }}/\
+      hostctl_{{ hostctl_latest_release_tag.json.tag_name | replace('v','') }}_checksums.txt"
+    return_content: true
+  register: hostctl_checksum_file
+  when: install_hostctl
+
+- name: Find the Checksum of hostctl installer
+  set_fact:
+    hostctl_checksum: "{{ hostctl_checksum_file.content | regex_search('.*hostctl_((\\d*.)*\\d*)_linux_64-bit.tar.gz') | \
+      regex_replace('  hostctl_((\\d*.)*\\d*)_linux_64-bit.tar.gz','') }}"
+  when: install_hostctl
+
+- name: Acquire hostctl's latest installer
+  get_url:
+    url: "https://github.com/guumaster/hostctl/releases/download/{{ hostctl_latest_release_tag.json.tag_name }}/\
+      hostctl_{{ hostctl_latest_release_tag.json.tag_name | replace('v','') }}_linux_64-bit.tar.gz"
+    dest: "{{ hostctl_src_dir }}/hostctl_{{ hostctl_latest_release_tag.json.tag_name | replace('v','') }}_linux_64-bit.tar.gz"
+    checksum: "sha256:{{ hostctl_checksum }}"
+  when: install_hostctl
+
+- name: Ensure older version of hostctl is uninstalled
+  file:
+    path: /usr/local/bin/hostctl
+    state: absent
+  when: install_hostctl
+
+- name: Ensure hostctl is installed
+  unarchive:
+    src: "{{ hostctl_src_dir }}/hostctl_{{ hostctl_latest_release_tag.json.tag_name | replace('v','') }}_linux_64-bit.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - LICENSE
+      - README.md
+  when: install_hostctl
+
+- name: Ensure hostctl's source is removed
+  file:
+    path: "{{ hostctl_src_dir }}/hostctl_{{ hostctl_latest_release_tag.json.tag_name | replace('v','') }}_linux_64-bit.tar.gz"
+    state: absent
+  when: install_hostctl
+
+- name: Save meta information about the version of hostctl that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/hostctl.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ hostctl_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_hostctl

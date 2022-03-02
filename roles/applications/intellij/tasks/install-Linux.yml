@@ -1,6 +1,28 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
-  community.general.snap: # TODO: Accept terms automatically
+  community.general.snap:
     classic: true
     name: intellij-idea-community
     state: "{{ app_state | default('present') }}"
+
+- name: Fetch the release information
+  uri:
+    url: "https://snapcraft.io/intellij-idea-community"
+    return_content: true
+  register: intellij_release
+
+- name: "Determine the Plugins folder path based on the version of {{ app_name }} installed"
+  set_fact:
+    plugins_folder: "{{ plugin_folder_prefix + intellij_release.content | regex_search('latest\/stable (\\d*\\.\\d*)') | replace('latest/stable ', '') }}"
+
+- name: "Determine the Plugins folder path based on the version of {{ app_name }} installed"
+  set_fact:
+    colors_folder: "{{ plugins_folder + '/colors' }}"
+
+- name: Run generic tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,0 +1,67 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/s5cmd"
+  stat:
+    path: ~/.config/megabytelabs/s5cmd
+  register: s5cmd_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat s5cmd
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_s5cmd_version
+  when: s5cmd_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/peak/s5cmd/releases/latest
+  register: s5cmd_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_s5cmd: "{{ (current_s5cmd_version.skipped | default(false)) or \
+      ((not current_s5cmd_version.skipped | default(false)) and (current_s5cmd_version.stdout != s5cmd_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ s5cmd_goroot }} directory exists"
+  file:
+    path: "{{ s5cmd_goroot }}"
+    state: directory
+    mode: 0755
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: "{{ s5cmd_goroot }}/bin/s5cmd"
+    state: absent
+  when: install_s5cmd
+
+- name: "Ensure {{ app_name }} is built"
+  command: go get github.com/peak/s5cmd
+  args:
+    creates: "{{ s5cmd_goroot }}/bin/s5cmd"
+  environment:
+    GOPATH: "{{ s5cmd_goroot }}"
+  when: install_s5cmd
+
+- name: "Ensure {{ app_name }} is installed"
+  file:
+    src: "{{ s5cmd_goroot }}/bin/s5cmd"
+    dest: /usr/local/bin/s5cmd
+    state: link
+  when: install_s5cmd
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/s5cmd
+    mode: 0600
+    content: |
+      {{ s5cmd_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_s5cmd

@@ -1,8 +1,35 @@
 ---
 - name: Include variables based on the operating system
-  include_vars: "{{ ansible_os_family }}.yml"
+  include_vars: '{{ ansible_os_family }}.yml'
 
+- name: "Fetch {{ app_name }}'s Downloads page"
+  uri:
+    return_content: true
+    url: 'https://developer.android.com/studio'
+  register: android_studio_download_page
+  when: ansible_os_family != 'Windows'
+
+- name: Save regex value to a variable
+  set_fact:
+    cmdline_tools_regex: "(commandlinetools-{{ cmdline_tools_platform_code }}-\\d*_latest\\.zip)[\\dtdrbuonMGB<>\\/\\n ]*>([\\w]*)"
+
+- name: Find the checksum of the installer
+  set_fact:
+    cmdline_tools_checksum: "{{ android_studio_download_page.content | regex_search(cmdline_tools_regex) | regex_replace(cmdline_tools_regex, '\\2') }}"
+    cmdline_tools_file_name: "{{ android_studio_download_page.content | regex_search(cmdline_tools_regex) | regex_replace(cmdline_tools_regex, '\\1') }}"
+  when: ansible_os_family != 'Windows'
+
+# @action Ensures Android Studio is installed
+# Installs Android Studio on Archlinux, CentOS, Debian, Fedora, macOS, Ubuntu, and Windows
+# @action Ensures Android Studio is installed
+# Ensures command-line tools are downloaded, installed, and available in the `PATH`
+# @action Ensures configured Android SDKs are present
+# Installs a configurable list of Android SDKs and Tools to user(s) home folder(s)
+# @action Ensures configured Android SDKs are present
+# Ensures Android SDK tools like `adb` are present in PATH
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
   block:
-    - include_tasks: "install-{{ ansible_os_family }}.yml"
+    - include_tasks: 'install-{{ ansible_os_family }}.yml'

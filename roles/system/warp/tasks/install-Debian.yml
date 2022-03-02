@@ -1,0 +1,30 @@
+---
+- name: "Add {{ app_name }}'s apt key"
+  apt_key:
+    state: present
+    url: "{{ warp_apt_key_url }}"
+  when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+
+- name: "Add {{ app_name }}'s apt repository"
+  apt_repository:
+    filename: "{{ app_name | lower | replace(' ', '-') }}"
+    repo: "{{ warp_apt_repository }}"
+    state: present
+    update_cache: true
+  when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    name: cloudflare-warp
+    state: "{{ app_state | default('present') }}"
+  when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))

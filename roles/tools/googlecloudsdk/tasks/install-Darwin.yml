@@ -1,0 +1,22 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew_cask:
+    name: google-cloud-sdk
+    state: "{{ app_state | default('present') }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: "Ensure {{ app_name }}'s optional components are installed" # noqa 503
+  command: "gcloud components install {{ component }}"
+  loop: "{{ optional_components }}"
+  loop_control:
+    label: "{{ component }}"
+    loop_var: component
+  when: optional_components is defined
+
+- name: Run generic tasks
+  include_tasks: config-Darwin.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user

@@ -1,0 +1,60 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Detect the latest kubeval version
+  uri:
+    url: https://api.github.com/repos/instrumenta/kubeval/releases/latest
+  register: kubeval_latest_release_tag
+
+- name: Determine whether or not the latest version of kubeval is already installed
+  set_fact:
+    install_kubeval: "{{ (ansible_local.kubeval is not defined) or \
+      ((ansible_local.kubeval is defined) and \
+      (ansible_local['kubeval']['settings']['version'] != kubeval_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: Fetch CHECKSUMS file of kubeval installer
+  uri:
+    url: "https://github.com/instrumenta/kubeval/releases/download/{{ kubeval_latest_release_tag.json.tag_name }}/checksums.txt"
+    return_content: true
+  register: kubeval_checksum_file
+  when: install_kubeval
+
+- name: Find the Checksum of kubeval installer
+  set_fact:
+    kubeval_checksum: "{{ kubeval_checksum_file.content | regex_search('.*kubeval-linux-amd64.tar.gz') | \
+      regex_replace('  kubeval-linux-amd64.tar.gz','') }}"
+  when: install_kubeval
+
+- name: Acquire kubeval's latest installer
+  get_url:
+    url: "https://github.com/instrumenta/kubeval/releases/download/{{ kubeval_latest_release_tag.json.tag_name }}/kubeval-linux-amd64.tar.gz"
+    dest: "/tmp/kubeval-linux-amd64.tar.gz"
+    checksum: "sha256:{{ kubeval_checksum }}"
+  when: install_kubeval
+
+- name: Ensure kubeval is installed
+  unarchive:
+    src: "/tmp/kubeval-linux-amd64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - README.md
+      - LICENSE
+    extra_opts:
+      - --strip-components=1
+  when: install_kubeval
+
+- name: Save meta information about the version of kubeval that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/kubeval.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ kubeval_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_kubeval

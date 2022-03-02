@@ -1,22 +1,72 @@
 ---
-- name: "Ensure {{ app_name }} is installed"
-  community.general.snap:
-    name: googler
-    state: "{{ app_state | default('present') }}"
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
 
-- name: "Ensure completions directory exists"
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/{{ app_name }}"
+  register: googler_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat googler
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_googler_version
+  when: googler_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/jarun/googler/releases/latest
+  register: googler_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_googler: "{{ (current_googler_version.skipped | default(false)) or \
+      ((not current_googler_version.skipped | default(false)) and \
+      (current_googler_version.stdout != googler_latest_release_tag.json.tag_name | replace('v','') )) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/googler
+    state: absent
+  when: install_googler
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "https://raw.githubusercontent.com/jarun/googler/{{ googler_latest_release_tag.json.tag_name }}/googler"
+    dest: /usr/local/bin/googler
+    mode: 0755
+  when: install_googler
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/googler
+    mode: 0600
+    content: |
+      {{ googler_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_googler
+
+- name: Ensure completions directory exists
   file:
     path: /usr/local/src/googler/
     state: directory
-    mode: 0644
+    mode: 0755
 
 - name: "Ensure bash completions are downloaded"
   get_url:
-    src: "{{ item.url }}"
+    url: "{{ item.url }}"
     dest: "{{ item.path }}"
-    mode: 0644
+    mode: 0755
   with_items:
     - url: https://raw.githubusercontent.com/jarun/googler/master/auto-completion/bash/googler-completion.bash
       path: /usr/local/src/googler/googler-completion.bash
     - url: https://raw.githubusercontent.com/jarun/googler/master/auto-completion/googler_at/googler_at
       path: /usr/local/src/googler/googler_at
+  when: install_googler

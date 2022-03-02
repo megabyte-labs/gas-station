@@ -1,9 +1,13 @@
 ---
-- name: Ensure Ruby is installed
-  community.general.snap:
+- name: "Ensure {{ app_name }} is installed"
+  package:
     name: ruby
-    classic: true
-    state: present
+    state: "{{ app_state | default('present') }}"
+
+- name: "Ensure {{ app_name }} development packages are installed"
+  package:
+    name: "{{ ruby_development_packages }}"
+    state: "{{ app_state | default('present') }}"
 
 - name: Ensure configured gems are installed (system)
   gem:
@@ -11,6 +15,7 @@
     state: present
     user_install: false
   loop: "{{ ruby_gems }}"
+  ignore_errors: true
 
 - name: Ensure configured gems are installed (user)
   include_tasks: user-Linux.yml

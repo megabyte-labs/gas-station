@@ -6,6 +6,7 @@
     name: virtualbox
     state: present
     sudo_password: "{{ ansible_password }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
 
 - name: "Ensure {{ app_name }} Extension pack is installed"
   become: true
@@ -14,3 +15,12 @@
     name: virtualbox-extension-pack
     state: present
     sudo_password: "{{ ansible_password }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

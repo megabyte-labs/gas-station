@@ -1,0 +1,46 @@
+---
+# @action Prepares Autorestic
+# Ensures `~/.config/autorestic` is a directory (which is used by other roles to store app-specific back-up configurations)
+- name: "Ensure {{ user.username }} has the ~/.config/autorestic folder created"
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: ~/.config/autorestic
+    state: directory
+
+- name: "Ensure /var/local/backups/{{ user.username }} is created and has proper permissions"
+  file:
+    path: "/var/local/backups/{{ user.username }}"
+    owner: "{{ user.username }}"
+    group: "{{ user.username }}"
+    state: directory
+    mode: 0700
+    recurse: yes
+
+# @action Prepares Autorestic
+# Generates a `.autorestic.env` file in a configurable list of user's `$HOME` directories
+# @action Prepares Autorestic
+# **Note:** In order to leverage the automation provided by this role and other role's that leverage it, you must specify two S3 buckets to back up to
+- name: "Ensure {{ user.username }} has the .autorestic.env file in their home directory, if appropriate"
+  become_user: "{{ user.username }}"
+  template:
+    src: .autorestic.env.j2
+    dest: ~/.autorestic.env
+
+# @action Enables cron jobs for Autorestic
+# Ensures the user's default Autorestic configuration is cron-enabled
+- name: Create default Autorestic cron (for ~/.autorestic.yml)
+  become_user: "{{ user.username }}"
+  ansible.builtin.cron:
+    name: "Default Autorestic ({{ user.username }})"
+    minute: "*/5"
+    job: "{{ autorestic_bin_path }} -c {{ ansible_env.HOME }}/.autorestic.yml --ci cron"
+
+# @action Enables cron jobs for Autorestic
+# Ensures each user's application-specific Autorestic configurations are cron-enabled
+- name: Ensure crons for the configurations stored in ~/.config/autorestic are enabled
+  become_user: "{{ user.username }}"
+  ansible.builtin.cron:
+    name: "App-specific Autorestic ({{ user.username }})"
+    minute: "*/5"
+    job: 'for FILE in "{{ ansible_env.HOME }}/.config/.autorestic/*"; do {{ autorestic_bin_path }} -c "$FILE" --ci cron; done'

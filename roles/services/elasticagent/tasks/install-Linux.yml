@@ -1,0 +1,85 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ elastic_src }} directory exists"
+  file:
+    path: "{{ elastic_src }}"
+    state: directory
+    mode: 0755
+
+- name: "Fetch {{ app_name }}'s downloads page"
+  uri:
+    url: https://www.elastic.co/downloads/elastic-agent
+    return_content: true
+  register: elasticagent_latest_content
+
+- name: "Find the latest {{ app_name }} version"
+  set_fact:
+    elasticagent_latest_release: "{{ elasticagent_latest_content.content | regex_search('>((\\d+\\.)+\\d+)<') | regex_replace('>((\\d+\\.)+\\d+)<','\\1') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_elasticagent: "{{ (ansible_local.elasticagent is not defined) or \
+      ((ansible_local.elasticagent is defined) and (ansible_local['elasticagent']['settings']['version'] != elasticagent_latest_release)) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  uri:
+    url: "https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-{{ elasticagent_latest_release }}-\
+      {{ ansible_system | lower }}-{{ ansible_architecture }}.tar.gz.sha512"
+    return_content: true
+  register: elasticagent_checksum_file
+  when: install_elasticagent
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    elasticagent_checksum: "{{ elasticagent_checksum_file.content | regex_search('(.*)  elastic-agent-.*') | regex_replace('(.*)  elastic-agent.*','\\1') }}"
+  when: install_elasticagent
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-{{ elasticagent_latest_release }}-\
+      {{ ansible_system | lower }}-{{ ansible_architecture }}.tar.gz"
+    dest: "{{ elastic_src }}/elasticagent-{{ elasticagent_latest_release }}.tar.bz2"
+    checksum: "sha512:{{ elasticagent_checksum }}"
+  when: install_elasticagent
+
+- name: "Ensure {{ app_name }} is extracted"
+  unarchive:
+    src: "{{ elastic_src }}/elasticagent-{{ elasticagent_latest_release }}.tar.bz2"
+    dest: "{{ elastic_src }}"
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+  when: install_elasticagent
+
+- name: "Ensure {{ app_name }} is installed"
+  command: "elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}"
+  args:
+    chdir: "{{ elastic_src }}"
+    creates: /usr/bin/elastic-agent
+  when:
+    - install_elasticagent
+    - kibana_url is defined
+    - kibana_enrollment_id is defined
+    - kibana_enrollment_secrets is defined
+    - "{{ kibana_enrollment_secrets[kibana_enrollment_id] is defined }}"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/elasticagent.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ elasticagent_latest_release }}"
+    backup: true
+    no_extra_spaces: true
+  when:
+    - install_elasticagent
+    - kibana_url is defined
+    - kibana_enrollment_id is defined
+    - kibana_enrollment_secrets is defined
+    - "{{ kibana_enrollment_secrets[kibana_enrollment_id] is defined }}"

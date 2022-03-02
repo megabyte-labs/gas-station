@@ -1,0 +1,90 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/{{ app_name }}"
+  register: watchman_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat watchman
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_watchman_version
+  when: watchman_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/facebook/watchman/releases/latest
+  register: watchman_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_watchman: "{{ (current_watchman_version.skipped | default(false)) or \
+      ((not current_watchman_version.skipped | default(false)) and \
+      (current_watchman_version.stdout != watchman_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ watchman_src_folder }} directory exists"
+  file:
+    path: "{{ watchman_src_folder }}"
+    state: directory
+    mode: 0700
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/watchman
+    state: absent
+  when: install_watchman
+
+- name: "Ensure latest version of {{ app_name }} is downloaded"
+  unarchive:
+    src: "{{ 'https://github.com/facebook/watchman/releases/download/' + watchman_latest_release_tag.json.tag_name + \
+      '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux.zip' }}"
+    dest: "{{ watchman_src_folder }}"
+    remote_src: true
+  when: install_watchman
+
+- name: "Ensure {{ app_name }} is installed"
+  copy:
+    src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/bin/watchman' }}"
+    dest: /usr/local/bin/watchman
+    mode: 0755
+    remote_src: true
+  when: install_watchman
+
+- name: "Ensure {{ app_name }}'s libraries are installed"
+  copy:
+    src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/lib/' }}"
+    dest: /usr/local/lib/
+    mode: 0755
+    remote_src: true
+  when: install_watchman
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/watchman
+    mode: 0600
+    content: |
+      {{ watchman_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_watchman
+
+- name: Ensure system configuration is updated
+  lineinfile:
+    path: /etc/sysctl.conf
+    regex: "{{ item.regex }}"
+    line: "{{ item.value }}"
+  loop:
+    - regex: "^.*fs.inotify.max_user_instances.*"
+      value: fs.inotify.max_user_instances=8192
+    - regex: "^.*fs.inotify.max_user_watches.*"
+      value: fs.inotify.max_user_watches=524288
+    - regex: "^.*fs.inotify.max_queued_events.*"
+      value: fs.inotify.max_queued_events=16384

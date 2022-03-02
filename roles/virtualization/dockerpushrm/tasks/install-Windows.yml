@@ -1,0 +1,51 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/dockerpushrm'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\dockerpushrm'
+  register: dockerpushrm_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: cat dockerpushrm
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_dockerpushrm_version
+  when: dockerpushrm_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/christian-korneck/docker-pushrm/releases/latest
+  register: dockerpushrm_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_dockerpushrm: "{{ (current_dockerpushrm_version.skipped | default(false)) or \
+      ((not current_dockerpushrm_version.skipped | default(false)) and \
+      (current_dockerpushrm_version.stdout != dockerpushrm_latest_release_tag.json.tag_name | replace('v', ''))) }}"
+
+- name: "Ensure installation folder of {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: '%ProgramData%\Docker\cli-plugins\'
+    state: directory
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_get_url:
+    url: "https://github.com/christian-korneck/docker-pushrm/releases/download/\
+      {{ dockerpushrm_latest_release_tag.json.tag_name }}/docker-pushrm_windows_amd64.exe"
+    dest: '%ProgramData%\Docker\cli-plugins\docker-pushrm.exe'
+  when: install_dockerpushrm
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\dockerpushrm'
+    content: |
+      {{ dockerpushrm_latest_release_tag.json.tag_name | replace('v', '') }}
+  when: install_dockerpushrm

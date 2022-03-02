@@ -1,5 +1,5 @@
 ---
-- name: "Ensure {{ app_name }} is installed" # TODO MD5/SHA
+- name: "Ensure {{ app_name }} is installed"
   apt:
     deb: "{{ hyper_deb_url }}"
 
@@ -8,11 +8,13 @@
     filename: universe
     repo: "{{ universe_repository }}"
     state: present
-    update_cache: true
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   when: install_fira_code
 
 - name: Ensure Fira Code font is installed
-  apt:
-    name: fonts-firacode
-    state: "{{ app_state | default('present') }}"
+  include_role:
+    name: helpers/fontinstall
+  vars:
+    fonts:
+      - fira code
   when: install_fira_code

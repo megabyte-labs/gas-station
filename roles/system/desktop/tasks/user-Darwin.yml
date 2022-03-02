@@ -1,0 +1,30 @@
+---
+- name: Setup Terminal Preferences
+  become_user: "{{ user.username }}"
+  block:
+    - name: Copy Terminal app preferences
+      copy:
+        src: com.apple.Terminal.plist
+        dest: ~/Library/Preferences/
+        owner: "{{ user.username }}"
+        mode: 0600
+
+    - name: "Ensure {{ default_mac_terminal_theme }} profile is set as default"
+      community.general.osx_defaults:
+        domain: com.apple.Terminal
+        state: present
+        key: "{{ item }}"
+        type: string
+        value: "{{ default_mac_terminal_theme }}"
+      loop:
+        - "Default Window Settings"
+        - "Startup Window Settings"
+
+    - name: Ensure Termial size is configured # noqa 301 303
+      shell: |
+        /usr/libexec/PlistBuddy -c "Delete :Window\ Settings:{{ default_mac_terminal_theme }}:columnCount" ~/Library/Preferences/com.apple.Terminal.plist
+        /usr/libexec/PlistBuddy -c "Add :Window\ Settings:{{ default_mac_terminal_theme }}:columnCount integer {{ mac_terminal_width }}" \
+        ~/Library/Preferences/com.apple.Terminal.plist
+        /usr/libexec/PlistBuddy -c "Delete :Window\ Settings:{{ default_mac_terminal_theme }}:rowCount" ~/Library/Preferences/com.apple.Terminal.plist
+        /usr/libexec/PlistBuddy -c "Add :Window\ Settings:{{ default_mac_terminal_theme }}:rowCount integer {{ mac_terminal_height }}" \
+        ~/Library/Preferences/com.apple.Terminal.plist

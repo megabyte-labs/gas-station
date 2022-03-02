@@ -1,0 +1,16 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_shell: "gem install gist"
+
+- name: Ensure token is added
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    content: "{{ github_gist_token }}"
+    dest: '%USERPROFILE%\.gist'
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.github_gist_token is defined

@@ -1,0 +1,50 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: ~/.config/megabytelabs
+    state: directory
+
+- name: "Ensure {{ antigen_src_path }} directory exists"
+  file:
+    mode: 0755
+    path: "{{ antigen_src_path }}"
+    state: directory
+
+- name: "Check if Antigen has configuration stored in ~/.config/megabytelabs/antigen"
+  stat:
+    path: ~/.config/megabytelabs/antigen
+  register: antigen_config
+
+- name: "Detect previously installed Antigen version"
+  command: cat antigen
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_antigen_version
+  when: antigen_config.stat.exists
+
+- name: "Detect the latest Antigen version"
+  uri:
+    url: https://api.github.com/repos/zsh-users/antigen/releases/latest
+  register: antigen_latest_release_tag
+
+- name: "Determine whether or not the latest version of Antigen is already installed"
+  set_fact:
+    install_antigen: "{{ (current_antigen_version.skipped | default(false)) or \
+      ((not current_antigen_version.skipped | default(false)) and \
+      (current_antigen_version.stdout != antigen_latest_release_tag.json.tag_name | replace ('v',''))) }}"
+
+- name: Ensure Antigen is installed
+  get_url:
+    url: "https://github.com/zsh-users/antigen/releases/download/{{ antigen_latest_release_tag.json.tag_name }}/antigen.zsh"
+    dest: "{{ antigen_src_path }}/antigen.zsh"
+  when: install_antigen
+
+- name: "Save meta information about the version of Antigen that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/antigen
+    mode: 0600
+    content: |
+      {{ antigen_latest_release_tag.json.tag_name | replace ('v','') }}
+  when: install_antigen

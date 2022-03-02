@@ -2,13 +2,14 @@
 - name: "Ensure {{ app_name }}'s yum repository is added"
   yum_repository:
     baseurl: "{{ vault_yum_repo }}"
-    description: HashiCorp repository
+    description: "{{ app_name }}'s repository"
     gpgcheck: true
     gpgkey: "{{ vault_gpgkey_url }}"
-    name: HashiCorp
+    name: "{{ app_name | lower | replace(' ', '-') }}"
+    repo_gpgcheck: true
 
 - name: "Ensure {{ app_name }} is installed"
-  yum:
+  dnf:
     name: vault
-    state: present
-    update_cache: true
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"

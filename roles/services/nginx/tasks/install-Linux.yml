@@ -1,0 +1,113 @@
+---
+- name: Install NGINX Optimized base dependencies
+  package:
+    name: "{{ nginx_dependencies }}"
+    state: present
+  when: ansible_os_family != 'Darwin'
+
+- name: Update nginx module link
+  include_tasks: linux/update-module-link.yml
+  when: nginx_module_dir is defined and nginx_module_link is defined
+
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+  when: ansible_system == 'Linux'
+
+- name: Set a variable equal to the NGINX version
+  set_fact:
+    nginx_version: "{{ ansible_facts.packages['nginx'][0].version | regex_search('^[0-9.]*') }}"
+  when: ansible_system == 'Linux'
+
+- name: Gather the package facts # noqa 301
+  become: false
+  command: "/usr/local/bin/brew list --versions"
+  register: package_versions
+  when: ansible_system == 'Darwin'
+
+- name: Set a variable equal to the NGINX version
+  set_fact:
+    nginx_version: "{{ package_versions.stdout_lines | join(',') | regex_search('nginx (\\d*\\.)*\\d*') | regex_replace('nginx ','') }}"
+  when: ansible_system == 'Darwin'
+
+- name: Add styled status code response pages from Git repository
+  include_tasks: linux/status-pages.yml
+  when: error_page_repository | bool
+
+- name: Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough
+  lineinfile:
+    path: "{{ nginx_service_path[ansible_distribution] }}"
+    regexp: "After=(.*)network.target(.*)"
+    line: 'After=\1network-online.target\2'
+    owner: root
+    mode: 0644
+  when:
+    - ansible_distribution is defined and ( nginx_service_path is defined or nginx_service_path[ansible_distribution] is defined )
+    - ansible_os_family != 'Darwin'
+
+# @action Ensures Nginx is configured
+# Installs Brotli on Linux and MacOS Systems
+- name: Compile Brotli modules
+  include_tasks: linux/brotli.yml
+  when:
+    - enable_nginx_brotli
+
+- name: Ensure dhparam.pem exists
+  include_tasks: linux/dhparam.yml
+
+# @action Ensures Nginx is configured
+# Installs Nginx Amplify Agent on Linux and MacOS Systems
+- name: Install NGINX Amplify
+  include_tasks: linux/amplify.yml
+  when:
+    - nginx_amplify_api_key is defined
+    - enable_nginx_amplify
+    - ansible_os_family != 'Darwin'
+
+- name: Register the file status of the ModSecurity WAF module configuration file
+  stat:
+    path: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
+  register: modsec_config
+
+# @action Ensures Nginx is configured
+# Installs ModSecurity WAF on Linux and MacOS Systems
+- name: Compile ModSecurity WAF module
+  include_tasks: linux/modsecurity.yml
+  when:
+    - enable_nginx_modsecurity_waf
+    - not modsec_config.stat.exists
+
+- name: Update the NGINX configuration files
+  include_tasks: linux/nginx-configuration.yml
+  tags: nginx_configuration
+
+- name: Generate sites-available
+  include_tasks: site-available.yml
+  loop: "{{ apps }}"
+  tags: nginx_configuration
+
+- name: Generate sites-available for proxy host
+  vars:
+    nginx_proxy_host_override: true
+  include_tasks: site-available.yml
+  loop: "{{ hosts | list }}"
+  when:
+    - nginx_proxy_host
+    - not (item in apps)
+
+- name: Symlink sites-enabled
+  file:
+    src: "{{ sites_available_path }}/{{ item | default(item.name) }}.conf"
+    path: "{{ sites_enabled_path }}/{{ item | default(item.name) }}.conf"
+    state: link
+  loop: "{{ apps }}"
+  tags: nginx_configuration
+  when: (item | default(item.name)) != host_id
+
+- name: Reload systemd and restart NGINX
+  systemd:
+    daemon_reload: true
+    name: nginx
+    state: restarted
+  tags: nginx_configuration
+  when: ansible_os_family != 'Darwin'

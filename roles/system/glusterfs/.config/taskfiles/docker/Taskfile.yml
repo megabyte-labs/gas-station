@@ -1,0 +1,285 @@
+---
+version: '3'
+
+vars:
+  DOCKER_IMAGE:
+    sh: |
+      echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+  SLIM_ENABLED:
+    sh: jq -r '.blueprint.dockerSlimCommand' package.json | sed 's/null/false/'
+
+tasks:
+  build:
+    desc: Build a regular Docker image and then generate a slim build from it
+    summary: |
+      # Build the Docker Images
+
+      This task will build all of the corresponding Docker images as long as they
+      have a [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      created.
+
+      For regular projects, having a `Docker.test.yml` container-structure-test is enough. However,
+      for projects with multiple build targets, there should be a test for each target. So, if there
+      are 2 build targets in the `Dockerfile` named `build1` and `build2` then there should be
+      a `Docker.build1.test.yml` and `Docker.build2.test.yml` container-structure-test.
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    cmds:
+      - |
+        if [ -f Docker.test.yml ]; then
+          task docker:build:fat
+          if [ "$(jq -r '.blueprint.dockerSlimCommand' package.json)" != 'null' ]; then
+            task docker:build:slim
+          fi
+        fi
+      - |
+        for TESTFILE in Docker.*.test.yml; do
+          if [ "$TESTFILE" != 'Docker.*.test.yml' ]; then
+            TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Docker.//' | sed 's/.test.yml$//')"
+            task docker:build:fat -- "$TEST_IMAGE_SLUG"
+            task docker:build:slim -- "$TEST_IMAGE_SLUG"
+          fi
+        done
+
+  login:
+    deps:
+      - :install:software:docker
+    log:
+      error: Failed to authenticate `{{.DOCKERHUB_USER}}` with the DockerHub registry
+      start: Logging into DockerHub registry with `{{.DOCKERHUB_USER}}`
+      success: Authenticated to DockerHub registry with `{{.DOCKERHUB_USER}}`
+    cmds:
+      - echo "$DOCKERHUB_REGISTRY_PASSWORD" | docker login -u {{.DOCKERHUB_USER}} --password-stdin
+    preconditions:
+      - test -n "$DOCKERHUB_REGISTRY_PASSWORD"
+
+  prepare:
+    cmds:
+      - task: build
+
+  publish:
+    desc: Publish the Docker images (using `Docker*.test.yml` files)
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    summary: |
+      # Publish the Docker Images
+
+      This task will publish all of the corresponding Docker images as long as they
+      have a [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      created.
+
+      For regular projects, having a `Docker.test.yml` container-structure-test is enough. However,
+      for projects with multiple build targets, there should be a test for each target. So, if there
+      are 2 build targets in the `Dockerfile` named `build1` and `build2` then there should be
+      a `Docker.build1.test.yml` and `Docker.build2.test.yml` container-structure-test.
+    cmds:
+      - |
+        if [ -f Docker.test.yml ]; then
+          task docker:publish:images
+        fi
+      - |
+        for TESTFILE in Docker.*.test.yml; do
+          if [ "$TESTFILE" != 'Docker.*.test.yml' ]; then
+            TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Docker.//' | sed 's/.test.yml$//')"
+            task docker:publish:images -- "$TEST_IMAGE_SLUG"
+          fi
+        done
+
+  publish:image:
+    vars:
+      SLUG:
+        sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+    log:
+      error: Failed to tag / push `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+      start: Tagging and pushing `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+      success: Finished uploading `{{.DOCKER_IMAGE}}:{{.TARGET_TAG}}`
+    cmds:
+      - docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+      - docker push {{.DOCKER_IMAGE}}:{{.TARGET_TAG}}
+      - |
+        if [ '{{.REPOSITORY_SUBTYPE}}' == 'codeclimate' ] && echo '{{.SLUG}}' | grep 'codeclimate-'; then
+          .config/log info 'Uploading to tag `{{.TARGET_TAG}}-codeclimate` since this is a codeclimate repository'
+          TARGET_IMAGE="$(echo '{{.SLUG}}' | sed 's/^codeclimate-//')"
+          docker tag {{.DOCKER_IMAGE}}:{{.SOURCE_TAG}} "{{.DOCKERHUB_PROFILE}}/${TARGET_IMAGE}:{{.TARGET_TAG}}-codeclimate"
+          docker push "{{.DOCKERHUB_PROFILE}}/${TARGET_IMAGE}:{{.TARGET_TAG}}-codeclimate"
+          .config/log success 'Uploaded tag `{{.TARGET_TAG}}-codeclimate` successfully'
+        fi
+    status:
+      - if [[ '{{.SOURCE_TAG}}' == 'slim' ]]; then [[ '{{.SLIM_ENABLED}}' == 'false' ]]; fi
+
+  publish:images:
+    vars:
+      MAJOR_VERSION:
+        sh: jq -r '.version' package.json | sed 's/\..*\..*$//'
+      VERSION:
+        sh: jq -r ".version" package.json
+    log:
+      error: An error occurred while publishing the Docker images
+      start: Publishing Docker images
+      success: Finished uploading all Docker images
+    cmds:
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest
+          TARGET_TAG: '{{.VERSION}}'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest
+          TARGET_TAG: '{{.MAJOR_VERSION}}-latest'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest
+          TARGET_TAG: latest
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim
+          TARGET_TAG: '{{.VERSION}}-slim'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim
+          TARGET_TAG: '{{.MAJOR_VERSION}}-slim'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim
+          TARGET_TAG: slim
+      - task: pushrm
+
+  pushrm:
+    deps:
+      - :install:github:docker-pushrm
+      - :install:software:docker
+    vars:
+      DOCKERHUB_DESCRIPTION:
+        sh: jq -r '.description' package.json
+    cmds:
+      - docker pushrm {{.DOCKER_IMAGE}}
+      - docker pushrm --short '{{.DOCKERHUB_DESCRIPTION}}' {{.DOCKER_IMAGE}}
+
+  shell:
+    deps:
+      - :install:software:docker
+      - :install:software:jq
+    interactive: true
+    desc: Open the terminal of an existing Docker image
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    summary: |
+      # Shell into Docker Image
+
+      This task will start a shell session with one of the Docker images
+      that are currently present on machine. The task looks at the output
+      from `docker images` and filters the list based on the project's
+      expected DockerHub slug or a string, if you pass in CLI arguments.
+
+      **Displays a list of images that match the name in package.json:**
+      `task docker:shell`
+
+      **Displays a list of images that have the pattern abc in their name:**
+      `task docker:shell -- 'abc'`
+    vars:
+      IMAGE_OPTIONS:
+        sh: docker images | grep {{.DOCKER_IMAGE}} | sed 's/^\([^ ]*\).*$/\1/' | jq -Rsc 'split("\n")' | jq 'del(.[-1])'
+    prompt:
+      type: select
+      message: Which Docker image would you like to shell into?
+      options: '{{.IMAGE_OPTIONS}}'
+      answer:
+        cmds:
+          - docker run -v "${PWD}:/work" -w /work -it --entrypoint /bin/sh --rm {{.ANSWER}}
+
+  test:
+    deps:
+      - :install:software:docker
+    desc: Perform all available tests on the Docker image
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    summary: |
+      # Test the Docker Images
+
+      This task will publish all of the corresponding Docker images as long as they
+      have a [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test)
+      created.
+
+      For regular projects, having a `Docker.test.yml` container-structure-test is enough. However,
+      for projects with multiple build targets, there should be a test for each target. So, if there
+      are 2 build targets in the `Dockerfile` named `build1` and `build2` then there should be
+      a `Docker.build1.test.yml` and `Docker.build2.test.yml` container-structure-test.
+
+      ## Comparing Slim Output to Latest Output
+
+      If the `dockerSlimCommand` is present in the `blueprint` section of `package.json`, the output from running
+      `npm run test:dockerslim` on every project/folder in the `test-output/` folder will be compared. The comparison
+      will ensure that the `slim` output matches the `latest` output. Each folder in the `test-output/` folder must
+      have a `package.json` file present with the `test:dockerslim` script defined under `scripts`.
+
+      If there is no `test-output/` folder, then this kind of test is skipped.
+
+      ## `dockerSlimCommand` with Multiple Build Targets
+
+      If there are multiple build targets, then the `dockerSlimCommand` should be an object with keys equal to
+      the build targets and values equal to the appropriate DockerSlim command. If you are only using
+      `Docker.test.yml` then you can simply set `dockerSlimCommand` equal to the appropriate command. However,
+      if you have two targets named `build1` and `build2`, then your `dockerSlimCommand` should look something
+      like:
+
+      ```json
+      {
+        "blueprint": {
+          "dockerSlimCommand": {
+            "build1": "...DockerSlim build command options here for build1",
+            "build2": "...DockerSlim build command options here for build2"
+          }
+        }
+      }
+      ```
+
+      ## CodeClimate CLI Testing
+
+      Any folder in the `test/` folder that starts with `codeclimate` gets scanned by CodeClimate CLI.
+    cmds:
+      - |
+        if [ -f Docker.test.yml ]; then
+          task docker:test:container-structure-test
+          if [ -d test-output ]; then
+            task docker:test:output
+          fi
+        fi
+      - |
+        for TESTFILE in Docker.*.test.yml; do
+          if [ "$TESTFILE" != 'Docker.*.test.yml' ]; then
+            TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Docker.//' | sed 's/.test.yml$//')"
+            task docker:test:container-structure-test -- "$TEST_IMAGE_SLUG"
+          fi
+        done
+      - |
+        for FOLDER in test/codeclimate*/; do
+          if [ "$FOLDER" != 'test/codeclimate*/' ]; then
+            task lint:codeclimate -- " $FOLDER"
+          fi
+        done
+      - |
+        if [ -d test-output ]; then
+          for TESTFILE in Docker.*.test.yml; do
+            if [ "$TESTFILE" != 'Docker.*.test.yml' ]; then
+              task docker:test:output -- "$TEST_IMAGE_SLUG"
+            fi
+          done
+        fi
+      - task: :docker:test:gitlab-runner
+
+  verify:
+    cmds:
+      - task: login
+
+  version:software:
+    cmds:
+      - |
+        if grep -q "CMD.\[\"--version\"\]" Dockerfile; then
+          VERSION=$(docker run --cap-drop=ALL -e PY_COLORS=0 --rm {{.DOCKER_IMAGE}}:latest | perl \
+            -pe 'if(($v)=/([0-9]+([.][0-9]+)+)/){print"$v";exit}$_=""')
+          if [[ $VERSION == *.*.* ]]; then
+            echo $VERSION
+          elif [[ $VERSION == *.* ]]; then
+            echo $VERSION.0
+          fi
+        fi

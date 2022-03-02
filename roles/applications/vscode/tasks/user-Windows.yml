@@ -1,0 +1,60 @@
+---
+- name: Ensure users' extensions directory exists
+  become: true
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.vscode\extensions'
+    state: directory
+  when: user.vscode_extensions | default([]) | length
+
+- name: Install users' extensions
+  include_tasks: extension-Windows.yml
+  loop: "{{ user.vscode_extensions | default([]) }}"
+  loop_control:
+    loop_var: extension
+  when: user.vscode_extensions | length > 0
+
+- name: Check if the settings.json file exists
+  become: true
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_stat:
+    path: "{{ settings_path }}"
+  register: settings_stat_win
+
+- name: Fetch the Theme file
+  become: true
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_uri:
+    url: https://github.com/mbadolato/iTerm2-Color-Schemes/raw/master/vscode/Solarized%20Dark%20-%20Patched.json
+    return_content: true
+  register: solarized_theme_vscode
+
+- name: Create the settings.json file
+  become: true
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    dest: "{{ settings_path }}"
+    content: "{{ solarized_theme_vscode.content }}"
+  when: not settings_stat_win.stat.exists
+
+- name: Get the contents of the settings.json file
+  become: true
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: type "C:/Users/{{ user.username }}/AppData/Roaming/Code/User/settings.json"
+  register: settings_json
+  when: settings_stat_win.stat.exists
+
+- name: Ensure Theme is setup
+  become: true
+  become_method: runas
+  become_user: "{{ user.username }}"
+  community.windows.win_lineinfile:
+    path: "{{ settings_path }}"
+    backup: true
+    line: ",{{ solarized_theme_vscode.content | trim('\n') | trim('{') | trim ('}') }}"
+    insertbefore: "^}$"
+  when: "'workbench.colorCustomizations' not in settings_json.stdout"

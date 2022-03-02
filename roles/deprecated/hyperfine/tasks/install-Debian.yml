@@ -1,0 +1,35 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/sharkdp/hyperfine/releases/latest
+  register: hyperfine_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_hyperfine: "{{ (ansible_local.hyperfine is not defined) or \
+      ((ansible_local.hyperfine is defined) and \
+      (ansible_local['hyperfine']['settings']['version'] != hyperfine_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    deb: "https://github.com/sharkdp/hyperfine/releases/download/{{ hyperfine_latest_release_tag.json.tag_name }}/\
+      hyperfine-musl_{{ hyperfine_latest_release_tag.json.tag_name | replace('v','') }}_amd64.deb"
+    state: "{{ app_state | default('present') }}"
+  when: install_hyperfine
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/hyperfine.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ hyperfine_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_hyperfine

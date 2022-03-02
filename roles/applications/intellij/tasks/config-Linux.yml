@@ -1,0 +1,92 @@
+---
+- name: Ensure configuration folders are created
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ plugins_folder | regex_search('(.*)/') | trim('/') | dirname }}"
+    - "{{ plugins_folder | regex_search('(.*)/') }}"
+    - "{{ plugins_folder | dirname + '/options' }}"
+    - "{{ plugins_folder }}"
+    - "{{ colors_folder }}"
+    - "{{ plugin_folder_prefix | dirname + '/consentOptions' }}"
+  when: ansible_system == 'Darwin'
+
+- name: Ensure plugins and colors folders are created
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ plugins_folder | regex_search('(.*)/') }}"
+    - "{{ plugins_folder + '/options' }}"
+    - "{{ plugins_folder }}"
+    - "{{ colors_folder }}"
+    - "{{ plugin_folder_prefix | dirname + '/consentOptions' }}"
+  when: ansible_system == 'Linux'
+
+- name: Ensure plugins are installed
+  include_tasks: plugin-Linux.yml
+  loop: "{{ user.intellij_plugins }}"
+  loop_control:
+    loop_var: plugin_url
+    label: plugin_url
+  when: user.intellij_plugins is defined
+
+- name: Check if Terms acceptance file is present
+  become_user: "{{ user.username }}"
+  stat:
+    path: "{{ plugin_folder_prefix | dirname + '/consentOptions/accepted' }}"
+  register: accepted_file_stat
+
+- name: Ensure Terms acceptance file exists
+  become_user: "{{ user.username }}"
+  copy:
+    dest: "{{ plugin_folder_prefix | dirname + '/consentOptions/accepted' }}"
+    content: |
+      rsch.send.usage.stat:1.1:0:{{ ansible_date_time.epoch }}000
+    mode: 0644
+  when: not accepted_file_stat.stat.exists
+
+- name: Ensure Solarized theme's source directory is present
+  file:
+    mode: 0755
+    path: "{{ solarized_theme_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: Ensure Solarized theme's source is cloned and up-to-date
+  become_user: "{{ user.username }}"
+  git:
+    dest: "{{ solarized_theme_src_dir }}"
+    repo: "{{ solarized_theme_repository }}"
+    version: master
+  register: solarized_theme_git
+
+- name: Ensure Solarized theme files are copied # noqa 503
+  become_user: "{{ user.username }}"
+  copy:
+    dest: "{{ colors_folder }}"
+    src: "{{ item }}"
+    mode: 0644
+    remote_src: true
+  loop:
+    - "{{ solarized_theme_src_dir }}/Solarized Dark.icls"
+    - "{{ solarized_theme_src_dir }}/Solarized Light.icls"
+  when: solarized_theme_git.changed
+
+- name: Ensrure Color scheme setting is applied
+  become_user: "{{ user.username }}"
+  copy:
+    dest: "{% if ansible_system == 'Darwin' %}{{ plugins_folder | dirname + '/options/colors.scheme.xml' }}{% else %}{{ plugins_folder \
+      + '/options/colors.scheme.xml' }}{% endif %}"
+    content: |
+      <application>
+        <component name="EditorColorsManagerImpl">
+          <global_color_scheme name="Solarized Dark" />
+        </component>
+      </application>
+    mode: 0644

@@ -1,0 +1,85 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  package:
+    name:
+      - zip
+      - unzip
+    state: "{{ app_state | default('present') }}"
+  when: ansible_system == 'Linux'
+
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: 'Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/sdkman'
+  stat:
+    path: ~/.config/megabytelabs/sdkman
+  register: sdkman_config
+
+- name: 'Detect previously installed {{ app_name }} version'
+  command: cat sdkman
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_sdkman_version
+  when: sdkman_config.stat.exists
+
+- name: 'Detect the latest {{ app_name }} version'
+  uri:
+    url: https://api.github.com/repos/sdkman/sdkman-cli/releases/latest
+  register: sdkman_latest_release_tag
+
+- name: 'Determine whether or not the latest version of {{ app_name }} is already installed'
+  set_fact:
+    install_sdkman: "{{ (current_sdkman_version.skipped | default(false)) or \
+      ((not current_sdkman_version.skipped | default(false)) and (current_sdkman_version.stdout != sdkman_latest_release_tag.json.tag_name)) }}"
+
+# @action Installs SDKMAN
+# Removes older version of SDKMAN if it is already present
+- name: 'Ensure older version of {{ app_name }} is uninstalled'
+  file:
+    path: ~/.sdkman/bin/sdkman-init.sh
+    state: absent
+  when: install_sdkman
+
+# @action Installs SDKMAN
+# Installs SDKMAN by running `curl -s "https://get.sdkman.io" | bash`
+- name: 'Ensure {{ app_name }} is installed' # noqa 303
+  shell: |
+    set -o pipefail && curl -s "https://get.sdkman.io" | bash
+  args:
+    creates: ~/.sdkman/bin/sdkman-init.sh
+    executable: /bin/bash
+  when: install_sdkman
+
+- name: 'Save meta information about the version of {{ app_name }} that was installed'
+  copy:
+    dest: ~/.config/megabytelabs/sdkman
+    mode: 0600
+    content: |
+      {{ sdkman_latest_release_tag.json.tag_name }}
+  when: install_sdkman
+
+# @action Configures SDKMAN
+# Sets `sdkman_auto_answer` to true in the SDKMAN configuration
+- name: Ensure sdkman is configured
+  lineinfile:
+    path: ~/.sdkman/etc/config
+    regexp: ^sdkman_auto_answer
+    line: sdkman_auto_answer=true
+
+# @action Configures SDKMAN
+# Ensures user-specified SDKs are installed
+- name: Ensure SDKs are installed
+  shell: |
+    source ~/.sdkman/bin/sdkman-init.sh
+    sdk install {{ sdk }}
+  when: sdk_installs is defined or user.sdk_installs is defined
+  loop: '{{ user.sdk_installs | default(sdk_installs) }}'
+  loop_control:
+    loop_var: sdk

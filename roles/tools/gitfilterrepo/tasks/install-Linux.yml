@@ -1,0 +1,76 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ gitfilterrepo_src_dir }} directory exists"
+  file:
+    path: "{{ gitfilterrepo_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/newren/git-filter-repo/releases/latest
+  register: gitfilterrepo_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gitfilterrepo: "{{ (ansible_local.gitfilterrepo is not defined) or \
+      ((ansible_local.gitfilterrepo is defined) and \
+      (ansible_local['gitfilterrepo']['settings']['version'] != gitfilterrepo_latest_release_tag.json.tag_name | replace('v',''))) }}"
+    git_filter_repo_version: "{{ gitfilterrepo_latest_release_tag.json.tag_name | replace('v','') }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/newren/git-filter-repo/releases/download/{{ gitfilterrepo_latest_release_tag.json.tag_name }}/\
+      git-filter-repo-{{ git_filter_repo_version }}.tar.xz"
+    dest: "{{ gitfilterrepo_src_dir }}"
+    remote_src: true
+  when: install_gitfilterrepo
+
+- name: "Find folders for linking {{ app_name }}" # noqa 303
+  shell: |
+    git --exec-path
+    git --man-path
+    git --html-path
+    python -c "import site; print(site.getsitepackages()[-1])" || python3 -c "import site; print(site.getsitepackages()[-1])"
+  register: git_folders
+  changed_when: false
+  when: install_gitfilterrepo
+
+- name: Ensure documentation folders exists
+  file:
+    path: "{{ git_folders.stdout_lines[2] }}"
+    state: directory
+    mode: 0755
+
+- name: "Ensure {{ app_name }}'s files are linked appropiately"
+  file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+    force: true
+  loop:
+    - src: "{{ gitfilterrepo_src_dir }}/git-filter-repo-{{ git_filter_repo_version }}/git-filter-repo"
+      dest: "{{ git_folders.stdout_lines[0] }}/git-filter-repo"
+    - src: "{{ gitfilterrepo_src_dir }}/git-filter-repo-{{ git_filter_repo_version }}/Documentation/man1/git-filter-repo.1"
+      dest: "{{ git_folders.stdout_lines[1] }}/git-filter-repo.1"
+    - src: "{{ gitfilterrepo_src_dir }}/git-filter-repo-{{ git_filter_repo_version }}/Documentation/html/git-filter-repo.html"
+      dest: "{{ git_folders.stdout_lines[2] }}/git-filter-repo.html"
+    - src: "{{ git_folders.stdout_lines[0] }}/git-filter-repo"
+      dest: "{{ git_folders.stdout_lines[3] }}/git_filter_repo.py"
+  when: install_gitfilterrepo
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/gitfilterrepo.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ git_filter_repo_version }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_gitfilterrepo

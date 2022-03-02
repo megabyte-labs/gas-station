@@ -1,0 +1,126 @@
+---
+version: '3'
+
+tasks:
+  before:
+    deps:
+      - :install:software:git
+    cmds:
+      - task: commit:config
+      - task: checkout
+      - task: lockfiles
+      - task: before:npm
+
+  before:npm:
+    deps:
+      - :install:npm:pnpm
+    log:
+      error: Error encountered while configuring pnpm to store its cache in `.pnpm-store`
+      start: Configuring pnpm to store its cache in `.pnpm-store`
+      success: Successfully updated pnpm to store its cache in `.pnpm-store`
+    cmds:
+      - pnpm config set store-dir .pnpm-store
+
+  checkout:
+    log:
+      error: Failed to pull latest changes
+      start: Pulling latest changes
+      success: Successfully pulled latest changes
+    cmds:
+      - git fetch --all --tags -f
+      - |
+        if [[ "$CI_COMMIT_REF_NAME" == 'synchronize' ]]; then
+          git checkout -q master
+          git pull -q origin master
+        else
+          git checkout -q "$CI_COMMIT_REF_NAME"
+          git pull -q origin "$CI_COMMIT_REF_NAME"
+        fi
+
+  commit:
+    deps:
+      - :install:software:git
+    log:
+      error: Encountered error while pushing changes to master
+      start: Bypassing git hooks and pushing changes to master (if there are any changes)
+    cmds:
+      - task: commit:config
+      - task: lockfiles:clean
+      - git add --all
+      - git diff --cached "*"
+      - |
+        if [[ $(git status --porcelain) ]]; then
+          git commit -m "⤵️ automation(synchronize) Applying changes from upstream repository."
+          git push -q -o ci.skip origin master
+        fi
+
+  commit:config:
+    deps:
+      - :install:software:git
+    cmds:
+      - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+      - git config user.email "$GITLAB_CI_EMAIL"
+      - git config user.name "$GITLAB_CI_NAME"
+    preconditions:
+      - sh: '[[ ! -z "$GROUP_ACCESS_TOKEN" ]]'
+        msg: The `GROUP_ACCESS_TOKEN` GitLab CI variable must be set to an API key with priviledges to read/write to repositories.
+      - sh: '[[ ! -z "$GITLAB_CI_EMAIL" ]]'
+        msg: 'The `GITLAB_CI_EMAIL` GitLab CI variable must be set to the e-mail address you would like associated with
+          automated commits (e.g. "help@mydomain.com").'
+      - sh: '[[ ! -z "$GITLAB_CI_NAME" ]]'
+        msg: 'The `GITLAB_CI_NAME` GitLab CI variable must be set to the name you would like associated with automated commits
+          (e.g. "CI Automation").'
+
+  lockfiles:
+    cmds:
+      - |
+        if [ -f local/package-lock.json ]; then
+          cp local/package-lock.json package-lock.json
+        fi
+      - |
+        if [ -f local/yarn.lock ]; then
+          cp local/yarn.lock yarn.lock
+        fi
+
+  lockfiles:clean:
+    cmds:
+      - |
+        if [ -f local/package-lock.json ]; then
+          rm -f package-lock.json
+        fi
+      - |
+        if [ -f local/yarn.lock ];then
+          rm -f yarn.lock
+        fi
+
+  submodules:
+    deps:
+      - :install:software:git
+    log:
+      error: Encountered error while ensuring submodules are up-to-date
+      start: Ensuring submodules are configured and up-to-date with their master remote
+      success: Ensured submodules are up-to-date
+    cmds:
+      - >
+        git submodule foreach 'git config user.email "$GITLAB_CI_EMAIL"; git config user.name "$GITLAB_CI_NAME";
+        git checkout -q master; git pull -q origin master --ff-only'
+
+  synchronize:
+    log:
+      error: Failed to update the `synchronize` branch
+      start: Synchronizing the `synchronize` branch with the `master` branch
+      success: Successfully updated the `synchronize` branch
+    cmds:
+      - git checkout -b synchronize || git checkout synchronize
+      - git reset --hard HEAD
+      - git pull -q origin master
+      - git push -q -o ci.skip origin synchronize --force
+      - |
+        if [ '{{.REPOSITORY_TYPE}}' == 'deprecated_common' ] && [ '{{.REPOSITORY_SUBTYPE}}' == 'shared' ]; then
+          .config/log info 'Bypassing the `master` branch pipeline trigger because the repository is not of the right type'
+        else
+          .config/log info 'Triggering the `master` branch pipeline'
+          curl -s --request POST --form "token=${CI_JOB_TOKEN}" --form ref=master --form "variables[PIPELINE_SOURCE]=$PIPELINE_SOURCE" \
+            "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/trigger/pipeline"
+        fi
+      - git checkout master

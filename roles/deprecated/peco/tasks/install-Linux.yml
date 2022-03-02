@@ -1,0 +1,58 @@
+---
+- name: "Ensure Megabyte Labs configuration directory exists"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/{{ app_name }}"
+  register: peco_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat peco
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_peco_version
+  when: peco_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/peco/peco/releases/latest
+  register: peco_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_peco: "{{ (current_peco_version.skipped) or \
+      ((not current_peco_version.skipped) and (current_peco_version.stdout != peco_latest_release_tag.json.tag_name | replace('v','') | int )) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/peco
+    state: absent
+  when: install_peco
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ 'https://github.com/peco/peco/releases/download/' + peco_latest_release_tag.json.tag_name + '/peco_linux_amd64.tar.gz' }}"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - Changes
+      - README.md
+    extra_opts:
+      - --strip-components=1
+  when: install_peco
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/peco
+    mode: 0600
+    content: |
+      {{ peco_latest_release_tag.json.tag_name | replace('v','') | int }}
+  when: install_peco

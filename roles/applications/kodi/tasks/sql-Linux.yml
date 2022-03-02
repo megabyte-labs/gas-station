@@ -1,0 +1,47 @@
+---
+- name: Secure MariaDB installation # noqa 301
+  command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - UPDATE mysql.user SET Password=PASSWORD('{{ mysql_root_password }}') WHERE User='root';
+    - DELETE FROM mysql.user WHERE User='';
+    - DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1', '{{ kodi_mysql_server }}');
+    - DROP DATABASE IF EXISTS test;
+    - DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+    - FLUSH PRIVILEGES;
+  when: not kodi_mysql_docker
+
+- name: Setup DB for Kodi # noqa 301
+  command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - CREATE USER '{{ kodi_mysql_user }}' IDENTIFIED BY '{{ kodi_mysql_pass }}';
+    - GRANT ALL ON *.* TO '{{ kodi_mysql_user }}';
+    - FLUSH PRIVILEGES;
+  when: not kodi_mysql_docker
+
+- name: Update MariaDB port
+  replace:
+    path: /etc/my.cnf
+    backup: true
+    regexp: "^port = \\d*"
+    replace: "port = {{ kodi_mysql_port }}"
+  when: not kodi_mysql_docker
+
+- name: Ensure directory to save the docker-compose.yml file exists
+  file:
+    path: /opt/kodi
+    state: directory
+    mode: 0755
+  when: kodi_mysql_docker
+
+- name: Copy the docker-compose.yml file
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/kodi/docker-compose.yml
+    mode: 0755
+  when: kodi_mysql_docker
+
+- name: Ensure MariaDB docker container is running
+  community.general.docker_compose:
+    project_src: /opt/kodi
+    state: present
+  when: kodi_mysql_docker

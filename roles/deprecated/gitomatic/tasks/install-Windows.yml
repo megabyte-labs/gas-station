@@ -1,0 +1,74 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Ensure installation folder for {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: "{{ gitomatic_src_dir }}"
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/gitomatic'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\gitomatic'
+  register: gitomatic_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type gitomatic
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_gitomatic_version
+  when: gitomatic_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/muesli/gitomatic/releases/latest
+  register: gitomatic_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gitomatic: "{{ (current_gitomatic_version.skipped | default(false)) or \
+      ((not current_gitomatic_version.skipped | default(false)) and \
+      (current_gitomatic_version.stdout != gitomatic_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  ansible.windows.win_uri:
+    url: "https://github.com/muesli/gitomatic/releases/download/{{ gitomatic_latest_release_tag.json.tag_name }}/checksums.txt"
+    return_content: true
+  register: gitomatic_checksum_file
+  when: install_gitomatic
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    gitomatic_checksum: "{{ gitomatic_checksum_file.content | regex_search('.*gitomatic_(\\d.)*\\d*_Windows_x86_64.tar.gz') | \
+      regex_replace('  gitomatic_(\\d.)*\\d*_Windows_x86_64.tar.gz','') }}"
+  when: install_gitomatic
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  ansible.windows.win_get_url:
+    url: "https://github.com/muesli/gitomatic/releases/download/{{ gitomatic_latest_release_tag.json.tag_name }}/\
+      gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_Windows_x86_64.tar.gz"
+    dest: "{{ gitomatic_src_dir }}/gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_Windows_x86_64.tar.gz"
+    checksum: "{{ gitomatic_checksum }}"
+    checksum_algorithm: sha256
+  when: install_gitomatic
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: "{{ gitomatic_src_dir }}/gitomatic_{{ gitomatic_latest_release_tag.json.tag_name | replace('v','') }}_Windows_x86_64.tar.gz"
+    dest: "{{ gitomatic_src_dir }}"
+    delete_archive: true
+    recurse: true
+  when: install_gitomatic
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\gitomatic'
+    content: |
+      {{ gitomatic_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_gitomatic

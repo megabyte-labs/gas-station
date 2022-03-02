@@ -1,0 +1,61 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    path: /etc/ansible/facts.d
+    mode: 0755
+    state: directory
+
+- name: "Ensure {{ delta_src_directory }} exists"
+  file:
+    path: "{{ delta_src_directory }}"
+    mode: 0755
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/dandavison/delta/releases/latest
+  register: delta_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_delta: "{{ (ansible_local.delta is not defined) or \
+      ((ansible_local.delta is defined) and (ansible_local['delta']['settings']['version'] != delta_latest_release_tag.json.tag_name)) }}"
+
+- name: "Ensure {{ app_name }} is downloaded"
+  unarchive:
+    src: "https://github.com/dandavison/delta/releases/download/{{ delta_latest_release_tag.json.tag_name }}/\
+      delta-{{ delta_latest_release_tag.json.tag_name }}-x86_64-unknown-linux-musl.tar.gz"
+    dest: "{{ delta_src_directory }}"
+    extra_opts:
+      - --strip-components=1
+    exclude:
+      - LICENSE
+      - README.md
+    remote_src: true
+  when: install_delta
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/delta.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ delta_latest_release_tag.json.tag_name }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_delta
+
+- name: "Ensure {{ app_name }} config is added to ~/.gitconfig"
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.gitconfig
+    marker: "# {mark} Ansible managed block for delta"
+    backup: true
+    create: true
+    mode: 0700
+    block: "{{ lookup('file', 'gitconfig') }}"
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

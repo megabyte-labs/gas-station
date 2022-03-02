@@ -1,0 +1,147 @@
+---
+# @action Ensures ASDF is installed
+# Ensures common ASDF dependencies are installed
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  become_user: root
+  package:
+    name: "{{ asdf_dependencies + asdf_plugin_dependencies }}"
+    state: present
+  when: ansible_system == 'Linux'
+
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    path: ~/.config/megabytelabs
+    state: directory
+    mode: 0700
+  when: ansible_system == 'Linux'
+
+- name: "Ensure {{ asdf_src_dir }}'s source directory exists"
+  file:
+    mode: 0755
+    path: "{{ asdf_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+  when: ansible_system == 'Linux'
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/{{ app_name }}"
+  register: asdf_config
+  when: ansible_system == 'Linux'
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat {{ app_name }}
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_asdf_version
+  when:
+    - ansible_system == 'Linux'
+    - asdf_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/asdf-vm/asdf/tags
+  register: asdf_latest_release_tag
+  when: ansible_system == 'Linux'
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_asdf: "{{ (current_asdf_version.skipped | default(false)) or \
+      ((not current_asdf_version.skipped | default(false)) and (current_asdf_version.stdout != asdf_latest_release_tag.json[0].name | replace('v',''))) }}"
+  when: ansible_system == 'Linux'
+
+# @action Ensures ASDF is installed
+# Installs ASDF to the user's `~/.local/asdf` folder on Linux systems
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  git:
+    repo: https://github.com/asdf-vm/asdf.git
+    dest: "{{ asdf_src_dir }}"
+    version: "{{ asdf_latest_release_tag.json[0].name }}"
+  when:
+    - ansible_system == 'Linux'
+    - install_asdf
+
+# @action Integrates ASDF with system
+# Ensures ASDF is properly added to the `PATH` environment variable
+- name: "Ensure {{ app_name }}'s PATH is added to .bashrc"
+  lineinfile:
+    path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    create: true
+    regex: >-
+      {%- if ansible_system == 'Linux' -%}
+      . {{ asdf_src_dir }}/asdf.sh
+      {%- else -%}
+      . $(brew --prefix asdf)/libexec/asdf.sh
+      {%- endif -%}
+    line: >-
+      {%- if ansible_system == 'Linux' -%}
+      . {{ asdf_src_dir }}/asdf.sh
+      {%- else -%}
+      . $(brew --prefix asdf)/libexec/asdf.sh
+      {%- endif -%}
+    mode: 0700
+
+# @action Integrates ASDF with system
+# Enables Bash completions
+- name: Ensure Bash completions is setup
+  lineinfile:
+    path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    regex: >-
+      {%- if ansible_system == 'Linux' -%}
+      . {{ asdf_src_dir }}/completions/asdf.bash
+      {%- else -%}
+      . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
+      {%- endif -%}
+    line: >-
+      {%- if ansible_system == 'Linux' -%}
+      . {{ asdf_src_dir }}/completions/asdf.bash
+      {%- else -%}
+      . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
+      {%- endif -%}
+
+- name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
+  lineinfile:
+    path: ~/.zshrc
+    create: true
+    regex: >-
+      {%- if ansible_system == 'Linux' -%}
+      . {{ asdf_src_dir }}/asdf.sh
+      {%- else -%}
+      . $(brew --prefix asdf)/libexec/asdf.sh
+      {%- endif -%}
+    line: >-
+      {%- if ansible_system == 'Linux' -%}
+      . {{ asdf_src_dir }}/asdf.sh
+      {%- else -%}
+      . $(brew --prefix asdf)/libexec/asdf.sh
+      {%- endif -%}
+    mode: 0700
+
+# @action Integrates ASDF with system
+# Enables ZSH completions (if applicable)
+- name: Ensure ZSH completions is setup
+  blockinfile:
+    path: ~/.zshrc
+    block: |
+      fpath=({{ asdf_src_dir }}/completions $fpath)
+      autoload -Uz compinit
+      compinit
+  when: ansible_system == 'Linux'
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: "~/.config/megabytelabs/{{ app_name }}"
+    mode: 0600
+    content: |
+      {{ asdf_latest_release_tag.json[0].name | replace('v','') }}
+  when:
+    - ansible_system == 'Linux'
+    - install_asdf
+
+- name: Ensure Plugins are installed
+  include_tasks: plugin.yml
+  loop: "{{ asdf_plugins | default([]) }}"
+  loop_control:
+    loop_var: plugin
+    label: plugin.name

@@ -1,0 +1,54 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if catfs has configuration stored in /root/.config/megabytelabs/catfs"
+  stat:
+    path: "~/.config/megabytelabs/catfs"
+  register: catfs_config
+
+- name: "Detect previously installed catfs version"
+  command: cat catfs
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_catfs_version
+  when: catfs_config.stat.exists
+
+- name: "Detect the latest catfs version"
+  uri:
+    url: https://api.github.com/repos/kahing/catfs/releases
+  register: catfs_latest_release_tag
+
+- name: "Determine whether or not the latest version of catfs is already installed"
+  set_fact:
+    install_catfs: "{{ (current_catfs_version.skipped | default(false)) or \
+      ((not current_catfs_version.skipped | default(false)) and \
+      (current_catfs_version.stdout != catfs_latest_release_tag.json[0].tag_name | replace('v',''))) }}"
+
+- name: "Ensure older version of catfs is uninstalled"
+  file:
+    path: /usr/local/bin/catfs
+    state: absent
+  when: install_catfs
+
+- name: "Ensure catfs is installed"
+  get_url:
+    url: "https://github.com/kahing/catfs/releases/download/{{ catfs_latest_release_tag.json[0].tag_name }}/catfs"
+    dest: /usr/local/bin/catfs
+    mode: 0755
+  when: install_catfs
+
+- name: "Save meta information about the version of catfs that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/catfs
+    mode: 0600
+    content: |
+      {{ catfs_latest_release_tag.json[0].tag_name | replace('v','') }}
+  when: install_catfs

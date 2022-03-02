@@ -1,0 +1,61 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if vimplug has configuration stored in /root/.config/megabytelabs/vimplug"
+  become_user: "{{ user.username }}"
+  stat:
+    path: ~/.config/megabytelabs/vimplug
+  register: vimplug_config
+
+- name: Detect previously installed vimplug version
+  become_user: "{{ user.username }}"
+  command: cat vimplug
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_vimplug_version
+  when: vimplug_config.stat.exists
+
+- name: Detect the latest vimplug version
+  uri:
+    url: https://api.github.com/repos/junegunn/vim-plug/releases/latest
+  register: vimplug_latest_release_tag
+
+- name: Determine whether or not the latest version of vimplug is already installed
+  set_fact:
+    install_vimplug: "{{ (current_vimplug_version.skipped | default(false)) or \
+      ((not current_vimplug_version.skipped | default(false)) and (current_vimplug_version.stdout != vimplug_latest_release_tag.json.tag_name)) }}"
+
+- name: Ensure ~/.vim/autoload directory exists
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.vim
+    - ~/.vim/autoload
+
+- name: Acquire the latest release of plug.vim
+  become_user: "{{ user.username }}"
+  get_url:
+    url: "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+    dest: ~/.vim/autoload/plug.vim
+  when: install_vimplug
+
+- name: Save meta information about the version of vimplug that was installed
+  become_user: "{{ user.username }}"
+  copy:
+    dest: ~/.config/megabytelabs/vimplug
+    mode: 0600
+    content: |
+      {{ vimplug_latest_release_tag.json.tag_name }}
+  when: install_vimplug

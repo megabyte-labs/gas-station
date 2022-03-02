@@ -1,41 +1,9 @@
 ---
-- name: Gather package facts
-  package_facts:
-    manager: auto
-
-- name: Copy appimaged.deb
-  copy:
-    dest: ~/appimaged.deb
-    mode: 0600
-    src: appimaged.deb # TODO Acquire this from the source instead so it stays updated
-  when: ansible_facts.packages.appimaged is not defined
-
-- name: Install appimaged
-  apt:
-    deb: ~/appimaged.deb
-  when: ansible_facts.packages.appimaged is not defined
-
-- name: Remove appimaged.deb
-  file:
-    path: ~/appimaged.deb
-    state: absent
-  when: ansible_facts.packages.appimaged is not defined
-
 - name: Install custom desktop apt software
   apt:
     name: "{{ debian_desktop_apt_packages }}"
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
-- name: Remove undesirable .desktop links
-  file:
-    path: "{{ desktop_links_path }}/{{ item }}"
-    state: absent
-  loop: "{{ gnome_shortcuts_to_delete }}"
-
-- name: Run user-specific tasks
-  include_tasks: user-Debian.yml
-  loop: "{{ user_configs | default([]) }}"
-  loop_control:
-    label: "{{ user.username }}"
-    loop_var: user
-  when: not (user.system | default(false))
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml

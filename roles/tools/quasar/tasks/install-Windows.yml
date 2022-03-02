@@ -1,0 +1,52 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/quasar'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\quasar'
+  register: quasar_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type quasar
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_quasar_version
+  when: quasar_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/quasar/Quasar/releases/latest
+  register: quasar_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_quasar: "{{ (current_quasar_version.skipped) or \
+      ((not current_quasar_version.skipped) and (current_quasar_version.stdout | trim != quasar_latest_release_tag.json.tag_name | replace('v','') )) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  ansible.windows.win_file:
+    path: '%PROGRAMFILES%\quasar'
+    state: absent
+  when: install_quasar
+
+- name: "Ensure latest version of {{ app_name }} is downloaded"
+  ansible.windows.win_get_url:
+    url: "https://github.com/quasar/Quasar/releases/download/{{ quasar_latest_release_tag.json.tag_name }}/{{ quasar_latest_release_tag.json.tag_name }}.zip"
+    dest: '%TEMP%\quasar.zip'
+  when: install_quasar
+
+- name: "Ensure latest version of {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: '%TEMP%\quasar.zip'
+    dest: '%PROGRAMFILES%\quasar'
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\quasar'
+    content: |
+      {{ quasar_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_quasar

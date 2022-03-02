@@ -1,10 +1,16 @@
 ---
 - name: "Register MAS installed apps"
+  become: false
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: mas list
   register: mas_list
   changed_when: false
 
 - name: "Ensure {{ app_name }} is installed"
+  become: false
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: "mas install '{{ xcode_mas_id }}'"
   args:
     creates: "{{ xcode_build }}"
@@ -18,3 +24,10 @@
 - name: "Run {{ app_name }} first launch" # noqa 503
   command: "{{ xcode_build }} -runFirstLaunch"
   when: xcode_installation.changed
+
+- name: Install xcpretty
+  gem:
+    name: xcpretty
+    state: present
+    user_install: false
+  when: install_xcpretty

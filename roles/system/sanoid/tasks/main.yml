@@ -1,0 +1,23 @@
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_system == 'Linux'
+
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+  when: ansible_system == 'Linux'
+
+# @action Ensures Sanoid is installed
+# Installs Sanoid on Linux Systems (that have ZFS installed)
+# @action Ensures Sanoid is configured
+# Enables and starts Sanoid Services and Timer
+# @action Ensures Sanoid is configured
+# Configures Sanoid settings using user provided inputs (in addition to a default)
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when:
+    - ansible_system == 'Linux'
+    - "'zfs' in ansible_facts.packages"

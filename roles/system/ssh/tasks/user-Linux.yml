@@ -4,38 +4,49 @@
     dest: ~/.ssh
     mode: 0700
     owner: "{{ user.username }}"
-    group: "{{ user.group | default(user.username) }}"
+    group: "{{ user.group | default(omit) }}"
     state: directory
+
+- name: "Ensure {{ custom_ssh_key_path }} directory exists"
+  file:
+    dest: "{{ custom_ssh_key_path }}"
+    mode: 0700
+    owner: "{{ user.username }}"
+    group: "{{ user.group | default(omit) }}"
+    state: directory
+  when: custom_ssh_key_path is defined and custom_ssh_key_path | length > 0
 
 - name: Set authorized key
   authorized_key:
     user: "{{ user.username }}"
     state: present
     key: "{{ item }}"
+    path: "{{ custom_ssh_key_path + '/authorized_keys' if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else omit }}"
+    manage_dir: "{{ false if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else true }}"
   loop: "{{ user.ssh_authorized_keys }}"
   when: user.ssh_authorized_keys is defined
 
 - name: Copy private keys
   copy:
     src: "{{ item }}"
-    dest: "~/.ssh/{{ item | basename }}"
+    dest: "{{ (custom_ssh_key_path if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else '~/.ssh') + '/' + item | basename }}"
     owner: "{{ user.username }}"
-    group: "{{ user.group | default(user.username) }}"
-    mode: 0600
+    group: "{{ user.group | default(omit) }}"
+    mode: 0400
   loop: "{{ user.ssh_private_keys | default([]) }}"
 
 - name: Copy SSH config
   template:
     src: config.j2
-    dest: ~/.ssh/config
+    dest: "{{ (custom_ssh_key_path if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else '~/.ssh') + '/config' }}"
     owner: "{{ user.username }}"
-    group: "{{ user.group | default(user.username) }}"
-    mode: 0644
+    group: "{{ user.group | default(omit) }}"
+    mode: 0600
 
 - name: Copy known_hosts
   copy:
     src: known_hosts
-    dest: ~/.ssh/known_hosts
+    dest: "{{ (custom_ssh_key_path if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else '~/.ssh') + '/known_hosts' }}"
     owner: "{{ user.username }}"
-    group: "{{ user.group | default(user.username) }}"
-    mode: 0644
+    group: "{{ user.group | default(omit) }}"
+    mode: 0600

@@ -10,9 +10,9 @@
   become: true
   become_user: root
   file:
-    path: "/mnt/{{ mount.provider }}"
+    path: "{% if ansible_system == 'Linux' %}{{ '/mnt/' + mount.provider }}{% else %}{{ '/private/mnt/' + mount.provider }}{% endif %}"
     owner: "{{ user.username }}"
-    group: "{{ user.group }}"
+    group: "{{ user.group | default(omit) }}"
     state: directory
     mode: 0640
 
@@ -20,10 +20,10 @@
   become: true
   become_user: "{{ user.username }}"
   file:
-    src: "/mnt/{{ mount.provider }}"
+    src: "{% if ansible_system == 'Linux' %}{{ '/mnt/' + mount.provider }}{% else %}{{ '/private/mnt/' + mount.provider }}{% endif %}"
     dest: "~/Documents/{{ mount.name }}"
     owner: "{{ user.username }}"
-    group: "{{ user.group }}"
+    group: "{{ user.group | default(omit) }}"
     state: link
     force: true
   when: not document_link.stat.exists

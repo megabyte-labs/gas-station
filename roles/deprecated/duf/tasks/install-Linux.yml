@@ -1,0 +1,67 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ duf_src_dir }} directory exists"
+  file:
+    path: "{{ duf_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/muesli/duf/releases/latest
+  register: duf_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_duf: "{{ (ansible_local.duf is not defined) or \
+      ((ansible_local.duf is defined) and \
+      (ansible_local['duf']['settings']['version'] != duf_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  uri:
+    url: "https://github.com/muesli/duf/releases/download/{{ duf_latest_release_tag.json.tag_name }}/checksums.txt"
+    return_content: true
+  register: duf_checksum_file
+  when: install_duf
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    duf_checksum: "{{ duf_checksum_file.content | regex_search('.*duf_(\\d*.)*\\d*_linux_x86_64.tar.gz') | \
+      regex_replace('  duf_(\\d*.)*\\d*_linux_x86_64.tar.gz','') }}"
+  when: install_duf
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://github.com/muesli/duf/releases/download/{{ duf_latest_release_tag.json.tag_name }}/\
+      duf_{{ duf_latest_release_tag.json.tag_name | replace('v','') }}_linux_x86_64.tar.gz"
+    dest: "{{ duf_src_dir }}/duf_{{ duf_latest_release_tag.json.tag_name | replace('v','') }}_linux_x86_64.tar.gz"
+    checksum: "sha256:{{ duf_checksum }}"
+  when: install_duf
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ duf_src_dir }}/duf_{{ duf_latest_release_tag.json.tag_name | replace('v','') }}_linux_x86_64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    exclude:
+      - README.md
+      - LICENSE
+    extra_opts:
+      - --strip-components=1
+  when: install_duf
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/duf.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ duf_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_duf

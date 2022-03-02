@@ -4,7 +4,6 @@
     src: "{{ fail2ban_config_template }}"
     dest: "{{ fail2ban_local_jail_file }}"
     owner: root
-    group: root
     mode: 0644
   when: install_fail2ban
 
@@ -13,18 +12,35 @@
     name: fail2ban
     state: started
     enabled: true
-  when: install_fail2ban
+  when:
+    - install_fail2ban
+    - ansible_system == 'Linux'
 
-- name: Ensure SSH daemon is running
+- name: Ensure SSH daemon is running and that it will start on boot
   service:
     name: "{{ sshd_service_name }}"
     state: started
+    enabled: true
+  when: ansible_system == 'Linux'
+
+- name: Copy banner
+  copy:
+    src: banner
+    dest: /etc/ssh/banner
+    mode: 0644
+
+- name: Find the path of the sftp-server executable
+  find:
+    paths: /usr
+    file_type: file
+    patterns: '*sftp-server'
+    recurse: true
+  register: sftp_executable
 
 - name: Generate and copy over sshd_config
   template:
     src: sshd_config.j2
     dest: "{{ sshd_config_path }}"
     owner: root
-    group: root
     mode: 0644
-  notify: restart sshd
+  notify: "{{ 'restart sshd' if ansible_system == 'Linux' else 'restart sshd darwin' }}"

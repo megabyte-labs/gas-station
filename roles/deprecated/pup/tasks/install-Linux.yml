@@ -1,0 +1,57 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ pup_src_dir }} directory exists"
+  file:
+    path: "{{ pup_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/ericchiang/pup/releases/latest
+  register: pup_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_pup: "{{ (ansible_local.pup is not defined) or \
+      ((ansible_local.pup is defined) and \
+      (ansible_local['pup']['settings']['version'] != pup_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    pup_checksum: "{{ pup_latest_release_tag.json.body | regex_search('.*pup_v(\\d\\.)*\\d*_linux_amd64.zip') | \
+      regex_replace('  pup_v(\\d\\.)*\\d*_linux_amd64.zip','') }}"
+  when: install_pup
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  get_url:
+    url: "https://github.com/ericchiang/pup/releases/download/{{ pup_latest_release_tag.json.tag_name }}/\
+      pup_{{ pup_latest_release_tag.json.tag_name }}_linux_amd64.zip"
+    dest: "{{ pup_src_dir }}/pup_{{ pup_latest_release_tag.json.tag_name }}_linux_amd64.zip"
+    checksum: "sha256:{{ pup_checksum }}"
+  when: install_pup
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ pup_src_dir }}/pup_{{ pup_latest_release_tag.json.tag_name }}_linux_amd64.zip"
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts:
+      - -j
+  when: install_pup
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/pup.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ pup_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_pup

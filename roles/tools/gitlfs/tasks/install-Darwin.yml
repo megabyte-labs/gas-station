@@ -1,14 +1,16 @@
 ---
-- name: Ensure git-lfs is installed
-  become: true
-  become_user: "{{ homebrew_user }}"
+- name: "Ensure {{ app_name }} is installed"
+  become: false
   community.general.homebrew:
     name: git-lfs
     state: present
   register: install_result
 
 - name: Ensure git-lfs global configuration is run # noqa 303 503
-  become: true
-  become_user: "{{ homebrew_user }}"
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  become: false
   command: git lfs install
+  args:
+    chdir: ~/
   when: install_result.changed

@@ -1,0 +1,46 @@
+---
+- name: Check if there is a start menu shortcut in the start menu shared folder
+  win_stat:
+    path: "{{ windows_startmenu }}\\{{ shortcut_folder }}\\{{ shortcut_link }}.lnk"
+  register: startmenu_shortcut
+  when:
+    - shortcut_folder is defined
+    - shortcut_link is defined
+
+- name: Move the shortcut to the parent directory if it exists
+  win_shell: |
+    move "{{ windows_startmenu }}\\{{ shortcut_folder }}\\{{ shortcut_link }}.lnk" "{{ windows_startmenu }}\\{{ shortcut_rename | default(shortcut_link) }}.lnk"
+  args:
+    executable: cmd
+  when:
+    - startmenu_shortcut.stat.exists is defined
+    - startmenu_shortcut.stat.exists
+
+- name: Remove the original folder
+  win_file:
+    path: "{{ windows_startmenu }}\\{{ shortcut_folder }}"
+    state: absent
+  when: shortcut_folder is defined
+
+- name: Check if there is a start menu shortcut in the user folder
+  win_stat:
+    path: "{{ user_startmenu }}\\{{ shortcut_folder }}\\{{ shortcut_link }}.lnk"
+  register: user_startmenu_shortcut
+  when:
+    - shortcut_folder is defined
+    - shortcut_link is defined
+
+- name: Move the shortcut to the parent directory if it exists (user start menu)
+  win_shell: |
+    move "{{ user_startmenu }}\\{{ shortcut_folder }}\\{{ shortcut_link }}.lnk" "{{ user_startmenu }}\\{{ shortcut_rename | default(shortcut_link) }}.lnk"
+  args:
+    executable: cmd
+  when:
+    - user_startmenu_shortcut.stat.exists is defined
+    - user_startmenu_shortcut.stat.exists
+
+- name: Remove the original folder (user start menu)
+  win_file:
+    path: "{{ user_startmenu }}\\{{ shortcut_folder }}"
+    state: absent
+  when: shortcut_folder is defined

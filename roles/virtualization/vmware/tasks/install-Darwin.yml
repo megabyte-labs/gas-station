@@ -1,5 +1,15 @@
 ---
-- include_role:
-    name: helpers/dmginstall
-  vars:
-    dmgs: "{{ fusion_install }}"
+- name: Ensure VMware Fusion is installed
+  become: false
+  community.general.homebrew_cask:
+    name: vmware-fusion
+    state: "{{ app_state | default('present') }}"
+    sudo_password: "{{ ansible_password }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: Configure VMware Fusion License Key
+  command: "./vmware-licenseTool enter '{{ fusion_serialNumber }}' '{{ fusion_name }}' '{{ fusion_companyName }}' \
+    '{{ fusion_productVersionString }}' '{{ fusion_productName }}' ''"
+  args:
+    chdir: "/Applications/VMware Fusion.app/Contents/Library/licenses"
+  when: fusion_serialNumber

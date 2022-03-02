@@ -1,0 +1,30 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  community.general.pacman:
+    name: kodi-x11
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: Ensure add-ons are installed
+  community.general.pacman:
+    name: "{{ kodi_addons }}"
+    state: present
+  when: kodi_addons is defined
+
+- name: Ensure MariaDB is installed
+  community.general.pacman:
+    name: mariadb
+    state: present
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: sql-Linux.yml
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

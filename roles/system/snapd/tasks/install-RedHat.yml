@@ -1,9 +1,16 @@
 ---
-- name: Ensure snapd is installed
-  yum:
+- name: Ensure snapd is present
+  dnf:
     name: snapd
     state: present
     enablerepo: epel
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  register: snapd
+
+- name: Ensure snap dependencies are installed
+  dnf:
+    name: '{{ snap_dependencies }}'
+    state: present
 
 - name: Enable and start the snapd systemd unit
   systemd:
@@ -16,3 +23,20 @@
     src: /var/lib/snapd/snap
     dest: /snap
     state: link
+
+- name: Restart systemd-udevd # noqa 503
+  ansible.builtin.systemd:
+    name: systemd-udevd
+    state: restarted
+  when: snapd.changed
+
+- name: Restart snapd.seeded.service # noqa 503
+  ansible.builtin.systemd:
+    name: snapd.seeded.service
+    state: restarted
+  when: snapd.changed
+
+- name: Ensure snap core is installed
+  community.general.snap:
+    name: core
+    state: present

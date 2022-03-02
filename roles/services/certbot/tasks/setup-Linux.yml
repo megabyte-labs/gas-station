@@ -1,17 +1,11 @@
 ---
-- name: Clone Certbot into configured directory
-  git:
-    dest: "{{ certbot_dir }}"
-    force: true
-    repo: "{{ certbot_repo }}"
-    update: "{{ certbot_keep_updated | bool }}"
-    version: "{{ certbot_version }}"
-
-- name: Install certbot
-  command: python3 setup.py install
-  args:
-    chdir: "{{ certbot_dir }}/certbot"
-    creates: "{{ certbot_path }}"
+- name: Ensure Certbot and certbot-dns-cloudflare is installed
+  pip:
+    name:
+      - certbot
+      - certbot-dns-cloudflare
+    state: present
+    executable: "{{ '/usr/local/bin/pip3' if ansible_system == 'Darwin' else '/usr/bin/pip3' }}"
 
 - name: Ensure letsencrypt folder exists
   file:
@@ -19,22 +13,9 @@
     path: /etc/letsencrypt
     state: directory
 
-- name: Ensure cryptography pip is the latest version
-  pip:
-    name: cryptography
-    state: present
-    executable: pip3
-
-- name: Install certbot-dns-cloudflare
-  command: python3 setup.py install
-  args:
-    chdir: "{{ certbot_dir }}/certbot-dns-cloudflare"
-    creates: /etc/letsencrypt/dnscloudflare.ini
-
 - name: Ensure certbot templates are available
   template:
     dest: "{{ item.dest }}"
-    group: root
     mode: 0600
     owner: root
     src: "{{ item.src }}"
@@ -44,6 +25,7 @@
     - src: "templates/letsencryptcli.ini.j2"
       dest: "/etc/letsencrypt/cli.ini"
   notify: restart certbot
+  when: cloudflare_api_token is defined
 
 - name: Generate Let's Encrypt certificates
   include_tasks: certificate-Linux.yml
@@ -53,7 +35,10 @@
   when:
     - certbot_create_if_missing
     - certbot_create_method == 'standalone'
+    - cloudflare_api_token is defined
 
+# @action Ensures Certificates are renewed
+# Sets up Cron job to renew Let's Encrypt Certificates on Linux and MacOS Systems
 - name: Add cron job for certbot renewal (if configured)
   cron:
     name: Certbot automatic renewal
@@ -61,4 +46,6 @@
     minute: "{{ certbot_auto_renew_minute }}"
     hour: "{{ certbot_auto_renew_hour }}"
     user: "{{ certbot_auto_renew_user }}"
-  when: certbot_auto_renew
+  when:
+    - certbot_auto_renew
+    - cloudflare_api_token is defined

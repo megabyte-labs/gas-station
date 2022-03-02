@@ -1,5 +1,25 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
-  homebrew_cask:
+  become: false
+  community.general.homebrew_cask:
     name: intellij-idea-ce
     state: "{{ app_state | default('present') }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: Fetch the release information
+  uri:
+    url: "https://formulae.brew.sh/api/cask/intellij-idea-ce.json"
+  register: intellij_release
+
+- name: "Determine the Plugins folder path based on the version of {{ app_name }} installed"
+  set_fact:
+    plugins_folder: "{{ plugin_folder_prefix + intellij_release.json.version | regex_search('^\\d*\\.\\d*') + '/plugins' }}"
+    colors_folder: "{{ plugin_folder_prefix + intellij_release.json.version | regex_search('^\\d*\\.\\d*') + '/colors' }}"
+
+- name: Run generic tasks
+  include_tasks: config-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

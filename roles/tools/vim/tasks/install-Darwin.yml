@@ -1,0 +1,20 @@
+---
+- name: Ensure plugin dependencies are installed
+  become: false
+  community.general.homebrew:
+    name: "{{ plugin_dependencies }}"
+    state: present
+
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: vim
+    state: "{{ app_state | default('present') }}"
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

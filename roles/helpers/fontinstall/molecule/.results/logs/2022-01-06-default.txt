@@ -1,0 +1,844 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.nodejs (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.fontinstall"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.fontinstall"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:07:20 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  14:07:30 -0500 (0:00:09.575)       0:00:09.590 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  14:07:30 -0500 (0:00:00.369)       0:00:09.959 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  14:07:59 -0500 (0:00:29.261)       0:00:39.221 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  14:07:59 -0500 (0:00:00.182)       0:00:39.403 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:08:00 -0500 (0:00:00.335)       0:00:39.739 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.26s
+Gathering Facts --------------------------------------------------------- 9.58s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.34s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+
+playbook: /home/hawkwood/gas-station/roles/helpers/fontinstall/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:08:03 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  14:08:12 -0500 (0:00:09.592)       0:00:09.605 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Thursday 06 January 2022  14:08:13 -0500 (0:00:00.385)       0:00:09.991 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Thursday 06 January 2022  14:17:51 -0500 (0:09:37.915)       0:09:47.906 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/fontinstall/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/fontinstall/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Thursday 06 January 2022  14:17:52 -0500 (0:00:00.983)       0:09:48.889 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  14:17:52 -0500 (0:00:00.171)       0:09:49.060 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:17:53 -0500 (0:00:00.978)       0:09:50.039 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 577.92s
+Gathering Facts --------------------------------------------------------- 9.59s
+Populate instance config dict ------------------------------------------- 0.98s
+Dump instance config ---------------------------------------------------- 0.98s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Convert instance config dict to a list ---------------------------------- 0.17s
+Playbook run took 0 days, 0 hours, 9 minutes, 50 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Thursday 06 January 2022  14:17:55 -0500 (0:00:00.032)       0:00:00.032 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:18:20 -0500 (0:00:24.864)       0:00:24.896 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 24.86s
+Playbook run took 0 days, 0 hours, 0 minutes, 24 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:18:22 -0500 (0:00:00.027)       0:00:00.027 ******
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Thursday 06 January 2022  14:18:25 -0500 (0:00:02.830)       0:00:02.858 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Thursday 06 January 2022  14:18:25 -0500 (0:00:00.137)       0:00:02.996 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Thursday 06 January 2022  14:18:25 -0500 (0:00:00.126)       0:00:03.122 ******
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Thursday 06 January 2022  14:18:25 -0500 (0:00:00.142)       0:00:03.264 ******
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Thursday 06 January 2022  14:18:26 -0500 (0:00:00.168)       0:00:03.433 ******
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Thursday 06 January 2022  14:18:26 -0500 (0:00:00.150)       0:00:03.584 ******
+
+TASK [professormanhattan.nodejs : Include variables based on the operating system] ***
+Thursday 06 January 2022  14:18:26 -0500 (0:00:00.212)       0:00:03.797 ******
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.nodejs : include_tasks] *******************************
+Thursday 06 January 2022  14:18:26 -0500 (0:00:00.181)       0:00:03.978 ******
+included: /home/hawkwood/gas-station/roles/languages/nodejs/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/languages/nodejs/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/languages/nodejs/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/languages/nodejs/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.nodejs : Ensure Node.js and npm are installed] ********
+Thursday 06 January 2022  14:18:26 -0500 (0:00:00.256)       0:00:04.235 ******
+fatal: [ArchLinux-Latest]: FAILED! => changed=false
+  msg: |-
+    failed to install npm  nodejs: error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from arch.mirror.constant.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux.mailtunnel.eu : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.23m.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from ftp.halifax.rwth-aachen.de : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirrors.tuna.tsinghua.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.guillaumea.fr : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.osbeck.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux.uk.mirror.allworldit.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirrors.atviras.lt : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.surf : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux-br.com.br : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr: |-
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from arch.mirror.constant.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from america.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux.mailtunnel.eu : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.cyberbits.eu : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.23m.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from europe.mirror.pkgbuild.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archmirror.it : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from ftp.halifax.rwth-aachen.de : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.luzea.de : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.telepoint.bg : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirrors.tuna.tsinghua.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from phinau.de : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.guillaumea.fr : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirrors.neusoft.edu.cn : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.osbeck.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux.uk.mirror.allworldit.com : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirrors.atviras.lt : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from mirror.surf : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux-br.com.br : The requested URL returned error: 404
+    error: failed retrieving file 'nodejs-17.1.0-2-x86_64.pkg.tar.zst' from archlinux.thaller.ws : The requested URL returned error: 404
+    warning: failed to retrieve some files
+    error: failed to commit transaction (failed to retrieve some files)
+  stderr_lines: <omitted>
+  stdout: |-
+    resolving dependencies...
+    looking for conflicting packages...
+
+    Packages (7) c-ares-1.18.1-1  libuv-1.42.0-1  node-gyp-8.2.0-1  nodejs-nopt-5.0.0-2  semver-7.3.5-2  nodejs-17.1.0-2  npm-8.1.3-1
+
+    Total Download Size:   11.55 MiB
+    Total Installed Size:  42.07 MiB
+
+    :: Proceed with installation? [Y/n]
+    :: Retrieving packages...
+     nodejs-17.1.0-2-x86_64 downloading...
+    Errors occurred, no packages were upgraded.
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.nodejs : Define the Nodesource RPM directory] *********
+Thursday 06 January 2022  14:18:38 -0500 (0:00:11.481)       0:00:15.716 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nodejs : Ensure Nodesource's RPM key is imported (CentOS < 7)] ***
+Thursday 06 January 2022  14:18:38 -0500 (0:00:00.082)       0:00:15.799 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nodejs : Ensure Nodesource's RPM key is imported (CentOS 7+)] ***
+Thursday 06 January 2022  14:18:38 -0500 (0:00:00.086)       0:00:15.885 ******
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [CentOS-7]
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nodejs : Ensure Nodesource's RPM key is imported (CentOS < 7)] ***
+Thursday 06 January 2022  14:18:42 -0500 (0:00:03.972)       0:00:19.857 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's RPM key is imported (CentOS 7+)] ***
+Thursday 06 January 2022  14:18:42 -0500 (0:00:00.083)       0:00:19.941 ******
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's RPM key is imported (Fedora)] ***
+Thursday 06 January 2022  14:18:44 -0500 (0:00:02.232)       0:00:22.173 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's AppStream module is disabled (CentOS 8+)] ***
+Thursday 06 January 2022  14:19:47 -0500 (0:01:02.613)       0:01:24.786 ******
+skipping: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-35]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.nodejs : Ensure Node.js and npm are installed] ********
+Thursday 06 January 2022  14:19:51 -0500 (0:00:04.131)       0:01:28.918 ******
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [CentOS-7]
+
+TASK [professormanhattan.nodejs : Run common Linux tasks] **********************
+Thursday 06 January 2022  14:20:09 -0500 (0:00:18.022)       0:01:46.941 ******
+included: /home/hawkwood/gas-station/roles/languages/nodejs/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.nodejs : Define nodejs_install_npm_user] **************
+Thursday 06 January 2022  14:20:09 -0500 (0:00:00.122)       0:01:47.063 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's global directory is created] ***
+Thursday 06 January 2022  14:20:09 -0500 (0:00:00.093)       0:01:47.157 ******
+changed: [CentOS-7]
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.nodejs : Ensure npm_config_prefix bin is added directory to global $PATH] ***
+Thursday 06 January 2022  14:20:10 -0500 (0:00:00.550)       0:01:47.707 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.nodejs : Define the list of npm packages to install globally] ***
+Thursday 06 January 2022  14:20:11 -0500 (0:00:00.741)       0:01:48.449 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's configured global packages are installed] ***
+Thursday 06 January 2022  14:20:11 -0500 (0:00:00.084)       0:01:48.533 ******
+
+TASK [professormanhattan.nodejs : Ensure Node.js's dependencies are present] ***
+Thursday 06 January 2022  14:20:11 -0500 (0:00:00.093)       0:01:48.627 ******
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  msg: No package matching 'gnupg2' is available
+changed: [Debian-11-Bullseye]
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's apt key is imported] ********
+Thursday 06 January 2022  14:20:34 -0500 (0:00:23.469)       0:02:12.096 ******
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's repository is added] ********
+Thursday 06 January 2022  14:20:37 -0500 (0:00:02.580)       0:02:14.676 ******
+changed: [Debian-10-Buster] => (item=deb https://deb.nodesource.com/node_16.x buster main)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=deb https://deb.nodesource.com/node_16.x hirsute main)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=deb https://deb.nodesource.com/node_16.x focal main)
+changed: [Debian-10-Buster] => (item=deb-src https://deb.nodesource.com/node_16.x buster main)
+changed: [Debian-9-Stretch] => (item=deb https://deb.nodesource.com/node_16.x stretch main)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=deb-src https://deb.nodesource.com/node_16.x hirsute main)
+changed: [Debian-9-Stretch] => (item=deb-src https://deb.nodesource.com/node_16.x stretch main)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=deb-src https://deb.nodesource.com/node_16.x focal main)
+changed: [Debian-11-Bullseye] => (item=deb https://deb.nodesource.com/node_16.x bullseye main)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=deb https://deb.nodesource.com/node_16.x bionic main)
+changed: [Debian-11-Bullseye] => (item=deb-src https://deb.nodesource.com/node_16.x bullseye main)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=deb-src https://deb.nodesource.com/node_16.x bionic main)
+
+TASK [professormanhattan.nodejs : Ensure Node.js and npm are installed] ********
+Thursday 06 January 2022  14:20:46 -0500 (0:00:08.924)       0:02:23.601 ******
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.nodejs : Run common Linux tasks] **********************
+Thursday 06 January 2022  14:20:56 -0500 (0:00:10.218)       0:02:33.819 ******
+included: /home/hawkwood/gas-station/roles/languages/nodejs/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo
+
+TASK [professormanhattan.nodejs : Define nodejs_install_npm_user] **************
+Thursday 06 January 2022  14:20:56 -0500 (0:00:00.116)       0:02:33.935 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's global directory is created] ***
+Thursday 06 January 2022  14:20:56 -0500 (0:00:00.094)       0:02:34.029 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.nodejs : Ensure npm_config_prefix bin is added directory to global $PATH] ***
+Thursday 06 January 2022  14:20:57 -0500 (0:00:00.366)       0:02:34.396 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.nodejs : Define the list of npm packages to install globally] ***
+Thursday 06 January 2022  14:20:57 -0500 (0:00:00.497)       0:02:34.893 ******
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.nodejs : Ensure Node.js's configured global packages are installed] ***
+Thursday 06 January 2022  14:20:57 -0500 (0:00:00.092)       0:02:34.986 ******
+
+TASK [professormanhattan.nodejs : Ensure Node.js is installed] *****************
+Thursday 06 January 2022  14:20:57 -0500 (0:00:00.116)       0:02:35.102 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.nodejs : Ensure NVM is installed] *********************
+Thursday 06 January 2022  14:21:14 -0500 (0:00:16.887)       0:02:51.990 ******
+changed: [Windows-10]
+
+TASK [Ensure Node.js's folder is removed from start menu] **********************
+Thursday 06 January 2022  14:21:26 -0500 (0:00:12.059)       0:03:04.050 ******
+
+TASK [professormanhattan.startmenu : include_tasks] ****************************
+Thursday 06 January 2022  14:21:26 -0500 (0:00:00.070)       0:03:04.120 ******
+included: /home/hawkwood/gas-station/roles/helpers/startmenu/tasks/shortcut.yml for Windows-10
+
+TASK [professormanhattan.startmenu : Check if there is a start menu shortcut in the start menu shared folder] ***
+Thursday 06 January 2022  14:21:26 -0500 (0:00:00.128)       0:03:04.248 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Move the shortcut to the parent directory if it exists] ***
+Thursday 06 January 2022  14:21:27 -0500 (0:00:00.081)       0:03:04.330 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Remove the original folder] ***************
+Thursday 06 January 2022  14:21:27 -0500 (0:00:00.089)       0:03:04.419 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.startmenu : Check if there is a start menu shortcut in the user folder] ***
+Thursday 06 January 2022  14:21:29 -0500 (0:00:01.932)       0:03:06.351 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Move the shortcut to the parent directory if it exists (user start menu)] ***
+Thursday 06 January 2022  14:21:29 -0500 (0:00:00.064)       0:03:06.416 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.startmenu : Remove the original folder (user start menu)] ***
+Thursday 06 January 2022  14:21:29 -0500 (0:00:00.066)       0:03:06.482 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.nodejs : Ensure NPM packages are installed] ***********
+Thursday 06 January 2022  14:21:31 -0500 (0:00:01.951)       0:03:08.434 ******
+
+TASK [professormanhattan.fontinstall : Include variables based on the operating system] ***
+Thursday 06 January 2022  14:21:31 -0500 (0:00:00.070)       0:03:08.505 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Windows-10]
+
+TASK [professormanhattan.fontinstall : include_tasks] **************************
+Thursday 06 January 2022  14:21:31 -0500 (0:00:00.138)       0:03:08.644 ******
+included: /home/hawkwood/gas-station/roles/helpers/fontinstall/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/helpers/fontinstall/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo
+included: /home/hawkwood/gas-station/roles/helpers/fontinstall/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.fontinstall : Run generic Linux tasks] ****************
+Thursday 06 January 2022  14:21:31 -0500 (0:00:00.173)       0:03:08.817 ******
+included: /home/hawkwood/gas-station/roles/helpers/fontinstall/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.fontinstall : Ensure google-font-installer is installed] ***
+Thursday 06 January 2022  14:21:31 -0500 (0:00:00.113)       0:03:08.931 ******
+changed: [Fedora-35]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [CentOS-7]
+changed: [Fedora-34]
+
+TASK [professormanhattan.fontinstall : Cycle through the list of fonts to install] ***
+Thursday 06 January 2022  14:21:43 -0500 (0:00:12.005)       0:03:20.936 ******
+
+TASK [professormanhattan.fontinstall : Run generic Linux tasks] ****************
+Thursday 06 January 2022  14:21:43 -0500 (0:00:00.092)       0:03:21.028 ******
+included: /home/hawkwood/gas-station/roles/helpers/fontinstall/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo
+
+TASK [professormanhattan.fontinstall : Ensure google-font-installer is installed] ***
+Thursday 06 January 2022  14:21:43 -0500 (0:00:00.108)       0:03:21.137 ******
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.fontinstall : Cycle through the list of fonts to install] ***
+Thursday 06 January 2022  14:21:49 -0500 (0:00:05.975)       0:03:27.112 ******
+
+TASK [professormanhattan.fontinstall : Ensure google-font-installer is installed] ***
+Thursday 06 January 2022  14:21:49 -0500 (0:00:00.129)       0:03:27.242 ******
+fatal: [Windows-10]: FAILED! =>
+  msg: 'No setting was provided for required configuration plugin_type: become plugin: runas setting: become_user '
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=15   changed=6    unreachable=0    failed=0    skipped=13   rescued=0    ignored=0
+CentOS-8                   : ok=16   changed=7    unreachable=0    failed=0    skipped=12   rescued=0    ignored=0
+CentOS-Stream-8            : ok=16   changed=7    unreachable=0    failed=0    skipped=12   rescued=0    ignored=0
+Debian-10-Buster           : ok=15   changed=7    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=15   changed=7    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+Debian-9-Stretch           : ok=15   changed=7    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+Fedora-33                  : ok=16   changed=7    unreachable=0    failed=0    skipped=12   rescued=0    ignored=0
+Fedora-34                  : ok=16   changed=7    unreachable=0    failed=0    skipped=12   rescued=0    ignored=0
+Fedora-35                  : ok=16   changed=7    unreachable=0    failed=0    skipped=12   rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=15   changed=7    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=15   changed=7    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=15   changed=7    unreachable=0    failed=0    skipped=9    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=3    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=10   changed=3    unreachable=0    failed=1    skipped=11   rescued=0    ignored=0
+
+Thursday 06 January 2022  14:21:50 -0500 (0:00:00.190)       0:03:27.433 ******
+===============================================================================
+professormanhattan.nodejs : Ensure Node.js's RPM key is imported (Fedora) -- 62.61s
+professormanhattan.nodejs : Ensure Node.js's dependencies are present -- 23.47s
+professormanhattan.nodejs : Ensure Node.js and npm are installed ------- 18.02s
+professormanhattan.nodejs : Ensure Node.js is installed ---------------- 16.89s
+professormanhattan.nodejs : Ensure NVM is installed -------------------- 12.06s
+professormanhattan.fontinstall : Ensure google-font-installer is installed -- 12.01s
+professormanhattan.nodejs : Ensure Node.js and npm are installed ------- 11.48s
+professormanhattan.nodejs : Ensure Node.js and npm are installed ------- 10.22s
+professormanhattan.nodejs : Ensure Node.js's repository is added -------- 8.92s
+professormanhattan.fontinstall : Ensure google-font-installer is installed --- 5.98s
+professormanhattan.nodejs : Ensure Node.js's AppStream module is disabled (CentOS 8+) --- 4.13s
+professormanhattan.nodejs : Ensure Nodesource's RPM key is imported (CentOS 7+) --- 3.97s
+Gathering Facts --------------------------------------------------------- 2.83s
+professormanhattan.nodejs : Ensure Node.js's apt key is imported -------- 2.58s
+professormanhattan.nodejs : Ensure Node.js's RPM key is imported (CentOS 7+) --- 2.23s
+professormanhattan.startmenu : Remove the original folder (user start menu) --- 1.95s
+professormanhattan.startmenu : Remove the original folder --------------- 1.93s
+professormanhattan.nodejs : Ensure npm_config_prefix bin is added directory to global $PATH --- 0.74s
+professormanhattan.nodejs : Ensure Node.js's global directory is created --- 0.55s
+professormanhattan.nodejs : Ensure npm_config_prefix bin is added directory to global $PATH --- 0.50s
+Playbook run took 0 days, 0 hours, 3 minutes, 27 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  14:21:53 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  14:22:04 -0500 (0:00:11.272)       0:00:11.287 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  14:22:04 -0500 (0:00:00.387)       0:00:11.674 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  14:24:40 -0500 (0:02:35.316)       0:02:46.990 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  14:24:40 -0500 (0:00:00.141)       0:02:47.132 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  14:24:41 -0500 (0:00:01.004)       0:02:48.136 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 155.32s
+Gathering Facts -------------------------------------------------------- 11.27s
+Dump instance config ---------------------------------------------------- 1.00s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Populate instance config ------------------------------------------------ 0.14s
+Playbook run took 0 days, 0 hours, 2 minutes, 48 seconds

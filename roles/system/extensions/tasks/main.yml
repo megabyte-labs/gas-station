@@ -1,11 +1,18 @@
 ---
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_os_family != 'Windows'
 
+# @action Ensures Extensions are setup
+# Installs GNOME Extensions on Linux Systems
+# @action Ensures Extensions are setup
+# Installs Quick Look plugins on MacOS Systems
 - name: Loop through the users in the configuration
   include_tasks: user.yml
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
-  when: not (user.system | default(false))
+  when:
+    - not (user.system | default(false))
+    - ansible_os_family != 'Windows'

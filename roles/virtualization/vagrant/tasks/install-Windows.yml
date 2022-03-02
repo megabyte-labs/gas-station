@@ -5,39 +5,39 @@
     state: "{{ app_state | default('present') }}"
 
 - name: "Check if {{ app_name }} installation is in the default location"
-  win_stat:
+  ansible.windows.win_stat:
     path: "{{ vagrant_default_dir }}"
   register: hashicorp_default_location
 
 - name: "Move {{ app_name }} installation to Program Files"
-  win_command: 'Move-Item {{ vagrant_default_dir }} "{{ vagrant_destination_dir }}"'
+  ansible.windows.win_command: 'Move-Item {{ vagrant_default_dir }} "{{ vagrant_destination_dir }}"'
   when:
     - hashicorp_default_location.stat.exists is defined
     - hashicorp_default_location.stat.exists
 
 - name: "Delete original {{ app_name }} directory"
-  win_file:
+  ansible.windows.win_file:
     path: "{{ vagrant_default_parent_dir }}"
     state: absent
 
 - name: "Remove original {{ app_name }} PATH"
-  win_path:
+  ansible.windows.win_path:
     elements: "{{ vagrant_default_dir }}\\bin"
     state: absent
 
 - name: "Add new {{ app_name }} PATH"
-  win_path:
+  ansible.windows.win_path:
     elements: "{{ vagrant_destination_dir }}\\bin"
     state: present
 
 - name: "Ensure {{ app_name }} VMWare desktop plugin is installed"
-  win_chocolatey:
+  chocolatey.chocolatey.win_chocolatey:
     name: vagrant-vmware-utility
     state: "{{ app_state | default('present') }}"
   when: vagrant_vmware_support
 
 - name: "Check if the license file for {{ app_name }} VMWare desktop plugin is available on the controller"
-  stat:
+  ansible.windows.win_stat:
     path: "{{ vmware_license_local_path }}"
   register: license_local_file
   delegate_to: localhost
@@ -45,7 +45,7 @@
 - name: "Ensure to add a license for {{ app_name }} VMWare desktop plugin"
   block:
     - name: "Copy the license file for {{ app_name }} VMWare desktop plugin to the target"
-      win_copy:
+      ansible.windows.win_copy:
         src: "{{ vmware_license_local_path }}"
         dest: "{{ vmware_license_remote_path_win }}"
 
@@ -53,9 +53,22 @@
       command: "vagrant plugin license vagrant-vmware-desktop {{ vmware_license_remote_path_win }}"
   always:
     - name: "Remove the license file for {{ app_name }} VMWare desktop plugin from the target"
-      file:
+      ansible.windows.win_file:
         path: "{{ vmware_license_remote_path_win }}"
         state: absent
   when:
     - vagrant_license_local_file.stat.exists
     - vagrant_vmware_support
+
+- name: Ensure plugin dependencies are installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ vagrant_plugin_dependencies }}"
+    state: present
+
+- name: Run Plugin setup tasks
+  include_tasks: plugins-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

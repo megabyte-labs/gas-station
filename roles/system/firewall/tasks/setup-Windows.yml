@@ -1,2 +1,121 @@
 ---
-[] # TODO
+- name: Set default inbound action to deny
+  community.windows.win_firewall:
+    inbound_action: block
+    state: enabled
+
+- name: Enable Windows Firewall logging
+  ansible.windows.win_shell: |
+    Set-NetFirewallProfile -name domain -LogMaxSizeKilobytes 10240 -LogAllowed true -LogBlocked true
+    Set-NetFirewallProfile -name public -LogMaxSizeKilobytes 10240 -LogAllowed true -LogBlocked true
+    Set-NetFirewallProfile -name private -LogMaxSizeKilobytes 10240 -LogAllowed true -LogBlocked true
+
+- name: Allow SSH connections from select networks
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "{{ ssh_port }}"
+    protocol: tcp
+    remoteip: "{{ item }}"
+    name: "Rule for {{ item }}"
+    description: Allow and limit SSH connections
+  loop:
+    - "{{ lan_network.management }}"
+    - "{{ lan_network.work }}"
+    - "{{ main_ip_address }}"
+  when: vlan != 'cloud'
+
+- name: Allow SSH connections from anywhere
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "{{ ssh_port }}"
+    protocol: tcp
+    name: Allow SSH connections originating from the Internet
+    description: Allow SSH connections originating from the Internet
+  when: vlan == 'cloud'
+
+- name: Allow RDP access
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "3389"
+    protocol: tcp
+    name: "RDP"
+    remoteip: "{{ item }}"
+    description: Allow RDP
+  loop:
+    - "{{ lan_network.work }}"
+  when: "'desktop' in group_names"
+
+- name: Allow remote Docker access
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "2424"
+    protocol: tcp
+    remoteip: "{{ hosts.portainer.ip_address }}"
+    name: Allow access to Docker from Portainer
+    description: Allow access to Docker from Portainer
+  when: apps and (not ('portainer' in apps))
+
+- name: Allow TFTP access to Netboot.xyz
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "69"
+    protocol: udp
+    name: "NetbootXYZ"
+    remoteip: "{{ item }}"
+    description: Allow TFTP access for booting iPXE files
+  loop:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.kubernetes }}"
+    - "{{ lan_network.management }}"
+    - "{{ lan_network.offline }}"
+    - "{{ lan_network.unifi }}"
+    - "{{ lan_network.work }}"
+  when: ('netboot' in apps)
+
+- name: Allow access to Plex Media Server from LAN
+  include_tasks: Windows/PlexMediaServer.yml
+  loop:
+    - "{{ lan_network.iot }}"
+    - "{{ lan_network.work }}"
+  when: ('plex' in apps)
+
+- name: Allow access to Plex Media Server from Internet
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "32400"
+    protocol: tcp
+    name: Allow access to Plex Media Server from Internet
+    description: Allow access to Plex Media Server from Internet
+  when: ('plex' in apps)
+
+- name: Allow UniFi access
+  include_tasks: Windows/UniFi.yml
+  loop:
+    - "{{ lan_network.unifi }}"
+  when: ('unifilab' in apps)
+
+- name: Allow HTTP/HTTPS access from LAN
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "80,443"
+    protocol: tcp
+    name: "Nginx Full"
+    description: Allow access to NGINX from LAN
+    remoteip: "{{ item }}"
+  loop: "{{ rc1918_networks }}"
+  when:
+    - not ('nuc' in apps)
+    - vlan != 'cloud'
+
+- name: Allow HTTP/HTTPS access from internet
+  community.windows.win_firewall_rule:
+    action: allow
+    localport: "80,443"
+    protocol: tcp
+    name: "Nginx Full"
+    description: Allow access to NGINX from internet
+  when: ('nuc' in apps) or (vlan == 'cloud')
+
+- name: Enable UFW
+  community.windows.win_firewall:
+    state: enabled

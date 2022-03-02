@@ -1,0 +1,27 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew_cask:
+    name: kodi
+    state: "{{ app_state | default('present') }}"
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+
+- name: Ensure MariaDB is installed
+  become: false
+  community.general.homebrew_cask:
+    name: mariadb
+    state: present
+    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: sql-Linux.yml
+  when: kodi_mysql_ishost
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

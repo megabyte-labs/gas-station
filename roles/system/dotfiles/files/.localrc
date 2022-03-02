@@ -1,3 +1,28 @@
+# Load fd autocompletions
+if [ -e /usr/local/src/fd/fd ]
+then
+  source /usr/local/src/fd/autocomplete/fd.bash-completion
+fi
+
+# Load hyperfine autocompletions
+if [ -e /usr/local/src/hyperfine/hyperfine ]
+then
+  source /usr/local/src/hyperfine/autocomplete/hyperfine.bash-completion
+fi
+
+# Load VIM Key Scheme for Mcfly
+if [ -e /usr/local/src/mcfly/mcfly ]
+then
+  export MCFLY_KEY_SCHEME=vim
+  eval "$(mcfly init bash)"
+fi
+
+# Load wp-cli completions
+if [ -e /usr/local/bin/wp ]
+then
+  source /usr/local/src/wp-cli/wp-completion.bash
+fi
+
 # Load direnv
 if [ -e /usr/local/bin/direnv ]
 then
@@ -5,10 +30,11 @@ then
 fi
 
 # Load googler completion
-if [ -e /snap/bin/googler ]
+if [ -e /usr/local/bin/googler ]
 then
   source /usr/local/src/googler/googler-completion.bash
   source /usr/local/src/googler/googler_at
+fi
 
 # Load autojump
 if [ -e /usr/bin/autojump ]; then
@@ -21,7 +47,47 @@ eval "$(starship init bash)"
 # Set PATH
 PATH=$HOME/.gem/bin:$PATH
 
+# Automatically apply merge commit message when merging
+export GIT_MERGE_AUTOEDIT=no
+
+# Default provider for Vagrant
+export VAGRANT_DEFAULT_PROVIDER=virtualbox
+
 ### Aliases
+#  Easy file sharing from the command line, using transfer.sh
+transfer() {
+  if [ $# -eq 0 ]; then
+    echo -e "No arguments specified.\nUsage:\n  transfer <file|directory>\n  ... | transfer <file_name>">&2;
+    return 1;
+  fi;
+  if tty -s;then
+    file="$1";
+    file_name=$(basename "$file");
+    if [ ! -e "$file" ];then
+      echo "$file: No such file or directory">&2;
+      return 1;
+    fi;
+    if [ -d "$file" ];then
+      file_name="$file_name.zip" ,;
+      (cd "$file"&&zip -r -q - .)|curl --progress-bar --upload-file "-" "https://transfer.sh/$file_name"|tee /dev/null,;
+    else
+      cat "$file"|curl --progress-bar --upload-file "-" "https://transfer.sh/$file_name"|tee /dev/null;
+    fi;
+  else
+    file_name=$1;
+    curl --progress-bar --upload-file "-" "https://transfer.sh/$file_name"|tee /dev/null;
+  fi;
+}
+
+# Install WebDriverAgent on iOS device
+appiumwebdriver() {
+    read -p "Enter the UDID of the device you wish to install WebDriverAgent on: " UDID_INPUT
+    mkdir -p Resources/WebDriverAgent.bundle
+    bash ./Scripts/bootstrap.sh -d
+    cd /Applications/Appium.app/Contents/Resources/app/node_modules/appium/node_modules/appium-webdriveragent
+    xcodebuild -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination 'id=${UDID_INPUT}' test
+}
+
 # Change directories and view contents at the same time
 cl() {
     DIR="$*";
@@ -47,6 +113,25 @@ dockerssh() {
 # Checks status of a website on downforeveryoneorjustme.com
 down4me() {
   curl -s "http://www.downforeveryoneorjustme.com/$1" | sed '/just you/!d;s/<[^>]*>//g';
+}
+
+# GAM - a command-line tool for Google Workspace. This alias will run gam or install gam if it is not already installed.
+gam() {
+  if type gam &> /dev/null; then
+    gam "$@"
+  else
+    bash <(curl -s -S -L https://git.io/install-gam)
+  fi
+}
+
+# Opens current repository in browser
+gitopen() {
+  git remote -v | head -n 1 | awk -F "@" '{print $2}' | awk -F " " '{print $1}' | sed 's/:/\//g' | sed 's/.git//g' | awk '{print "http://"$1}' | xargs open
+}
+
+# Open Mac OS X desktop on a Linux machine
+macosx() {
+    docker run -it --device /dev/kvm -p 50922:10022 -v /tmp/.X11-unix:/tmp/.X11-unix -e "DISPLAY=${DISPLAY:-:0.0}" sickcodes/docker-osx:big-sur
 }
 
 # Used to provision machines using Ansible
@@ -77,7 +162,7 @@ randomstring() {
 }
 
 # Launch rclone admin GUI
-rclonegui() {
+rclone-gui() {
   rclone rcd --rc-web-gui --rc-user=admin --rc-pass=pass --rc-serve
 }
 
@@ -231,3 +316,6 @@ alias vaultdir='find . -type f -printf "%h/\"%f\" " | xargs ansible-vault encryp
 
 # Shows nice looking report of weather
 alias weather='curl -A curl wttr.in'
+
+# Change .wget-hsts file location
+alias wget="wget --hsts-file ~/.config/.wget-hsts"

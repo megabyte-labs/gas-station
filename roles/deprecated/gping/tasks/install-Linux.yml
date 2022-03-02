@@ -1,0 +1,37 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    path: /etc/ansible/facts.d
+    mode: 0755
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/orf/gping/releases/latest
+  register: gping_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gping: "{{ (ansible_local.gping is not defined) or \
+      ((ansible_local.gping is defined) and \
+      (ansible_local['gping']['settings']['version'] != gping_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/orf/gping/releases/download/{{ gping_latest_release_tag.json.tag_name }}/gping-x86_64-unknown-linux-musl.tar.gz"
+    dest: /usr/local/bin
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+  when: install_gping
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/gping.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ gping_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_gping

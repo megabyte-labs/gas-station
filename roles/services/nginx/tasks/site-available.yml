@@ -1,0 +1,53 @@
+---
+- name: Register the app ID as a fact
+  set_fact:
+    app_id: "{{ item.name | default(item) }}"
+
+- name: "Register template variables for {{ app_id }}"
+  set_fact:
+    app_fqdn: "{{ item.fqdn | default(hosts[app_id].fqdn | default(hosts[app_id].hosts.split()[-1])) }}"
+    authelia_enabled: "{{ item.authelia | default(hosts[app_id].authelia | default(true)) }}"
+    authelia_on_localhost: "{{ 'authelia' in (apps | default([])) | default(false) }}"
+    default_server: "{{ item.default_server | default(hosts[app_id].default_server | default(false)) }}"
+    firewall_enabled: "{{ item.firewall | default(hosts[app_id].firewall | default(false)) }}"
+    http_hosts: "{{ item.hosts | default(hosts[app_id].hosts) }}"
+    intercept_errors: "{{ item.intercept_errors | default(hosts[app_id].intercept_errors | default(true)) }}"
+    letsencrypt_domain: "{{ item.letsencrypt_domain | default(hosts[app_id].letsencrypt_domain | default(base_domain)) }}"
+    nginx_serve_http: "{{ nginx_serve_http | default(true) }}"
+    proxy_certificate: "{{ item.certificate | default(false) }}"
+    proxy_certificate_key: "{{ item.certificate_key | default(false) }}"
+    proxy_certificate_trusted: "{{ item.certificate_trusted | default(false) }}"
+    proxy_file: "{{ hosts[app_id].proxy_file | default('proxy.conf') }}"
+    proxy_pass_port: "{{ item.proxy_pass_port | default(hosts[app_id].proxy_pass_port | default(ports[app_id])) }}"
+    proxy_pass_url: "{{ item.proxy_pass_url | default(hosts[app_id].proxy_pass_url | default(hosts[app_id].hosts.split()[-1])) }}"
+    ssl_trusted_certificate: "{{ item.ssl_trusted_certificate | default(false) }}"
+    theme_url: "{{ item.theme_url | default(hosts[app_id].theme_url | default(false)) }}"
+    transport: "{{ item.transport | default(hosts[app_id].transport | default('http')) }}"
+    waf_rules: "{{ hosts[app_id].custom_waf_rules | default(false) }}"
+  when: app_id != host_id
+
+- name: "Generate NGINX configuration file for {{ app_id }}"
+  template:
+    src: site-available.conf.j2
+    dest: "{{ sites_available_path + '/' + app_id + '.conf' }}"
+    owner: root
+    mode: 0644
+  when:
+    - ansible_system != 'Windows'
+    - app_fqdn is defined
+    - http_hosts is defined
+    - proxy_pass_port is defined
+    - proxy_pass_url is defined
+    - app_id != host_id
+
+- name: "Generate NGINX configuration file for {{ app_id }}"
+  ansible.windows.win_template:
+    src: site-available.conf.j2
+    dest: "{{ sites_available_path + '/' + app_id + '.conf' }}"
+  when:
+    - ansible_system == 'Windows'
+    - app_fqdn is defined
+    - http_hosts is defined
+    - proxy_pass_port is defined
+    - proxy_pass_url is defined
+    - app_id != host_id

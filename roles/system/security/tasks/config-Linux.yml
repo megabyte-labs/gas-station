@@ -1,0 +1,56 @@
+---
+# @action Ensures RNG is configured
+# Installs `rng-tools` package on Linux Systems
+- name: Ensures rng-tools is installed
+  package:
+    name: rng-tools
+    state: present
+  when: (ansible_kernel.split('-'))[0] < "5.6"
+
+# @action Ensures RNG is configured
+# Configures `rng-tools`
+- name: Configure urandom
+  lineinfile:
+    path: /etc/default/rng-tools
+    line: 'HRNGDEVICE=/dev/urandom'
+    create: true
+    mode: 0600
+  when: (ansible_kernel.split('-'))[0] < "5.6"
+
+# @action Ensures Password quality policy is setup
+# Installs `PAM pwquality` package
+- name: Ensures libpam-pwquality is installed
+  apt:
+    name: libpam-pwquality
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: ansible_os_family == 'Debian'
+
+# @action Ensures Password quality policy is setup
+# Configures Password Quality settings
+- name: Ensures PAM is configured
+  lineinfile:
+    path: /etc/pam.d/common-password
+    regex: '^(password\s+requisite\s+pam_pwquality.so)(.*)$'
+    line: 'password        requisite                       pam_pwquality.so retry=3 minlen=10 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 maxrepeat=3'
+    create: true
+    backup: true
+    mode: 0644
+
+# TODO: This is causing GNOME login screen to freeze (ubuntu). Investigate to fix
+# @action Secure /proc mount
+# Updates /proc mount settings
+# - name: Udpate fstab to secure /proc
+#   lineinfile:
+#     path: /etc/fstab
+#     line: 'proc     /proc     proc     defaults,hidepid=2     0     0'
+#     backup: true
+#     mode: 0644
+
+# @action Secure /proc mount
+# Remounts /proc to use updated mount settings
+# - name: Ensures /proc is remounted
+#   ansible.posix.mount:
+#     path: /proc
+#     opts: hidepid=2
+#     state: remounted

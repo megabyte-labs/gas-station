@@ -1,0 +1,27 @@
+---
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ shdoc_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ shdoc_src_dir }}"
+    repo: "{{ shdoc_git_repository }}"
+    version: master
+  register: shdoc_git
+
+- name: Remove /usr/local/bin/shdoc if the source files have changed # noqa 503
+  file:
+    path: /usr/local/bin/shdoc
+    state: absent
+  when: shdoc_git.changed
+
+- name: "Ensure {{ app_name }} is installed"
+  command: make install
+  args:
+    chdir: "{{ shdoc_src_dir }}"
+    creates: /usr/local/bin/shdoc

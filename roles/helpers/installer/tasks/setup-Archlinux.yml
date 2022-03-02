@@ -1,0 +1,151 @@
+---
+# @action Ensures software is installed
+# Installs software on Archlinux based Systems from official repositories using `pacman`
+- name: "Ensure {{ software_item }} is installed (pacman)"
+  community.general.pacman:
+    name: "{{ software_package[software_item]['pacman'] }}"
+    state: present
+  when: "'pacman' in available_methods"
+  register: pacman_result
+  failed_when: "pacman_result.msg is defined and 'No package matching' not in pacman_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
+  shell: |
+    {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
+    {{ software_package[software_item]['go'] }}
+    {%- else -%}
+    go get {{ software_package[software_item]['go'] }}
+    {%- endif -%}
+  environment:
+    GOPATH: "{{ '/home/' + ansible_user + '/.local/go' }}"
+  register: go_result
+  when:
+    - "'go' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+  failed_when: false
+
+- name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
+  shell: |
+    {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
+    {{ software_package[software_item]['cargo'] }}
+    {%- else -%}
+    cargo install {{ software_package[software_item]['cargo'] }}
+    {%- endif -%}
+  args:
+    executable: /bin/bash
+  register: cargo_result
+  when:
+    - "'cargo' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+  failed_when: false
+
+- name: "Ensure {{ software_item }} is installed (Binary)"
+  get_url:
+    url: "{{ software_package[software_item]['binary'] }}"
+    dest: "/usr/local/bin/{{ software_item }}"
+    mode: 0755
+  when:
+    - "'binary' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+  register: binary_result
+  failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+
+- name: "Ensure yay is installed"
+  block:
+    - name: Ensure yay's dependencies are installed
+      community.general.pacman:
+        name: "{{ yay_dependencies }}"
+        state: present
+        update_cache: true
+    - name: Ensure yay's source directory is present
+      file:
+        path: "{{ yay_src_dir }}"
+        owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+        state: directory
+        mode: 0755
+    - name: Ensure yay's source is cloned and up-to-date
+      become: false
+      git:
+        dest: "{{ yay_src_dir }}"
+        repo: "{{ yay_aur_git_repository }}"
+        version: master
+      register: yay_git
+    - name: Remove /usr/sbin/yay if the source files have changed
+      file:
+        path: /usr/sbin/yay
+        state: absent
+      when: yay_git.changed
+    - name: Ensure yay is installed
+      become: false
+      shell: |
+        makepkg -sic --noconfirm
+        yay
+      args:
+        chdir: "{{ yay_src_dir }}"
+        creates: /usr/sbin/yay
+  when:
+    - "'yay' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+
+# @action Ensures software is installed
+# Installs software on Archlinux based Systems from Arch User Repository (AUR) using `yay`
+- name: "Ensure {{ software_item }} is installed (AUR)"
+  become: false
+  command: "yay -Sa {{ software_package[software_item]['yay'] }} --noconfirm"
+  when:
+    - "'yay' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+  register: yay_result
+  changed_when: "yay_result.rc == 0 and 'reinstalling' not in yay_result.stdout"
+  failed_when: "yay_result.rc == 1 and 'Could not find all required packages' not in yay_result.stderr"
+
+- name: "Ensure {{ software_item }} is installed (snap)"
+  snap:
+    name: "{{ software_package[software_item]['snap'] }}"
+    state: present
+  when:
+    - "'snap' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+    - "(yay_result.rc == 1 and 'Could not find all required packages' in yay_result.stderr) or yay_result.skipped is defined or \
+        ((yay_result.changed and yay_result.failed) and (not yay_result.changed))"
+  register: snap_result
+  failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
+
+- name: "Ensure {{ software_item }} is installed (GitHub)"
+  include_role:
+    name: githubbinary
+  vars:
+    github_binaries:
+      - "{{ software_package[software_item]['github'] }}"
+  when:
+    - "'github' in available_methods"
+    - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
+        ((pacman_result.changed and pacman_result.failed) and (not pacman_result.changed))"
+    - "go_result.rc is defined and go_result.rc != 0"
+    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
+        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+    - snap_result.msg is defined or snap_result.skipped is defined or ((snap_result.changed and snap_result.failed) and (not snap_result.changed))
+    - "(yay_result.rc == 1 and 'Could not find all required packages' in yay_result.stderr) or yay_result.skipped is defined or \
+        ((yay_result.changed and yay_result.failed) and (not yay_result.changed))"

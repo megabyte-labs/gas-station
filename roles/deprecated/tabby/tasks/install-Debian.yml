@@ -1,0 +1,35 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repositories/77213120/releases/latest
+  register: tabby_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_tabby: "{{ (ansible_local.tabby is not defined) or \
+      ((ansible_local.tabby is defined) and \
+      (ansible_local['tabby']['settings']['version'] != tabby_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    deb: "https://github.com/Eugeny/tabby/releases/download/{{ tabby_latest_release_tag.json.tag_name }}/\
+      tabby-{{ tabby_latest_release_tag.json.tag_name | replace('v','') }}-linux.deb"
+    state: "{{ app_state | default('present') }}"
+  when: install_tabby
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/tabby.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ tabby_latest_release_tag.json.tag_name | replace('v','') }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_tabby

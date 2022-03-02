@@ -1,0 +1,70 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: kodi
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure MariaDB is installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: mariadb
+    state: present
+  when:
+    - kodi_mysql_ishost
+    - not kodi_mysql_docker
+
+- name: "Firewall rule to allow MySQL TCP port {{ kodi_mysql_port }}"
+  community.windows.win_firewall_rule:
+    name: MySQL
+    localport: "{{ kodi_mysql_port }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: true
+  when: kodi_mysql_ishost
+
+- name: Setup DB for Kodi
+  ansible.windows.win_command: 'mysql -NBe "{{ item }}"'
+  with_items:
+    - CREATE USER '{{ kodi_mysql_user }}' IDENTIFIED BY '{{ kodi_mysql_pass }}';
+    - GRANT ALL ON *.* TO '{{ kodi_mysql_user }}';
+    - FLUSH PRIVILEGES;
+  when:
+    - kodi_mysql_ishost
+    - not kodi_mysql_docker
+
+- name: Update MariaDB port
+  replace:
+    path: '%MYSQL_HOME%\my.cnf'
+    backup: true
+    regexp: "^port = \\d*"
+    replace: "port = {{ kodi_mysql_port }}"
+  when:
+    - kodi_mysql_ishost
+    - not kodi_mysql_docker
+
+- name: Run generic Windows tasks
+  include_tasks: setup-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: Ensure directory to save the docker-compose.yml file exists
+  ansible.windows.win_file:
+    path: 'C:\Program Files\kodi'
+    state: directory
+  when: kodi_mysql_docker
+
+- name: Copy the docker-compose.yml file
+  ansible.windows.win_template:
+    src: docker-compose.yml.j2
+    dest: 'C:\Program Files\kodi\docker-compose.yml'
+  when: kodi_mysql_docker
+
+- name: Ensure MariaDB docker container is running
+  community.general.docker_compose:
+    project_src: 'C:\Program Files\kodi'
+    state: present
+  when: kodi_mysql_docker

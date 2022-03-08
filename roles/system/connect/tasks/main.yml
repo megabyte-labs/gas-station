@@ -91,25 +91,60 @@
     https_repository_prefix: https://
   when: vlan == 'cloud'
 
-- name: Check if connection is possible
-  expect:
-    command: "ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no ubuntu@{{ ansible_host }} -p {{ ansible_port }}"
-    timeout: 2
-    responses:
-      (.*)password(.*):
-        - "{{ ansible_password }}"      # Fit the password
-        - "\x03"          # Ctrl-C
-      (.*)\$(.*): "exit"  # Fit the prompt
-  register: can_connect_as_ubuntu
-  connection: local
-  ignore_errors: true
-  changed_when: false
+- name: Check if ubuntu user is present
+  block:
+    - name: Check if connection is possible
+      expect:
+        command: "ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no ubuntu@{{ ansible_host }} -p {{ ansible_port }}"
+        timeout: 2
+        responses:
+          (.*)password(.*):
+            - "{{ ansible_password }}"      # Fit the password
+            - "\x03"          # Ctrl-C
+          (.*)\$(.*): "exit"  # Fit the prompt
+      register: can_connect_as_ubuntu
+      connection: local
+      ignore_errors: true
+      changed_when: false
+    - name: Save the name of the user to be created
+      set_fact:
+        ansible_user_new: "{{ ansible_user }}"
+      when: not can_connect_as_ubuntu.failed
+    - name: Set the value of ansible_user
+      set_fact:
+        ansible_user: "{{ ansible_user_remove | default('ubuntu') if not can_connect_as_ubuntu.failed else ansible_user }}"
+  when: replace_ubuntu_user_with_ansible_user is defined and replace_ubuntu_user_with_ansible_user | bool
 
-- name: Save the name of the user to be created
-  set_fact:
-    ansible_user_new: "{{ ansible_user }}"
-  when: not can_connect_as_ubuntu.failed
-
-- name: Set the value of ansible_user
-  set_fact:
-    ansible_user: "{{ ansible_user_remove | default('ubuntu') if not can_connect_as_ubuntu.failed else ansible_user }}"
+- name: Ensure user 'ubuntu' is removed if present
+  become: true
+  block:
+    - name: "Create new user account for {{ ansible_user_new }}"
+      become_user: root
+      user:
+        name: "{{ ansible_user_new }}"
+        state: present
+        password: "{{ ansible_password | password_hash('sha512', password_salt) }}"
+    - name: "Add the user {{ ansible_user_new }} to passwordless sudoers"
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: "^{{ ansible_user_new }}"
+        line: "{{ ansible_user_new }} ALL=(ALL) NOPASSWD: ALL"
+        state: present
+        validate: "visudo -cf %s"
+        mode: 0644
+    - name: Set fact to use the newly created user for connections
+      set_fact:
+        ansible_user: "{{ ansible_user_new }}"
+    - wait_for_connection:
+        timeout: 10
+    - name: Kill processes owned by ubuntu user # noqa 301
+      command: "pkill -u ubuntu"
+      ignore_errors: true
+    - name: Remove old user
+      user:
+        name: ubuntu
+        state: absent
+        remove: true
+  when:
+    - replace_ubuntu_user_with_ansible_user is defined and replace_ubuntu_user_with_ansible_user | bool
+    - can_connect_as_ubuntu is defined and not can_connect_as_ubuntu.failed

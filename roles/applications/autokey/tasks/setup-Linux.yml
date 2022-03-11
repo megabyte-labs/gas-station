@@ -1,0 +1,51 @@
+---
+- name: Ensure Scripts are downloaded
+  become_user: "{{ user.username }}"
+  git:
+    repo: https://github.com/ten0s/autokey.git
+    dest: ~/.config/autokey
+    version: master
+    force: true
+  register: git_result
+  changed_when: git_result.changed and git_result.after != git_result.before
+  when: install_scripts
+
+- name: Ensure ~/.config/autokey/data/Megabyte folder exists
+  become_user: "{{ user.username }}"
+  file:
+    path: ~/.config/autokey/data/Megabyte
+    mode: 0700
+    state: directory
+  when: vmware_autokey_config | length > 0
+
+- name: Copy the folder.json file
+  become_user: "{{ user.username }}"
+  template:
+    src: folder.json.j2
+    dest: ~/.config/autokey/data/Megabyte/.folder.json
+    mode: 0700
+  when: vmware_autokey_config | length > 0
+
+- name: Setup VMware Workstation related AutoKey Scripts
+  become_user: "{{ user.username }}"
+  template:
+    src: config.py.j2
+    dest: "~/.config/autokey/data/Megabyte/{{ autokey_config.name }}.py"
+    mode: 0700
+  loop: "{{ vmware_autokey_config }}"
+  loop_control:
+    label: "{{ autokey_config.name }}"
+    loop_var: autokey_config
+  when: vmware_autokey_config | length > 0
+
+- name: Setup VMware Workstation related AutoKey Config files
+  become_user: "{{ user.username }}"
+  template:
+    src: config.json.j2
+    dest: "~/.config/autokey/data/Megabyte/.{{ autokey_config.name }}.json"
+    mode: 0700
+  loop: "{{ vmware_autokey_config }}"
+  loop_control:
+    label: "{{ autokey_config.name }}"
+    loop_var: autokey_config
+  when: vmware_autokey_config | length > 0

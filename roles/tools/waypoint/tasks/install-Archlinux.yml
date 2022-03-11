@@ -1,0 +1,58 @@
+---
+- name: "Ensure Megabyte Labs configuration directory exists"
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/waypoint"
+  stat:
+    path: "~/.config/megabytelabs/waypoint"
+  register: waypoint_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat waypoint
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_waypoint_version
+  when: waypoint_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://releases.hashicorp.com/waypoint/
+    return_content: true
+  register: waypoint_releases
+
+- name: "Save the latest version of {{ app_name }} to a variable"
+  set_fact:
+    waypoint_latest_release_version: "{{ waypoint_releases.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_waypoint: "{{ (current_waypoint_version.skipped) or \
+      ((not current_waypoint_version.skipped) and (current_waypoint_version.stdout != waypoint_latest_release_version)) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/waypoint
+    state: absent
+  when: install_waypoint
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ 'https://releases.hashicorp.com/waypoint/' + waypoint_latest_release_version + '/waypoint_' + waypoint_latest_release_version + '_linux_amd64.zip' }}"
+    dest: /usr/local/bin
+    remote_src: true
+  when: install_waypoint
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/waypoint
+    mode: 0600
+    content: |
+      {{ waypoint_latest_release_version }}
+  when: install_waypoint

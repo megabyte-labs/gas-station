@@ -23,10 +23,10 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:eslint
-    desc: Fix JavaScript/TypeScript errors automatically
-    hide: '{{not (has .REPOSITORY_TYPE (list "angular" "npm"))}}'
+      - :install:software:expect
+    desc: Fix ESLint errors automatically
     summary: |
-      # Fix JavaScript/TypeScript Errors with ESLint
+      # Fix Errors with ESLint Automatically
 
       This task is an [`eslint`](https://eslint.org/) task. It will attempt to automatically fix
       `eslint` issues. It will report any issues it was unable to fix. The configuration found in
@@ -35,15 +35,46 @@ tasks:
       **Example using `eslint` to fix a single JS/TS file:**
       `task fix:js -- single.ts`
 
-      **Example fixing all JS/TS files in a project:**
+      **Example fixing all files in a project:**
       `task fix:js`
     log:
       error: ESLint found some issues that need to be fixed manually
       start: Auto-fixing with ESLint
       success: ESLint fixing appears to have corrected all the issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --cache --cache-location .cache/eslintcache
-        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - 'unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache
+        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log'
+      - |
+        if [ '{{.ESLINT_FIX_RECURSIVE}}' == 'true' ]; then
+          COUNT=0
+          while [ $COUNT -le 5 ]; do
+            COUNT=$((COUNT + 1))
+            if grep 'potentially fixable with the `--fix` option' < eslint.log > /dev/null; then
+              COUNT="$COUNT"
+              unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache \
+              --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log
+            else
+              echo '' > eslint.log
+            fi
+          done
+        fi
+      - rm eslint.log
+
+  eslint:staged:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Auto-fix only modified files with ESLint
+    env:
+      ESLINT_STAGED_ONLY: on
+    log:
+      error: Failed to auto-fix modified files with ESLint
+      start: Auto-fixing modified files with ESLint
+      success: Successfully auto-fixed modified files with ESLint
+    cmds:
+      - >
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        --cache-location .cache/eslintcache --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   go:
     desc: Fix Go with all available Go fixers
@@ -108,6 +139,38 @@ tasks:
     cmds:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
         --format pretty --ext .json {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+
+  markdown:
+    deps:
+      - :install:npm:markdown-table-formatter
+    desc: Auto-fixes markdown files
+    summary: |
+      # Auto-Fix Markdown Files
+
+      This task performs various tasks that cleanup markdown files. It currently:
+
+      1. Runs `markdown-table-formatter` which fixes up markdown tables
+
+      You can either pass a file as a CLI argument or run it without a CLI argument to
+      auto-fix all the markdown files in the project that are not ignored by .gitignore.
+
+      **Example running against whole project:**
+      `task fix:markdown`
+
+      **Example running on single file:**
+      `task fix:markdown -- README.md`
+    log:
+      error: Error encountered while auto-fixing markdown file(s)
+      start: Auto-fixing markdown file(s)
+      success: Successfully finished auto-fixing markdown file(s)
+    cmds:
+      - >
+        {{if .CLI_ARGS}}
+        markdown-table-formatter {{.CLI_ARGS}}
+        {{else}}
+        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \)
+        -print0 | xargs -0 -r -n1 markdown-table-formatter
+        {{end}}
 
   misc:
     deps:
@@ -226,7 +289,12 @@ tasks:
     log:
       start: Running Prettier on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
     cmds:
-      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+          .config/log warn 'Failed to run `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
+          prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+        fi
 
   python:
     deps:
@@ -303,6 +371,52 @@ tasks:
         {{else}}
           find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.sh' -o -name '*.sh.j2' \) \
             -print0 | xargs -0 {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff | git apply
+        {{end}}
+
+  spelling:markdown:
+    deps:
+      - :install:go:misspell
+    desc: Auto-fix spelling errors in markdown files using `misspell`
+    log:
+      error: Encountered error while attempting to auto-correct spelling mistakes with `misspell`
+      start: Auto-fixing using the `misspell` spell-check engine
+      success: Successfully auto-fixed files using `misspell`
+    cmds:
+      - >
+        {{if .CLI_ARGS}}
+        misspell -w {{.CLI_ARGS}}
+        {{else}}
+        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \)
+        -print0 | xargs -0 -r -n1 misspell -w
+        {{end}}
+
+  toml:
+    deps:
+      - :install:python:requirements
+    desc: Format `.toml` files by alphabetizing and flattening
+    summary: |
+      # Automatically format `.toml` files
+
+      [toml-sort](https://pypi.org/project/toml-sort/) will automatically alphabetize and flatten
+      `.toml` files.
+
+      **Example running on whole project:**
+      `task fix:toml`
+
+      **Example usage on specific file:**
+      `task fix:toml -- pyproject.toml`
+    log:
+      error: Encountered an error while running `toml-sort`
+      start: Running `toml-sort` auto-fixer
+      success: Successfully ran the `toml-sort` auto-fixer
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          {{.PYTHON_HANDLE}}toml-sort -i --all {{.CLI_ARGS}}
+        {{else}}
+          while read PATHH; do
+            {{.PYTHON_HANDLE}}toml-sort -i --all "$PATHH"
+          done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.toml' \))
         {{end}}
 
   xml:

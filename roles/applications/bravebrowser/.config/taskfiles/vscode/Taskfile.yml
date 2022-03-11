@@ -34,8 +34,9 @@ tasks:
         TMP_JQ="$(mktemp)"
         jq -cRrs 'split("\n") | "{ \"recommendations\": \(.) }"' < "$TMP_YQ" > "$TMP_JQ"
         sed 's/,""//' < "$TMP_JQ" > '{{.EXTENSIONS_FILE}}'
-      - |
-        {{.NPX_HANDLE}}prettier --write '{{.EXTENSIONS_FILE}}' > /dev/null
+      - task: :fix:prettier
+        vars:
+          CLI_ARGS: '{{.EXTENSIONS_FILE}}'
 
   extensions:devcontainer:
     deps:
@@ -55,8 +56,9 @@ tasks:
         TMP="$(mktemp)"
         jq --arg recommendations "$(jq '.recommendations' {{.EXTENSIONS_FILE}})" '.extensions = ($recommendations | fromjson)' {{.DEVCONTAINER_CONFIG}} > "$TMP"
         mv "$TMP" {{.DEVCONTAINER_CONFIG}}
-      - |
-        {{.NPX_HANDLE}}prettier --write '{{.DEVCONTAINER_CONFIG}}' > /dev/null
+      - task: :fix:prettier
+        vars:
+          CLI_ARGS: '{{.DEVCONTAINER_CONFIG}}'
 
   generate:
     deps:
@@ -99,5 +101,6 @@ tasks:
           fi
         done <<< "$(task --list)"
         jq --arg tasks "${TASKS%?}]" '.tasks = ($tasks | fromjson)' "$TMP" > '{{.TASKS_FILE}}'
-      - |
-        {{.NPX_HANDLE}}prettier --write '{{.TASKS_FILE}}' > /dev/null
+      - task: :fix:prettier
+        vars:
+          CLI_ARGS: '{{.TASKS_FILE}}'

@@ -26,6 +26,15 @@ tasks:
     status:
       - type allure > /dev/null
 
+  ansifilter:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: ansifilter
+    status:
+      - type ansifilter > /dev/null
+
   brew:
     run: once
     log:
@@ -36,7 +45,7 @@ tasks:
       - task: common
       - task: brew:{{OS}}
     status:
-      - type brew > /dev/null
+      - type brew > /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
 
   brew:cask:
     run: when_changed
@@ -54,7 +63,7 @@ tasks:
     cmds:
       - |
         if ! type brew &> /dev/null; then
-          if sudo -n bash; then
+          if type sudo &> /dev/null && sudo -n true; then
             echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           else
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -77,7 +86,7 @@ tasks:
       - task: brew
       - brew install {{.FORMULAE}}
     status:
-      - type {{.FORMULAE}} &> /dev/null
+      - type {{.FORMULAE}} &> /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
 
   brew:linux:
     run: once
@@ -89,7 +98,7 @@ tasks:
           fi
         }
         if ! type brew &> /dev/null; then
-          if sudo -n bash; then
+          if type sudo &> /dev/null && sudo -n bash; then
             echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           else
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -384,6 +393,15 @@ tasks:
       - .config/log info 'Please reboot the system and re-run the same command after rebooting'
       - exit 1
 
+  expect:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: expect
+    status:
+      - type expect > /dev/null
+
   gcloud:
     run: once
     cmds:
@@ -516,6 +534,16 @@ tasks:
     status:
       - type jq > /dev/null
 
+  kvm:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: kvm
+      - task: exit:notice:restart
+    status:
+      - type qemu-system-x86_64 > /dev/null
+
   node:
     run: once
     cmds:
@@ -524,6 +552,22 @@ tasks:
           FORMULAE: node
     status:
       - type node > /dev/null
+
+  packer:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: packer
+
+  parallels:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: parallels
+    status:
+      - '[ "{{OS}}" != "darwin" ] || ! mdfind -name "Parallels Desktop.app" &> /dev/null'
 
   pipx:
     run: once
@@ -633,13 +677,8 @@ tasks:
       - type rust &> /dev/null
 
   sentry:
-    run: once
     cmds:
-      - task: brew:formulae
-        vars:
-          FORMULAE: getsentry/tools/sentry-cli
-    status:
-      - type sentry-cli > /dev/null
+      - task: :install:github:sentry
 
   snapcraft:
     run: once

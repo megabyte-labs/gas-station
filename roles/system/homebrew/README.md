@@ -14,7 +14,7 @@
   <a href="https://megabyte.space" title="Megabyte Labs homepage" target="_blank">
     <img alt="Homepage" src="https://img.shields.io/website?down_color=%23FF4136&down_message=Down&label=Homepage&logo=home-assistant&logoColor=white&up_color=%232ECC40&up_message=Up&url=https%3A%2F%2Fmegabyte.space&style=for-the-badge" />
   </a>
-  <a href="https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
+  <a href="https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/docs/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
     <img alt="Contributing" src="https://img.shields.io/badge/Contributing-Guide-0074D9?logo=github-sponsors&logoColor=white&style=for-the-badge" />
   </a>
   <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/" title="Chat with us on Slack" target="_blank">
@@ -30,13 +30,13 @@
 <br/>
 <div align="center">
   <a title="Ansible Galaxy role: professormanhattan.homebrew" href="https://galaxy.ansible.com/professormanhattan/homebrew" target="_blank">
-    <img alt="Ansible Galaxy role: professormanhattan.homebrew" src="https://img.shields.io/ansible/role/ansible_galaxy_project_id?logo=ansible&style=flat-square" />
+    <img alt="Ansible Galaxy role: professormanhattan.homebrew" src="https://img.shields.io/ansible/role/57302?logo=ansible&style=flat-square" />
   </a>
   <a title="Version: 1.0.0" href="https://github.com/ProfessorManhattan/ansible-homebrew" target="_blank">
     <img alt="Version: 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
   </a>
   <a title="GitLab build status" href="https://gitlab.com/megabyte-labs/ansible-roles/homebrew/-/commits/master" target="_blank">
-    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/homebrew?branch=master&label=build&logo=gitlab&style=flat-square">
+    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/homebrew?branch=master&label=build&logo=gitlab&logoColor=white&style=flat-square">
   </a>
   <a title="Windows 11 test status on GitHub" href="https://github.com/ProfessorManhattan/ansible-homebrew/actions/workflows/Windows.yml" target="_blank">
     <img alt="Windows 11 test status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-homebrew/Windows%20Ansible%20Role%20Test/master?color=cyan&label=windows&logo=windows&style=flat-square">
@@ -48,13 +48,13 @@
     <img alt="Linux Molecule test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/homebrew?branch=test%2Flinux&label=linux&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAElBMVEUAAAAwPEEuOEIxOzswPj7///91+pI+AAAABXRSTlMANRkNJejDPNcAAAB+SURBVCjPddHBDYAgDIXhGtMRHMG7S3hvTP79VxFIQVq1wOVLm7wU8QIJpSThC2wGwwJoPQFKRdiAAIhGsAykZNSZAOVNMx4BMjwtpySgr6CDJdB/MAdJwAvSiFoE5aABHUb0ch0WHNQq+KPAOgCgrbEnbjAHArjGz3jr3hpumrQpvwi66rkAAAAASUVORK5CYII=&style=flat-square">
   </a>
   <a title="Ansible Galaxy quality score (out of 5)" href="https://galaxy.ansible.com/professormanhattan/homebrew" target="_blank">
-    <img alt="Ansible Galaxy quality score" src="https://img.shields.io/ansible/quality/ansible_galaxy_project_id?logo=ansible&style=flat-square" />
+    <img alt="Ansible Galaxy quality score" src="https://img.shields.io/ansible/quality/57302?logo=ansible&style=flat-square" />
   </a>
   <a title="Ansible Galaxy download count" href="https://galaxy.ansible.com/professormanhattan/homebrew" target="_blank">
-    <img alt="Ansible Galaxy download count" src="https://img.shields.io/ansible/role/d/ansible_galaxy_project_id?logo=ansible&label=downloads&style=flat-square">
+    <img alt="Ansible Galaxy download count" src="https://img.shields.io/ansible/role/d/57302?logo=ansible&label=downloads&style=flat-square">
   </a>
   <a title="Documentation" href="https://megabyte.space/docs/ansible" target="_blank">
-    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&style=flat-square" />
+    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&logoColor=white&style=flat-square" />
   </a>
   <a title="License: MIT" href="https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/LICENSE" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAAHpJREFUCNdjYOD/wMDAUP+PgYHxhzwDA/MB5gMM7AwMDxj4GBgKGGQYGCyAEEgbMDDwAAWAwmk8958xpIOI5zKH2RmOyhxmZjguAiKmgIgtQOIYmFgCIp4AlaQ9OczGkJYCJEAGgI0CGwo2HmwR2Eqw5SBnNIAdBHYaAJb6KLM15W/CAAAAAElFTkSuQmCC&style=flat-square" />
@@ -63,8 +63,8 @@
 
 > </br><h4 align="center">**An Ansible role that installs Homebrew (a package management system) on macOS and Linux systems**</h4></br>
 
-<!--TERMINALIZE![terminalizer_title](https://gitlab.com/megabyte-labs/ansible-roles/homebrew* **github**: /raw/master/.demo.gif
-* **gitlab**: /-/raw/master/.demo.gif)TERMINALIZE-->
+<!--TERMINALIZE![terminalizer_title](https://gitlab.com/megabyte-labs/ansible-roles/homebrew* **github**: /raw/master/docs/demo.gif
+* **gitlab**: /-/raw/master/docs/demo.gif)TERMINALIZE-->
 
 <a href="#table-of-contents" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -77,7 +77,7 @@
 - [Dependencies](#dependencies)
   - [Python](#python)
   - [Galaxy Roles](#galaxy-roles)
-  - [Galaxy Collection](#galaxy-collection)
+  - [Galaxy Collections](#galaxy-collections)
 - [Example Playbook](#example-playbook)
   - [Real World Example](#real-world-example)
 - [Contributing](#contributing)
@@ -101,7 +101,9 @@ This repository is the home of an [Ansible](https://www.ansible.com/) role that 
 
 **Installs Homebrew packages:**
 
+- Ensures Homebrew and Homebrew packages are up-to-date
 - Installs a configurable list of Homebrew packages (via the `homebrew_packages` variable)
+- Ensures pre-installed Homebrew casks are up-to-date
 - Installs a configurable list of Homebrew casks on macOS (via the `homebrew_casks` variable)
 
 <a href="#quick-start" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
@@ -132,8 +134,23 @@ You can also check out **[Install Doctor](https://install.doctor)**. It is an ap
 
 The chart below shows the operating systems that we have tested this role on. It is automatically generated using the Ansible Molecule tests located in the `molecule/` folder. There is CI logic in place to automatically handle the testing of Windows, macOS, Ubuntu, Fedora, CentOS, Debian, and Archlinux. If your operating system is not listed but is a variant of one of the systems we test (i.e. a Debian-flavored system or a RedHat-flavored system) then it is possible that the role will still work.
 
-| OS Family | OS Version | Status | Idempotent | Tested On |
-| --------- | ---------- | ------ | ---------- | --------- |
+| OS Family     | OS Version            | Status                       | Idempotent                   | Tested On         |
+| ------------- | --------------------- | ---------------------------- | ---------------------------- | ----------------- |
+| ArchLinux     | Latest                | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| CentOS        | 7                     | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| CentOS        | 8                     | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| CentOS Stream | 8                     | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Debian        | 10 (Buster)           | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Debian        | 11 (Bullseye)         | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Debian        | 9 (Stretch)           | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Fedora        | 33                    | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Fedora        | 34                    | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Fedora        | 35                    | <div align="center">❌</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Ubuntu        | 18.04 (Bionic Beaver) | <div align="center">✅</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Ubuntu        | 20.04 (Focal Fossa)   | <div align="center">✅</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Ubuntu        | 21.04 (Hirsute Hippo) | <div align="center">✅</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Ubuntu        | 21.10 (Impish Indri)  | <div align="center">✅</div> | <div align="center">❌</div> | January 7th, 2022 |
+| Windows       | 10                    | <div align="center">✅</div> | <div align="center">❌</div> | January 7th, 2022 |
 
 **_What does idempotent mean?_** Idempotent means that if you run this role twice in row then there will be no changes to the system the second time around.
 
@@ -183,11 +200,12 @@ The `requirements.yml` file contains a full list of the Ansible Galaxy dependenc
 
 role_dependencies
 
-### Galaxy Collection
+### Galaxy Collections
 
-This role is dependent on the following Ansible Galaxy collection:
+This role is dependent on multiple Ansible Galaxy collections. The collections along with a links to their source are listed below.
 
 - <a href="https://galaxy.ansible.com/community/general" title="community.general collection on Ansible Galaxy" target="_blank"><img alt="community.general Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-community.general-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
+- <a href="https://galaxy.ansible.com/google/cloud" title="google.cloud collection on Ansible Galaxy" target="_blank"><img alt="google.cloud Ansible Galaxy badge" src="https://img.shields.io/badge/Ansible%20Galaxy-google.cloud-000000?logo=ansible&logoColor=white&style=for-the-badge"></a>
 
 <a href="#example-playbook" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -211,7 +229,7 @@ You can find an example of a playbook that incorporates this role in our main pl
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/ProfessorManhattan/ansible-homebrew/issues). If you would like to contribute, please take a look at the [contributing guide](https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/CONTRIBUTING.md).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/ProfessorManhattan/ansible-homebrew/issues). If you would like to contribute, please take a look at the [contributing guide](https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/docs/CONTRIBUTING.md).
 
 <details>
 <summary><b>Sponsorship</b></summary>

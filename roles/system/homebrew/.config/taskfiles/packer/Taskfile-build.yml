@@ -2,45 +2,6 @@
 version: '3'
 
 tasks:
-  all:
-    deps:
-      - :install:software:kvm
-      - :install:software:packer
-      - :install:software:parallels
-      - :install:software:virtualbox
-      - :install:software:vmware
-    desc: Build Packer images for all platforms (default setting uses `template.json`)
-    summary: |
-      # Build Packer images for all virtualization platforms
-
-      This task begins by removing cached files that may interfere with the Packer build
-      process. It then runs `packer build template.json` if no arguments are passed. This
-      command will build Packer images for all the virtualization platforms specified in
-      the template file. The template file may include instructions for the following
-      virtualization platforms (and it is possible that it includes other ones that are
-      not listed below):
-
-      * Hyper-V
-      * KVM
-      * Parallels
-      * VMWare
-      * VirtualBox
-
-      If you would like to build machine images with another template then you can pass the
-      template's file name as a parameter (see example below).
-
-      **Example building on all platforms:**
-      `task build:all`
-
-      **Example using a template file named `another_template.json`:**
-      `task build:all -- another_template.json`
-    log:
-      error: Packer reported an error while running `packer build {{.TEMPLATE_FILE}}`
-      start: Running `packer build {{.TEMPLATE_FILE}}`
-      success: Packer finished building
-    cmds:
-      - packer build {{.TEMPLATE_FILE}}
-
   kvm:
     deps:
       - :install:software:kvm
@@ -61,11 +22,15 @@ tasks:
 
       **Example using a template file named `another_template.json`:**
       `task build:kvm -- another_template.json`
+    hide:
+      sh: '[ "{{.REPOSITORY_TYPE}}" != "packer" ]'
     log:
       error: Error running `packer build -only=qemu {{.TEMPLATE_FILE}}`
       start: Running `packer build -only=qemu {{.TEMPLATE_FILE}}`
       success: Successfully ran `packer build -only=qemu {{.TEMPLATE_FILE}}`
     cmds:
+      - task: :packer:prepare:template
+      - rm -rf build
       - packer build -only=qemu {{.TEMPLATE_FILE}}
 
   parallels:
@@ -87,11 +52,14 @@ tasks:
 
       **Example using a template file named `another_template.json`:**
       `task build:parallels -- another_template.json`
+    hide:
+      sh: '[ "{{.REPOSITORY_TYPE}}" != "packer" ]'
     log:
       error: Error running `packer build -only=parallels-iso {{.TEMPLATE_FILE}}`
       start: Running `packer build -only=parallels-iso {{.TEMPLATE_FILE}}`
       success: Successfully ran `packer build -only=parallels-iso {{.TEMPLATE_FILE}}`
     cmds:
+      - rm -rf build
       - packer build -only=parallels-iso {{.TEMPLATE_FILE}}
 
   virtualbox:
@@ -113,11 +81,15 @@ tasks:
 
       **Example using a template file named `another_template.json`:**
       `task build:virtualbox -- another_template.json`
+    hide:
+      sh: '[ "{{.REPOSITORY_TYPE}}" != "packer" ]'
     log:
       error: Error running `packer build -only=virtualbox-iso {{.TEMPLATE_FILE}}`
       start: Running `packer build -only=virtualbox-iso {{.TEMPLATE_FILE}}`
       success: Successfully ran `packer build -only=virtualbox-iso {{.TEMPLATE_FILE}}`
     cmds:
+      - task: :app:virtualbox:clear
+      - rm -rf build
       - packer build -only=virtualbox-iso {{.TEMPLATE_FILE}}
 
   vmware:
@@ -144,5 +116,8 @@ tasks:
       error: Error running `packer build -only=vmware-iso {{.TEMPLATE_FILE}}`
       start: Running `packer build -only=vmware-iso {{.TEMPLATE_FILE}}`
       success: Successfully ran `packer build -only=vmware-iso {{.TEMPLATE_FILE}}`
+    hide:
+      sh: '[ "{{.REPOSITORY_TYPE}}" != "packer" ]'
     cmds:
+      - rm -rf build
       - packer build -only=vmware-iso {{.TEMPLATE_FILE}}

@@ -1,0 +1,42 @@
+---
+version: '3'
+
+tasks:
+  up:
+    deps:
+      - :install:software:jq
+      - :install:software:vagrant
+    desc: Select which virtualization platform to run the image on using an interactive prompt
+    hide:
+      sh: '[ ! -f Vagrantfile ]'
+    prompt:
+      type: select
+      message: Which virtualization platform would you like to use to launch with `vagrant up`?
+      options:
+        - Parallels
+        - QEMU/KVM
+        - VirtualBox
+        - VMWare
+      answer:
+        cmds:
+          - |
+            if [ '{{.ANSWER}}' == 'Parallels' ]; then
+              if [ '{{OS}}' != 'darwin' ]; then
+                .config/log error '`Parallels` is only available on macOS!' && exit 50
+              fi
+              .config/log info 'Ensuring `Parallels` is installed'
+              task install:software:parallels
+              vagrant up --provider=parallels
+            elif [ '{{.ANSWER}}' == 'QEMU/KVM' ]; then
+              .config/log info 'Ensuring `QEMU/KVM` are installed'
+              task install:software:kvm
+              vagrant up --provider=libvirt
+            elif [ '{{.ANSWER}}' == 'VirtualBox' ]; then
+              .config/log info 'Ensuring `VirtualBox` is installed'
+              task install:software:virtualbox
+              vagrant up --provider=virtualbox
+            elif [ '{{.ANSWER}}' == 'VMWare' ]; then
+              .config/log info 'Ensuring `VMWare` is installed'
+              task install:software:vmware
+              vagrant up --provider={{if eq OS "darwin"}}vmware_fusion{{else}}vmware_workstation{{end}}
+            fi

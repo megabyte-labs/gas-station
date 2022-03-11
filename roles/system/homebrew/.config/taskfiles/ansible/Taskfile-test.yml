@@ -6,6 +6,13 @@ vars:
   MOLECULE_TEST_OPTIONS: ANSIBLE_STDOUT_CALLBACK=community.general.yaml
     ANSIBLE_CALLBACKS_ENABLED="junit, ansible.posix.profile_tasks, ansible.posix.timer"
     JUNIT_OUTPUT_DIR="molecule/.results/junit" JUNIT_FAIL_ON_CHANGE=true JUNIT_HIDE_TASK_ARGUMENTS=true
+  PYTHON_MOLECULE_HANDLE:
+    sh: |
+      if [ -n "$CI" ]; then
+        echo ''
+      else
+        echo 'unbuffer {{.PYTHON_HANDLE}}'
+      fi
 
 tasks:
   allure:report:
@@ -20,6 +27,14 @@ tasks:
       - mkdir -p molecule/.results/junit
       - cp -rf allure-reports/history/ molecule/.results/junit/
       - allure open allure-reports
+
+  ansifilter:
+    deps:
+      - :install:software:ansifilter
+    cmds:
+      - TMP="$(mktemp)" && cat {{.RESULTS_FILE}} | ansifilter > "$TMP" && mv "$TMP" {{.RESULTS_FILE}}
+    status:
+      - '[ -n "$CI" ]'
 
   default:
     log:
@@ -41,37 +56,140 @@ tasks:
       - task: local:test
 
   local:test:
+    cmds:
+      - |
+        if [ -n "$CI" ]; then
+          .config/log info '`$CI` environment variable is present'
+          task ansible:test:local:test:ci
+        else
+          task ansible:test:local:test:local
+        fi
+
+  local:test:ci:
     deps:
       - :symlink:{{.REPOSITORY_SUBTYPE}}
-      - :install:software:sentry
+    cmds:
+      - |
+        if [ -n "$WINDOWS_ANSIBLE_TEST" ]; then
+          pip3 install ansible 'pywinrm[credssp]'
+        else
+          pip3 install ansible
+        fi
+      - ansible-galaxy install -r requirements.yml
+      - task: local:test:logic
+
+  local:test:local:
+    deps:
+      - :symlink:{{.REPOSITORY_SUBTYPE}}
       - task: :install:python:requirements
         env:
           INSTALL_OPTIONS: --no-dev
+    cmds:
+      - task: local:test:logic
+
+  local:test:logic:
+    vars:
+      ANSIBLE_CFG: |-
+        [winrm_connection]
+        scheme = https
+        server_cert_validation = ignore
+        transport = credssp,ssl
+      ROLE_NAME: '{{.GALAXY_NAMESPACE}}.{{.GALAXY_ROLE_NAME}}'
+      SUDO_PASS_PARAM:
+        sh: if [ -z "$CI" ]; then echo ' --ask-sudo-pass'; else echo ''; fi
+      WINDOWS_INVENTORY: windows-ci ansible_host=localhost ansible_user=runneradmin
+        ansible_password=AnsibleTest999 ansible_connection=winrm ansible_winrm_server_cert_validation=ignore
+        ansible_winrm_transport=credssp
     log:
       error: Encountered error while testing the Ansible playbook locally
       start: Testing the Ansible playbook locally
       success: Successfully tested the Ansible playbook locally
     cmds:
-      - cp test/{{OS}}/inventory inventory
-      - if [ ! -f ansible.cfg.bak ]; then cp ansible.cfg ansible.cfg.bak; fi
-      - cp test/{{OS}}/ansible.cfg ansible.cfg
       - |
-        .config/log info 'Prompting for sudo password (required)'
-        set -o pipefail
-        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass test/{{OS}}/test.yml 2&>1 | tee debug.log || EXIT_CODE=$?
-      - mv ansible.cfg.bak ansible.cfg
-      - rm inventory
+        if [ -n "$WINDOWS_ANSIBLE_TEST" ]; then
+          echo '{{.WINDOWS_INVENTORY}}' > inventory
+          echo '{{.ANSIBLE_CFG}}' > ansible.cfg
+        else
+          echo 'localhost ansible_connection=local' > inventory
+        fi
+      - task: local:test:playbook
+        vars:
+          PLAY_HOSTS:
+            sh: if [ -z "$WINDOWS_ANSIBLE_TEST" ]; then echo 'localhost'; else echo 'windows-ci'; fi
+          PLAY_ROLE_NAME: '{{.ROLE_NAME}}'
+      - |
+        if [ -z "$CI" ]; then
+          .config/log info 'Prompting for sudo password (required for non-CI environments)'
+        fi
+        if [ -n "$WINDOWS_ANSIBLE_TEST" ]; then
+          export ANSIBLE_CONFIG="$PWD/ansible.cfg"
+        fi
+        {{.PYTHON_MOLECULE_HANDLE}} ansible-playbook -i inventory{{.SUDO_PASS_PARAM}} test/{{OS}}/test.yml 2>&1 | tee debug.log || EXIT_CODE=$?
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
+
+  local:test:playbook:
+    vars:
+      TEST_PLAY: |
+        ---
+        - hosts: {{.PLAY_HOSTS}}
+          roles:
+            - role: '{{.PLAY_ROLE_NAME}}'
+    cmds:
+      - echo '{{.TEST_PLAY}}' > test.yml
+
+  molecule:ci:requirements:
+    cmds:
+      - |
+        if [ -n "$WINDOWS_ANSIBLE_TEST" ]; then
+          .config/log info 'Running `pip3 install ansible ansibler molecule pywinrm[credssp]`'
+          pip3 install ansible ansibler molecule 'pywinrm[credssp]'
+        else
+          .config/log info 'Running `pip3 install ansible ansibler molecule`'
+          pip3 install ansible ansibler molecule
+        fi
+      - |
+        .config/log info 'Running `ansible-galaxy install --ignore-errors -r requirements.yml`'
+        ansible-galaxy install --ignore-errors -r requirements.yml
 
   molecule:dependencies:
+    run: once
+    cmds:
+      - |
+        if [ -n "$CI" ]; then
+          .config/log info '`$CI` environment is present'
+          task ansible:test:molecule:dependencies:ci
+        else
+          task ansible:test:molecule:dependencies:local
+        fi
+
+  molecule:dependencies:ci:
+    cmds:
+      - task: molecule:ci:requirements
+    status:
+      - '[ -z "$CI" ]'
+
+  molecule:dependencies:local:
     deps:
       - :install:python:requirements
+      - :install:software:expect
+      - :install:software:sshpass
     log:
       error: Encountered error while installing Ansible Galaxy requirements defined in `requirements.yml`
       start: Installing Ansible Galaxy requirements defined in `requirements.yml`
       success: Installed Ansible Galaxy requirements defined in `requirements.yml`
     cmds:
-      - '{{.PYTHON_HANDLE}} ansible-galaxy install --ignore-errors -r requirements.yml'
+      - |
+        if poetry &> /dev/null; then
+          {{.PYTHON_HANDLE}} ansible-galaxy install --ignore-errors -r requirements.yml
+        else
+          .config/log info 'Current shell is already a Poetry virtual environment'
+          ansible-galaxy install --ignore-errors -r requirements.yml
+        fi
       - task: :symlink:{{.REPOSITORY_SUBTYPE}}
+    status:
+      - '[ -n "$CI" ]'
 
   molecule:docker:
     desc: Runs a Docker Molecule test
@@ -97,8 +215,6 @@ tasks:
     deps:
       - molecule:dependencies
       - :install:software:docker
-      - :install:software:sentry
-      - :install:software:sshpass
     log:
       error: The `{{.CLI_ARGS}}` Docker Molecule test finished with errors
       start: Running Docker Molecule test on containers in the `{{.CLI_ARGS}}` group
@@ -106,15 +222,18 @@ tasks:
     cmds:
       - |
         set -o pipefail
-        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test -s docker \
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_MOLECULE_HANDLE}}molecule test -s docker \
         -- --skip-tags skipdockertest 2>&1 | tee debug.log || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
 
   molecule:docker:matrix:
     deps:
       - molecule:dependencies
       - :install:software:docker
-      - :install:software:sentry
-      - :install:software:sshpass
     vars:
       MOLECULE_DATE:
         sh: date '+%Y-%m-%d'
@@ -131,8 +250,13 @@ tasks:
           .config/log warn 'Running Docker Molecule tests on the Docker containers that are compatible with `snap` since the role has references to `snap`'
         fi
         set -o pipefail
-        PY_COLORS=0 {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="$SCENARIO" {{.PYTHON_HANDLE}}molecule test -s docker -- --skip-tags skipdockertest 2>&1 | \
-          tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt" || EXIT_CODE=$?
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="$SCENARIO" {{.PYTHON_MOLECULE_HANDLE}}molecule test -s docker -- --skip-tags skipdockertest 2>&1 | \
+          tee '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt' || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt'
 
   molecule:docker:prompt:
     vars:
@@ -180,7 +304,6 @@ tasks:
     deps:
       - molecule:dependencies
       - :install:software:gcloud
-      - :install:software:sentry
     log:
       error: Encountered error(s) while running the Google Cloud Platform Molecule test
       start: Running Google Cloud Platform Molecule test
@@ -189,13 +312,17 @@ tasks:
       - task: molecule:gcp:preconditions
       - |
         set -o pipefail
-        {{.PYTHON_HANDLE}}molecule test -s gcp | tee debug.log || EXIT_CODE=$?
+        {{.PYTHON_MOLECULE_HANDLE}}molecule test -s gcp 2>&1 | tee debug.log || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
 
   molecule:gcp:matrix:
     deps:
       - molecule:dependencies
       - :install:software:gcloud
-      - :install:software:sentry
       - :install:software:yq
     vars:
       MOLECULE_DATE:
@@ -209,13 +336,14 @@ tasks:
       - mkdir -p {{.MOLECULE_LOGS_PATH}}
       - |
         set -o pipefail
-        EXIT_CODE=0
-        PY_COLORS=0 {{.PYTHON_HANDLE}}molecule test -s gcp 2>&1 | tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt" || EXIT_CODE=$?
-        if [ "$EXIT_CODE" != '0' ]; then
-          exit 1
+        {{.PYTHON_MOLECULE_HANDLE}}molecule test -s gcp 2>&1 | tee "{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt" || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
         else
           .config/log success 'Finished running the test (results were logged to `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt`)'
         fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt'
       - |
         RESULTS="{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-gcp.txt"
         PLATFORM_LENGTH="$(yq e '.platforms | length' molecule/gcp/molecule.yml)"
@@ -298,7 +426,9 @@ tasks:
   molecule:local:test:
     deps:
       - molecule:dependencies
-      - :install:software:sentry
+    vars:
+      MOLECULE_DATE:
+        sh: date '+%Y-%m-%d'
     log:
       error: There was an error while running the Molecule test locally
       start: Running the Molecule test locally
@@ -306,8 +436,16 @@ tasks:
     cmds:
       - |
         set -o pipefail
-        PATH="$(poetry env info | grep 'Python:   /' | sed 's/Python:   //' | sed 's/$/\/bin/'):$PATH" \
-        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s local 2&>1 | tee debug.log || EXIT_CODE=$?
+        if [ -z "$CI" ]; then
+          export PATH="$(poetry env info | grep 'Python:   /' | sed 's/Python:   //' | sed 's/$/\/bin/'):$PATH"
+        fi
+        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_MOLECULE_HANDLE}}molecule test -s local 2>&1 | \
+        tee '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt' || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
 
   molecule:ssh:
     desc: Runs a Molecule test over SSH
@@ -326,7 +464,6 @@ tasks:
   molecule:ssh:cli:
     deps:
       - molecule:dependencies
-      - :install:software:sentry
     log:
       error: Errors encountered while running the SSH Molecule test
       start: Running the Molecule test over SSH
@@ -334,7 +471,12 @@ tasks:
     cmds:
       - |
         set -o pipefail
-        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test -s remote 2&>1 | tee debug.log || EXIT_CODE=$?
+        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_MOLECULE_HANDLE}}molecule test -s remote 2>&1 | tee debug.log || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
 
   molecule:ssh:prompt:
     vars:
@@ -438,8 +580,6 @@ tasks:
   molecule:virtualbox:cli:
     deps:
       - molecule:dependencies
-      - :install:software:sentry
-      - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
     env:
@@ -450,7 +590,13 @@ tasks:
       success: Finished running the `{{.CLI_ARGS}}` VirtualBox Molecule test
     cmds:
       - |
-        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_HANDLE}}molecule test 2&>1 | tee debug.log || EXIT_CODE=$?
+        set -o pipefail
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP="{{.CLI_ARGS}}" {{.PYTHON_MOLECULE_HANDLE}}molecule test 2>&1 | tee debug.log || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
 
   molecule:virtualbox:converge:
     desc: Provisions a desktop VirtualBox VM and then runs a Molecule test
@@ -482,8 +628,6 @@ tasks:
   molecule:virtualbox:converge:cli:
     deps:
       - molecule:dependencies
-      - :install:software:sentry
-      - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
     env:
@@ -495,7 +639,12 @@ tasks:
     cmds:
       - |
         set -o pipefail
-        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_HANDLE}}molecule converge -s desktop 2&>1 | tee debug.log || EXIT_CODE=$?
+        {{.MOLECULE_TEST_OPTIONS}} MOLECULE_GROUP={{.CLI_ARGS}} {{.PYTHON_MOLECULE_HANDLE}}molecule converge -s desktop 2>&1 | tee debug.log || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
 
   molecule:virtualbox:converge:prompt:
     vars:
@@ -541,14 +690,11 @@ tasks:
   molecule:virtualbox:matrix:
     deps:
       - molecule:dependencies
-      - :install:software:sentry
-      - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
     vars:
       MOLECULE_DATE:
         sh: date '+%Y-%m-%d'
-      OBJC_DISABLE_INITIALIZE_FORK_SAFETY: YES
     log:
       error: Errors were encountered while running the full E2E test (see `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt` for details)
       start: Running a full E2E test with VirtualBox (results will be saved to `{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt`)
@@ -557,8 +703,13 @@ tasks:
       - mkdir -p {{.MOLECULE_LOGS_PATH}}
       - |
         set -o pipefail
-        PY_COLORS=0 {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_HANDLE}}molecule test 2&>1 | \
+        {{.MOLECULE_TEST_OPTIONS}} {{.PYTHON_MOLECULE_HANDLE}}molecule test 2>&1 | \
         tee '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt' || EXIT_CODE=$?
+        if [ "$EXIT_CODE" ]; then
+        fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-default.txt'
 
   # yamllint enable rule:truthy
   molecule:virtualbox:prompt:
@@ -603,6 +754,27 @@ tasks:
     preconditions:
       - sh: test -f molecule/default/molecule.yml
         msg: The `molecule/default/molecule.yml` file must be present and in the proper format
+
+  post:molecule:log:
+    cmds:
+      - task: ansifilter
+        vars:
+          RESULTS_FILE: '{{.RESULTS_FILE}}'
+      - task: post:molecule:log:commit:ci
+      - cmd: |
+          git pull --ff-only origin master
+          git add '{{.RESULTS_FILE}}'
+          HUSKY=0 git commit -m "📝 docs(test results): new molecule test results added [ci skip]" -n
+          git push origin master
+        ignore_error: true
+    status:
+      - '[ "{{.RESULTS_FILE}}" == "debug.log" ] || [ ! -d .git ]'
+
+  post:molecule:log:commit:ci:
+    cmds:
+      - task: :ci:commit:config
+    status:
+      - '[ -z "$GITLAB_CI" ]'
 
   prompt:
     vars:
@@ -740,8 +912,6 @@ tasks:
       - task: :install:python:requirements
         vars:
           INSTALL_OPTIONS: --no-dev
-      - :install:software:sentry
-      - :install:software:sshpass
       - :install:software:vagrant
       - :install:software:virtualbox
     log:
@@ -751,9 +921,12 @@ tasks:
     cmds:
       - |
         set -o pipefail
-        vagrant up {{.CLI_ARGS}} 2&>1 | tee debug.log || EXIT_CODE=$?
-        if [ "$EXIT_CODE" != '0' ]; then
+        vagrant up {{.CLI_ARGS}} 2>&1 | tee debug.log || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
         fi
+      - task: post:molecule:log
+        vars:
+          RESULTS_FILE: debug.log
 
   vagrant:prompt:
     vars:

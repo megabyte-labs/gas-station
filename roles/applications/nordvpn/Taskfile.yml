@@ -7,13 +7,15 @@ includes:
   ansible:playbook: ./.config/taskfiles/ansible/Taskfile-playbook.yml
   ansible:populate: ./.config/taskfiles/ansible/Taskfile-populate.yml
   ansible:test: ./.config/taskfiles/ansible/Taskfile-test.yml
+  app: ./.config/taskfiles/app/Taskfile.yml
+  app:virtualbox: ./.config/taskfiles/app/Taskfile-virtualbox.yml
   boilerplate: ./.config/taskfiles/boilerplate/Taskfile.yml
   boilerplate:populate: ./.config/taskfiles/boilerplate/Taskfile-populate.yml
-  boilerplate:prompt: ./.config/taskfiles/boilerplate/Taskfile-prompt.yml
-  ci: ./.config/taskfiles/ci/Taskfile.yml
   project:
     taskfile: ./local/Taskfile-project.yml
     optional: true
+  boilerplate:prompt: ./.config/taskfiles/boilerplate/Taskfile-prompt.yml
+  ci: ./.config/taskfiles/ci/Taskfile.yml
   ci:github: ./.config/taskfiles/ci/Taskfile-github.yml
   common: ./.config/taskfiles/common/Taskfile.yml
   common:code: ./.config/taskfiles/common/Taskfile-code.yml
@@ -72,6 +74,7 @@ includes:
   upstream:docs: ./.config/taskfiles/upstream/Taskfile-docs.yml
   upstream:project: ./.config/taskfiles/upstream/Taskfile-project.yml
   upstream:shared: ./.config/taskfiles/upstream/Taskfile-shared.yml
+  vagrant: ./.config/taskfiles/vagrant/Taskfile.yml
   vscode: ./.config/taskfiles/vscode/Taskfile.yml
   web: ./.config/taskfiles/web/Taskfile.yml
   web:ionic: ./.config/taskfiles/web/Taskfile-ionic.yml
@@ -83,7 +86,8 @@ output: interleaved
 vars:
   DOCKERHUB_PROFILE: megabytelabs
   DOCKERHUB_USER: professormanhattan
-  ESLINT_FORMATTER: pretty
+  ESLINT_FIX_RECURSIVE: 'true'
+  ESLINT_FORMATTER: stylish
   ESLINT_FORMATTER_OPTIONS: git-log gitlab pretty summary
   GALAXY_AUTHOR: ProfessorManhattan
   GALAXY_COMPANY: Megabyte Labs
@@ -117,6 +121,12 @@ vars:
   TIMEZONE: America/New_York
 
 env:
+  OSTYPE:
+    sh: |
+      {{if (eq OS "linux")}}LINUX_FLAVOR='linux-gnu'
+      LIBC=$(ldd /bin/ls | grep 'musl' | head -1 | cut -d ' ' -f1)
+      if [ -n "$LIBC" ]; then LINUX_FLAVOR='linux-musl'; fi{{end}}
+      echo "{{if (eq OS "linux")}}$LINUX_FLAVOR{{else}}darwin{{end}}"
   SENTRY_DSN: ''
 
 profile: |
@@ -234,6 +244,12 @@ tasks:
         git commit
         {{end}}
 
+  commit:quick:
+    cmds:
+      - git add --all
+      - HUSKY=0 git commit -m '🔧 chore(tweak): quick minor update' --no-verify
+      - git push origin master
+
   donothing: 'true'
 
   fix:
@@ -246,6 +262,19 @@ tasks:
       an error so the auto-fixes still have to be validated.
     cmds:
       - task: fix:all
+
+  get:links:
+    deps:
+      - install:software:jq
+    desc: Log useful links such as the current project's git repository link
+    vars:
+      GITHUB_URL:
+        sh: jq -r '.blueprint.repository.github' package.json
+      GITLAB_URL:
+        sh: jq -r '.blueprint.repository.gitlab' package.json
+    cmds:
+      - .config/log info 'GitHub -----> `{{.GITHUB_URL}}`'
+      - .config/log info 'GitLab -----> `{{.GITLAB_URL}}`'
 
   group:exec:
     desc: Execute group commands on any GitLab group (including repositories in sub-groups)
@@ -366,8 +395,6 @@ tasks:
       - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
 
   preload:
-    deps:
-      - install:brewfile
     desc: Set up your workstation in advance by installing commonly used programs
     summary: |
       # Speed Up Future Development by Preloading Common System Applications
@@ -400,8 +427,13 @@ tasks:
       success: Successfully preloaded system with common dependencies (REBOOT RECOMMENDED)
     cmds:
       - task: install:brewfile
-      - task: install:modules:global
-      - task: install:pipx:global
+      - task: install:go:bundle
+      - task: install:rust:bundle
+      - task: install:github:bundle
+      - task: install:npm:bundle
+      - task: install:pipx:bundle
+      - task: install:python:requirements
+      - task: install:modules:local
 
   prepare:
     desc: Prepares the project for the normal start command
@@ -419,6 +451,83 @@ tasks:
     cmds:
       - task: boilerplate:check:package
       - task: boilerplate:clean
+
+  publish:
+    desc: Publish a semantic release via `semantic-release`
+    summary: |
+      # Publish the Project
+
+      Using this task, you can publish a project to all its targets. The targets
+      depend on the project type. Most projects will include:
+
+      1. Updating version numbers in `package.json`, `pyproject.toml`, etc.
+      2. Adding a new git tag at the version and publishing it with updated assets
+      3. Publishing repository-specific items like NPM packages, PyPi packages, etc.
+      4. Publishing artifacts to GitLab Releases and GitHub Releases
+      5. Updating the `docs/CHANGELOG.md`
+
+      ## Packages Used
+
+      This task runs `semantic-release` using the `semantic-release-config` package. The package
+      includes release instructions for:
+
+      1. Python packages
+      2. NPM packages
+      3. Dockerfile projects
+      4. Go projects
+      5. Ansible roles
+
+      ## Formats
+
+      It does its best to ship projects out in as many formats (that make sense) as possible.
+      For instance, an NPM CLI gets published as:
+
+      1. NPM package
+      2. Binaries (including deb and rpm) available on GitHub/GitLab releases
+      3. Brew formulae
+      4. Snapcraft
+      5. Probably more implemented after writing this
+
+      ## Python Package Notes
+
+      If `setup.cfg` is present, then the project is assumed to be a legacy Python
+      project that needs to run in environment with access to the `python-semantic`
+      extras defined in `pyproject.toml`.
+    log:
+      error: Error running `semantic-release` via `task publish`
+      start: Running `semantic-release` via `task publish`
+      success: Successfully ran `semantic-release` via `task publish`
+    cmds:
+      - task: publish:semantic-release
+
+  publish:force:
+    desc: Force a `semantic-release` even if there are no new eligible commits
+    summary: |
+      # Force a Release with Empty Commit
+
+      Trigger any kind of version bump / semantic release by passing
+      `PATCH UPDATE`, `MINOR UPDATE`, or `MAJOR UPDATE` in via CLI arguments.
+      This task will commit an empty commit message that will trigger the
+      corresponding version bump type.
+
+      **Example of patch update:**
+      `task publish:force -- 'PATCH UPDATE'`
+
+      **Example of minor update:**
+      `task publish:force -- 'MINOR UPDATE'`
+
+      **Example of major update:**
+      `task publish:force -- 'MAJOR UPDATE'`
+    vars:
+      UPDATE_LEVEL: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}PATCH UPDATE{{end}}'
+    log:
+      error: Error creating update via `task publish:force`
+      start: Publishing `semantic-release` update via `task publish:force`
+      success: Successfully published update via `task publish:force`
+    cmds:
+      - |
+        HUSKY=0 git commit -a --allow-empty -m '🔨 build(version bump): semantic-release {{.UPDATE_LEVEL}}' -n
+      - task: publish
 
   reset:
     desc: Resets the project by removing all caches and then re-generating templated files

@@ -12,8 +12,12 @@ tasks:
     cmds:
       - brew tap Homebrew/bundle
       - mkdir -p local
-      - cp .config/Brewfile local/Brewfile
-      - brew bundle install --file local/Brewfile
+      - cp .config/Brewfile local/Brewfile.common
+      - brew bundle install --file local/Brewfile.common
+      - |
+        if [ -f local/Brewfile ]; then
+          brew bundle install --file local/Brewfile
+        fi
 
   install-doctor:
     log:
@@ -57,6 +61,15 @@ tasks:
       - :install:npm:cz-emoji
       - :install:software:jq
     env:
+      DEPS:
+        sh: jq -r -S '.dependencies + .devDependencies + .optionalDependencies + .peerDependencies' package.json
+      PREVIOUS_DEPS:
+        sh: |
+          if [ -f .task/npm-deps ]; then
+            cat .task/npm-deps
+          else
+            echo ""
+          fi
       SEMANTIC_PYTHON_POST_INSTALL: '{{if eq .SEMANTIC_RELEASE "true"}}true{{else}}false{{end}}'
     run: once
     log:
@@ -65,19 +78,19 @@ tasks:
       success: Successfully installed local NPM dependencies
     cmds:
       - |
-        if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
-          {{.NPM_PROGRAM_LOCAL}} update
-        else
-          {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
-          if [ -n "$EXIT_CODE" ]; then
-            .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+        if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
+          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
             {{.NPM_PROGRAM_LOCAL}} update
+          else
+            {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
+            if [ -n "$EXIT_CODE" ]; then
+              .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+              {{.NPM_PROGRAM_LOCAL}} update
+            fi
           fi
         fi
-      - |
-        if [ "$(jq -r '.devDependencies.glob' package.json)" == 'null' ] && [ "$(jq -r '.dependencies.glob' package.json)" == 'null' ]; then
-          pnpm install --save-dev glob
-        fi
+        mkdir -p .task
+        echo "$DEPS" > .task/npm-deps
     sources:
       - package.json
 

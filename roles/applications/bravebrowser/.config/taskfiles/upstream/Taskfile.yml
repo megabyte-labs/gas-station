@@ -155,6 +155,7 @@ tasks:
         function handlebars() {
           FILE="$1"
           TMP="$(mktemp)"
+          .config/log info 'Generating `'"${FILE//.liquid}"'` from `'"$FILE"'`'
           {{.NPX_HANDLE}}hbs --data .variables.json --helper ./.config/hbs.cjs "$FILE" --stdout > "$TMP"
           mv "$TMP" "${FILE//.liquid}"
           rm "$FILE"
@@ -185,6 +186,60 @@ tasks:
         package.json.bak package.json > "$TMP"
       - mv "$TMP" package.json
       - rm package.json.bak
+      - task: template:pyproject
+
+  template:pyproject:
+    deps:
+      - :install:github:fusion
+    cmds:
+      - task: template:pyproject:config
+      - task: template:pyproject:local
+      - task: template:pyproject:fix
+
+  template:pyproject:config:
+    log:
+      error: Encountered error while merging `.config/pyproject.partial.toml` into the regenerated `pyproject.toml`
+      start: Merging `.config/pyproject.partial.toml` into `pyproject.toml`
+      success: The `pyproject.toml` file was successfully generated from `.config/pyproject.partial.toml`
+    cmds:
+      - fusion toml pyproject.toml .config/pyproject.partial.toml -o pyproject.next.toml
+      - mv pyproject.next.toml pyproject.toml
+    status:
+      - '[ ! -f .config/pyproject.partial.toml ] || [ ! -f pyproject.toml ]'
+
+  template:pyproject:fix:
+    cmds:
+      - task: :fix:toml
+        vars:
+          CLI_ARGS: pyproject.toml
+      - task: :fix:prettier
+        vars:
+          CLI_ARGS: pyproject.toml
+    status:
+      - '[ -n "$NO_INSTALL_HOMEBREW" ]'
+
+  template:pyproject:local:
+    vars:
+      PYPROJECT_NOTICE: |-
+        ##### IMPORTANT DEVELOPER NOTICE #####
+        # This `pyproject.toml` file is automatically generated.
+        # If you want to make changes that persist then you should
+        # add your changes to `./docs/pyproject.partial.toml`.
+        # Be sure to include the section's title with your custom
+        # entries. You can test the generation of this file by running
+        # `bash start.sh && task init`.
+    log:
+      error: Encountered error while merging `local/pyproject.partial.toml` into the regenerated `pyproject.toml`
+      start: Merging `local/pyproject.partial.toml` into `pyproject.toml`
+      success: The `pyproject.toml` file was successfully generated from `local/pyproject.partial.toml`
+    cmds:
+      - fusion toml pyproject.toml local/pyproject.partial.toml -o pyproject.next.toml
+      - mv pyproject.next.toml pyproject.toml
+      - echo '' >> pyproject.toml
+      - echo '{{.PYPROJECT_NOTICE}}' >> pyproject.toml
+      - echo '' >> pyproject.toml
+    status:
+      - '[ ! -f local/pyproject.partial.toml ] || [ ! -f pyproject.toml ]'
 
   variables:
     deps:
@@ -215,4 +270,8 @@ tasks:
       - |
         if [ '{{.REPOSITORY_TYPE}}' == 'ansible' ] && [ -f meta/main.yml ]; then
           task ansible:update:variables:descriptions
+        fi
+      - |
+        if [ '{{.REPOSITORY_TYPE}}' == 'packer' ]; then
+          task packer:update:variables
         fi

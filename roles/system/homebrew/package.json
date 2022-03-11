@@ -16,24 +16,30 @@
   },
   "type": "module",
   "scripts": {
-    "help": "task --list",
-    "prepare": "task common:husky",
+    "build": "task ansible:build:none",
+    "help": "task --menu",
+    "prepare": "npm run start && (test -f Taskfile.yml && task common:husky) || true",
     "repair": "bash <(curl -sS https://install.doctor/repair)",
-    "start": "bash .config/start.sh"
+    "start": "bash start.sh",
+    "test": "[ -z \"$PS1\" ] && task ansible:test:prompt || task ansible:test:default"
   },
   "config": {
     "commitizen": {
-      "path": "node_modules/cz-emoji-conventional"
+      "path": "node_modules/git-cz-emoji"
     }
   },
   "dependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
-    "@washingtondc/development": "^1.0.2",
-    "@washingtondc/prettier": "^1.0.0",
-    "@washingtondc/release": "^0.0.2",
-    "eslint-config-strict-mode": "^1.0.0",
-    "sleekfast": "^0.0.1"
+    "@commitlint/config-conventional": "^16.0.0",
+    "@washingtondc/development": "latest",
+    "eslint-config-strict-mode": "latest",
+    "git-cz-emoji": "latest",
+    "glob": "^7.2.0",
+    "handlebars-helpers": "^0.10.0",
+    "prettier-config-sexy-mode": "latest",
+    "semantic-release-config": "latest",
+    "typescript": "^4.5.5"
   },
   "keywords": [
     "ansible",
@@ -64,11 +70,13 @@
     "node": ">=14.18.0"
   },
   "publishConfig": {
+    "@megabyte:registry": "https://gitlab.com/api/v4/projects/32167524/packages/npm/",
     "access": "public"
   },
   "blueprint": {
+    "ansible_galaxy_project_id": "57302",
     "description": "Installs Homebrew (a package management system) on macOS and Linux systems",
-    "github_id": "",
+    "github_id": "R_kgDOGiko8w",
     "gitlab_group_id": "12261670",
     "gitlab_project_id": "32167524",
     "group": "ansible",
@@ -81,6 +89,16 @@
     "slug": "homebrew",
     "subgroup": "role",
     "title": "Homebrew - A Package Manager for macOS/Linux"
+  },
+  "changelog": {
+    "displayTypes": [
+      "feat",
+      "fix",
+      "perf",
+      "refactor",
+      "revert"
+    ],
+    "showAuthor": true
   },
   "commitlint": {
     "extends": [
@@ -102,42 +120,69 @@
     }
   ],
   "lint-staged": {
+    "(Brewfile|composer.lock|Gemfile|Gopkg.lock|Pipfile.lock)": [
+      "task fix:prettier --"
+    ],
+    "**/!(logo).(jpg|png)": [
+      "task image:compress --"
+    ],
     "**/*": [
       "task lint:any --"
     ],
-    "**/*.(css|html|less|md|mjml|php|scss|sh|xml)": [
+    "**/*!(template).(json|webapp|webmanifest)": [
+      "task fix:json --"
+    ],
+    "**/*.(bash|cfg|cgi|command|css|env|env.*|handlebars|hbs|html|less|fcgi|java|md|mdx|mjml|php|phtml|properties|reg|scss|tmpl|tmux|tool|tpl|zsh)": [
       "task fix:prettier --"
     ],
-    "**/*.(jpg|png)": [
-      "task image:compress --"
-    ],
-    "**/*.(js|jsx|ts|tsx)": [
+    "**/*.(cjs|js|jsx|mjs|ts|tsx)": [
       "task fix:js --",
       "task lint:js --"
     ],
-    "**/*.json": [
-      "task fix:json --"
+    "**/*.(yml|yaml)": [
+      "task fix:yaml --",
+      "task lint:yaml --"
+    ],
+    "**/*.go": [
+      "task fix:go --",
+      "task lint:go --"
+    ],
+    "**/*.md": [
+      "task fix:markdown --",
+      "task lint:spelling:markdown --"
+    ],
+    "**/*.php": [
+      "task fix:php --",
+      "task lint:php --"
     ],
     "**/*.py": [
       "task fix:python --",
       "task lint:python --"
     ],
     "**/*.sh": [
+      "task fix:prettier --",
+      "task fix:shell --",
       "task lint:shell --"
     ],
     "**/*.toml": [
+      "task fix:toml --",
+      "task fix:prettier --",
       "task lint:toml --"
     ],
     "**/*.xml": [
       "task fix:xml --",
       "task lint:xml --"
     ],
-    "**/*.yml": [
-      "task fix:yaml --",
-      "task lint:yaml --"
-    ],
     "**/*vault.yml": [
       "task ansible:vault:lint:file --"
+    ],
+    "Dockerfile": [
+      "task fix:prettier --",
+      "task lint:docker --"
+    ],
+    "Vagrantfile": [
+      "task fix:prettier --",
+      "task lint:vagrant"
     ],
     "logo.png": [
       "task image:resize -- 200 200",
@@ -146,18 +191,46 @@
   },
   "ntl": {
     "descriptions": {
-      "help": "Display a list of tasks that can be run via the Taskfile.yml",
-      "prepare": "Hook, triggered by running npm install, that runs logic such as installing pre-commit hooks",
+      "build": "Builds the project using the build command specified under scripts in package.json",
+      "help": "Display the Bodega Taskfile.yml interactive help menu",
+      "prepare": "A hook triggered by running npm install that runs logic such as installing pre-commit hooks",
       "repair": "Fixes basic issues in projects that are having trouble running basic commands like 'task start'",
-      "start": "Entrypoint for new developers that installs requirements and then runs 'task start'"
+      "start": "Entrypoint for new developers that installs requirements and then runs 'task start'",
+      "test": "Runs the appropriate test logic by running the test command defined under scripts in package.json"
     }
   },
-  "prettier": "@washingtondc/prettier",
+  "pnpm": {
+    "allowedVersions": {
+      "@typescript-eslint/eslint-plugin": "5",
+      "typescript": "4"
+    },
+    "neverBuiltDependencies": [
+      "core-js",
+      "core-js-pure",
+      "highlight.js"
+    ],
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "eslint",
+        "prettier"
+      ]
+    }
+  },
+  "prettier": "prettier-config-sexy-mode",
   "release": {
     "branches": [
+      "main",
       "master",
-      "next"
+      "next",
+      {
+        "name": "beta",
+        "prerelease": true
+      },
+      {
+        "name": "alpha",
+        "prerelease": true
+      }
     ],
-    "extends": "@washingtondc/release"
+    "extends": "semantic-release-config"
   }
 }

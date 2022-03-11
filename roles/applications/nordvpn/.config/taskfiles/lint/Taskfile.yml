@@ -166,7 +166,6 @@ tasks:
       success: Hadolint reported no errors
     cmds:
       - |
-        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}all Dockerfiles{{end}} with a Hadolint Docker image'
         {{if .CLI_ARGS}}
           docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS | replace .PWD ""}}
         {{else}}
@@ -178,6 +177,25 @@ tasks:
   dockerfile:
     cmds:
       - task: docker
+
+  dockerfilelint:
+    deps:
+      - :install:npm:dockerfilelint
+    desc: Lint a Dockerfile with `dockerfilelint`
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    log:
+      error: '`dockerfilelint` reported errors'
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with `dockerfilelint`
+      success: '`dockerfilelint` ran successfully and reported no errors'
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          dockerfilelint {{.CLI_ARGS | replace .PWD ""}}
+        {{else}}
+          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name Dockerfile -o \
+            -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 dockerfilelint
+        {{end}}
 
   eslint:
     deps:
@@ -203,6 +221,22 @@ tasks:
       error: ESLint has detected errors that need to be addressed
       start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint
       success: Successfully passed the ESLint test (please still address warnings)
+    cmds:
+      - >
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  eslint:staged:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Lint only modified files with ESLint
+    env:
+      ESLINT_STAGED_ONLY: on
+    log:
+      error: Failed to lint modified files with ESLint
+      start: Linting modified files with ESLint
+      success: Successfully linted modified files with ESLint
     cmds:
       - >
         {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
@@ -388,7 +422,12 @@ tasks:
       start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with Prettier
       success: Prettier successfully finished
     cmds:
-      - '{{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+          .config/log warn 'Failed to lint with `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
+          prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+        fi
 
   python:
     deps:
@@ -507,6 +546,24 @@ tasks:
             .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
           fi
         ignore_errors: true
+
+  spelling:markdown:
+    deps:
+      - :install:go:misspell
+    desc: Run `misspell` (a spell-checker) on all markdown files
+    log:
+      error: Encountered errors while running `misspell`
+      start: Running `misspell` spell-check
+      success: Successfully ran `misspell` with no errors reported
+    cmds:
+      - >
+        .config/log info 'If errors are found, you can auto-fix them by running `task fix:spelling:markdown`'
+        {{if .CLI_ARGS}}
+        misspell {{.CLI_ARGS}}
+        {{else}}
+        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \)
+        -print0 | xargs -0 -r -n1 misspell
+        {{end}}
 
   spelling:staged:
     deps:

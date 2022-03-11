@@ -58,7 +58,7 @@ First of all, thanks for visiting this page 😊 ❤️ ! We are _stoked_ that y
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [Code of Conduct](https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [help@megabyte.space](mailto:help@megabyte.space).
+This project and everyone participating in it is governed by the [Code of Conduct](https://github.com/ProfessorManhattan/ansible-homebrew/blob/master/docs/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [help@megabyte.space](mailto:help@megabyte.space).
 
 <a href="#philosophy" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 

@@ -3,13 +3,22 @@ version: '3'
 
 tasks:
   pip:
+    deps:
+      - :install:software:python
+    vars:
+      INSTALL_RECORD:
+        sh: |
+          if [ -n "$RECORD_INSTALL" ]; then
+            mkdir -p local/slim
+            echo '{{.PACKAGE}}' >> local/slim/exe.txt
+            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
+          fi
     run: when_changed
     log:
       error: Failed to install pip3 package `{{.PACKAGE}}`
       start: Installing pip3 package `{{.PACKAGE}}`
       success: Installed pip3 package `{{.PACKAGE}}`
     cmds:
-      - task: :install:software:python
       - pip3 install {{.PACKAGE}}
     status:
       - type {{.PACKAGE}} > /dev/null
@@ -17,6 +26,14 @@ tasks:
   pipx:
     deps:
       - :install:software:pipx
+    vars:
+      INSTALL_RECORD:
+        sh: |
+          if [ -n "$RECORD_INSTALL" ]; then
+            mkdir -p local/slim
+            echo '{{.PACKAGE}}' >> local/slim/exe.txt
+            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
+          fi
     run: when_changed
     log:
       error: Failed to install `{{.PACKAGE}}` with pipx
@@ -32,6 +49,7 @@ tasks:
     cmds:
       - task: pip
         vars:
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: pytest
 
   pytest-cov:
@@ -39,6 +57,7 @@ tasks:
     cmds:
       - task: pip
         vars:
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: pytest-cov
 
   requirements:

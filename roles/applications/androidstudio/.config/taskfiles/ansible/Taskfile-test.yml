@@ -760,14 +760,21 @@ tasks:
       - task: ansifilter
         vars:
           RESULTS_FILE: '{{.RESULTS_FILE}}'
-      - task: :ci:commit:config
-      - git pull --ff-only origin master
-      - git add '{{.RESULTS_FILE}}'
-      - |
-        HUSKY=0 git commit -m "📝 docs(test results): new molecule test results added [ci skip]" -n
-      - git push origin master
+      - task: post:molecule:log:commit:ci
+      - cmd: |
+          git pull --ff-only origin master
+          git add '{{.RESULTS_FILE}}'
+          HUSKY=0 git commit -m "📝 docs(test results): new molecule test results added [ci skip]" -n
+          git push origin master
+        ignore_error: true
     status:
-      - '[ "{{.RESULTS_FILE}}" == "debug.log" ]'
+      - '[ "{{.RESULTS_FILE}}" == "debug.log" ] || [ ! -d .git ]'
+
+  post:molecule:log:commit:ci:
+    cmds:
+      - task: :ci:commit:config
+    status:
+      - '[ -z "$GITLAB_CI" ]'
 
   prompt:
     vars:

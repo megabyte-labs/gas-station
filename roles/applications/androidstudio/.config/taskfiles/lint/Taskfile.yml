@@ -166,7 +166,6 @@ tasks:
       success: Hadolint reported no errors
     cmds:
       - |
-        .config/log info 'Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}all Dockerfiles{{end}} with a Hadolint Docker image'
         {{if .CLI_ARGS}}
           docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS | replace .PWD ""}}
         {{else}}
@@ -178,6 +177,25 @@ tasks:
   dockerfile:
     cmds:
       - task: docker
+
+  dockerfilelint:
+    deps:
+      - :install:npm:dockerfilelint
+    desc: Lint a Dockerfile with `dockerfilelint`
+    hide:
+      sh: '[ ! -f Dockerfile ]'
+    log:
+      error: '`dockerfilelint` reported errors'
+      start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with `dockerfilelint`
+      success: '`dockerfilelint` ran successfully and reported no errors'
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          dockerfilelint {{.CLI_ARGS | replace .PWD ""}}
+        {{else}}
+          find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name Dockerfile -o \
+            -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 dockerfilelint
+        {{end}}
 
   eslint:
     deps:
@@ -203,6 +221,22 @@ tasks:
       error: ESLint has detected errors that need to be addressed
       start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with ESLint
       success: Successfully passed the ESLint test (please still address warnings)
+    cmds:
+      - >
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  eslint:staged:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Lint only modified files with ESLint
+    env:
+      ESLINT_STAGED_ONLY: on
+    log:
+      error: Failed to lint modified files with ESLint
+      start: Linting modified files with ESLint
+      success: Successfully linted modified files with ESLint
     cmds:
       - >
         {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
@@ -240,13 +274,15 @@ tasks:
         done < "$ESLINT_TMP"
 
   go:
-    desc: Lint Go with all available Go linters
+    deps:
+      - :install:software:go
+      - :install:software:golangci-lint
+    desc: Lint Go with `golangci-lint`
     summary: |
       # Lint Go Files
 
-      This task will lint Go files with the following linters:
-
-      * [go]()
+      This task will lint Go files with `golangci-lint`. The configuration is
+      stored in `.config/golangci.yml` and uses a handful of linters.
 
       If you would like to skip linting the whole project and instead lint an
       individual file, then you can do so by passing the file path as a CLI
@@ -254,39 +290,12 @@ tasks:
 
       **Example linting individual file:**
       `task lint:go -- path/filename.go`
+    log:
+      error: Detected errors with `golangci-lint`
+      start: Linting with `golangci-lint`
+      success: Successfully completed linting with `golangci-lint`
     cmds:
-      - task: go:vet
-
-  go:vet:
-    deps:
-      - :install:software:go
-    summary: |
-      # Inspect with Go Vet
-
-      This task inspects the source code with `go vet`.
-
-      If you need to add flags to the command, you can specify them in
-      `blueprint.goVetFlags`. `goVetFlags` can also be set in upstream variable
-      sources but this lint command does not force the generation of the
-      `.variables.json` file. If it cannot read `goVetFlags` in the `.variables.json` file
-      (perhaps because it was not generated yet), it will read `.blueprint.goVetFlags`
-      from `package.json`.
-
-      If you would like to run `go vet` on a specific path then you can pass the path
-      in as a CLI argument.
-
-      **Example of running `go vet` on a specific path:**
-      `task lint:go:vet -- path/to/file.go`
-    vars:
-      GO_VET_FLAGS:
-        sh: |
-          if [ -f .variables.json ]; then
-            echo " $(jq -r '.goVetFlags' .variables.json)"
-          else
-            echo " $(jq -r '.blueprint.goVetFlags' package.json | sed 's/null//')"
-          fi
-    cmds:
-      - go vet{{.GO_VET_FLAGS}}{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}
+      - golangci-lint run -c .config/golangci.yml{{if .CLI_ARGS}}{{.CLI_ARGS}}{{end}}
 
   js:
     deps:
@@ -512,6 +521,24 @@ tasks:
             .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
           fi
         ignore_errors: true
+
+  spelling:markdown:
+    deps:
+      - :install:go:misspell
+    desc: Run `misspell` (a spell-checker) on all markdown files
+    log:
+      error: Encountered errors while running `misspell`
+      start: Running `misspell` spell-check
+      success: Successfully ran `misspell` with no errors reported
+    cmds:
+      - >
+        .config/log info 'If errors are found, you can auto-fix them by running `task fix:spelling:markdown`'
+        {{if .CLI_ARGS}}
+        misspell {{.CLI_ARGS}}
+        {{else}}
+        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \)
+        -print0 | xargs -0 -r -n1 misspell
+        {{end}}
 
   spelling:staged:
     deps:

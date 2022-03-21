@@ -16,14 +16,22 @@
   },
   "type": "module",
   "scripts": {
-    "build": "task ansible:build:none",
+    "build": "bash start.sh && task ansible:build:none",
     "bump": "npm run build && npm version patch --no-commit-hooks --no-git-tag-version --force && npm publish",
-    "help": "task --menu",
+    "commit": "bash start.sh && task commit",
+    "fix": "bash start.sh && task fix",
+    "help": "bash start.sh && task --menu",
     "info": "task --list",
-    "prepare": "npm run start && (test -f Taskfile.yml && task common:husky) || true",
+    "lint": "bash start.sh && task lint",
+    "preload": "bash start.sh && task preload",
+    "prepare": "bash start.sh && (test -f Taskfile.yml && task npm:prepare) || true",
+    "prepublishOnly": "test -z $SKIP_PREPUB && bash start.sh && task npm:bundle:create || true",
+    "release": "bash start.sh && task publish:semantic-release",
     "repair": "bash <(curl -sS https://install.doctor/repair)",
-    "start": "bash start.sh",
-    "test": "[ -z \"$PS1\" ] && task ansible:test:prompt || task ansible:test:default"
+    "start": "test -z SKIP_NPM_START && bash start.sh || true",
+    "test": "bash start.sh && [ -z \"$PS1\" ] && task ansible:test:prompt || task ansible:test:default",
+    "unpack": "bash start.sh && task npm:bundle:unpack",
+    "update": "bash start.sh && task update"
   },
   "config": {
     "commitizen": {
@@ -33,13 +41,13 @@
   "dependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
-    "@commitlint/config-conventional": "^16.0.0",
+    "@commitlint/config-conventional": "latest",
     "@washingtondc/development": "latest",
     "cz-emoji-conventional": "^1.0.1",
     "eslint-config-strict-mode": "latest",
     "git-cz-emoji": "latest",
     "glob": "^7.2.0",
-    "handlebars-helpers": "^0.10.0",
+    "handlebars-helpers": "latest",
     "prettier-config-sexy-mode": "latest",
     "semantic-release-config": "latest",
     "typescript": "^4.5.5"
@@ -148,6 +156,9 @@
     "**/*": [
       "task lint:any --"
     ],
+    "**/*!(template).(json|webapp|webmanifest)": [
+      "task fix:json --"
+    ],
     "**/*.(bash|cfg|cgi|command|css|env|env.*|handlebars|hbs|html|less|fcgi|java|md|mdx|mjml|php|phtml|properties|reg|scss|tmpl|tmux|tool|tpl|zsh)": [
       "task fix:prettier --"
     ],
@@ -165,6 +176,10 @@
     "**/*.go": [
       "task fix:go --",
       "task lint:go --"
+    ],
+    "**/*.md": [
+      "task fix:markdown --",
+      "task lint:spelling:markdown --"
     ],
     "**/*.php": [
       "task fix:php --",
@@ -208,11 +223,18 @@
     "descriptions": {
       "build": "Builds the project using the build command specified under scripts in package.json",
       "bump": "Used to quickly build, increase the package.json version, and publish the package",
+      "commit": "If unsure, use this task to commit your code so that it adheres to our commit rules",
+      "fix": "Run auto-fixing with all available auto-fixers",
       "help": "Display the Bodega Taskfile.yml interactive help menu",
+      "lint": "Lint the project with all available linters",
+      "preload": "Preload the operating system with commonly used libraries and tools",
       "prepare": "A hook triggered by running npm install that runs logic such as installing pre-commit hooks",
+      "release": "Publish the software to all supported channels using semantic-release",
       "repair": "Fixes basic issues in projects that are having trouble running basic commands like 'task start'",
       "start": "Entrypoint for new developers that installs requirements and then runs 'task start'",
-      "test": "Runs the appropriate test logic by running the test command defined under scripts in package.json"
+      "test": "Runs the appropriate test logic by running the test command defined under scripts in package.json",
+      "unpack": "Populates production node_modules from compressed copies saved in the .modules/ folder",
+      "update": "Update and refresh the repository with upstream changes and templated parts"
     }
   },
   "pnpm": {

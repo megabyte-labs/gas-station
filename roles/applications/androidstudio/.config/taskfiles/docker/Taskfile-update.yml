@@ -93,5 +93,45 @@ tasks:
       - sed -i "s^.*org.opencontainers.image.source.\*^LABEL org.opencontainers.image.source=\"${REPOSITORY_GITHUB}.git\"^g" Dockerfile
       - sed -i "s^.*org.opencontainers.image.url.\*^LABEL org.opencontainers.image.url=\"{{.URL}}\"^g" Dockerfile
       - sed -i "s^.*org.opencontainers.image.vendor.\*^LABEL org.opencontainers.image.vendor=\"{{.ORGANIZATION}}\"^g" Dockerfile
-# yamllint enable rule:line-length
-# eslint-enable max-len
+  # yamllint enable rule:line-length
+  # eslint-enable max-len
+
+  retag:
+    vars:
+      MAJOR_VERSION:
+        sh: echo '{{.NEW_VERSION}}' | sed 's/\..*\..*$//'
+    log:
+      error: Error retagging Docker container
+      start: Retagging Docker container
+      success: Successfully retagged Docker container
+    cmds:
+      - docker tag {{.DOCKER_IMAGE}}:latest {{.DOCKER_IMAGE}}:{{.NEW_VERSION}}
+      - docker tag {{.DOCKER_IMAGE}}:latest {{.DOCKER_IMAGE}}:{{.MAJOR_VERSION}}-latest
+      - docker rmi {{.DOCKER_IMAGE}}:{{.PREV_VERSION}}
+      - docker rmi {{.DOCKER_IMAGE}}:{{.MAJOR_VERSION}}-latest
+    status:
+      - '[ "{{.PREV_VERSION}}" == "{{.NEW_VERSION}}" ]'
+
+  version:
+    vars:
+      VERSION_COMMAND:
+        sh: jq -r '.blueprint.versionCommand' package.json
+    log:
+      error: Error acquiring software version
+      start: Acquiring software version
+      success: Finished software version acquisition sequence
+    cmds:
+      - |
+        VERSION="$({{.VERSION_COMMAND}})" || EXIT_CODE=$?
+        if [ -n "$EXIT_CODE" ]; then
+          .config/log warn 'Failed to run version command (`{{.VERSION_COMMAND}}`) - will retry after images are finished building'
+        else
+          CURR_VERSION="$(jq -r '.version' package.json)"
+          TMP="$(mktemp)"
+          jq --arg version "$(jq --arg v "$VERSION" '$v' package.json |  sed 's/^[^0-9]*//' | sed 's/[^0-9]*$//')" '.version = $version' package.json > "$TMP"
+          mv "$TMP" package.json
+          if [ "$CURR_VERSION" != "$(jq -r '.version' package.json)" ]; then
+            .config/log info 'Updating documentation with new software version'
+            task common:update:update
+          fi
+        fi

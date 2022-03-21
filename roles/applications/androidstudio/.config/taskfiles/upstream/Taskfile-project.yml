@@ -63,14 +63,19 @@ tasks:
       start: Copying pre-generated files
       success: Copied pre-generated files
     cmds:
-      - mv .gitlab-ci.yml old.gitlab-ci.yml
+      - |
+        if [ -f .gitlab-ci.yml ]; then
+          mv .gitlab-ci.yml old.gitlab-ci.yml
+        fi
       - |
         PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
         cp -rT {{.SHARED_FOLDER}}/_generated_/common .
         cp -rT {{.SHARED_FOLDER}}/_generated_/{{.REPOSITORY_SUBTYPE}} .
       - |
-        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
-        mv old.gitlab-ci.yml .gitlab-ci.yml
+        if [ -f old.gitlab-ci.yml ]; then
+          yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' old.gitlab-ci.yml .gitlab-ci.yml
+          mv old.gitlab-ci.yml .gitlab-ci.yml
+        fi
       - task: :common:husky:permissions
       - task: save:common:keywords
 

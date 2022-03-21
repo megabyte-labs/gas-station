@@ -24,6 +24,10 @@ tasks:
       a `Docker.build1.test.yml` and `Docker.build2.test.yml` container-structure-test.
     hide:
       sh: '[ ! -f Dockerfile ]'
+    log:
+      error: Encountered error while running Docker build sequence
+      start: Running Docker build sequence
+      success: Finished running Docker build sequence
     cmds:
       - |
         if [ -f Docker.test.yml ]; then
@@ -36,8 +40,12 @@ tasks:
         for TESTFILE in Docker.*.test.yml; do
           if [ "$TESTFILE" != 'Docker.*.test.yml' ]; then
             TEST_IMAGE_SLUG="$(echo $TESTFILE | sed 's/^Docker.//' | sed 's/.test.yml$//')"
-            task docker:build:fat -- "$TEST_IMAGE_SLUG"
-            task docker:build:slim -- "$TEST_IMAGE_SLUG"
+            if [ "$(jq --arg slug "$TEST_IMAGE_SLUG" '.blueprint.dockerSlimCommand[$slug]' package.json)" != 'null' ]; then
+              task docker:build:slim -- "$TEST_IMAGE_SLUG"
+            else
+              .config/log warn 'The `.blueprint.dockerSlimCommand` is missing - skipping slim build and building just a regular image'
+              task docker:build:fat -- "$TEST_IMAGE_SLUG"
+            fi
           fi
         done
 
@@ -236,6 +244,10 @@ tasks:
       ## CodeClimate CLI Testing
 
       Any folder in the `test/` folder that starts with `codeclimate` gets scanned by CodeClimate CLI.
+    log:
+      error: Encountered error during Docker test sequence
+      start: Initiating Docker test sequence
+      success: Successfully completed Docker test sequence
     cmds:
       - |
         if [ -f Docker.test.yml ]; then

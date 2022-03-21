@@ -1,5 +1,15 @@
-const glob = require("glob")
+const fs = require('fs')
 const { execSync } = require('child_process')
+
+function getTaskIncludeKey(path) {
+  return path
+    .replace('.config/taskfiles/', '')
+    .replace('local/', '')
+    .replace('/Taskfile-', ':')
+    .replace('/Taskfile.yml', '')
+    .replace('Taskfile-', '')
+    .replace('.yml', '')
+}
 
 module.exports.register = function (Handlebars) {
   /**
@@ -7,37 +17,45 @@ module.exports.register = function (Handlebars) {
    */
   require('handlebars-helpers')({
     handlebars: Handlebars
-  });
+  })
 
   /**
-   * Returns files/directories matching glob pattern
+   * Used to generate the includes: section of the main Taskfile.yml
+   * in the root of every repository
    */
-  Handlebars.registerHelper('glob', function(pattern, options) {
-    const files = glob.sync(pattern)
-
-    return files
-  })
-
-  Handlebars.registerHelper('poet', function(input, options) {
-    const formulae = execSync('poetry run poet -f ' + input)
-
-    return formulae
-  })
-
-  Handlebars.registerHelper('taskfileSort', function(taskfiles, options) {
-    const sorted = taskfiles.sort((a, b) => {
-      const trim = (str) => str.replace('./.config/taskfiles/', '').replace('/Taskfile-', ':').replace('/Taskfile.yml', '').replace('Taskfile-', '').replace('.yml', '')
-      const x = trim(a)
-      const y = trim(b)
-      if (x < y) {
-        return -1
-      } else if (x > y) {
-        return 1
-      } else {
-        return 0
+  Handlebars.registerHelper('bodegaIncludes', (pattern, options) => {
+    const readdir = Handlebars.helpers.readdir
+    const files = readdir('.config/taskfiles/')
+    const tasks = Handlebars.helpers.each([...files, './local'], {
+      fn: (file) => {
+        if (fs.lstatSync(file).isDirectory()) {
+          return readdir(file).filter((taskfile) => taskfile.match(/.*Taskfile.*.yml/gu))
+        } else {
+          return []
+        }
       }
     })
 
-    return sorted
+    return tasks
+      .replaceAll('.config/taskfiles/', ',.config/taskfiles/')
+      .replaceAll('local/', ',local/')
+      .split(',')
+      .map((path) => ({
+        key: getTaskIncludeKey(path),
+        taskPath: './' + path,
+        optional: path.includes('local/Taskfile-')
+      }))
+      .filter((x) => !!x.key)
+      .sort((a, b) => a.key.localeCompare(b.key))
+  })
+
+  /**
+   * Used for generating Homebrew resource stanzas for Python packages.
+   * For more information, see: https://github.com/tdsmith/homebrew-pypi-poet
+   */
+  Handlebars.registerHelper('poet', function (input, options) {
+    const formulae = execSync('poetry run poet -f ' + input)
+
+    return formulae
   })
 }

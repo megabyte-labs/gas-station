@@ -356,7 +356,7 @@ async function getGitRepositories() {
         gitlab
       }
     }
-    // eslint-disable-next-line functional/no-throw-statement, fp/no-throw
+    // eslint-disable-next-line functional/no-throw-statement
     throw Error
   } catch {
     const gitlab = await gitlabPrompt()

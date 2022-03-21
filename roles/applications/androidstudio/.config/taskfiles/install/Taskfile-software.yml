@@ -4,18 +4,25 @@ version: '3'
 tasks:
   act:
     summary: |
-      ## Act
+      ## Simulate GitHub Actions Locally
 
-      A program that allows you to simulate GitHub Actions locally.
+      [Act]((https://github.com/nektos/act) gives you the capability to test
+      GitHub Actions locally. The program allows you to programmatically run
+      steps defined in your `.github/workflows/` folder. Just like GitHub,
+      it runs the actions in Docker containers. You can then simulate
+      your GitHub Actions with a CLI:
 
-      [GitHub](https://github.com/nektos/act)
+      **Example triggering pull_request flow:**
+      `act pull_request`
+
+      **Example running a specific job:**
+      `act -j test`
     run: once
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: act
-    status:
-      - type act > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   allure:
     run: once
@@ -23,8 +30,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: allure
-    status:
-      - type allure > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   ansifilter:
     run: once
@@ -32,8 +38,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: ansifilter
-    status:
-      - type ansifilter > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   brew:
     run: once
@@ -66,6 +71,7 @@ tasks:
           if type sudo &> /dev/null && sudo -n true; then
             echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           else
+            .config/log info 'Attempting to install Homebrew - you may be prompted for your `sudo` password'
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           fi
           if [ '{{.BODEGA}}' != 'true' ]; then
@@ -77,6 +83,14 @@ tasks:
       - type brew &> /dev/null
 
   brew:formulae:
+    vars:
+      INSTALL_RECORD:
+        sh: |
+          if [ -n "$RECORD_INSTALL" ]; then
+            mkdir -p local/slim
+            echo '{{last (splitList "/" .FORMULAE)}}' >> local/slim/exe.txt
+            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
+          fi
     run: when_changed
     log:
       error: Failed to install `{{.FORMULAE}}`
@@ -86,7 +100,7 @@ tasks:
       - task: brew
       - brew install {{.FORMULAE}}
     status:
-      - type {{.FORMULAE}} &> /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
+      - type {{last (splitList "/" .FORMULAE)}} &> /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
 
   brew:linux:
     run: once
@@ -137,8 +151,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: codeclimate/formulae/codeclimate
-    status:
-      - type codeclimate > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   common:
     run: once
@@ -191,10 +204,15 @@ tasks:
     cmds:
       - .config/log warn "Archlinux support for Homebrew is not very well documented.. if this does not work and you can get it working, please open a PR :)"
       - |
-        .config/log info 'Attempting to run `sudo pacman update` (for Homebrew dependencies)'
-        sudo pacman update
-        .config/log info 'Attempting to run `sudo pacman -S base-devel curl file git gzip procps-ng` (for Homebrew dependencies)'
-        sudo pacman -S base-devel curl file git gzip procps-ng
+        if [ "$USER" == "root" ]; then
+          pacman update
+          pacman -S base-devel curl file git gzip procps-ng
+        elif type sudo &> /dev/null; then
+          .config/log info 'Attempting to run `sudo pacman update` (for Homebrew dependencies)'
+          sudo pacman update
+          .config/log info 'Attempting to run `sudo pacman -S base-devel curl file git gzip procps-ng` (for Homebrew dependencies)'
+          sudo pacman -S base-devel curl file git gzip procps-ng
+        fi
     status:
       - type curl &> /dev/null
       - type git &> /dev/null
@@ -207,10 +225,15 @@ tasks:
     interactive: true
     cmds:
       - |
-        .config/log info 'Attempting to run `sudo apt-get -y update` (for Homebrew dependencies)'
-        sudo apt-get -y update
-        .config/log info 'Attempting to run `sudo apt-get install -y build-essential curl file git procps` (Homebrew dependencies)'
-        sudo apt-get install -y build-essential curl file git gzip procps
+        if [ "$USER" == "root" ]; then
+          apt-get -y update
+          apt-get install -y build-essential curl file git gzip procps
+        elif type sudo &> /dev/null; then
+          .config/log info 'Attempting to run `sudo apt-get -y update` (for Homebrew dependencies)'
+          sudo apt-get -y update
+          .config/log info 'Attempting to run `sudo apt-get install -y build-essential curl file git procps` (Homebrew dependencies)'
+          sudo apt-get install -y build-essential curl file git gzip procps
+        fi
     status:
       - type curl &> /dev/null
       - type git &> /dev/null
@@ -228,21 +251,33 @@ tasks:
           yum grouplist 'Development Tools' &> "$HOME/.config/bodega/yum-devtools-check-ran"
           DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/bodega/yum-devtools-check-ran" > /dev/null)"
           if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
-            .config/log info 'Attempting to run `sudo yum groupinstall -y "Development Tools"`'
-            sudo yum groupinstall -y 'Development Tools'
+            if [ "$USER" == "root" ]; then
+              yum groupinstall -y 'Development Tools'
+            elif type sudo &> /dev/null; then
+              .config/log info 'Attempting to run `sudo yum groupinstall -y "Development Tools"`'
+              sudo yum groupinstall -y 'Development Tools'
+            fi
           fi
           touch "$HOME/.config/bodega/yum-devtools-check-ran"
         fi
         if ! rpm --quiet --query curl file git gzip procps-ng; then
-          .config/log info 'Attempting to run `sudo yum install -y curl file git procps-ng`'
-          sudo yum install -y curl file git gzip procps-ng
+          if [ "$USER" == "root" ]; then
+            yum install -y curl file git gzip procps-ng
+          elif type sudo &> /dev/null; then
+            .config/log info 'Attempting to run `sudo yum install -y curl file git procps-ng`'
+            sudo yum install -y curl file git gzip procps-ng
+          fi
         fi
         if [ -f '/etc/os-release' ]; then
           source /etc/os-release
           if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
             if ! rpm --quiet --query libxcrypt-compat; then
-              .config/log info 'Attempting to run `sudo yum -y install libxcrypt-compat` (Homebrew dependencies)'
-              sudo yum -y install libxcrypt-compat
+              if [ "$USER" == "root" ]; then
+                yum install -y libxcrypt-compat
+              elif type sudo &> /dev/null; then
+                .config/log info 'Attempting to run `sudo yum -y install libxcrypt-compat` (Homebrew dependencies)'
+                sudo yum -y install libxcrypt-compat
+              fi
             fi
           fi
         fi
@@ -265,6 +300,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: findutils
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type gfind > /dev/null
 
@@ -273,6 +309,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gawk
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type gawk > /dev/null
 
@@ -281,6 +318,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gnu-sed
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type gsed > /dev/null
 
@@ -289,6 +327,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gnu-tar
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type gtar > /dev/null
 
@@ -297,6 +336,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: grep
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type ggrep > /dev/null
 
@@ -306,12 +346,14 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: container-structure-test
+          INSTALL_TASK: '{{.TASK}}'
 
   coreutils:
     cmds:
       - task: brew:formulae
         vars:
           FORMULAE: coreutils
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type gcp > /dev/null || [ "{{OS}}" != "darwin" ]
 
@@ -320,8 +362,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: dasel
-    status:
-      - type dasel > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   docker:
     run: once
@@ -336,8 +377,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: docker-slim
-    status:
-      - type docker-slim > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   docker:darwin:
     run: once
@@ -355,6 +395,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: docker
+          INSTALL_TASK: '{{.TASK}}'
       - task: exit:notice:restart
     status:
       - type docker > /dev/null
@@ -369,15 +410,18 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: goodwithtech/r/dockle
-    status:
-      - type dockle > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   exiftool:
     run: once
     cmds:
+      - task: system
+        vars:
+          PACKAGE: exiftool
       - task: brew:formulae
         vars:
           FORMULAE: exiftool
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type exiftool > /dev/null
 
@@ -396,9 +440,13 @@ tasks:
   expect:
     run: once
     cmds:
+      - task: system
+        vars:
+          PACKAGE: expect
       - task: brew:formulae
         vars:
           FORMULAE: expect
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type expect > /dev/null
 
@@ -433,12 +481,14 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gh
-    status:
-      - type gh > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   git:
     run: once
     cmds:
+      - task: system
+        vars:
+          PACKAGE: git
       - task: common
     status:
       - type git > /dev/null
@@ -449,8 +499,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gitlab-runner
-    status:
-      - type gitlab-runner > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   gitleaks:
     run: once
@@ -458,8 +507,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: gitleaks
-    status:
-      - type gitleaks > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   glab:
     run: once
@@ -467,8 +515,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: glab
-    status:
-      - type glab > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   go:
     run: once
@@ -504,8 +551,15 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: go
-    status:
-      - type go > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
+
+  golangci-lint:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: golangci-lint
+          INSTALL_TASK: '{{.TASK}}'
 
   grype:
     run: once
@@ -513,26 +567,43 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: anchore/grype/grype
-    status:
-      - type grype > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   gzip:
     run: once
     cmds:
+      - task: system
+        vars:
+          PACKAGE: gzip
       - task: brew:formulae
         vars:
           FORMULAE: gzip
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type gzip > /dev/null
 
   jq:
     run: once
     cmds:
+      - task: system
+        vars:
+          PACKAGE: jq
       - task: brew:formulae
         vars:
           FORMULAE: jq
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type jq > /dev/null
+
+  kvm:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: kvm
+      - task: exit:notice:restart
+    status:
+      - type qemu-system-x86_64 > /dev/null
 
   node:
     run: once
@@ -540,8 +611,24 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: node
+          INSTALL_TASK: '{{.TASK}}'
+
+  packer:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: packer
+          INSTALL_TASK: '{{.TASK}}'
+
+  parallels:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: parallels
     status:
-      - type node > /dev/null
+      - '[ "{{OS}}" != "darwin" ] || ! mdfind -name "Parallels Desktop.app" &> /dev/null'
 
   pipx:
     run: once
@@ -586,6 +673,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: poetry
+          INSTALL_TASK: '{{.TASK}}'
 
   poetry:linux:
     run: once
@@ -593,6 +681,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: poetry
+          INSTALL_TASK: '{{.TASK}}'
 
   poetry:windows:
     log:
@@ -614,6 +703,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: python@3.10
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type python3 > /dev/null
 
@@ -623,6 +713,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: python@3.10
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - type python3 > /dev/null
 
@@ -635,11 +726,15 @@ tasks:
   rsync:
     run: once
     cmds:
+      - task: system
+        vars:
+          PACKAGE: rsync
       - task: brew:formulae
         vars:
           FORMULAE: rsync
+          INSTALL_TASK: '{{.TASK}}'
     status:
-      - type rsync &> /dev/null
+      - type rsync > /dev/null
 
   rust:
     run: once
@@ -647,8 +742,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: rust
-    status:
-      - type rust &> /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   sentry:
     cmds:
@@ -660,8 +754,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: snapcraft
-    status:
-      - type snapcraft > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   sshpass:
     run: once
@@ -669,8 +762,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: hudochenkov/sshpass/sshpass
-    status:
-      - type sshpass > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   subrepo:
     run: once
@@ -678,8 +770,125 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: git-subrepo
+          INSTALL_TASK: '{{.TASK}}'
     status:
       - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
+
+  system:
+    vars:
+      PACKAGE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.PACKAGE}}{{end}}'
+    log:
+      error: Failed to install `{{.PACKAGE}}` with the system package manager
+      start: Attempting to install `{{.PACKAGE}}` using the system package manager
+    cmds:
+      - task: system:apk
+        vars:
+          PACKAGE: '{{.PACKAGE}}'
+      - task: system:apt-get
+        vars:
+          PACKAGE: '{{.PACKAGE}}'
+      - task: system:dnf
+        vars:
+          PACKAGE: '{{.PACKAGE}}'
+      - task: system:yum
+        vars:
+          PACKAGE: '{{.PACKAGE}}'
+    status:
+      - type {{.PACKAGE}} > /dev/null
+
+  system:apk:
+    vars:
+      PACKAGE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.PACKAGE}}{{end}}'
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          apk --no-cache add {{.PACKAGE}}
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo apk --no-cache add {{.PACKAGE}}
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo apk --no-cache add {{.PACKAGE}}`'
+          sudo apk --no-cache add {{.PACKAGE}}
+        else
+          .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which apk)" ]'
+
+  system:apt-get:
+    vars:
+      PACKAGE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.PACKAGE}}{{end}}'
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          apt-get update
+          apt-get install -y {{.PACKAGE}}
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo apt-get update
+          sudo apt-get install -y {{.PACKAGE}}
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo apt-get update`'
+          sudo apt-get update
+          .config/log info 'Running `sudo apt-get install -y {{.PACKAGE}}`'
+          sudo apt-get install -y {{.PACKAGE}}
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which apt-get)" ]'
+
+  system:dnf:
+    vars:
+      PACKAGE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.PACKAGE}}{{end}}'
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          dnf install {{.PACKAGE}}
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo dnf install {{.PACKAGE}}
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo dnf install {{.PACKAGE}}`'
+          sudo dnf install {{.PACKAGE}}
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which dnf)" ]'
+
+  system:pacman:
+    vars:
+      PACKAGE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.PACKAGE}}{{end}}'
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          pacman -S {{.PACKAGE}}
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo pacman -S {{.PACKAGE}}
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo pacman -S {{.PACKAGE}}`'
+          sudo pacman -S {{.PACKAGE}}
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which pacman)" ]'
+
+  system:yum:
+    vars:
+      PACKAGE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.PACKAGE}}{{end}}'
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          yum install -y {{.PACKAGE}}
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo yum install -y {{.PACKAGE}}
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo yum install -y {{.PACKAGE}}`'
+          sudo yum install -y {{.PACKAGE}}
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which yum)" ]'
 
   tokei:
     run: once
@@ -687,8 +896,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: tokei
-    status:
-      - type tokei > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   trivy:
     run: once
@@ -696,8 +904,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: aquasecurity/trivy/trivy
-    status:
-      - type trivy > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   vagrant:
     cmds:
@@ -767,8 +974,7 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: yarn
-    status:
-      - type yarn > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   yq:
     run: once
@@ -776,5 +982,4 @@ tasks:
       - task: brew:formulae
         vars:
           FORMULAE: yq
-    status:
-      - type yq > /dev/null
+          INSTALL_TASK: '{{.TASK}}'

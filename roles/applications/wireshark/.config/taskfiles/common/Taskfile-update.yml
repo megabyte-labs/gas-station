@@ -92,7 +92,9 @@ tasks:
           cat .dockerignore | sed -n '/# Saved entries below/,$p' | sed 's/# Saved entries below//' | awk 'NF' >> "$TMP"
           mv "$TMP" .dockerignore
         elif [ '{{.PROJECT_TYPE}}' == 'project' ]; then
-          rm .config/dockerignore
+          if [ -f .config/dockerignore ]; then
+            rm .config/dockerignore
+          fi
         fi
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
@@ -168,6 +170,7 @@ tasks:
       start: Ensuring submodules in the `.modules/` folder are up-to-date
       success: Successfully ensured submodules in the `.modules/` folder are up-to-date
     cmds:
+      - git submodule update --init --recursive
       - |
         ROOT_DIR="$PWD"
         if ls .modules/*/ > /dev/null 2>&1; then
@@ -248,7 +251,7 @@ tasks:
   update:
     deps:
       - ':{{if eq .REPOSITORY_SUBTYPE "role"}}common:update:ansible{{else}}donothing{{end}}'
-      - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:latestos{{else}}donothing{{end}}'
+      - ':{{if eq .REPOSITORY_TYPE "packer"}}{{if eq .REPOSITORY_SUBTYPE "server"}}packer:latestos{{else}}donothing{{end}}{{else}}donothing{{end}}'
       - init
       - repositories
     summary: |

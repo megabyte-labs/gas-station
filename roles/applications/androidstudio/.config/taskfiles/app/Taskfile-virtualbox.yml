@@ -22,13 +22,13 @@ tasks:
     vars:
       DEFAULT_PATTERN: default_
     cmds:
-      - killall -9 VBoxHeadless
-      - vboxmanage list vms
+      - cmd: killall -9 VBoxHeadless
+        ignore_error: true
       - |
         while read VM; do
           VM_NAME="$(echo $VM | sed 's/^"\(.*\)" {.*}/\1/')"
           VM_UUID="$(echo $VM | sed 's/^".*".{\(.*\)}/\1/')"
-          vboxmanage startvm "$VM_UUID" --type emergencystop
-          vboxmanage unregistervm "$VM_UUID"
-          rm -rf "$HOME/VirtualBox VMs/$VM_NAME"
+          vboxmanage startvm "$VM_UUID" --type emergencystop || true
+          vboxmanage unregistervm "$VM_UUID" || true
+          rm -rf "$HOME/VirtualBox VMs/$VM_NAME" || true
         done < <(vboxmanage list vms | grep '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.DEFAULT_PATTERN}}{{end}}')

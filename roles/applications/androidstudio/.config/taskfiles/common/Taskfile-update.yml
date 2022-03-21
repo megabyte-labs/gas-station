@@ -6,13 +6,13 @@ tasks:
     deps:
       - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:descriptions{{else}}donothing{{end}}'
       - files
-      - :install:tslib
       - :python:requirementstxt
     cmds:
       - task: all:continue
 
   all:continue:
     deps:
+      - upstream:remotes
       - :git:remotes
       - ':{{if eq .REPOSITORY_SUBTYPE "playbook"}}ansible:playbook:remotes{{else}}donothing{{end}}'
       - all:docs
@@ -92,7 +92,9 @@ tasks:
           cat .dockerignore | sed -n '/# Saved entries below/,$p' | sed 's/# Saved entries below//' | awk 'NF' >> "$TMP"
           mv "$TMP" .dockerignore
         elif [ '{{.PROJECT_TYPE}}' == 'project' ]; then
-          rm .config/dockerignore
+          if [ -f .config/dockerignore ]; then
+            rm .config/dockerignore
+          fi
         fi
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
@@ -168,6 +170,7 @@ tasks:
       start: Ensuring submodules in the `.modules/` folder are up-to-date
       success: Successfully ensured submodules in the `.modules/` folder are up-to-date
     cmds:
+      - git submodule update --init --recursive
       - |
         ROOT_DIR="$PWD"
         if ls .modules/*/ > /dev/null 2>&1; then
@@ -248,7 +251,7 @@ tasks:
   update:
     deps:
       - ':{{if eq .REPOSITORY_SUBTYPE "role"}}common:update:ansible{{else}}donothing{{end}}'
-      - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:latestos{{else}}donothing{{end}}'
+      - ':{{if eq .REPOSITORY_TYPE "packer"}}{{if eq .REPOSITORY_SUBTYPE "server"}}packer:latestos{{else}}donothing{{end}}{{else}}donothing{{end}}'
       - init
       - repositories
     summary: |
@@ -274,6 +277,54 @@ tasks:
       - task: :git:update
     status:
       - '[[ "${container:=}" == "docker" ]] || [[ "$SKIP_UPLOADING" == "true" ]]'
+
+  upstream:remotes:
+    deps:
+      - :install:software:jq
+    log:
+      error: Error adding upstream git remotes
+      start: Ensuring upstream git remotes are added (if applicable)
+      success: Successfully added upstream git remotes
+    cmds:
+      - |
+        COUNT="$(jq -r '.blueprint.upstreamRemotes | length' package.json)"
+        for i in $(seq $COUNT); do
+          REMOTE="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].remote' package.json)"
+          URL="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].url' package.json)"
+          if [ "$REMOTE" != 'null' ] && [ "$URL" != 'null' ]; then
+            if git remote | grep "$REMOTE"; then
+              git remote remove "$REMOTE"
+            fi
+            git remote add "$REMOTE" "$URL"
+          else
+            .config/log warn '`blueprint.upstreamRemotes` objects should have the `remote`, `url`, and `branch` keys'
+          fi
+        done
+
+  upstream:remotes:pull:
+    deps:
+      - :install:software:jq
+    log:
+      error: Error pulling latest from upstream remotes
+      start: Pulling latest changes from upstream remotes
+      success: Successfully pulled latest changes from upstream remotes
+    cmds:
+      - |
+        COUNT="$(jq -r '.blueprint.upstreamRemotes | length' package.json)"
+        for i in $(seq $COUNT); do
+          REMOTE="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].remote' package.json)"
+          URL="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].url' package.json)"
+          BRANCH="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].branch' package.json)"
+          if [ "$REMOTE" != 'null' ] && [ "$URL" != 'null' ] && [ "$BRANCH" != 'null' ]; then
+            if git remote | grep "$REMOTE"; then
+              git remote remove "$REMOTE"
+            fi
+            git remote add "$REMOTE" "$URL"
+            git pull "$REMOTE" "$BRANCH"
+          else
+            .config/log warn '`blueprint.upstreamRemotes` objects must have the `remote`, `url`, and `branch` keys'
+          fi
+        done
 
   variables:
     deps:

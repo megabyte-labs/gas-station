@@ -10,6 +10,8 @@ tasks:
       - task: checkout
       - task: lockfiles
       - task: before:npm
+    status:
+      - '[ -z "$CI" ]'
 
   before:npm:
     deps:
@@ -37,6 +39,31 @@ tasks:
           git pull -q origin "$CI_COMMIT_REF_NAME"
         fi
 
+  codeclimate:
+    deps:
+      - :install:software:docker
+    log:
+      error: Encountered error while running CodeClimate for CI
+      start: Running CodeClimate for CI
+      success: Successfully finished running CodeClimate for CI
+    cmds:
+      - |
+        if [ -f .config/codeclimate.yml ]; then
+          cp .config/codeclimate.yml .codeclimate.yml
+        else
+          curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/.config/codeclimate.yml > .codeclimate.yml
+        fi
+      - docker pull codeclimate/codeclimate
+      - task: :lint:codeclimate:load:custom-engines
+      - task: codeclimate:gitlab
+
+  codeclimate:gitlab:
+    cmds:
+      - docker run --rm --env CODECLIMATE_CODE="$PWD" --volume "$PWD":/code --volume /var/run/docker.sock:/var/run/docker.sock
+        --volume /tmp/cc:/tmp/cc codeclimate/codeclimate analyze --dev -f json > gl-code-quality-report.json
+    status:
+      - '[ -z "$GITLAB_CI" ]'
+
   commit:
     deps:
       - :install:software:git
@@ -53,10 +80,16 @@ tasks:
           git commit -m "⤵️ automation(synchronize) Applying changes from upstream repository."
           git push -q -o ci.skip origin master
         fi
+    status:
+      - '[ -z "$CI" ]'
 
   commit:config:
     deps:
       - :install:software:git
+    log:
+      error: Error configuring git
+      start: Configuring git to use CI-friendly parameters
+      success: Successfully configured git to use CI parameters
     cmds:
       - git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
       - git config user.email "$GITLAB_CI_EMAIL"
@@ -104,6 +137,8 @@ tasks:
       - >
         git submodule foreach 'git config user.email "$GITLAB_CI_EMAIL"; git config user.name "$GITLAB_CI_NAME";
         git checkout -q master; git pull -q origin master --ff-only'
+    status:
+      - '[ -z "$CI" ]'
 
   synchronize:
     log:

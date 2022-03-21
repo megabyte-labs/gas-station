@@ -238,6 +238,28 @@ tasks:
     cmds:
       - only-allow pnpm
 
+  prepare:
+    cmds:
+      - task: :common:husky
+    status:
+      - '[ -z "$CI" ]'
+
+  prepare:prune:
+    cmds:
+      - task: prune
+    status:
+      - '! type node-prune &> /dev/null'
+
+  prune:
+    deps:
+      - :install:go:node-prune
+    log:
+      error: Error pruning `node_modules/`
+      start: Pruning the `node_modules/` folder
+      success: Successfully pruned the `node_modules/` folder
+    cmds:
+      - node-prune
+
   start:
     deps:
       - :install:modules:local
@@ -321,7 +343,7 @@ tasks:
       start: Running `{{.NPX_HANDLE}}jest`
       success: Successfully ran `{{.NPX_HANDLE}}jest`
     cmds:
-      - '{{.NPX_HANDLE}}jest'
+      - '{{.NPX_HANDLE}}jest --silent=false'
 
   test:ci:
     deps:

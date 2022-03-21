@@ -156,9 +156,8 @@ tasks:
     deps:
       - :install:software:git
       - :install:software:jq
-      - :install:software:subrepo
     summary: |
-      # Ensures each role is added as a remote
+      # Ensures each role is added as a remote and a sub-repo (if applicable)
 
       This task cycles through all the roles in the `/roles` folder and ensures
       they are added as remotes. This helps with managing the git trees used
@@ -183,6 +182,9 @@ tasks:
               git remote set-url "$ROLE_FOLDER" "$ROLE_SSH_REPO"
             else
               git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            fi
+            if [ -d $ROLE_RELATIVE_PATH/.git ] && [ ! -f $ROLE_RELATIVE_PATH/.gitrepo ]; then
+              task ansible:playbook:subrepo:init -- $ROLE_RELATIVE_PATH
             fi
           else
             .config/log warn "${ROLE_RELATIVE_PATH}/package.json is missing!"
@@ -250,3 +252,32 @@ tasks:
           - task: run:cli
             vars:
               CLI_ARGS: '{{.ANSWER}}'
+
+  subrepo:init:
+    deps:
+      - :install:software:subrepo
+    summary: |
+      # Add Role as a Sub-Repository
+
+      Since roles should each have their own repository for Ansible Galaxy and to make it easier
+      for the community to download specific roles, they must be declared as sub-repositories.
+      Submodules could also be used but we use sub-repos instead because they are more flexible.
+
+      In the main playbook, if someone clones the playbook, the playbook and all the roles will download
+      without any requirement to initialize submodules. At the same time, each role can be in its own
+      repository. The playbook recognizes roles like this because they have a `.gitrepo` file that is only
+      saved in the playbook version of the role. Users can interact with the playbook and its role
+      repositories transparently without any need to understand what git subrepos are.
+
+      Managers of roles can update the role repositories without any need to understand what git subrepos
+      are. Managers of the playbook can use the tool [git-subrepo](https://github.com/ingydotnet/git-subrepo)
+      to perform various actions including pulling changes from individual role repositories and
+      other actions.
+
+      Usage:
+      `task ansible:playbook:subrepo:init -- path/to/folder/with.git/folder`
+    cmds:
+      - |
+        BASENAME="$(basename {{.CLI_ARGS}})"
+        REMOTE="$(git remote get-url $BASENAME)"
+        HUSKY=0 git subrepo init {{.CLI_ARGS}} -r "$REMOTE" -b master

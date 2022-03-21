@@ -8,9 +8,8 @@ tasks:
       - task: install
         vars:
           BIN: bin
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: github.com/marcosnils/bin@latest
-    status:
-      - type bin &> /dev/null
 
   bundle:
     deps:
@@ -19,17 +18,14 @@ tasks:
       - goreleaser
       - nfpm
 
-  get:
-    run: when_changed
-    log:
-      error: Failed to acquire Go package named `{{.PACKAGE}}`
-      start: Getting Go package named `{{.PACKAGE}}`
-      success: Retrieved Go packaged named `{{.PACKAGE}}`
+  goconvey:
+    run: once
     cmds:
-      - task: :install:software:go
-      - go get {{.PACKAGE}}
-    status:
-      - type {{.BIN}} > /dev/null
+      - task: install
+        vars:
+          BIN: goconvey
+          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: github.com/smartystreets/goconvey@latest
 
   goofys:
     run: once
@@ -37,9 +33,8 @@ tasks:
       - task: install
         vars:
           BIN: goofys
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: github.com/kahing/goofys@latest
-    status:
-      - type goofys > /dev/null
 
   goreleaser:
     run: once
@@ -47,9 +42,8 @@ tasks:
       - task: install
         vars:
           BIN: goreleaser
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: github.com/goreleaser/goreleaser@latest
-    status:
-      - type goreleaser > /dev/null
 
   gotestsum:
     run: once
@@ -57,11 +51,18 @@ tasks:
       - task: install
         vars:
           BIN: gotestsum
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: gotest.tools/gotestsum@latest
-    status:
-      - type gotestsum > /dev/null
 
   install:
+    vars:
+      INSTALL_RECORD:
+        sh: |
+          if [ -n "$RECORD_INSTALL" ]; then
+            mkdir -p local/slim
+            echo '{{.BIN}}' >> local/slim/exe.txt
+            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
+          fi
     run: when_changed
     log:
       error: Failed to install `{{.PACKAGE}}` with Go
@@ -73,12 +74,29 @@ tasks:
     status:
       - type {{.BIN}} > /dev/null
 
+  misspell:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: misspell
+          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: github.com/client9/misspell/cmd/misspell@latest
+
   nfpm:
     run: once
     cmds:
       - task: install
         vars:
           BIN: nfpm
+          INSTALL_TASK: '{{.TASK}}'
           PACKAGE: github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
-    status:
-      - type nfpm > /dev/null
+
+  node-prune:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: node-prune
+          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: go install github.com/tj/node-prune@latest

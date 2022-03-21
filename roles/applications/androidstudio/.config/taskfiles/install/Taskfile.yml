@@ -58,9 +58,17 @@ tasks:
   modules:local:
     deps:
       - :install:npm:{{.NPM_PROGRAM_LOCAL}}
-      - :install:npm:cz-emoji
       - :install:software:jq
     env:
+      DEPS:
+        sh: jq -r -S '.dependencies + .devDependencies + .optionalDependencies + .peerDependencies' package.json
+      PREVIOUS_DEPS:
+        sh: |
+          if [ -f .task/npm-deps ]; then
+            cat .task/npm-deps
+          else
+            echo ""
+          fi
       SEMANTIC_PYTHON_POST_INSTALL: '{{if eq .SEMANTIC_RELEASE "true"}}true{{else}}false{{end}}'
     run: once
     log:
@@ -68,20 +76,23 @@ tasks:
       start: Installing local NPM dependencies
       success: Successfully installed local NPM dependencies
     cmds:
+      - task: tslib
       - |
-        if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
-          {{.NPM_PROGRAM_LOCAL}} update
-        else
-          {{.NPM_PROGRAM_LOCAL}} install || EXIT_CODE=$?
-          if [ -n "$EXIT_CODE" ]; then
-            .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+        if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
+          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
             {{.NPM_PROGRAM_LOCAL}} update
+          else
+            {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
+            --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
+            --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
+            if [ -n "$EXIT_CODE" ]; then
+              .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+              {{.NPM_PROGRAM_LOCAL}} update
+            fi
           fi
         fi
-      - |
-        if [ "$(jq -r '.devDependencies.glob' package.json)" == 'null' ] && [ "$(jq -r '.dependencies.glob' package.json)" == 'null' ]; then
-          pnpm install --save-dev glob
-        fi
+        mkdir -p .task
+        echo "$DEPS" > .task/npm-deps
     sources:
       - package.json
 
@@ -248,12 +259,11 @@ tasks:
           if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
             .config/log info '{{.TSLIB_MSG}}'
           else
-            .config/log info 'Automatically installing `tslib` since `importHelpers` is set to true in tsconfig.json'
-            {{.NPM_PROGRAM_LOCAL}} install --save tslib@latest
-            .config/log success 'Successfully installed `tslib`'
+            .config/log info 'Adding `tslib` to dependencies since `importHelpers` is set to true in tsconfig.json'
+            TMP="$(mktemp)"
+            jq '.dependencies.tslib = "latest"' package.json > "$TMP"
+            mv "$TMP" package.json
           fi
-        else
-          task install:modules:local:sync -- tslib
         fi
     status:
       - '[ ! -f tsconfig.json ]'

@@ -2,7 +2,7 @@
 version: '3'
 
 vars:
-  TEMPLATE_FILE: default.template.json
+  TEMPLATE_FILE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}template.json{{end}}'
 
 tasks:
   descriptions:
@@ -17,9 +17,9 @@ tasks:
         DESCRIPTION_TEMPLATE="$(jq -r '.description_template' '{{.VARIABLES_PATH}}')"
         VERSION_DESCRIPTION="$(jq -r '.version_description' '{{.VARIABLES_PATH}}')"
         TMP="$(mktemp)"
-        jq --arg a "$DESCRIPTION_TEMPLATE" --arg b "$VERSION_DESCRIPTION" '.variables.description = $a
-        | .variables.version_description = $b' {{.TEMPLATE_FILE}} > "$TMP"
-      - mv "$TMP" {{.TEMPLATE_FILE}}
+        jq --arg a "$DESCRIPTION_TEMPLATE" --arg b "$VERSION_DESCRIPTION" \
+        '.variables.description = $a | .variables.version_description = $b' {{.TEMPLATE_FILE}} > "$TMP"
+        mv "$TMP" {{.TEMPLATE_FILE}}
     sources:
       - '{{.TEMPLATE_FILE}}'
       - '{{.VARIABLES_PATH}}'
@@ -51,9 +51,11 @@ tasks:
       start: Determining whether to update README.md for `{{.TYPE}}`
     cmds:
       - task: readme:platform:{{OS}}
+        vars:
+          TYPE: '{{.TYPE}}'
     status:
       - |
-        ! grep -q '"type": "{{.TYPE}}"' {{.TEMPLATE_FILE}}
+        grep -q '"type": "{{.TYPE}}"' {{.TEMPLATE_FILE}}
 
   readme:platform:darwin:
     log:
@@ -92,6 +94,10 @@ tasks:
         jq -S --arg templatejson "$TEMPLATE_JSON" '.template_json = ($templatejson | fromjson)' '{{.VARIABLES_PATH}}' > "$TMP"
         mv "$TMP" '{{.VARIABLES_PATH}}'
       - task: variables:{{OS}}
+        vars:
+          ISO_VERSION: '{{.ISO_VERSION}}'
+          MAJOR_VERSION: '{{.MAJOR_VERSION}}'
+          MINOR_VERSION: '{{.MINOR_VERSION}}'
     sources:
       - '{{.TEMPLATE_FILE}}'
       - '{{.VARIABLES_PATH}}'

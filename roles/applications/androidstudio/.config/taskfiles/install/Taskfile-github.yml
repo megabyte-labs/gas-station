@@ -15,6 +15,7 @@ tasks:
         vars:
           BIN: docker-pushrm
           GITHUB: github.com/christian-korneck/docker-pushrm
+          INSTALL_TASK: '{{.TASK}}'
       - mkdir -p "$HOME/.docker/cli-plugins"
       - mv "$(which docker-pushrm)" "$HOME/.docker/cli-plugins/docker-pushrm"
       - chmod +x "$HOME/.docker/cli-plugins/docker-pushrm"
@@ -32,12 +33,19 @@ tasks:
         vars:
           BIN: fusion
           GITHUB: github.com/edgelaboratories/fusion
-    status:
-      - type fusion > /dev/null
+          INSTALL_TASK: '{{.TASK}}'
 
   install:
     deps:
       - :install:software:jq
+    vars:
+      INSTALL_RECORD:
+        sh: |
+          if [ -n "$RECORD_INSTALL" ]; then
+            mkdir -p local/slim
+            echo '{{.BIN}}' >> local/slim/exe.txt
+            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
+          fi
     run: when_changed
     log:
       error: Failed to acquire GitHub release from `{{.GITHUB}}`
@@ -58,5 +66,4 @@ tasks:
         vars:
           BIN: sentry-cli
           GITHUB: github.com/getsentry/sentry-cli
-    status:
-      - type sentry-cli > /dev/null
+          INSTALL_TASK: '{{.TASK}}'

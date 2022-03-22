@@ -1,0 +1,25 @@
+---
+- name: "Ensure dependencies for {{ app_name }} Extensions are installed"
+  package:
+    name: "{{ extn.package_deps }}"
+  loop: "{{ ulauncher_extensions }}"
+  loop_control:
+    label: "{{ extn.url.split('/')[-1] }}"
+    loop_var: extn
+  when: extn.package_deps is defined and extn.package_deps | length > 0
+
+- name: Ensure dependencies are installed from Ansible Galaxy
+  include_tasks: role.yml
+  loop: "{{ ulauncher_extensions }}"
+  loop_control:
+    label: "{{ extn.url.split('/')[-1] }}"
+    loop_var: extn
+  when: extn.role_deps is defined and extn.role_deps | length > 0
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

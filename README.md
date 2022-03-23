@@ -1,6 +1,6 @@
 <!-- ⚠️ This README has been generated from the file(s) ".config/docs/blueprint-readme-playbook.md" ⚠️--><div align="center">
   <center>
-    <a href="https://github.com/ProfessorManhattan/Gas-Station">
+    <a href="https://github.com/megabyte-labs/Gas-Station">
       <img width="148" height="148" alt="Gas Station logo" src="https://gitlab.com/megabyte-labs/gas-station/-/raw/master/logo.png" />
     </a>
   </center>
@@ -14,13 +14,13 @@
   <a href="https://megabyte.space" title="Megabyte Labs homepage" target="_blank">
     <img alt="Homepage" src="https://img.shields.io/website?down_color=%23FF4136&down_message=Down&label=Homepage&logo=home-assistant&logoColor=white&up_color=%232ECC40&up_message=Up&url=https%3A%2F%2Fmegabyte.space&style=for-the-badge" />
   </a>
-  <a href="https://github.com/ProfessorManhattan/Gas-Station/blob/master/docs/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
+  <a href="https://github.com/megabyte-labs/Gas-Station/blob/master/docs/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
     <img alt="Contributing" src="https://img.shields.io/badge/Contributing-Guide-0074D9?logo=github-sponsors&logoColor=white&style=for-the-badge" />
   </a>
   <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/" title="Chat with us on Slack" target="_blank">
     <img alt="Slack" src="https://img.shields.io/badge/Slack-Chat-e01e5a?logo=slack&logoColor=white&style=for-the-badge" />
   </a>
-  <a href="https://github.com/ProfessorManhattan/Gas-Station" title="GitHub mirror" target="_blank">
+  <a href="https://github.com/megabyte-labs/Gas-Station" title="GitHub mirror" target="_blank">
     <img alt="GitHub" src="https://img.shields.io/badge/Mirror-GitHub-333333?logo=github&style=for-the-badge" />
   </a>
   <a href="https://gitlab.com/megabyte-labs/gas-station" title="GitLab repository" target="_blank">
@@ -29,7 +29,7 @@
 </div>
 <br/>
 <div align="center">
-  <a title="Version: 0.0.1" href="https://github.com/ProfessorManhattan/Gas-Station" target="_blank">
+  <a title="Version: 0.0.1" href="https://github.com/megabyte-labs/Gas-Station" target="_blank">
     <img alt="Version: 0.0.1" src="https://img.shields.io/badge/version-0.0.1-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
   </a>
   <a title="Build status" href="https://gitlab.com/megabyte-labs/gas-station/-/commits/master" target="_blank">
@@ -41,7 +41,7 @@
   <a title="Documentation" href="https://megabyte.space/docs/ansible" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&style=flat-square" />
   </a>
-  <a title="License: MIT" href="https://github.com/ProfessorManhattan/Gas-Station/blob/master/LICENSE" target="_blank">
+  <a title="License: MIT" href="https://github.com/megabyte-labs/Gas-Station/blob/master/LICENSE" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAAHpJREFUCNdjYOD/wMDAUP+PgYHxhzwDA/MB5gMM7AwMDxj4GBgKGGQYGCyAEEgbMDDwAAWAwmk8958xpIOI5zKH2RmOyhxmZjguAiKmgIgtQOIYmFgCIp4AlaQ9OczGkJYCJEAGgI0CGwo2HmwR2Eqw5SBnNIAdBHYaAJb6KLM15W/CAAAAAElFTkSuQmCC&style=flat-square" />
   </a>
 </div>
@@ -102,7 +102,7 @@ Gas Station is:
 - Compatible with all major operating systems (i.e. Windows, Mac OS X, Ubuntu, Fedora, CentOS, Debian, and even Archlinux)
 - The product of a team of experts
 - An amazing way to learn about developer tools that many would consider to be "the best of GitHub"
-- Open to new ideas - feel free to [open an issue](https://gitlab.com/megabyte-labs/gas-station/-/issues) or [contribute](https://github.com/ProfessorManhattan/Gas-Station/blob/master/docs/CONTRIBUTING.md) with a [pull request](https://github.com/ProfessorManhattan/Gas-Station/issues)!
+- Open to new ideas - feel free to [open an issue](https://gitlab.com/megabyte-labs/gas-station/-/issues) or [contribute](https://github.com/megabyte-labs/Gas-Station/blob/master/docs/CONTRIBUTING.md) with a [pull request](https://github.com/megabyte-labs/Gas-Station/issues)!
 
 <a href="#quick-start" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
@@ -734,7 +734,7 @@ task ansible:playbook:environment -- environmentName
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/ProfessorManhattan/Gas-Station/issues). If you would like to contribute, please take a look at the [contributing guide](https://github.com/ProfessorManhattan/Gas-Station/blob/master/docs/CONTRIBUTING.md).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/megabyte-labs/Gas-Station/issues). If you would like to contribute, please take a look at the [contributing guide](https://github.com/megabyte-labs/Gas-Station/blob/master/docs/CONTRIBUTING.md).
 
 <details>
 <summary><b>Sponsorship</b></summary>

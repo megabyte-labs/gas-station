@@ -11,7 +11,11 @@ vars:
       if [ -n "$CI" ]; then
         echo ''
       else
-        echo 'unbuffer {{.PYTHON_HANDLE}}'
+        if type unbuffer &> /dev/null; then
+          echo 'unbuffer {{.PYTHON_HANDLE}}'
+        else
+          echo '{{.PYTHON_HANDLE}}'
+        fi
       fi
 
 tasks:
@@ -756,18 +760,28 @@ tasks:
         msg: The `molecule/default/molecule.yml` file must be present and in the proper format
 
   post:molecule:log:
+    deps:
+      - :ci:commit:config
     cmds:
       - task: ansifilter
         vars:
           RESULTS_FILE: '{{.RESULTS_FILE}}'
-      - task: :ci:commit:config
-      - git pull --ff-only origin master
-      - git add '{{.RESULTS_FILE}}'
-      - |
-        HUSKY=0 git commit -m "📝 docs(test results): new molecule test results added [ci skip]" -n
-      - git push origin master
+      - task: post:molecule:log:commit:ci
+      - cmd: |
+          git pull --ff-only origin master
+          task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
+          git add '{{.RESULTS_FILE}}'
+          HUSKY=0 git commit -m "📝 docs(test results): new molecule test results added [ci skip]" -n
+          git push origin master
+        ignore_error: true
     status:
-      - '[ "{{.RESULTS_FILE}}" == "debug.log" ]'
+      - '[ "{{.RESULTS_FILE}}" == "debug.log" ] || [ ! -d .git ]'
+
+  post:molecule:log:commit:ci:
+    cmds:
+      - task: :ci:commit:config
+    status:
+      - '[ -z "$GITLAB_CI" ]'
 
   prompt:
     vars:

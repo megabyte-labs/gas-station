@@ -4,6 +4,7 @@ version: '3'
 tasks:
   create:
     deps:
+      - :ci:commit:config
       - :install:software:gh
       - :install:software:jq
       - :git:remotes
@@ -25,9 +26,11 @@ tasks:
       - cmd: gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}"
           --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} > /dev/null
         ignore_error: true
-      - git add --all
+      - |
+        task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
+        git add --all
       - git commit --quiet -m "🎂 Birth" -n || true
-      - git push --quiet -u --no-progress github master
+      - git push github master
     status:
       - '[ -z "$GITHUB_TOKEN" ] || ! test -e .git || gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} > /dev/null'
     preconditions:
@@ -63,6 +66,7 @@ tasks:
       - ids
       - variables
 
+    run: once
   update:meta:
     deps:
       - :install:software:gh

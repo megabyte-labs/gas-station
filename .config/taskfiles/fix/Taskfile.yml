@@ -24,10 +24,9 @@ tasks:
       - :install:modules:local
       - :install:npm:eslint
       - :install:software:expect
-    desc: Fix JavaScript/TypeScript errors automatically
-    hide: '{{not (has .REPOSITORY_TYPE (list "angular" "npm"))}}'
+    desc: Fix ESLint errors automatically
     summary: |
-      # Fix JavaScript/TypeScript Errors with ESLint
+      # Fix Errors with ESLint Automatically
 
       This task is an [`eslint`](https://eslint.org/) task. It will attempt to automatically fix
       `eslint` issues. It will report any issues it was unable to fix. The configuration found in
@@ -36,7 +35,7 @@ tasks:
       **Example using `eslint` to fix a single JS/TS file:**
       `task fix:js -- single.ts`
 
-      **Example fixing all JS/TS files in a project:**
+      **Example fixing all files in a project:**
       `task fix:js`
     log:
       error: ESLint found some issues that need to be fixed manually
@@ -61,41 +60,42 @@ tasks:
         fi
       - rm eslint.log
 
+  eslint:staged:
+    deps:
+      - :install:modules:local
+      - :install:npm:eslint
+    desc: Auto-fix only modified files with ESLint
+    env:
+      ESLINT_STAGED_ONLY: on
+    log:
+      error: Failed to auto-fix modified files with ESLint
+      start: Auto-fixing modified files with ESLint
+      success: Successfully auto-fixed modified files with ESLint
+    cmds:
+      - >
+        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        --cache-location .cache/eslintcache --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
   go:
+    deps:
+      - :install:software:go
+      - :install:software:golangci-lint
     desc: Fix Go with all available Go fixers
     summary: |
       # Auto-Fix Go Files
 
-      This task will attempt to auto-fix Go files with the following auto-fixers:
-
-      * [go]()
-
-      If you would like to skip auto-fixing on the whole project and instead auto-fix an
-      individual file, then you can do so by passing the file path as a CLI
-      parameter like so:
+      This task will attempt to auto-fix Go files with
+      [golangci-lint](https://golangci-lint.run/) which runs multiple linters all
+      defined in `.config/golangci-lint`.
 
       **Example auto-fixing an individual file:**
       `task fix:go -- path/filename.go`
+    log:
+      error: Encountered error while autofixing Go files
+      start: Auto-fixing Go files..
+      success: Successfully auto-fixed Go files
     cmds:
-      - task: go:fmt
-
-  go:fmt:
-    deps:
-      - :install:software:go
-    summary: |
-      # Auto-Fix Go Files with `gofmt`
-
-      Running this task will auto-format the Go code in the project with `gofmt`.
-      In addition to writing the files (via the `-w` flag), it also attempts to
-      simplify the files (via the `-s` flag).
-
-      By default, this task will format the entire project. However, you can target
-      specific files by passing the path of the `.go` file as a CLI argument.
-
-      **Example formatting specific file:**
-      `task fix:go:fmt -- path/to/file.go`
-    cmds:
-      - gofmt -s -w {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - golangci-lint run -c .config/golangci.yml --fix{{if .CLI_ARGS}}{{.CLI_ARGS}}{{end}}
 
   js:
     cmds:
@@ -125,9 +125,41 @@ tasks:
       - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
         --format pretty --ext .json {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
 
+  markdown:
+    deps:
+      - :install:npm:markdown-table-formatter
+    desc: Auto-fixes markdown files
+    summary: |
+      # Auto-Fix Markdown Files
+
+      This task performs various tasks that cleanup markdown files. It currently:
+
+      1. Runs `markdown-table-formatter` which fixes up markdown tables
+
+      You can either pass a file as a CLI argument or run it without a CLI argument to
+      auto-fix all the markdown files in the project that are not ignored by .gitignore.
+
+      **Example running against whole project:**
+      `task fix:markdown`
+
+      **Example running on single file:**
+      `task fix:markdown -- README.md`
+    log:
+      error: Error encountered while auto-fixing markdown file(s)
+      start: Auto-fixing markdown file(s)
+      success: Successfully finished auto-fixing markdown file(s)
+    cmds:
+      - >
+        {{if .CLI_ARGS}}
+        markdown-table-formatter {{.CLI_ARGS}}
+        {{else}}
+        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \)
+        -print0 | xargs -0 -r -n1 markdown-table-formatter
+        {{end}}
+
   misc:
     deps:
-      - :install:python:requirements
+      - :install:pipx:pre-commit-hooks
     summary: |
       # Miscellaneous fixes
 
@@ -149,8 +181,8 @@ tasks:
     cmds:
       - |
         function misc() {
-          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1"
-          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1"
+          fix-byte-order-marker "$1"
+          mixed-line-ending --fix=lf "$1"
         }
         {{if .CLI_ARGS}}
           misc '{{.CLI_ARGS}}'
@@ -242,16 +274,17 @@ tasks:
     log:
       start: Running Prettier on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
     cmds:
-      - |
-        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
-        if [ -n "$EXIT_CODE" ]; then
-          .config/log warn 'Failed to run `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
-          prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
-        fi
+      - cmd: |
+          {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            .config/log warn 'Failed to run `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
+            prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+          fi
+        ignore_error: true
 
   python:
     deps:
-      - :install:python:requirements
+      - :install:pipx:black
     desc: Automatically format Python files using Black
     hide: '{{ne .REPOSITORY_TYPE "python"}}'
     summary: |
@@ -275,10 +308,10 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
-          {{.PYTHON_HANDLE}}black {{.CLI_ARGS}}
+          black {{.CLI_ARGS}}
         {{else}}
           while read PATHH; do
-            {{.PYTHON_HANDLE}}black "$PATHH"
+            black "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \))
         {{end}}
 
@@ -326,9 +359,26 @@ tasks:
             -print0 | xargs -0 {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff | git apply
         {{end}}
 
+  spelling:markdown:
+    deps:
+      - :install:go:misspell
+    desc: Auto-fix spelling errors in markdown files using `misspell`
+    log:
+      error: Encountered error while attempting to auto-correct spelling mistakes with `misspell`
+      start: Auto-fixing using the `misspell` spell-check engine
+      success: Successfully auto-fixed files using `misspell`
+    cmds:
+      - >
+        {{if .CLI_ARGS}}
+        misspell -w {{.CLI_ARGS}}
+        {{else}}
+        find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.md' \)
+        -print0 | xargs -0 -r -n1 misspell -w
+        {{end}}
+
   toml:
     deps:
-      - :install:python:requirements
+      - :install:pipx:toml-sort
     desc: Format `.toml` files by alphabetizing and flattening
     summary: |
       # Automatically format `.toml` files
@@ -348,10 +398,12 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
-          {{.PYTHON_HANDLE}}toml-sort -i --all {{.CLI_ARGS}}
+        if [ -f '{{.CLI_ARGS}}' ]; then
+          toml-sort -i --all {{.CLI_ARGS}}
+        fi
         {{else}}
           while read PATHH; do
-            {{.PYTHON_HANDLE}}toml-sort -i --all "$PATHH"
+            toml-sort -i --all "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.toml' \))
         {{end}}
 

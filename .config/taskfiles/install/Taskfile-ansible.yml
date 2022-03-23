@@ -1,0 +1,43 @@
+---
+version: '3'
+
+vars:
+  ANSIBLE_VENV:
+    sh: echo "$HOME/.local/megabytelabs/ansible"
+
+tasks:
+  install:ansible:
+    cmds:
+      - pip3 install ansible
+
+  main:
+    deps:
+      - install:ansible
+    cmds:
+      - task: requirements
+
+  requirements:
+    deps:
+      - requirements:galaxy
+      - requirements:python
+
+  requirements:galaxy:
+    cmds:
+      - ansible-galaxy install -r requirements.yml
+    status:
+      - '[ ! -f requirements.yml ]'
+
+  requirements:python:
+    cmds:
+      - pip3 install requirements.txt
+    status:
+      - '[ ! -f requirements.txt ]'
+
+  start:
+    deps:
+      - :install:software:python
+    cmds:
+      - python3 -m venv {{.ANSIBLE_VENV}}
+      - |
+        source {{.ANSIBLE_VENV}}/bin/activate
+        task install:ansible:main

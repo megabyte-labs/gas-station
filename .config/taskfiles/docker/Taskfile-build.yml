@@ -3,12 +3,15 @@ version: '3'
 
 tasks:
   fat:
+    cmds:
+      - task: :docker:update:version
+      - task: fat:build
+
+  fat:build:
     deps:
       - :install:software:docker
       - :install:software:jq
     desc: Build a normal Docker container from the Dockerfile
-    hide:
-      sh: '[ ! -f Dockerfile ]'
     summary: |
       # Build Docker Container from Dockerfile
 
@@ -19,35 +22,30 @@ tasks:
       [Docker's build guide](https://docs.docker.com/engine/reference/commandline/build/).
     vars:
       BUILD_DATE:
-        sh: git show -s --format=%cI
-      DOCKER_IMAGE:
-        sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+        sh: type git &> /dev/null && git show -s --format=%cI
       REVISION:
-        sh: git rev-parse HEAD
+        sh: type git &> /dev/null && git rev-parse HEAD
       SLUG:
-        sh: |
-          {{if .CLI_ARGS}}
-          if echo '{{.CLI_ARGS}}' | grep 'codeclimate-' > /dev/null; then
-            echo '{{.CLI_ARGS}}'
-          else
-            echo 'false'
-          fi
-          {{else}}
-          echo "codeclimate-$(jq -r '.blueprint.slug' package.json)"
-          {{end}}
+        sh: jq -r '.blueprint.slug' package.json
+      TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}'
       VERSION:
         sh: jq -r '.version' package.json
+    run: when_changed
+    hide:
+      sh: '[ ! -f Dockerfile ]'
     log:
       error: Error building `{{.DOCKER_IMAGE}}:{{.VERSION}}`
       start: Building Docker container `{{.DOCKER_IMAGE}}:{{.VERSION}}` (also tagged as latest)
       success: Successfully built Docker container named `{{.DOCKER_IMAGE}}:{{.VERSION}}`
     cmds:
       - .config/log info 'Running `docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
-        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}} {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}{{if ne .SLUG "false"}}
-        --tag codeclimate/{{.SLUG}}:latest{{end}}{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .`'
+        --tag {{.DOCKER_IMAGE}}:latest{{.TAG_POST}}
+        {{if (contains "codeclimate" .CLI_ARGS)}} --tag codeclimate/codeclimate-{{.SLUG}}{{end}}{{if .CLI_ARGS}}
+        --target {{.CLI_ARGS}}{{end}} .`'
       - docker build --build-arg BUILD_DATE={{.BUILD_DATE}} --build-arg REVISION={{.REVISION}} --build-arg VERSION={{.VERSION}}
-        --tag {{.DOCKER_IMAGE}}:latest --tag {{.DOCKER_IMAGE}}:{{.VERSION}}{{if eq .REPOSITORY_SUBTYPE "codeclimate"}}{{if ne .SLUG "false"}}
-        --tag codeclimate/{{.SLUG}}:latest{{end}}{{end}}{{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .
+        --tag {{.DOCKER_IMAGE}}:latest{{.TAG_POST}}
+        {{if (contains "codeclimate" .CLI_ARGS)}} --tag codeclimate/codeclimate-{{.SLUG}}{{end}}
+        {{if .CLI_ARGS}} --target {{.CLI_ARGS}}{{end}} .
 
   slim:
     deps:
@@ -72,33 +70,38 @@ tasks:
 
   slim:command:
     vars:
-      DOCKER_IMAGE:
-        sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
-      IMAGE_TYPE:
-        sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+      DIND_MOUNT:
+        sh: |
+          if [ "$(jq -r '.blueprint.dockerInDocker' package.json)" == 'true' ]; then
+            echo "--mount {{.DIND_MOUNT_MAPPING}} "
+          fi
       SLIM_COMMAND:
         sh: |
           COMMAND_TYPE="$(jq -r '.blueprint.dockerSlimCommand | type' package.json)"
           if [ "$COMMAND_TYPE" == 'string' ]; then
             echo "$(jq -r '.blueprint.dockerSlimCommand' package.json)"
           else
-            echo "$(jq --arg type {{.IMAGE_TYPE}} -r '.blueprint.dockerSlimCommand[$type]' package.json)"
+            COMMAND="$(jq --arg type "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}" \
+            -r '.blueprint.dockerSlimCommand[$type]' package.json)"
+            if [ "$COMMAND" != 'null' ]; then
+              echo "$(jq --arg type "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}" \
+              -r '.blueprint.dockerSlimCommand[$type]' package.json)"
+            fi
           fi
-      SLUG:
-        sh: jq -r '.blueprint.slug' package.json
+      TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}'
     log:
       error: Error building `{{.DOCKER_IMAGE}}:slim` with `docker-slim`
       start: Building Docker container named `{{.DOCKER_IMAGE}}:slim`
       success: Successfully built Docker container named `{{.DOCKER_IMAGE}}:slim`
     cmds:
       - >
-        .config/log info 'Running `docker-slim build --tag {{.DOCKER_IMAGE}}:slim
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/codeclimate-{{.SLUG}}:slim {{end}}
-        {{.SLIM_COMMAND | replace "'" "\""}} {{.DOCKER_IMAGE}}:latest`'
+        .config/log info 'Running `docker-slim build {{.DIND_MOUNT}}--tag {{.DOCKER_IMAGE}}:slim{{.TAG_POST}}
+        {{if (contains "codeclimate" .CLI_ARGS)}}--tag codeclimate/codeclimate-{{.SLUG}}:slim {{end}}
+        {{.SLIM_COMMAND | replace "'" "\""}} {{.DOCKER_IMAGE}}:latest{{.TAG_POST}}`'
       - >
-        docker-slim build --tag {{.DOCKER_IMAGE}}:slim
-        {{if eq .REPOSITORY_SUBTYPE "codeclimate"}}--tag codeclimate/codeclimate-{{.SLUG}}:slim {{end}}
-        {{.SLIM_COMMAND | replace "'" "\""}} {{.DOCKER_IMAGE}}:latest
+        docker-slim build {{.DIND_MOUNT}}--tag {{.DOCKER_IMAGE}}:slim{{.TAG_POST}}
+        {{if (contains "codeclimate" .CLI_ARGS)}}--tag codeclimate/codeclimate-{{.SLUG}}:slim {{end}}
+        {{.SLIM_COMMAND | replace "'" "\""}} {{.DOCKER_IMAGE}}:latest{{.TAG_POST}}
 
   slim:finish:
     deps:
@@ -108,13 +111,16 @@ tasks:
   slim:prettier:
     deps:
       - :install:npm:prettier
+    vars:
+      IMAGE_SLUG:
+        sh: jq -r '.blueprint.slug' package.json
     log:
       error: Failed to format `slim.report.json` with Prettier
       start: Formatting `slim.report.json` with Prettier
       success: Formatted `slim.report.json` with Prettier
     cmds:
       - '{{.NPX_HANDLE}}prettier --write slim.report.json > /dev/null'
-      - mv slim.report.json docs/slim.report.json
+      - mv slim.report.json docs/slim{{if .CLI_ARGS}}.{{.CLI_ARGS}}{{end}}.report.json
 
   slim:sizes:
     cmds:
@@ -127,15 +133,18 @@ tasks:
       - :install:software:docker
       - :install:software:gzip
     vars:
-      DOCKER_IMAGE:
-        sh: echo "{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
       SLUG:
         sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
+      TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}'
+    log:
+      error: Encountered error while generating compressed Docker image tar file
+      start: Generating compressed Docker image tar file(s)
+      success: Successfully generated compressed Docker image tar file(s)
     cmds:
       - |
         function zipUp() {
-          docker save "{{.DOCKER_IMAGE}}:$1" > "{{.SLUG}}-$1.tar"
-          gzip -f "{{.SLUG}}-$1.tar"
+          docker save "{{.DOCKER_IMAGE}}:$1{{.TAG_POST}}" > "$1{{.TAG_POST}}.tar"
+          gzip -f "$1{{.TAG_POST}}.tar"
         }
         zipUp "latest" &
         zipUp "slim" &
@@ -152,9 +161,9 @@ tasks:
       PREVIOUS_SLIM_SIZE:
         sh: jq --arg slug '{{.DOCKER_IMAGE_SLUG}}' -r '.blueprint.dockerSlimSize[$slug]' package.json
       REGULAR_SIZE:
-        sh: stat -c%s {{.DOCKER_IMAGE_SLUG}}-latest.tar.gz | numfmt --to iec
+        sh: stat -c%s latest{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}.tar.gz | numfmt --to iec
       SLIM_SIZE:
-        sh: stat -c%s {{.DOCKER_IMAGE_SLUG}}-slim.tar.gz | numfmt --to iec
+        sh: stat -c%s slim{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}.tar.gz | numfmt --to iec
     log:
       error: Failed to acquire / inject `:slim` image file size information into `package.json` blueprint data
       start: Injecting `:slim` image file size into `package.json` blueprint data
@@ -172,10 +181,10 @@ tasks:
 
   slim:sizes:clean:
     cmds:
-      - rm -f *-latest.tar.gz
-      - rm -f *-latest.tar
-      - rm -f *-slim.tar.gz
-      - rm -f *-slim.tar
+      - rm -f latest*.tar.gz
+      - rm -f latest*.tar
+      - rm -f slim*.tar.gz
+      - rm -f slim*.tar
     status:
       - >
         ! test -n "$(find . -maxdepth 1 -name '*.tar.gz' -print -quit)"

@@ -8,7 +8,7 @@ vars:
   MOLECULE_RESULTS_PATH: molecule/.results
   REQUIREMENTS_PATH: requirements.yml
   ROLE_NAME: '{{.GALAXY_NAMESPACE}}.{{.GALAXY_ROLE_NAME}}'
-  SAMPLE_PROJECT: https://github.com/ProfessorManhattan/ansible-snapd
+  SAMPLE_PROJECT: https://github.com/megabyte-labs/ansible-snapd
   VARIABLES_PATH: .variables.json
 
 tasks:
@@ -148,28 +148,27 @@ tasks:
         mkdir -p .cache/megabytelabs
         jq -n --argjson result "$RESULT" --argjson gi "$GALAXY_INFO" '$gi | .galaxy_info.galaxy_tags = $result' > .cache/megabytelabs/galaxy-meta.json
         yq eval -P .cache/megabytelabs/galaxy-meta.json > meta/main.yml
-      - '{{.NPX_HANDLE}}prettier --write meta/main.yml > /dev/null'
+      - task: :fix:prettier
+        vars:
+          CLI_ARGS: meta/main.yml
       - task: :fix:yaml:dashes
         vars:
           CLI_ARGS: meta/main.yml
 
   mod-ansible-autodoc:
+    todo: Add ansible-autodoc-fork to the includes of the package
     cmds:
+      - |
+        if [ -n "$CI" ]; then
+          pip3 install ansible-autodoc-fork
+        fi
       - task: mod-ansible-autodoc:generate
       - task: mod-ansible-autodoc:variables
 
-  mod-ansible-autodoc:ansible-autodoc-fork:
-    cmds:
-      - task: :install:software:pipx
-      - task: :install:python:pipx
-        vars:
-          PACKAGE: ansible-autodoc-fork
-
   mod-ansible-autodoc:generate:
     deps:
-      - :install:python:requirements
+      - :install:pipx:mod-ansible-autodoc
       - :install:software:jq
-      - mod-ansible-autodoc:ansible-autodoc-fork
     env:
       ACTIONS_DESCRIPTION:
         sh: jq -r '.autodoc_actions_description' '{{.VARIABLES_PATH}}'
@@ -214,6 +213,8 @@ tasks:
         mv "$TMP" '{{.VARIABLES_PATH}}'
 
   prepare:
+    deps:
+      - :ci:commit:config
     log:
       error: Failed to ensure GitLab and GitHub are in sync
       start: Preparing for Ansible Galaxy upload

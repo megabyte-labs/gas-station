@@ -3,53 +3,50 @@ version: '3'
 
 tasks:
   pip:
+    deps:
+      - :install:software:python
     run: when_changed
     log:
       error: Failed to install pip3 package `{{.PACKAGE}}`
       start: Installing pip3 package `{{.PACKAGE}}`
       success: Installed pip3 package `{{.PACKAGE}}`
     cmds:
-      - task: :install:software:python
+      - |
+        if [ -n "$CI" ]; then echo "*************** pip3 --> {{.PACKAGE}}"; fi
       - pip3 install {{.PACKAGE}}
     status:
       - type {{.PACKAGE}} > /dev/null
 
   pipx:
-    deps:
-      - :install:software:pipx
-    run: when_changed
-    log:
-      error: Failed to install `{{.PACKAGE}}` with pipx
-      start: Installing `{{.PACKAGE}}` with pipx
-      success: Successfully installed `{{.PACKAGE}}` with pipx
     cmds:
-      - pipx install {{.PACKAGE}}
-    status:
-      - type {{.PACKAGE}} > /dev/null
+      - task: :install:pipx:install
+        vars:
+          BIN_NAME: '{{.BIN_NAME}}'
+          PACKAGE: '{{.PACKAGE}}'
 
   pytest:
-    run: once
     cmds:
-      - task: pip
-        vars:
-          PACKAGE: pytest
+      - task: :install:pipx:pytest
 
   pytest-cov:
-    run: once
     cmds:
-      - task: pip
-        vars:
-          PACKAGE: pytest-cov
+      - task: :install:pipx:pytest-cov
 
   requirements:
     run: once
     cmds:
       - task: :install:software:python
-      - task: requirements:poetry:prereqs
       - task: requirements:poetry
       - task: :{{if eq .REPOSITORY_TYPE "ansible"}}ansible:galaxy:requirements{{else}}donothing{{end}}
 
   requirements:poetry:
+    cmds:
+      - task: requirements:poetry:prereqs
+      - task: requirements:poetry:install
+    status:
+      - '[ ! -f pyproject.toml ] || ! type poetry &> /dev/null'
+
+  requirements:poetry:install:
     summary: |
       # Poetry Requirements
 
@@ -97,11 +94,10 @@ tasks:
         fi
     sources:
       - pyproject.toml
-    preconditions:
-      - sh: test -f pyproject.toml
-        msg: The `pyproject.toml` file is missing!
 
   requirements:poetry:prereqs:
+    tags:
+      - update
     vars:
       GCC5_MISSING_MESSAGE: |
         It looks like your system is missing gcc-5 but gcc is available. You might be prompted

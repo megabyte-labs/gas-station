@@ -4,7 +4,7 @@ version: '3'
 vars:
   EMOJI_END:
     sh: |
-      if [ -f '.variables.json' ]; then
+      if [ -f '.variables.json' ] && type jq &> /dev/null; then
         BP_END="$(jq -r '.emoji_end' .variables.json)"
         if [ "$BP_END" != 'null' ]; then
           echo "$BP_END"
@@ -18,7 +18,7 @@ vars:
       fi
   EMOJI_START:
     sh: |
-      if [ -f '.variables.json' ]; then
+      if [ -f '.variables.json' ] && type jq &> /dev/null; then
         BP_START="$(jq -r '.emoji_start' .variables.json)"
         if [ "$BP_START" != 'null' ]; then
           echo "$BP_START"
@@ -40,11 +40,14 @@ env:
 
 tasks:
   commit:automated:
+    deps:
+      - remotes
     log:
       start: Running automated commit
     cmds:
       - cmd: |
           if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
+            task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
             git add --all
             HUSKY=0 git commit -m "☁️ Automation" -n
           fi
@@ -104,7 +107,17 @@ tasks:
         RELATIVE_DIR="$(echo $ROLE_DIR | sed 's@'"$PWD"'/@@')"
         HUSKY=0 git subrepo clone {{.BASENAME}} "$RELATIVE_DIR" -b master
 
+  filter:
+    log:
+      error: Error filtering git history
+      start: Filtering unnecessary items from git history
+      success: Successfully filtered unnecessary items from git history
+    cmds:
+      - git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch -r **/node_modules/' --prune-empty -- --all
+
   push:all:
+    deps:
+      - :ci:commit:config
     log:
       error: Encountered error while running `git push all master --force || git push origin master`
       start: Running `git push all master --force || git push origin master`
@@ -114,6 +127,8 @@ tasks:
         if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
           git push all master --force || git push origin master
         fi
+    status:
+      - '[ -n "$CI" ]'
 
   remotes:
     deps:
@@ -177,9 +192,9 @@ tasks:
           .config/log success 'Added git remote named `all`'
         fi
     status:
-      - '[[ "$(git config remote.all.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
-      - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
-      - '[[ "$(git config remote.gitlab.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
+      - '[[ "$(git config remote.all.url)" == "${GITLAB_REPO}.git" ]] || [ -n "$CI" ]'
+      - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [ -n "$CI" ]'
+      - '[[ "$(git config remote.gitlab.url)" == "${GITLAB_REPO}.git" ]] || [ -n "$CI" ]'
 
   remove:history:cli:
     deps:
@@ -251,18 +266,16 @@ tasks:
         fi
 
   update:
+    run: once
     cmds:
       - task: :git:gitlab:create
       - task: :git:github:create
       - task: update:continue
+    status:
+      - '[ -n "$CI" ]'
 
   update:continue:
     deps:
       - :git:gitlab:update
       - :git:github:update
-    cmds:
-      - |
-        if ! git push -u origin master; then
-          git pull origin master --allow-unrelated-histories
-          git push origin -u origin master
-        fi
+    run: once

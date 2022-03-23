@@ -1,0 +1,262 @@
+---
+version: '3'
+
+tasks:
+  act:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: act
+          PACKAGE: nektos/act
+
+  bat:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: bat
+          PACKAGE: sharkdp/bat
+          TAR_OPTIONS: ' --strip-component 1'
+
+  croc:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: croc
+          PACKAGE: schollz/croc
+
+  dasel:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: dasel
+          PACKAGE: TomWright/dasel
+
+  deno:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: deno
+          PACKAGE: denoland/deno
+
+  direnv:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: direnv
+          PACKAGE: direnv/direnv
+
+  dive:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: dive
+          PACKAGE: wagoodman/dive
+
+  docker-pushrm:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: docker-pushrm
+          PACKAGE: christian-korneck/docker-pushrm
+
+  dockle:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: dockle
+          PACKAGE: goodwithtech/dockle
+
+  ffsend:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: ffsend
+          PACKAGE: timvisee/ffsend
+
+  fusion:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: fusion
+          PACKAGE: edgelaboratories/fusion
+
+  gh:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: gh
+          PACKAGE: cli/cli
+          TAR_OPTIONS: ' --strip-component 1'
+
+  gitleaks:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: gitleaks
+          PACKAGE: zricethezav/gitleaks
+
+  glab:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: glab
+          PACKAGE: profclems/glab
+          TAR_OPTIONS: ' --strip-component 1'
+
+  install:gh:
+    deps:
+      - :install:software:gh
+    cmds:
+      - task: install:gh:{{OS}}
+        vars:
+          BIN_NAME: '{{.BIN_NAME}}'
+          PACKAGE: '{{.PACKAGE}}'
+          TAR_OPTIONS: '{{.TAR_OPTIONS}}'
+
+  install:gh:darwin:
+    deps:
+      - :install:software:gh
+    env:
+      TMP:
+        sh: mktemp -d
+    cmds:
+      - echo TODO
+
+  install:gh:linux:
+    deps:
+      - :install:software:gh
+    vars:
+      BIN_FOLDER:
+        sh: echo "${PWD}/bin"
+      LOG_SCRIPT:
+        sh: echo "${PWD}/.config/log"
+      PATTERNS: -p "*Linux_x86_64" -p "*Linux_x86_64.tar.gz" -p "*Linux_amd64.tar.gz" -p "*linux_amd64" -p "*linux_amd64.tar.gz"
+        -p "*linux-amd64" -p "*Linux-64bit.tar.gz" -p "*linux-x64" -p "*linux_x64.tar.gz" -p "*linux-x86_64" -p "*linux_x86_64.tar.gz"
+      PATTERNS_GNU: -p "*x86_64-unknown-linux-gnu.tar.gz" -p "*x86_64-unknown-linux-gnu.zip"
+      PATTERNS_MUSL: -p "*x86_64-unknown-linux-musl.tar.gz"
+    env:
+      TMP:
+        sh: mktemp -d
+    cmds:
+      - gh release download -R "{{.PACKAGE}}" {{.PATTERNS}} {{.PATTERNS_GNU}} -D "$TMP"
+      - |
+        cd "$TMP"
+        COUNT=0
+        while read FILE; do
+          COUNT=$((COUNT + 1))
+          if [ "$COUNT" == "1" ]; then
+            if [[ "$FILE" == *.tar.gz ]]; then
+              tar -xzvf "$FILE"{{.TAR_OPTIONS}}
+              rm "$FILE"
+            elif [[ "$FILE" == *.zip ]]; then
+              unzip "$FILE"
+              rm "$FILE"
+            fi
+          else
+            {{.LOG_SCRIPT}} warn 'Multiple releases have possibly been downloaded'
+          fi
+        done < <(find . -type f)
+        ls -la
+        rm -rf CHANGELOG.md LICENSE LICENSE* README.md autocomplete completion *.1 *.sh *_autocomplete contrib
+        if [ "$(ls 2>/dev/null * | wc -l)" == "1" ]; then
+          {{.LOG_SCRIPT}} info 'Moving `{{.BIN_NAME}}` from its default location'
+          mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}
+        else
+          if [ -d bin ]; then
+            cd bin
+            if [ "$(ls 2>/dev/null * | wc -l)" == "1" ]; then
+              {{.LOG_SCRIPT}} info 'Moving `{{.BIN_NAME}}` from the `bin` folder'
+              mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}
+            else
+              {{.LOG_SCRIPT}} warn 'Unmatched binary named `{{.BIN_NAME}}` from `*.tar.gz` with a `bin` folder'
+              {{.COMMANDS}}
+            fi
+            cd ..
+          else
+            {{.LOG_SCRIPT}} warn 'Unmatched binary named `{{.BIN_NAME}}`'
+            {{.COMMANDS}}
+          fi
+        fi
+      - chmod +x {{.BIN_FOLDER}}/{{.BIN_NAME}}
+    status:
+      - '[ -f ./bin/{{.BIN_NAME}} ]'
+
+  install:gh:windows:
+    deps:
+      - :install:software:gh
+    env:
+      TMP:
+        sh: mktemp -d
+    cmds:
+      - echo TODO
+
+  kubectx:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: kubectx
+          PACKAGE: ahmetb/kubectx
+
+  mkcert:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: mkcert
+          PACKAGE: FiloSottile/mkcert
+
+  oq:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: oq
+          PACKAGE: Blacksmoke16/oq
+
+  task:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: task
+          PACKAGE: go-task/task
+
+  tokei:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: tokei
+          PACKAGE: XAMPPRocky/tokei
+
+  trivy:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: trivy
+          PACKAGE: aquasecurity/trivy
+
+  up:
+    cmds:
+      - task: up:{{OS}}
+    status:
+      - '[ -f ./bin/up ]'
+
+  up:darwin:
+    cmds:
+      - gh release download -R akavel/up -p "up-darwin"
+      - mkdir -p ./bin && mv up-darwin ./bin/up
+      - chmod +x ./bin/up
+
+  up:linux:
+    cmds:
+      - gh release download -R akavel/up -p "up"
+      - mkdir -p ./bin && mv up ./bin/up
+      - chmod +x ./bin/up
+
+  up:windows:
+    cmds:
+      - .config/log warn '`up` is not available for Windows from GitHub Releases'
+
+  yq:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: yq
+          PACKAGE: mikefarah/yq

@@ -91,4 +91,8 @@ fi
 # [here](https://gitlab.com/megabyte-labs/common/shared/-/blob/master/common/.config/taskfiles/ansible/Taskfile.yml).
 cd "$HOME/$PLAYBOOKS_DIR" || exit
 bash start.sh
-task ansible:quickstart
+if [ -n "$1" ]; then
+  task ansible:quickstart -- $1
+else
+  task ansible:quickstart
+fi

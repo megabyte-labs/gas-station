@@ -15,7 +15,7 @@ tasks:
         sh: glab api projects/:fullpath | jq '.id'
       REQUEST_DATA: '{ "name":"PROJECT_CI_ACCESS_TOKEN", "scopes":["write_repository", "read_repository"] }'
       TOKEN_STATUS:
-        sh: type glab > /dev/null && glab api projects/:fullpath/access_tokens | jq -r '.[] | select(.name=="PROJECT_CI_ACCESS_TOKENX") | .id'
+        sh: type glab > /dev/null && glab api projects/:fullpath/access_tokens | jq -r '.[] | select(.name=="PROJECT_CI_ACCESS_TOKENX") | .id' || true
     run: once
     log:
       error: Failed to configure project-specific access token
@@ -27,7 +27,7 @@ tasks:
         'Content-Type:application/json' --data '{{.REQUEST_DATA}}' \
         'https://gitlab.com/api/v4/projects/{{.REPO_ID}}/access_tokens' > /dev/null
     status:
-      - '[ -n "{{.TOKEN_STATUS}}" ]'
+      - '[ -n "{{.TOKEN_STATUS}}" ] || ! glab api projects/:fullpath/access_tokens'
 
   branches:
     deps:
@@ -355,6 +355,13 @@ tasks:
       - '[ -z "$GITLAB_TOKEN" ]'
 
   update:
+    run: once
+    cmds:
+      - task: update:deps
+    status:
+      - '[ -z "$GITLAB_TOKEN" ] || ! type glab &> /dev/null'
+
+  update:deps:
     deps:
       - access-token
       - branches
@@ -364,9 +371,6 @@ tasks:
       - pipelines
       - update:meta
       - wiki
-    run: once
-    status:
-      - '[ -z "$GITLAB_TOKEN" ] || ! type glab &> /dev/null'
 
   update:meta:
     deps:

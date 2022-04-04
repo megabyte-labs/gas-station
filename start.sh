@@ -34,10 +34,10 @@ chmod +x .config/log
 
 # @description Acquire unique ID for this script
 if [ -z "$CI" ]; then
-  if type m5sum &> /dev/null; then
+  if type md5sum &> /dev/null; then
     FILE_HASH="$(md5sum "$0" | sed 's/\s.*$//')"
   else
-    FILE_HASH="$(date +%s -r "$0")"
+    FILE_HASH="$(date -r "$0" +%s)"
   fi
 else
   FILE_HASH="none"
@@ -274,7 +274,8 @@ function ensureTaskInstalled() {
       TASK_UPDATE_TIME="$(date +%s)"
       echo "$TASK_UPDATE_TIME" > "$HOME/.cache/megabyte/start.sh/bodega-update-check"
     fi
-    TIME_DIFF="$(($(date +%s) - "$TASK_UPDATE_TIME"))"
+    # shellcheck disable=SC2004
+    TIME_DIFF="$(($(date +%s) - $TASK_UPDATE_TIME))"
     # Only run if it has been at least 15 minutes since last attempt
     if [ "$TIME_DIFF" -gt 900 ] || [ "$TIME_DIFF" -lt 5 ]; then
       date +%s > "$HOME/.cache/megabyte/start.sh/bodega-update-check"
@@ -483,8 +484,6 @@ ensureLocalPath
 if [[ "$OSTYPE" == 'darwin'* ]]; then
   if ! type curl &> /dev/null && type brew &> /dev/null; then
     brew install curl
-  else
-    logger error "Neither curl nor brew are installed. Install one of them manually and try again."
   fi
   if ! type git &> /dev/null; then
     # shellcheck disable=SC2016
@@ -538,10 +537,11 @@ if [ -d .git ] && type git &> /dev/null; then
   if [ -f .cache/start.sh/git-pull-time ]; then
     GIT_PULL_TIME="$(cat .cache/start.sh/git-pull-time)"
   else
-    GIT_PULL_TIME="$(date +%s)"
+    GIT_PULL_TIME=$(date +%s)
     echo "$GIT_PULL_TIME" > .cache/start.sh/git-pull-time
   fi
-  TIME_DIFF="$(($(date +%s) - "$GIT_PULL_TIME"))"
+  # shellcheck disable=SC2004
+  TIME_DIFF="$(($(date +%s) - $GIT_PULL_TIME))"
   # Only run if it has been at least 15 minutes since last attempt
   if [ "$TIME_DIFF" -gt 900 ] || [ "$TIME_DIFF" -lt 5 ]; then
     date +%s > .cache/start.sh/git-pull-time
@@ -552,7 +552,7 @@ if [ -d .git ] && type git &> /dev/null; then
       git reset --hard origin/master
       git push --force origin synchronize || FORCE_SYNC_ERR=$?
       if [ -n "$FORCE_SYNC_ERR" ] && type task &> /dev/null; then
-        task ci:synchronize
+        NO_GITLAB_SYNCHRONIZE=true task ci:synchronize
       else
         DELAYED_CI_SYNC=true
       fi
@@ -587,6 +587,7 @@ ensureTaskfiles
 
 # @description Try synchronizing again (in case Task was not available yet)
 if [ "$DELAYED_CI_SYNC" == 'true' ]; then
+  logger info 'Attempting to synchronize CI..'
   task ci:synchronize
 fi
 

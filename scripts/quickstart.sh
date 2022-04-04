@@ -82,8 +82,12 @@ function ensurePackageInstalled() {
 # if the repository is already cloned then attempt to pull the latest changes if `git` is installed.
 cd ~ || exit
 if [ ! -d "$HOME/$PLAYBOOKS_DIR" ]; then
-  ensurePackageInstalled "git"
-  git clone https://gitlab.com/megabyte-labs/gas-station.git "$PLAYBOOKS_DIR"
+  if [ "$USER" == 'root' ]; then
+    echo "You should not run this as the root user. Try again with a non-root user." && exit 1
+  else
+    ensurePackageInstalled "git"
+    git clone https://gitlab.com/megabyte-labs/gas-station.git "$PLAYBOOKS_DIR"
+  fi
 fi
 
 # @description Ensure Task is installed and properly configured and then run the `ansible:quickstart`
@@ -91,8 +95,5 @@ fi
 # [here](https://gitlab.com/megabyte-labs/common/shared/-/blob/master/common/.config/taskfiles/ansible/Taskfile.yml).
 cd "$HOME/$PLAYBOOKS_DIR" || exit
 bash start.sh
-if [ -n "$1" ]; then
-  task ansible:quickstart -- $1
-else
-  task ansible:quickstart
-fi
+task ansible:quickstart
+

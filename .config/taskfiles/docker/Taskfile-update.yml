@@ -74,6 +74,7 @@ tasks:
     vars:
       AUTHORS:
         sh: jq -r '.docker_label_authors' .variables.json
+      CMD_PREFIX: sed -i{{if (eq OS "darwin")}} .bak{{end}}
       GROUP_URL:
         sh: jq -r '.repository.group.dockerfile' .variables.json
       LICENSE:
@@ -90,13 +91,15 @@ tasks:
     log:
       error: Encountered error while updating `Dockerfile` labels
     cmds:
-      - sed -i "s^.*org.opencontainers.image.authors.*^LABEL org.opencontainers.image.authors=\"{{.AUTHORS}}\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=\"${DESCRIPTION}\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation=\"${REPOSITORY_GITHUB}/blob/master/README.md\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.licenses.*^LABEL org.opencontainers.image.licenses=\"{{.LICENSE}}\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.source.*^LABEL org.opencontainers.image.source=\"${REPOSITORY_GITHUB}.git\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.url.*^LABEL org.opencontainers.image.url=\"{{.URL}}\"^g" Dockerfile
-      - sed -i "s^.*org.opencontainers.image.vendor.*^LABEL org.opencontainers.image.vendor=\"{{.ORGANIZATION}}\"^g" Dockerfile
+      - |
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.authors.*^LABEL org.opencontainers.image.authors=\"{{.AUTHORS}}\"^g" Dockerfile
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.description.*^LABEL org.opencontainers.image.description=\"${DESCRIPTION}\"^g" Dockerfile
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.documentation.*^LABEL org.opencontainers.image.documentation=\"${REPOSITORY_GITHUB}/blob/master/README.md\"^g" Dockerfile
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.licenses.*^LABEL org.opencontainers.image.licenses=\"{{.LICENSE}}\"^g" Dockerfile
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.source.*^LABEL org.opencontainers.image.source=\"${REPOSITORY_GITHUB}.git\"^g" Dockerfile
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.url.*^LABEL org.opencontainers.image.url=\"{{.URL}}\"^g" Dockerfile
+        {{.CMD_PREFIX}} "s^.*org.opencontainers.image.vendor.*^LABEL org.opencontainers.image.vendor=\"{{.ORGANIZATION}}\"^g" Dockerfile
+      - rm -f Dockerfile.bak
   # yamllint enable rule:line-length
   # eslint-enable max-len
 

@@ -498,7 +498,6 @@ elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
     ensurePackageInstalled "gzip"
     ensurePackageInstalled "sudo"
     ensurePackageInstalled "jq"
-    ensurePackageInstalled "yq"
   fi
 fi
 
@@ -522,7 +521,20 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
         # shellcheck disable=SC2016
         brew install poetry || logger info 'There may have been an issue installing `poetry` with `brew`'
       fi
+      if ! type yq &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install yq || logger info 'There may have been an issue installing `yq` with `brew`'
+      fi
     fi
+  fi
+fi
+
+# @description Second attempt to install yq if snap is on system but the Homebrew install was skipped
+if ! type yq &> /dev/null && type snap &> /dev/null; then
+  if type sudo &> /dev/null; then
+    sudo snap install yq
+  else
+    snap install yq
   fi
 fi
 

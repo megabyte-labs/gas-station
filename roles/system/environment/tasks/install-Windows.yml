@@ -1,0 +1,86 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if envconsul has configuration stored in '%USERPROFILE%/.config/megabytelabs/envconsul'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\envconsul'
+  register: envconsul_config
+
+- name: Detect previously installed envconsul version
+  ansible.windows.win_shell: type envconsul
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_envconsul_version
+  when: envconsul_config.stat.exists
+
+- name: Detect the latest envconsul version
+  ansible.windows.win_uri:
+    url: https://releases.hashicorp.com/envconsul/
+    return_content: true
+  register: envconsul_releases
+
+- name: Save the latest version of envconsul to a variable
+  set_fact:
+    envconsul_latest_version: "{{ envconsul_releases.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: Determine whether or not the latest version of envconsul is already installed
+  set_fact:
+    install_envconsul: "{{ (current_envconsul_version.skipped | default(false)) or \
+      ((not current_envconsul_version.skipped | default(false)) and (current_envconsul_version.stdout | trim != envconsul_latest_version)) }}"
+
+- name: Fetch CHECKSUMS file of envconsul installer
+  ansible.windows.win_uri:
+    url: "{{ 'https://releases.hashicorp.com/envconsul/' + envconsul_latest_version + '/envconsul_' + envconsul_latest_version + '_SHA256SUMS }}"
+    return_content: true
+  register: envconsul_checksum_file
+  when: install_envconsul
+
+- name: Find the Checksum of envconsul installer
+  set_fact:
+    envconsul_checksum: "{{ envconsul_checksum_file.content | regex_search('.*envconsul_((\\d*.)*\\d*)_windows_amd64.zip') | \
+      regex_replace('  envconsul_((\\d*.)*\\d*)_windows_amd64.zip','') }}"
+  when: install_envconsul
+
+- name: Ensure older version of envconsul is removed
+  ansible.windows.win_file:
+    path: "{{ envconsul_src_dir }}"
+    state: absent
+  when: install_envconsul
+
+- name: Ensure installation folder for envconsul exists
+  ansible.windows.win_file:
+    path: "{{ envconsul_src_dir }}"
+    state: directory
+  when: install_envconsul
+
+- name: Acquire envconsul's latest installer
+  ansible.windows.win_get_url:
+    url: "{{ 'https://releases.hashicorp.com/envconsul/' + envconsul_latest_version + '/envconsul_' + envconsul_latest_version + '_windows_amd64.zip' }}"
+    dest: "{{ envconsul_src_dir }}/envconsul_{{ envconsul_latest_version }}_windows_amd64.zip"
+    checksum: "{{ envconsul_checksum }}"
+    checksum_algorithm: sha256
+  when: install_envconsul
+
+- name: Ensure envconsul is installed
+  community.windows.win_unzip:
+    src: "{{ envconsul_src_dir }}/envconsul_{{ envconsul_latest_version }}_windows_amd64.zip"
+    dest: "{{ envconsul_src_dir }}"
+    delete_archive: true
+  when: install_envconsul
+
+- name: "Ensure empty extracted directory of envconsul is removed"
+  ansible.windows.win_file:
+    path: "{{ envconsul_src_dir }}/envconsul_{{ envconsul_latest_version }}_windows_amd64.zip"
+    state: absent
+  when: install_envconsul
+
+- name: "Save meta information about the version of envconsul that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\envconsul'
+    content: |
+      {{ envconsul_latest_version }}
+  when: install_envconsul

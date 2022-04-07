@@ -29,8 +29,8 @@
 </div>
 <br/>
 <div align="center">
-  <a title="Version: 0.0.1" href="https://github.com/megabyte-labs/Gas-Station" target="_blank">
-    <img alt="Version: 0.0.1" src="https://img.shields.io/badge/version-0.0.1-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
+  <a title="Version: 2.1.0" href="https://github.com/megabyte-labs/Gas-Station" target="_blank">
+    <img alt="Version: 2.1.0" src="https://img.shields.io/badge/version-2.1.0-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
   </a>
   <a title="Build status" href="https://gitlab.com/megabyte-labs/gas-station/-/commits/master" target="_blank">
     <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/gas-station?branch=master&label=build&logo=gitlab&style=flat-square">
@@ -115,14 +115,14 @@ The easiest way to run the entire playbook, outlined in the `main.yml` file, is 
 To test it out with Vagrant, you can run the following commands which will open up an interactive dialog where you can pick which operating system and virtualization provider you wish to test the installation with:
 
 ```shell
-bash .config/scripts/start.sh # Only required if you do not have the dependencies (i.e. Task) already installed
+bash start.sh # Only required if you do not have the dependencies (i.e. Task) already installed
 task ansible:test:vagrant
 ```
 
 ### macOS/Linux
 
 ```shell
-curl -sS https://gitlab.com/megabyte-labs/gas-station/-/raw/master/files/quickstart.sh | bash
+curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quickstart.sh | bash
 ```
 
 ### Windows
@@ -379,6 +379,7 @@ NPM provides a huge catalog of useful CLIs and libraries so we also include a us
 | **[prettier](https://npmjs.com/package/prettier)**                           | A code formatter                                                                                                                                                                                                                |
 | **[psi](https://npmjs.com/package/psi)**                                     | PageSpeed Insights with reporting                                                                                                                                                                                               |
 | **[ramda-cli](https://npmjs.com/package/ramda-cli)**                         | A tool for processing data with functional pipelines in the command-line or interactively in browser                                                                                                                            |
+| **[semantic-release](https://npmjs.com/package/semantic-release)**           | A tool that automates the process of releasing software, featuring integrations with GitHub / GitLab releases                                                                                                                   |
 | **[serve](https://npmjs.com/package/serve)**                                 | Static file serving and directory listing                                                                                                                                                                                       |
 | **[serverless](https://npmjs.com/package/serverless)**                       | Serverless Framework – Build web, mobile and IoT applications with serverless architectures using AWS Lambda, Azure Functions, Google CloudFunctions & more                                                                     |
 | **[share-cli](https://npmjs.com/package/share-cli)**                         | Quickly share files from your command line                                                                                                                                                                                      |

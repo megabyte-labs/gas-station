@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd ~/Playbooks || exit
-ansible-playbook --vault-password-file=~/.vault_pass -i inventories/laptop.yml main.yml
+ansible-playbook --ask-sudo-pass -i inventories/quickstart.yml main.yml

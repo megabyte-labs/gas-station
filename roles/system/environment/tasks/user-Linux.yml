@@ -1,0 +1,32 @@
+---
+- name: Ensure envconsul config file is created
+  become_user: "{{ user.username }}"
+  template:
+    src: config.hcl.j2
+    dest: ~/.config/envconsul.hcl
+    mode: 0700
+    backup: true
+
+- name: Ensure envconsul command is added to .bashrc
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.bashrc
+    block: |
+      read -sp "Enter the token to connect to vault: " VAULT_TOKEN_INPUT
+      for tkn in $(envconsul -pristine -once -config="~/.config/envconsul.hcl" -vault-token="$VAULT_TOKEN_INPUT" env 2> /dev/null); do export $tkn; done
+    mode: 0700
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for Loading environment variables from Vault"
+    create: true
+    backup: true
+
+- name: Ensure envconsul command is added to .zshrc
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.zshrc
+    block: |
+      read -sp "Enter the token to connect to vault: " VAULT_TOKEN_INPUT
+      for tkn in $(envconsul -pristine -once -config="~/.config/envconsul.hcl" -vault-token="$VAULT_TOKEN_INPUT" env 2> /dev/null); do export $tkn; done
+    mode: 0700
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for Loading environment variables from Vault"
+    create: true
+    backup: true

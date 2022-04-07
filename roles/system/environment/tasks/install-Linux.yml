@@ -1,0 +1,97 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ envconsul_src_dir }} directory exists"
+  file:
+    path: "{{ envconsul_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Detect the latest envconsul version
+  uri:
+    url: https://releases.hashicorp.com/envconsul/
+    return_content: true
+  register: envconsul_releases
+
+- name: Save the latest version of envconsul to a variable
+  set_fact:
+    envconsul_latest_version: "{{ envconsul_releases.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: Determine whether or not the latest version of envconsul is already installed
+  set_fact:
+    install_envconsul: "{{ (ansible_local.envconsul is not defined) or \
+      ((ansible_local.envconsul is defined) and (ansible_local['envconsul']['settings']['version'] != envconsul_latest_version)) }}"
+
+- name: Ensure older version of envconsul is uninstalled
+  file:
+    path: /usr/local/bin/envconsul
+    state: absent
+  when: install_envconsul
+
+- name: Fetch CHECKSUMS file of envconsul installer
+  uri:
+    url: "{{ 'https://releases.hashicorp.com/envconsul/' + envconsul_latest_version + '/envconsul_' + envconsul_latest_version + '_SHA256SUMS' }}"
+    return_content: true
+  register: envconsul_checksum_file
+  when: install_envconsul
+
+- name: Find the Checksum of envconsul installer
+  set_fact:
+    envconsul_checksum: "{{ envconsul_checksum_file.content | regex_search('.*envconsul_((\\d*.)*\\d*)_linux_amd64.zip') | \
+      regex_replace('  envconsul_((\\d*.)*\\d*)_linux_amd64.zip','') }}"
+  when: install_envconsul
+
+- name: Acquire envconsul's installer
+  get_url:
+    url: "{{ 'https://releases.hashicorp.com/envconsul/' + envconsul_latest_version + '/envconsul_' + envconsul_latest_version + '_linux_amd64.zip' }}"
+    dest: "{{ envconsul_src_dir }}/envconsul_{{ envconsul_latest_version }}_linux_amd64.zip"
+    checksum: "sha256:{{ envconsul_checksum }}"
+  when: install_envconsul
+
+- name: Ensure envconsul is installed
+  unarchive:
+    src: "{{ envconsul_src_dir }}/envconsul_{{ envconsul_latest_version }}_linux_amd64.zip"
+    dest: /usr/local/bin
+    remote_src: true
+  when: install_envconsul
+
+- name: "Save meta information about the version of envconsul that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/envconsul.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ envconsul_latest_version }}"
+    backup: true
+    no_extra_spaces: true
+  when: install_envconsul
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: Ensure envchain dependencies are installed
+  package:
+    name: "{{ envchain_dependencies }}"
+    state: present
+
+- name: Ensure envchain sources are cloned
+  git:
+    repo: https://github.com/sorah/envchain
+    dest: "{{ envchain_src_dir }}"
+    version: master
+
+- name: Ensure envchain is installed
+  become_user: root
+  command: make install
+  args:
+    chdir: "{{ envchain_src_dir }}"
+    creates: /usr/bin/envchain

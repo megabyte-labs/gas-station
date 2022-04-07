@@ -23,7 +23,10 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:eslint
-      - :install:software:expect
+      - :install:software:unbuffer
+    vars:
+      ESLINT_LOG:
+        sh: mktemp
     desc: Fix ESLint errors automatically
     summary: |
       # Fix Errors with ESLint Automatically
@@ -43,22 +46,20 @@ tasks:
       success: ESLint fixing appears to have corrected all the issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
       - 'unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache
-        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log'
+        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee {{.ESLINT_LOG}}'
       - |
         if [ '{{.ESLINT_FIX_RECURSIVE}}' == 'true' ]; then
           COUNT=0
           while [ $COUNT -le 5 ]; do
             COUNT=$((COUNT + 1))
-            if grep 'potentially fixable with the `--fix` option' < eslint.log > /dev/null; then
+            if grep 'potentially fixable with the `--fix` option' < {{.ESLINT_LOG}} > /dev/null; then
               COUNT="$COUNT"
               unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache \
-              --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log
-            else
-              echo '' > eslint.log
+              --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee {{.ESLINT_LOG}}
             fi
           done
         fi
-      - rm eslint.log
+      - rm {{.ESLINT_LOG}}
 
   eslint:staged:
     deps:

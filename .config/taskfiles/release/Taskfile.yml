@@ -463,9 +463,23 @@ tasks:
       }
       ```
     cmds:
-      - task: :npm:publish
+      - task: publish:npm:tasks
     status:
       - '[ -z "$RELEASE_NPM" ]'
+
+  publish:npm:latest:
+    vars:
+      PKG_NAME:
+        sh: jq -r '.name' package.json
+      VERSION:
+        sh: jq -r '.version' package.json
+    cmds:
+      - npm dist-tag add {{.PKG_NAME}}@{{.VERSION}} latest
+
+  publish:npm:tasks:
+    deps:
+      - publish:npm:latest
+      - :npm:publish:gitlab
 
   publish:packer:
     cmds:

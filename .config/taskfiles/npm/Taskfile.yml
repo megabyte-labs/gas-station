@@ -271,19 +271,28 @@ tasks:
     cmds:
       - node-prune
 
-  publish:
-    summary: |
-      Following shows how to configure to publish to GitLab if needed in future:
-
-      ```shell
-      npm config set -- '{{.REGISTRY_ADDRESS}}:_authToken' '${GITLAB_TOKEN}'
-      npm publish
-      ```
+  publish:gitlab:
+    env:
+      BACKUP_PKG:
+        sh: mktemp
     vars:
+      PKG_NAME:
+        sh: jq -r '.name' package.json
       REGISTRY_ADDRESS:
-        sh: jq -r '.publishConfig["@megabyte:registry"]' package.json
+        sh: jq -r '.publishConfig["@gitlab:registry"]' package.json
+      VERSION:
+        sh: jq -r '.version' package.json
     cmds:
-      - 'true'
+      - npm config set -- '{{.REGISTRY_ADDRESS}}:_authToken' '${GITLAB_TOKEN}'
+      - cp package.json "$BACKUP_PKG"
+      - TMP="$(mktemp)" && jq '.name = "@gitlab/{{.PKG_NAME}}" | .publishConfig.access = "restricted"' package.json > "$TMP" && mv "$TMP" package.json
+      - cmd: npm publish
+        ignore_error: true
+      - cmd: npm dist-tag {{.PKG_NAME}}@{{.VERSION}} latest
+        ignore_error: true
+      - mv "$BACKUP_PKG" package.json
+    status:
+      - '[ "$(jq -r ".publishConfig[\"@gitlab:registry\"] | type" package.json)" != "string" ]'
 
   start:
     deps:

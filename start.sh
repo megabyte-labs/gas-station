@@ -335,7 +335,7 @@ function installTask() {
   sha256 "$DOWNLOAD_DESTINATION" "$DOWNLOAD_SHA256" > /dev/null
   logger success "Validated checksum"
   mkdir -p "$TMP_DIR/task"
-  tar -xzvf "$DOWNLOAD_DESTINATION" -C "$TMP_DIR/task" > /dev/null
+  tar -xzf "$DOWNLOAD_DESTINATION" -C "$TMP_DIR/task" > /dev/null
   if type task &> /dev/null && [ -w "$(which task)" ]; then
     TARGET_BIN_DIR="."
     TARGET_DEST="$(which task)"
@@ -439,7 +439,7 @@ function ensureTaskfiles() {
       else
         mkdir -p .config/taskfiles
         curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/archive/master/shared-master.tar.gz > shared-master.tar.gz
-        tar -xzvf shared-master.tar.gz > /dev/null
+        tar -xzf shared-master.tar.gz > /dev/null
         rm shared-master.tar.gz
         rm -rf .config/taskfiles
         mv shared-master/common/.config/taskfiles .config/taskfiles

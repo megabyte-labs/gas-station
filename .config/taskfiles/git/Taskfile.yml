@@ -45,13 +45,12 @@ tasks:
     log:
       start: Running automated commit
     cmds:
-      - cmd: |
-          if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
-            task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
-            git add --all
-            HUSKY=0 git commit -m "☁️ Automation" -n
-          fi
+      - task --list > /dev/null || (echo "ERROR > Invalid Taskfile(s)!" && exit 1)
+      - git add --all
+      - cmd: HUSKY=0 git commit -m "☁️ automation(update) Automated update" -n
         ignore_error: true
+    status:
+      - '[ "$FULLY_AUTOMATED_TASKS" != "true" ] || [ "$SEMANTIC_RELEASE" == "true" ]'
 
   convert:folder:submodule:
     deps:
@@ -72,16 +71,13 @@ tasks:
       - git add --all
       - git commit --quiet -m "refactor(convert-dir-to-submodule) Adding folder/project to its own git repository."
       - git push --quiet -u --no-progress origin master
-      - |
-        cd ..
-        rm -rf {{.BASENAME}}
-        git add {{.BASENAME}}
-        git commit --quiet -m "refactor(convert-dir-to-submodule) Removing folder which will now be a submodule."
-        git submodule add -b master "{{.GITLAB_REPO}}" {{.BASENAME}}
-        git add {{.BASENAME}}
-        git commit --quiet -m "refactor(convert-dir-to-submodule) Adding new submodule which was previously a directory."
-        git push --quiet -u --no-progress origin HEAD
-      - .config/log success ''
+      - cd .. && rm -rf {{.BASENAME}}
+      - cd .. && git add {{.BASENAME}}
+      - cd .. && git commit --quiet -m "refactor(convert-dir-to-submodule) Removing folder which will now be a submodule."
+      - cd .. && git submodule add -b master "{{.GITLAB_REPO}}" {{.BASENAME}}
+      - cd .. && git add {{.BASENAME}}
+      - cd .. && git commit --quiet -m "refactor(convert-dir-to-submodule) Adding new submodule which was previously a directory."
+      - cd .. && git push --quiet -u --no-progress origin HEAD
     preconditions:
       - sh: '[[ ! $(git rev-parse --git-dir) =~ ".git/modules" ]]'
         msg: Cannot convert the directory to a submodule - the directory already appears to be a submodule.
@@ -123,12 +119,9 @@ tasks:
       start: Running `git push all master --force || git push origin master`
       success: Successfully ran `git push all master --force || git push origin master`
     cmds:
-      - |
-        if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
-          git push all master --force || git push origin master
-        fi
+      - git push all master --force || git push origin master
     status:
-      - '[ -n "$CI" ]'
+      - '[ -n "$CI" ] || [ "$SEMANTIC_RELEASE" == "true" ] || [ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
   remotes:
     deps:

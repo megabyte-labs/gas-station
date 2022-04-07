@@ -1,0 +1,31 @@
+secret {
+  no_prefix = true
+  path      = "{{ user.envconsul.kv_path | default(kv_path) }}"
+}
+log_level = "err"
+upcase = true
+
+vault {
+  address     = "{{ user.envconsul.vault_address | default(vault_address) }}"
+  renew_token = true
+
+  retry {
+    enabled = true
+    attempts = 3
+    backoff = "250ms"
+    max_backoff = "1s"
+  }
+
+{% if user.envconsul.vault_address | default(vault_address) | regex_search('^https.*') %}
+  ssl {
+    enabled = true
+    verify  = {{ user.envconsul.verify | default(verify) }}
+{% if user.envconsul.cert_path | default(cert_path) | length > 0 %}
+    cert    = "{{ user.envconsul.cert_path | default(cert_path) }}"
+{% endif %}
+{% if user.envconsul.ca_cert | default(ca_cert) | length > 0 %}
+    ca_cert = "{{ user.envconsul.ca_cert | default(ca_cert) }}"
+{% endif %}
+  }
+{% endif %}
+}

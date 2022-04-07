@@ -1,0 +1,151 @@
+{
+  "name": "@megabytelabs/ansible-environment",
+  "version": "1.0.0",
+  "description": "An Ansible role that populates the environment file with all your web apps configured with the environment variable",
+  "license": "MIT",
+  "author": "Brian Zalewski <brian@megabyte.space> (https://megabyte.space)",
+  "homepage": "https://install.doctor",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/megabyte-labs/ansible-roles/environment.git"
+  },
+  "bugs": {
+    "email": "help@megabyte.space",
+    "url": "https://gitlab.com/megabyte-labs/ansible-roles/environment/-/issues"
+  },
+  "scripts": {
+    "commit": "git-cz",
+    "fix": "run-s fix:*",
+    "fix:black": "black .",
+    "fix:prettier": "prettier --write . '!{.cache/**,**/*.cache/**,.husky/_/husky.sh,.gitmodules,.modules,Dockerfile,**/Dockerfile,venv}' && prettier-package-json --write",
+    "fix:shellcheck": "find . -type d \\( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky \\) -prune -o -type f \\( -name \\*.sh -o -name \\*.sh.j2 \\) -print0 | xargs -0 shellcheck -f diff | git apply",
+    "info": "npm-scripts-info",
+    "postinstall": "if [ -d .git ]; then husky install; fi && run-s update",
+    "lint": "run-s lint:*",
+    "lint:ansible": "run-s misc:symlink-role && ansible-lint",
+    "lint:black": "black . --check",
+    "lint:flake8": "flake8 .",
+    "lint:hadolint": "find . -type d \\( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky -o -name test \\) -prune -o -type f \\( -name Dockerfile -o -name Dockerfile.j2 \\) -print0 | xargs -0 -r -n1 docker run -v ${PWD}:/work -w /work hadolint/hadolint:latest hadolint",
+    "lint:prettier": "prettier --list-different . '!{.cache/**,**/*.cache/**,.husky/_/husky.sh,.gitmodules,.modules,Dockerfile,**/Dockerfile,venv}'",
+    "lint:shellcheck": "find . -type d \\( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky -o -name .start.sh \\) -prune -o -type f \\( -name \\*.sh -o -name \\*.sh.j2 \\) -print0 | xargs -0 -r -n1 shellcheck",
+    "lint:yaml": "yamllint .",
+    "misc:symlink-role": "export ANSIBLE_GALAXY_USERNAME_PREFIX=professormanhattan. && local ROLE_FOLDER=$(basename $PWD) && rm \"$HOME/.ansible/roles/${ANSIBLE_GALAXY_USERNAME_PREFIX}.${ROLE_FOLDER}\" && ln -s \"$PWD\" \"~/.ansible/roles/${ANSIBLE_GALAXY_USERNAME_PREFIX}.${ROLE_FOLDER}\"",
+    "prepare-release": "run-s update lint test version",
+    "shell:archlinux": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-archlinux:latest /bin/bash",
+    "shell:centos-7": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-centos-7:latest /bin/bash",
+    "shell:centos-8": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-centos-8:latest /bin/bash",
+    "shell:debian-10": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-debian-10:latest /bin/bash",
+    "shell:debian-9": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-debian-9:latest /bin/bash",
+    "shell:fedora-33": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-fedora-33:latest /bin/bash",
+    "shell:fedora-34": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-fedora-34:latest /bin/bash",
+    "shell:ubuntu-18.04": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-ubuntu-18.04:latest /bin/bash",
+    "shell:ubuntu-20.04": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-ubuntu-20.04:latest /bin/bash",
+    "shell:ubuntu-21.04": "docker run --cap-drop=ALL -it -v ${PWD}:/environment -w /environment --rm megabytelabs/ansible-molecule-ubuntu-21.04:latest /bin/bash",
+    "start": "run-s update",
+    "test": "molecule test",
+    "test:archlinux": "molecule converge -s archlinux-desktop",
+    "test:centos": "molecule converge -s centos-desktop",
+    "test:debian": "molecule converge -s debian-desktop",
+    "test:docker": "SNAP_REFERENCES=$(grep -Ril \"community.general.snap:\" ./tasks) && if [ \"$SNAP_REFERENCES\" ]; then molecule test -s docker-snap; else molecule test -s docker; fi",
+    "test:fedora": "molecule converge -s fedora-desktop",
+    "test:local": "ansible-playbook --ask-sudo-pass --connection=local tests/test.yml",
+    "test:macos": "molecule converge -s macos-desktop",
+    "test:report": "PYCOLORS=0 molecule test > molecule-test-output.txt",
+    "test:ubuntu": "molecule converge -s ubuntu-desktop",
+    "test:windows": "export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES && molecule converge -s windows-desktop",
+    "update": "bash .start.sh && cp ./.modules/ansible/.start.sh .start.sh",
+    "version": "standard-version --no-verify"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "devDependencies": {
+    "@megabytelabs/prettier-config-ansible": "^1.0.0",
+    "consola": "^2.15.3",
+    "cspell": "^5.6.3",
+    "cz-conventional-changelog": "^3.3.0",
+    "husky": "^6.0.0",
+    "lint-staged": "^11.0.0",
+    "npm-run-all": "^4.1.5",
+    "npm-scripts-info": "^0.3.9",
+    "prettier": "^2.3.1",
+    "prettier-package-json": "^2.6.0",
+    "prettier-plugin-sh": "^0.6.1",
+    "shellcheck": "^1.0.0",
+    "standard-version": "^9.3.0"
+  },
+  "keywords": [
+    "environment",
+    "ansible",
+    "archlinux",
+    "centos",
+    "debian",
+    "fedora",
+    "macos",
+    "megabytelabs",
+    "molecule",
+    "playbook",
+    "professormanhattan",
+    "ubuntu",
+    "windows"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "funding": [
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/megabytelabs"
+    },
+    {
+      "type": "patreon",
+      "url": "https://www.patreon.com/ProfessorManhattan"
+    }
+  ],
+  "lint-staged": {
+    "{**/*.yml,**/*.json}": [
+      "prettier --write"
+    ],
+    "{**/*.sh,**/*.sh.j2": [
+      "prettier --write",
+      "docker run -v \"$PWD:/mnt\" koalaman/shellcheck"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
+    ]
+  },
+  "prettier": "@megabytelabs/prettier-config-ansible",
+  "scripts-info": {
+    "commit": "IMPORTANT: Whenever committing code run 'git-cz' or 'npm run commit' - this command will automatically test and prompt with an interactive questionnaire to populate proper commit messages",
+    "fix": "Automatically fix formatting errors",
+    "fix:black": "Automatically format Python files",
+    "fix:prettier": "Automatically format files with Prettier",
+    "fix:shellcheck": "Attempts to automatically fix shell scripts",
+    "info": "Displays descriptions of all the npm tasks",
+    "lint": "Report all linting errors",
+    "lint:ansible": "Runs ansible-lint which has rules specific to Ansible projects",
+    "lint:black": "Runs Black which formats Python files",
+    "lint:docker": "Runs hadolint on all Dockerfile and Dockerfile.j2 files",
+    "lint:flake8": "Runs flake8 which lints Python files",
+    "lint:hadolint": "Lints Dockerfiles",
+    "lint:prettier": "Checks for presence of files that Prettier wants to format differently",
+    "lint:shellcheck": "Performs linting of shell scripts",
+    "lint:yaml": "Runs yamllint which is a general purpose linter for YAML files",
+    "misc:symlink-role": "Adds role to ~/.ansible/roles/professormanhattan.role_name - you can use this when ansible-lint complains about role not being found",
+    "prepare-release": "Prepares the repository for a release",
+    "shell:OS_NAME": "Open a Docker shell session for debugging (OS_NAME can be archlinux, centos-7, centos-8, debian-9, debian-10, fedora-33, fedora-34, ubuntu-18.04, ubuntu-20.04, or ubuntu-21.04)",
+    "test": "Runs molecule tests for all the supported operating systems using VirtualBox (this is RAM intensive)",
+    "test:docker": "Runs molecule tests on all supported Linux environments using Docker (if the role contains a snap installation, then only flavors that support snap are tested)",
+    "test:local": "Installs the role on your local machine",
+    "test:OS_NAME": "Provisions a full desktop VirtualBox VM, installs the role(s), and does not delete the VM after testing for further inspection (OS NAME can be archlinux, centos, debian, fedora, macos, ubuntu, or windows)",
+    "update": "Runs .start.sh to automatically update meta files and documentation",
+    "version": "Used by 'npm run prepare-release' to update the CHANGELOG"
+  },
+  "standard-version": {
+    "scripts": {
+      "prerelease": "git add --all"
+    }
+  }
+}

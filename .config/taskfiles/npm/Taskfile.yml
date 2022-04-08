@@ -285,6 +285,7 @@ tasks:
     deps:
       - :install:software:jq
       - :install:software:node
+      - :npm:config
     vars:
       PKG_NAME:
         sh: jq -r '.name' package.json
@@ -296,16 +297,13 @@ tasks:
       BACKUP_PKG:
         sh: mktemp
     cmds:
-      - npm config set -- '{{.REGISTRY_ADDRESS}}:_authToken' '${GITLAB_TOKEN}'
       - cp package.json "$BACKUP_PKG"
       - TMP="$(mktemp)" && jq '.name = "@gitlab/{{.PKG_NAME}}" | .publishConfig.access = "restricted"' package.json > "$TMP" && mv "$TMP" package.json
-      - cmd: npm publish
-        ignore_error: true
-      - cmd: npm dist-tag add {{.PKG_NAME}}@{{.VERSION}} latest
-        ignore_error: true
+      - npm publish
+      - npm dist-tag --registry={{.REGISTRY_ADDRESS}} add {{.PKG_NAME}}@{{.VERSION}} latest
       - mv "$BACKUP_PKG" package.json
     status:
-      - '[ "$(jq -r ".publishConfig[\"@gitlab:registry\"] | type" package.json)" != "string" ]'
+      - '[ "$(jq -r ".publishConfig[\"@gitlab:registry\"] | type" package.json)" != "string" ] || [ -z "$NPM_PUBLISH_GITLAB" ]'
 
   start:
     deps:

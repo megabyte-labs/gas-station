@@ -165,9 +165,9 @@ fi
 function ensureLocalPath() {
   if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux'* ]]; then
     # shellcheck disable=SC2016
-    PATH_STRING='PATH="$HOME/.local/bin:$PATH"'
+    PATH_STRING='export PATH="$HOME/.local/bin:$PATH"'
     mkdir -p "$HOME/.local/bin"
-    if grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+    if ! grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
       echo -e "${PATH_STRING}\n" >> "$HOME/.profile"
       logger info "Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
     fi

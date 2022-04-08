@@ -496,54 +496,30 @@ tasks:
 
   success:
     deps:
-      - success:ansible
-      - success:docker
-      - success:go
-      - success:npm
-      - success:packer
-      - success:python
+      - :install:software:jq
+    env:
+      PACKAGE_JSON:
+        sh: jq -r '.' package.json
+      RELEASE_JSON:
+        sh: jq -r '.' .release.json
+      TMP:
+        sh: mktemp
+      VARIABLES_JSON:
+        sh: jq -r '.' .variables.json
     summary: |
       | Command property | Description                                                                                                         |
       |------------------|---------------------------------------------------------------------------------------------------------------------|
       | `exit code`      | Any non `0` code is considered as an unexpected error and will stop the `semantic-release` execution with an error. |
       | `stdout`         | Can be used for logging.                                                                                            |
       | `stderr`         | Can be used for logging.                                                                                            |
-
-  success:ansible:
     cmds:
-      - 'true'
+      - jq -n --arg pkg "$PACKAGE_JSON" --arg release "$RELEASE_JSON" --arg vars "$VARIABLES_JSON"
+        '.["package.json"] = $pkg | .[".release.json"] = $release | .[".variables.json"] = $vars' > "$TMP"
+      - >
+        curl -X POST -H "Content-Type: application/json" -d "$(cat "$TMP")"
+        "https://maker.ifttt.com/trigger/SemanticRelease/json/with/key/$IFTTT_SEMANTICRELEASE"
     status:
-      - '[ -z "$RELEASE_ANSIBLE" ]'
-
-  success:docker:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_DOCKER" ]'
-
-  success:go:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_GO" ]'
-
-  success:npm:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_NPM" ]'
-
-  success:packer:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_PACKER" ]'
-
-  success:python:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_PYTHON" ]'
+      - '[ -z "$IFTTT_SEMANTICRELEASE" ]'
 
   verify:conditions:
     deps:

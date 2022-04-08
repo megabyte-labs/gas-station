@@ -42,12 +42,16 @@ tasks:
             sh: echo true
       - :install:npm:semantic-release
       - :install:software:git
-      - :install:software:poetry
     vars:
       RELEASE_PREFIX:
         sh: if [ -f setup.cfg ]; then echo 'poetry run '; else echo ''; fi
       RUN_OPTIONS: '{{if .CLI_ARGS}} {{.CLI_ARGS}}{{else}} --ci false --debug --dry-run false{{end}}'
     env:
+      GIT_CREDENTIALS:
+        sh: |
+          if [ -n "$CI" ]; then
+            echo "gitlab-ci-token:$CI_BUILD_TOKEN"
+          fi
       HUSKY: '0'
       PUBLISHING: 'true'
       SEMANTIC_RELEASE: 'true'
@@ -56,21 +60,32 @@ tasks:
       start: Releasing with `semantic-release`..
       success: Finished running `semantic-release`
     cmds:
-      - rm -rf build dist
+      - task: semantic-release:prepare
+      - |
+        {{.RELEASE_PREFIX}}semantic-release -r "$(git remote get-url origin)"{{.RUN_OPTIONS}}
+
+  semantic-release:build:
+    cmds:
+      - rm -rf artifacts build dist
+      - task: :release:build
+
+  semantic-release:poetry:
+    deps:
+      - :install:software:poetry
+    cmds:
+      - poetry install -E semantic
+    status:
+      - '[ ! -f setup.cfg ]'
+
+  semantic-release:prepare:
+    deps:
       - task: :install:modules:local:sync
         vars:
           NPM_KEEP_UPDATED: '{{.SEMANTIC_CONFIG}}'
-      - task: version:tag
-      - task: :common:update:variables
-      - |
-        if [ -f setup.cfg ]; then
-          poetry install -E semantic
-        fi
-      - |
-        if [ -n "$CI" ]; then
-          export GIT_CREDENTIALS="gitlab-ci-token:$CI_BUILD_TOKEN"
-        fi
-        {{.RELEASE_PREFIX}}semantic-release -r "$(git remote get-url origin)"{{.RUN_OPTIONS}}
+      - version:tag
+      - :common:update:variables
+      - semantic-release:build
+      - semantic-release:poetry
 
   version:tag:
     deps:

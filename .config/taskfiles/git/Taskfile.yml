@@ -119,7 +119,17 @@ tasks:
       start: Running `git push all master --force || git push origin master`
       success: Successfully ran `git push all master --force || git push origin master`
     cmds:
-      - git push all master --force || git push origin master
+      - |
+        if ! git push all master --force; then
+          git pull -X theirs origin master
+          git add --all
+          HUSKY=0 git commit -m "☁️ automation(push-all) Automated update" -n
+          if ! git push all master --force; then
+            task git:gitlab:protected:off -- master
+            git push all master --force
+            task git:gitlab:protected:on -- master
+          fi
+        fi
     status:
       - '[ -n "$CI" ] || [ "$SEMANTIC_RELEASE" == "true" ] || [ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 

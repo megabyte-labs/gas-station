@@ -215,6 +215,17 @@ tasks:
         done
         wait
 
+  config:
+    deps:
+      - :install:software:jq
+      - :install:software:node
+    vars:
+      REGISTRY_ADDRESS:
+        sh: jq -r '.publishConfig["@gitlab:registry"]' package.json
+    cmds:
+      - npm config set -- 'https://registry.npmjs.org/:_authToken' '${NPM_TOKEN}'
+      - npm config set -- '{{.REGISTRY_ADDRESS}}:_authToken' '${GITLAB_TOKEN}'
+
   depcheck:dependencies:
     deps:
       - :install:npm:depcheck
@@ -272,6 +283,9 @@ tasks:
       - node-prune
 
   publish:gitlab:
+    deps:
+      - :install:software:jq
+      - :install:software:node
     vars:
       PKG_NAME:
         sh: jq -r '.name' package.json

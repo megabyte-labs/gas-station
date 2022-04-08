@@ -183,16 +183,38 @@ tasks:
       - '[ -z "$RELEASE_DOCKER" ]'
 
   build:go:
+    deps:
+      - build:go:deps
     cmds:
       - task: :build
     status:
       - '[ -z "$RELEASE_GO" ]'
 
+  build:go:deps:
+    deps:
+      - :docker:login
+      - :install:go:goreleaser
+      - :install:go:nfpm
+      - :install:software:go
+      - :install:software:snapcraft
+
   build:npm:
+    deps:
+      - build:npm:deps
     cmds:
       - task: :build
     status:
       - '[ -z "$RELEASE_NPM" ]'
+
+  build:npm:deps:
+    deps:
+      - build:npm:deps:go
+
+  build:npm:deps:go:
+    cmds:
+      - task: build:go:deps
+    status:
+      - '[ "{{.REPOSITORY_SUBTYPE}}" != "cli" ]'
 
   build:packer:
     cmds:
@@ -497,12 +519,6 @@ tasks:
   success:
     deps:
       - :install:software:jq
-    summary: |
-      | Command property | Description                                                                                                         |
-      |------------------|---------------------------------------------------------------------------------------------------------------------|
-      | `exit code`      | Any non `0` code is considered as an unexpected error and will stop the `semantic-release` execution with an error. |
-      | `stdout`         | Can be used for logging.                                                                                            |
-      | `stderr`         | Can be used for logging.                                                                                            |
     env:
       PACKAGE_JSON:
         sh: jq -r '.' package.json
@@ -512,6 +528,12 @@ tasks:
         sh: mktemp
       VARIABLES_JSON:
         sh: jq -r '.' .variables.json
+    summary: |
+      | Command property | Description                                                                                                         |
+      |------------------|---------------------------------------------------------------------------------------------------------------------|
+      | `exit code`      | Any non `0` code is considered as an unexpected error and will stop the `semantic-release` execution with an error. |
+      | `stdout`         | Can be used for logging.                                                                                            |
+      | `stderr`         | Can be used for logging.                                                                                            |
     cmds:
       - jq -n --arg pkg "$PACKAGE_JSON" --arg release "$RELEASE_JSON" --arg vars "$VARIABLES_JSON"
         '.["package.json"] = $pkg | .[".release.json"] = $release | .[".variables.json"] = $vars' > "$TMP"

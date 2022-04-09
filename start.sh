@@ -11,6 +11,7 @@
 
 set -eo pipefail
 
+# @description Initialize variables
 DELAYED_CI_SYNC=""
 ENSURED_TASKFILES=""
 

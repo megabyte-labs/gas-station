@@ -230,54 +230,24 @@ tasks:
 
   fail:
     deps:
-      - fail:ansible
-      - fail:docker
-      - fail:go
-      - fail:npm
-      - fail:packer
-      - fail:python
-    summary: |
-      | Command property | Description                                                                                                         |
-      |------------------|---------------------------------------------------------------------------------------------------------------------|
-      | `exit code`      | Any non `0` code is considered as an unexpected error and will stop the `semantic-release` execution with an error. |
-      | `stdout`         | Can be used for logging.                                                                                            |
-      | `stderr`         | Can be used for logging.                                                                                            |
-
-  fail:ansible:
+      - :install:software:jq
+    env:
+      PACKAGE_JSON:
+        sh: jq -r '.' package.json
+      RELEASE_JSON:
+        sh: jq -r '.' .release.json
+      TMP:
+        sh: mktemp
+      VARIABLES_JSON:
+        sh: jq -r '.' .variables.json
     cmds:
-      - 'true'
+      - jq -n --arg pkg "$PACKAGE_JSON" --arg release "$RELEASE_JSON" --arg vars "$VARIABLES_JSON" --arg job "$CI_JOB_ID"
+        '.["package.json"] = $pkg | .[".release.json"] = $release | .[".variables.json"] = $vars | .CI_JOB_ID = $job' > "$TMP"
+      - >
+        curl -X POST -H "Content-Type: application/json" -d "$(cat "$TMP")"
+        "https://maker.ifttt.com/trigger/SemanticReleaseFail/json/with/key/$IFTTT_WEBHOOK_TOKEN"
     status:
-      - '[ -z "$RELEASE_ANSIBLE" ]'
-
-  fail:docker:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_DOCKER" ]'
-
-  fail:go:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_GO" ]'
-
-  fail:npm:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_NPM" ]'
-
-  fail:packer:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_PACKER" ]'
-
-  fail:python:
-    cmds:
-      - 'true'
-    status:
-      - '[ -z "$RELEASE_PYTHON" ]'
+      - '[ -z "$IFTTT_WEBHOOK_TOKEN" ]'
 
   notes:
     cmds:
@@ -519,12 +489,6 @@ tasks:
   success:
     deps:
       - :install:software:jq
-    summary: |
-      | Command property | Description                                                                                                         |
-      |------------------|---------------------------------------------------------------------------------------------------------------------|
-      | `exit code`      | Any non `0` code is considered as an unexpected error and will stop the `semantic-release` execution with an error. |
-      | `stdout`         | Can be used for logging.                                                                                            |
-      | `stderr`         | Can be used for logging.                                                                                            |
     env:
       PACKAGE_JSON:
         sh: jq -r '.' package.json
@@ -534,14 +498,20 @@ tasks:
         sh: mktemp
       VARIABLES_JSON:
         sh: jq -r '.' .variables.json
+    summary: |
+      | Command property | Description                                                                                                         |
+      |------------------|---------------------------------------------------------------------------------------------------------------------|
+      | `exit code`      | Any non `0` code is considered as an unexpected error and will stop the `semantic-release` execution with an error. |
+      | `stdout`         | Can be used for logging.                                                                                            |
+      | `stderr`         | Can be used for logging.                                                                                            |
     cmds:
       - jq -n --arg pkg "$PACKAGE_JSON" --arg release "$RELEASE_JSON" --arg vars "$VARIABLES_JSON"
         '.["package.json"] = $pkg | .[".release.json"] = $release | .[".variables.json"] = $vars' > "$TMP"
       - >
         curl -X POST -H "Content-Type: application/json" -d "$(cat "$TMP")"
-        "https://maker.ifttt.com/trigger/SemanticRelease/json/with/key/$IFTTT_SEMANTICRELEASE"
+        "https://maker.ifttt.com/trigger/SemanticRelease/json/with/key/$IFTTT_WEBHOOK_TOKEN"
     status:
-      - '[ -z "$IFTTT_SEMANTICRELEASE" ]'
+      - '[ -z "$IFTTT_WEBHOOK_TOKEN" ]'
 
   verify:conditions:
     deps:

@@ -63,6 +63,29 @@ tasks:
   publish:
     cmds:
       - task: :go:goreleaser:release
+      - task: publish:after
+
+  publish:after:
+    deps:
+      - publish:after:docker
+      - publish:after:fury
+
+  publish:after:docker:
+    cmds:
+      - |
+        for FILE in build/goreleaserdocker*; do
+          [ -e "$FILE" ] && task --dir "$FILE" docker:verify docker:build docker:publish
+          break
+        done
+
+  publish:after:fury:
+    deps:
+      - :install:software:fury
+    cmds:
+      - fury push build/*.deb --account=$FURY_ACCOUNT --api-token=$FURY_DEPLOY_TOKEN
+      - fury push build/*.rpm --account=$FURY_ACCOUNT --api-token=$FURY_DEPLOY_TOKEN
+    status:
+      - '[ -z "$FURY_ACCOUNT" ] || [ -z "$FURY_DEPLOY_TOKEN" ]'
 
   test:
     deps:

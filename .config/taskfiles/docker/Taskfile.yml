@@ -104,6 +104,8 @@ tasks:
   prepare:
     cmds:
       - task: build
+    status:
+      - '[ ! -f Dockerfile ]'
 
   publish:
     desc: Publish the Docker images (using `Docker*.test.yml` files)
@@ -139,6 +141,8 @@ tasks:
           task docker:publish:images
         fi
       - task: pushrm
+    status:
+      - '[ ! -f Dockerfile ]'
 
   publish:image:
     vars:
@@ -166,6 +170,8 @@ tasks:
     vars:
       MAJOR_VERSION:
         sh: jq -r '.version' package.json | sed 's/\..*\..*$//'
+      MINOR_VERSION:
+        sh: jq -r '.version' package.json | sed 's/^[^\.]*\.//' | sed 's/\.[^\.]*$//'
       TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{if (contains "codeclimate" .CLI_ARGS)}}codeclimate{{else}}{{.CLI_ARGS}}{{end}}{{end}}'
       TARGET: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.TARGET}}{{end}}'
       VERSION:
@@ -178,11 +184,15 @@ tasks:
       - task: publish:image
         vars:
           SOURCE_TAG: latest{{.TAG_POST}}
-          TARGET_TAG: '{{.VERSION}}{{.TAG_POST}}'
+          TARGET_TAG: 'v{{.VERSION}}{{.TAG_POST}}'
       - task: publish:image
         vars:
           SOURCE_TAG: latest{{.TAG_POST}}
-          TARGET_TAG: '{{.MAJOR_VERSION}}-latest{{.TAG_POST}}'
+          TARGET_TAG: 'v{{.MAJOR_VERSION}}{{.TAG_POST}}'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: latest{{.TAG_POST}}
+          TARGET_TAG: v{{.MAJOR_VERSION}}.{{.MINOR_VERSION}}{{.TAG_POST}}
       - task: publish:image
         vars:
           SOURCE_TAG: latest{{.TAG_POST}}
@@ -190,11 +200,15 @@ tasks:
       - task: publish:image
         vars:
           SOURCE_TAG: slim{{.TAG_POST}}
-          TARGET_TAG: '{{.VERSION}}-slim{{.TAG_POST}}'
+          TARGET_TAG: 'v{{.VERSION}}-slim{{.TAG_POST}}'
       - task: publish:image
         vars:
           SOURCE_TAG: slim{{.TAG_POST}}
-          TARGET_TAG: '{{.MAJOR_VERSION}}-slim{{.TAG_POST}}'
+          TARGET_TAG: 'v{{.MAJOR_VERSION}}-slim{{.TAG_POST}}'
+      - task: publish:image
+        vars:
+          SOURCE_TAG: slim{{.TAG_POST}}
+          TARGET_TAG: v{{.MAJOR_VERSION}}.{{.MINOR_VERSION}}-slim{{.TAG_POST}}
       - task: publish:image
         vars:
           SOURCE_TAG: slim{{.TAG_POST}}

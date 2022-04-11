@@ -422,10 +422,17 @@ tasks:
 
   python:
     deps:
-      - :install:pipx:flake8
+      - python:deps:flake8
+      - python:deps:python
     label: lint:python
     desc: Lint Python files using Flake8
     hide: '{{ne .REPOSITORY_TYPE "python"}}'
+    vars:
+      CONFIG_COMMAND:
+        sh: |
+          if [ -f {{.FLAKE8_CONFIG}} ]; then
+            echo '--config {{.FLAKE8_CONFIG}} '
+          fi
     summary: |
       # Lint Python files using Flake8
 
@@ -453,12 +460,19 @@ tasks:
       start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with flake8
       success: flake8 validation was successful
     cmds:
-      - |
-        {{if .CLI_ARGS}}
-          flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
-        {{else}}
-          flake8 --config {{.FLAKE8_CONFIG}} .
-        {{end}}
+      - flake8 {{.CONFIG_COMMAND}}{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  python:deps:flake8:
+    cmds:
+      - task: :install:pipx:flake8
+    status:
+      - '[ "{{.REPOSITORY_TYPE}}" == "python" ]'
+
+  python:deps:python:
+    cmds:
+      - task: :install:python:requirements
+    status:
+      - '[ "{{.REPOSITORY_TYPE}}" != "python" ]'
 
   shell:
     cmds:

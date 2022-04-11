@@ -285,7 +285,9 @@ tasks:
 
   python:
     deps:
-      - :install:pipx:black
+      - :install:pipx:add-trailing-comma
+      - :install:pipx:isort
+      - :install:pipx:pyformat
     desc: Automatically format Python files using Black
     hide: '{{ne .REPOSITORY_TYPE "python"}}'
     summary: |
@@ -309,10 +311,14 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
-          black {{.CLI_ARGS}}
+          pyformat -i {{.CLI_ARGS}}
+          isort --overwrite-in-place {{.CLI_ARGS}}
+          add-trailing-comma --exit-zero-even-if-changed {{.CLI_ARGS}}
         {{else}}
           while read PATHH; do
-            black "$PATHH"
+            pyformat -i "$PATHH"
+            isort --overwrite-in-place "$PATHH"
+            add-trailing-comma --exit-zero-even-if-changed "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \))
         {{end}}
 

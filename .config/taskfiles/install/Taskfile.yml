@@ -210,38 +210,6 @@ tasks:
           .config/log error "System type not recognized ($OSTYPE)"
         fi
 
-  pipx:bundle:
-    cmds:
-      - task: pipx:global
-
-  pipx:global:
-    todo: Remove once task --tag is implemented
-    deps:
-      - :install:software:pipx
-      - :install:software:yq
-    vars:
-      PIPX_PACKAGES: ansible-base ansible-lint ansibler bandit black blocklint flake8
-        mod-ansible-autodoc molecule mypy pre-commit-hooks pydocstyle pylint
-        proselint semgrep
-      PIPX_PACKAGES__: ansible-base ansible-lint ansibler black blocklint docker flake8
-        mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
-        proselint python-vagrant pywinrm
-    log:
-      error: Error encountered while pre-loading common pipx packages
-      start: Pre-loading common pipx packages
-      success: Finished pre-loading common pipx packages
-    cmds:
-      - |
-        for PKG in {{.PIPX_PACKAGES}}; do
-          if ! type "$PKG" > /dev/null; then
-            .config/log info "Ensuring $PKG is installed"
-            pipx install "$PKG" &
-          else
-            .config/log info "$PKG is already installed"
-          fi
-        done
-        wait
-
   profile:add:
     log:
       error: Error modifying $HOME/.profile

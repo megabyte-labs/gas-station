@@ -65,21 +65,23 @@ tasks:
         msg: '`@appnest/readme` is not installed globally.'
 
   files:
-    vars:
-      CONTAINER:
-        sh: if [ "{{.DOCKER_ENVIRONMENT}}" == "true" ]; then echo "docker"; fi
-      FIRST_LINE:
-        sh: if [ -f Dockerfile ]; then head -n 1 Dockerfile; fi
+    deps:
+      - files:ansible:keywords:sync
+      - files:dockerignore
+      - files:docs
+      - files:husky
+      - files:initctl
     log:
       error: Encountered error while updating miscellaneous files
       start: Updating miscellaneous files
       success: Updated miscellaneous files
+
+  files:ansible:keywords:sync:
     cmds:
-      - |
-        if [ -f initctl ] && [ -f .config/initctl ]; then
-          cp .config/initctl initctl
-          .config/log info 'Ensured that the `initctl` polyfill file is synchronized with the upstream version'
-        fi
+      - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
+
+  files:dockerignore:
+    cmds:
       - |
         if [ -f .dockerignore ]; then
           TMP="$(mktemp)"
@@ -97,8 +99,27 @@ tasks:
             rm .config/dockerignore
           fi
         fi
+
+  files:docs:
+    cmds:
+      - mkdir -p docs/partials && echo '' > docs/partials/guide.md
+    status:
+      - '[ -f docs/partials/guide.md ]'
+
+  files:husky:
+    vars:
+      CONTAINER:
+        sh: if [ "{{.DOCKER_ENVIRONMENT}}" == "true" ]; then echo "docker"; fi
+    cmds:
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
-      - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
+
+  files:initctl:
+    cmds:
+      - |
+        if [ -f initctl ] && [ -f .config/initctl ]; then
+          cp .config/initctl initctl
+          .config/log info 'Ensured that the `initctl` polyfill file is synchronized with the upstream version'
+        fi
 
   finish:
     cmds:

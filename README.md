@@ -52,6 +52,8 @@
 
 ## Table of Contents
 
+[![Join the chat at https://gitter.im/megabyte-labs/gas-station](https://badges.gitter.im/megabyte-labs/gas-station.svg)](https://gitter.im/megabyte-labs/gas-station?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 - [Introduction](#introduction)
 - [Quick Start](#quick-start)
   - [Vagrant (Recommended)](#vagrant-recommended)

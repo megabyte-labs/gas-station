@@ -26,12 +26,12 @@ tasks:
         TMP_JQ="$(mktemp)"
         TMP_YQ="$(mktemp)"
         mkdir -p "$(dirname '{{.MAP_FILE}}')"
-        yq -o=j '{{.MAP_FILE_QUERY}}' Taskfile.yml > "{{.MAP_FILE}}"
+        yq e -o=j '{{.MAP_FILE_QUERY}}' Taskfile.yml > "{{.MAP_FILE}}"
         jq -c '.[]' "{{.MAP_FILE}}" | while read i; do
           PREFIX="$(echo "$i" | jq -r '.key')"
           FILE="$(echo "$i" | jq -r '.value')"
           if [ -f "$FILE" ]; then
-            yq -o=j '.tasks' "$FILE" > "$TMP_YQ"
+            yq e -o=j '.tasks' "$FILE" > "$TMP_YQ"
             jq --arg prefix "$PREFIX:" '[to_entries | .[] | .key as $key | .value | ._task? = $prefix + $key]' "$TMP_YQ" > "$TMP_JQ"
             jq -s '.[0] + .[1]' "$COMBINED" "$TMP_JQ" > "$TMP_COMBINED"
             cp "$TMP_COMBINED" "$COMBINED"

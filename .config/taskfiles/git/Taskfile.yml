@@ -115,23 +115,24 @@ tasks:
   push:all:
     deps:
       - :ci:commit:config
+      - :git:github:create
+      - :git:gitlab:create
     log:
       error: Encountered error while running `git push all master --force || git push origin master`
       start: Running `git push all master --force || git push origin master`
       success: Successfully ran `git push all master --force || git push origin master`
     cmds:
-      - cmd: |
+      - |
+        if ! git push all master --force; then
+          git pull -X theirs origin master
+          git add --all
+          HUSKY=0 git commit -m "☁️ chore(automation): Automated update to all remotes" -n
           if ! git push all master --force; then
-            git pull -X theirs origin master
-            git add --all
-            HUSKY=0 git commit -m "☁️ chore(automation): Automated update to all remotes" -n
-            if ! git push all master --force; then
-              task git:gitlab:protected:off -- "master"
-              git push all master --force
-              task git:gitlab:protected:on -- "master"
-            fi
+            task git:gitlab:protected:off -- "master"
+            git push all master --force
+            task git:gitlab:protected:on -- "master"
           fi
-        ignore_error: true
+        fi
     status:
       - '[ -n "$CI" ] || [ "$SEMANTIC_RELEASE" == "true" ] || [ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 

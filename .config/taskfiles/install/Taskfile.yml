@@ -264,6 +264,20 @@ tasks:
           .config/log error "System type not recognized"
         fi
 
+  scoop:scan:
+    deps:
+      - :install:software:jq
+    env:
+      TMP:
+        sh: mktemp
+    log:
+      error: Error while extracting Scoop information
+      start: Extracting Scoop information
+      success: Successfully extracted Scoop information
+    cmds:
+      - jq --arg scoops "$(jq -n '[["Project", "Description"], (inputs | ["**[" + .homepage + "](" + .homepage + ")**", .description ])]' Scoops/*.json)"
+        '.scoops = $scoops' .variables.json > "$TMP" && mv "$TMP" .variables.json
+
   tslib:
     vars:
       TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions

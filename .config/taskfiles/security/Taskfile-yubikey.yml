@@ -2,6 +2,8 @@
 version: '3'
 
 env:
+  GNUPGHOME:
+    sh: echo "$HOME/.gnupghome"
   MASTER_KEY:
     sh: LC_ALL=C tr -dc '[:upper:]' < /dev/urandom | fold -w 30 | head -n1
 
@@ -29,12 +31,20 @@ tasks:
       KEYID:
         sh: gpg --keyid-format long --list-keys hey@dude.com | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
     cmds:
+      - echo -e "key 1\nkeytocard\n1\n$MASTER_KEY\n12345678\n" | gpg --command-fd 0 --pinentry-mode loopback --edit-key "$KEYID"
+      - echo -e "key 2\nkeytocard\n2\n$MASTER_KEY\n12345678\n" | gpg --command-fd 0 --pinentry-mode loopback --edit-key "$KEYID"
+      - echo -e "key 3\nkeytocard\n3\n$MASTER_KEY\n12345678\n" | gpg --command-fd 0 --pinentry-mode loopback --edit-key "$KEYID"
 
   card:reset:
     cmds:
       - echo -e "admin\nfactory-reset\ny\nyes\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
     status:
       - '[ -n "$DONT_RESET_YUBIKEY" ]'
+
+  generate:authentication:
+    cmds:
+      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
+        --expert --edit-key "$KEYID" addkey save
 
   check:entropy:
     vars:
@@ -55,11 +65,6 @@ tasks:
       - task: secrets:export
       # - task: public:upload
       - task: card
-
-  generate:authentication:
-    cmds:
-      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
-        --expert --edit-key "$KEYID" addkey save
 
   generate:encryption:
     cmds:
@@ -90,6 +95,10 @@ tasks:
     desc: Prepares an environment by provisioning all the required software / preliminary steps
     cmds:
       - task: :install:requirements:yubikey
+      - task: :security:gpg:conf
+        vars:
+          CONFIG_DIR_PATH:
+            sh: echo "$GNUPGHOME"
       - task: :install:service:start
         vars:
           SERVICE: pcscd
@@ -101,6 +110,7 @@ tasks:
   public:export:
     todo: This differs from guide
     cmds:
+      - mkdir -p "$GNUPGHOME"
       - gpg --armor --export "$KEYID" > "$GNUPGHOME/gpg-$KEYID-$(date +%F).asc"
 
   public:upload:
@@ -112,9 +122,17 @@ tasks:
 
   revocation:export:
     cmds:
+      - mkdir -p "$GNUPGHOME"
       - gpg --output $GNUPGHOME/revoke.asc --gen-revoke "$KEYID"
 
   secrets:export:
     cmds:
+      - mkdir -p "$GNUPGHOME"
       - gpg --armor --export-secret-keys "$KEYID" > $GNUPGHOME/mastersub.key
       - gpg --armor --export-secret-subkeys "$KEYID" > $GNUPGHOME/sub.key
+
+  stub:
+    summary: |
+      Run this to re-stub the GPG files to point to the current YubiKey.
+    cmds:
+      - gpg-connect-agent "scd serialno" "learn --force" /bye

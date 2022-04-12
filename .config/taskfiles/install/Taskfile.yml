@@ -269,3 +269,115 @@ tasks:
         fi
     status:
       - '[ ! -f tsconfig.json ]'
+
+  system:upgrade:
+    log:
+      error: Encountered error while upgrading system
+      start: Upgrading system packages
+    cmds:
+      - task: system:upgrade:apk
+      - task: system:upgrade:apt-get
+      - task: system:upgrade:dnf
+      - task: system:upgrade:pacman
+      - task: system:upgrade:yum
+      - task: system:upgrade:macos
+
+  system:upgrade:apk:
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          .config/log info 'TODO'
+        elif type sudo &> /dev/null && sudo -n true; then
+          .config/log info 'TODO'
+        elif type sudo &> /dev/null; then
+          .config/log info 'TODO'
+        else
+          .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which apk)" ]'
+
+  system:upgrade:apt-get:
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          apt-get update
+          apt-get install -y {{.PACKAGE}}
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo apt-get update
+          sudo apt -y upgrade
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo apt-get update`'
+          sudo apt-get update
+          .config/log info 'Running `sudo apt -y upgrade`'
+          sudo apt -y upgrade
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which apt-get)" ]'
+
+  system:upgrade:dnf:
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          dnf clean all
+          dnf check-update
+          dnf update
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo dnf clean all
+          sudo dnf check-update
+          sudo dnf update
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo dnf clean all`'
+          sudo dnf clean all
+          .config/log info 'Running `sudo dnf check-update`'
+          sudo dnf check-update
+          .config/log info 'Running `sudo dnf update`'
+          sudo dnf update
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which dnf)" ]'
+
+  system:upgrade:macos:
+    cmds:
+      - echo "TODO Upgrade macOS system version via CLI"
+    status:
+      - '[ "{{OS}}" != "darwin" ]'
+
+  system:upgrade:pacman:
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          .config/log 'TODO'
+        elif type sudo &> /dev/null && sudo -n true; then
+          .config/log 'TODO'
+        elif type sudo &> /dev/null; then
+          .config/log 'TODO'
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which pacman)" ]'
+
+  system:upgrade:yum:
+    cmds:
+      - |
+        if [ "$USER" == "root" ]; then
+          yum clean all
+          yum update
+        elif type sudo &> /dev/null && sudo -n true; then
+          sudo yum clean all
+          sudo yum update
+        elif type sudo &> /dev/null; then
+          .config/log info 'Running `sudo yum clean all`'
+          sudo yum clean all
+          .config/log info 'Running `sudo yum update`'
+          sudo yum update
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - '[ -z "$(which yum)" ]'

@@ -1,0 +1,98 @@
+---
+version: '3'
+
+vars:
+  INSTALL_GROUP:
+    sh: |
+      if type apk > /dev/null; then
+        echo 'apk'
+      elif type apt-get > /dev/null; then
+        echo 'apt-get'
+      elif type dnf > /dev/null; then
+        echo 'dnf'
+      elif type pacman > /dev/null; then
+        echo 'pacman'
+      elif type yum > /dev/null; then
+        echo 'yum'
+      elif [ '{{OS}}' == 'darwin' ]; then
+        echo 'brew'
+      fi
+  REQUIREMENTS_TASKFILE: .config/taskfiles/install/Taskfile-requirements.yml
+
+yubikey:
+  apt-get:
+    - cryptsetup
+    - dirmngr
+    - gnupg2
+    - gnupg-agent
+    - hopenpgp-tools
+    - libpcsclite-dev
+    - libssl-dev
+    - openssl
+    - pcscd
+    - python3-gnupg
+    - python3-pip
+    - python3-pyscard
+    - rng-tools
+    - scdaemon
+    - secure-delete
+    - swig
+    - wget
+    - yubikey-personalization
+  brew:
+    - gnupg
+    - hopenpgp-tools
+    - pinentry-mac
+    - wget
+    - ykman
+    - yubikey-personalization
+  pacman:
+    - ccid
+    - gnupg
+    - hopenpgp-tools
+    - pcsclite
+    - yubikey-personalization
+  python:
+    - PyOpenSSL
+    - yubikey-manager
+  yum:
+    - gnupg2
+    - gnupg2-smime
+    - pcsc-lite
+    - pcsc-lite-libs
+    - pinentry-curses
+
+tasks:
+  install:
+    deps:
+      - install:deps:{{OS}}
+    vars:
+      INSTALL_GROUP: '{{if .REQUIREMENTS_GROUP}}{{.REQUIREMENTS_GROUP}}{{else}}{{.INSTALL_GROUP}}{{end}}'
+    env:
+      REQUIREMENTS_KEY: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.REQUIREMENTS_KEY}}{{end}}'
+    cmds:
+      - task: :{{if .REQUIREMENTS_GROUP_TASK}}{{.REQUIREMENTS_GROUP_TASK}}{{else}}install:software:system{{end}}
+        vars:
+          PACKAGE:
+            sh: yq e '.["{{.INSTALL_GROUP}}"][env(REQUIREMENTS_KEY)]' {{.REQUIREMENTS_TASKFILE}}
+
+
+  install:deps:darwin:
+    cmds:
+      - task: :install:software:brew
+      - task: :install:software:yq
+
+  install:deps:linux:
+    cmds:
+      - task: :install:software:yq
+
+  yubikey:
+    cmds:
+      - task: install
+        vars:
+          REQUIREMENTS_KEY: yubikey
+      - task: install
+        vars:
+          REQUIREMENTS_GROUP: python
+          REQUIREMENTS_GROUP_TASK: install:python:pip
+          REQUIREMENTS_KEY: yubikey

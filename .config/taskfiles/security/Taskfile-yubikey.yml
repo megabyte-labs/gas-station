@@ -1,0 +1,120 @@
+---
+version: '3'
+
+env:
+  MASTER_KEY:
+    sh: LC_ALL=C tr -dc '[:upper:]' < /dev/urandom | fold -w 30 | head -n1
+
+tasks:
+  add:identities:
+    cmds:
+      - echo -e "Brian Zalewski\nbrian@megabyte.space\nPrincipal Software Engineer\n" | gpg --command-fd 0 --pinentry-mode loopback
+        --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" adduid save
+      - echo -e "Megabyte Labs\nhelp@megabyte.space\nHelp Desk\n" | gpg --command-fd 0 --pinentry-mode loopback
+        --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" adduid save
+
+  card:
+    cmds:
+      - cp -rf ~/.gnupg ~/.gnupg.bak
+      - task: card:reset
+      - echo -e "admin\nkdf-setup\n12345678\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
+      - echo -e "admin\npasswd\n1\n123456\n123456\n123456\nq\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
+      - echo -e "admin\npasswd\n3\n12345678\n12345678\n12345678\nq\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
+      - echo -e "admin\nname\nZalewski\nBrian\nlang\nen\nlogin\nbrian@megabyte.space\nquit" | gpg --command-fd 0 --card-edit
+      - task: card:keys
+      - rm -rf ~/.gnupg
+
+  card:keys:
+    env:
+      KEYID:
+        sh: gpg --keyid-format long --list-keys hey@dude.com | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
+    cmds:
+
+  card:reset:
+    cmds:
+      - echo -e "admin\nfactory-reset\ny\nyes\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
+    status:
+      - '[ -n "$DONT_RESET_YUBIKEY" ]'
+
+  generate:authentication:
+    cmds:
+      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
+        --expert --edit-key "$KEYID" addkey save
+
+  check:entropy:
+    vars:
+      ENTROPY_AVAIL:
+        sh: cat /proc/sys/kernel/random/entropy_avail
+    cmds:
+      - |
+        if [ '{{.ENTROPY_AVAIL}}' -lt '2000' ]; then
+          .config/log error 'The entropy pool value is not high enough. It must be greater than 2000!' && exit 1
+        fi
+    status:
+      - '[ -f /proc/sys/kernel/random/entropy_avail ]'
+
+  export:
+    cmds:
+      - task: public:export
+      - task: revocation:export
+      - task: secrets:export
+      # - task: public:upload
+      - task: card
+
+  generate:encryption:
+    cmds:
+      - echo -e "6\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" addkey save
+
+  generate:master:
+    cmds:
+      - mkdir -p "$HOME/.gnupg/private-keys-v1.d"
+      - chmod 700 "$HOME/.gnupg/private-keys-v1.d"
+      - echo -e "8\nE\nS\nQ\n4096\n0\ny\nHeyDude\nhey@hey.com\n\no\n" | gpg --expert --command-fd 0
+        --pinentry-mode loopback --passphrase "$MASTER_KEY" --full-generate-key
+
+  generate:signing:
+    cmds:
+      - echo -e "4\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" addkey save
+
+  generate:subkeys:
+    env:
+      KEYID:
+        sh: gpg --keyid-format long --list-keys hey@dude.com | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
+    cmds:
+      - task: generate:signing
+      - task: generate:encryption
+      - task: generate:authentication
+      - task: add:identities
+
+  prepare:
+    desc: Prepares an environment by provisioning all the required software / preliminary steps
+    cmds:
+      - task: :install:requirements:yubikey
+      - task: :install:service:start
+        vars:
+          SERVICE: pcscd
+      - task: check:entropy
+      - task: generate:master
+      - task: generate:subkeys
+      - task: export
+
+  public:export:
+    todo: This differs from guide
+    cmds:
+      - gpg --armor --export "$KEYID" > "$GNUPGHOME/gpg-$KEYID-$(date +%F).asc"
+
+  public:upload:
+    cmds:
+      - gpg --send-key "$KEYID"
+      - gpg --keyserver pgp.mit.edu --send-key "$KEYID"
+      - gpg --keyserver keys.gnupg.net --send-key "$KEYID"
+      - gpg --keyserver hkps://keyserver.ubuntu.com:443 --send-key "$KEYID"
+
+  revocation:export:
+    cmds:
+      - gpg --output $GNUPGHOME/revoke.asc --gen-revoke "$KEYID"
+
+  secrets:export:
+    cmds:
+      - gpg --armor --export-secret-keys "$KEYID" > $GNUPGHOME/mastersub.key
+      - gpg --armor --export-secret-subkeys "$KEYID" > $GNUPGHOME/sub.key

@@ -1,22 +1,29 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ virtualbox_apt_key }}"
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: virtualbox
-    repo: "{{ virtualbox_apt_repository }}"
-    state: present
-    update_cache: true
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: "{{ vbox_package_name }}"
-    state: present
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
-  register: install_result
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ virtualbox_apt_key }}"
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: virtualbox
+        repo: "{{ virtualbox_apt_repository }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: "{{ vbox_package_name }}"
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+      register: install_result
+# @Todo Install using alternate method
+  rescue:
+    - name: Install using alternate method
+      debug:
+        msg: "Install using https://download.virtualbox.org/virtualbox/6.1.32/VirtualBox-6.1.32-149290-Linux_amd64.run"
 
 - name: "Ensure {{ app_name }} Extension pack is installed"
   block:
@@ -42,7 +49,7 @@
       args:
         creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
         executable: /bin/bash
-  when: install_result.changed
+  when: install_result is defined and install_result.changed
   always:
     - name: "Remove {{ app_name }} Extension pack installer"
       file:

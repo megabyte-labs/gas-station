@@ -1,18 +1,25 @@
 ---
-- name: "Add {{ app_name }}'s yum repository"
-  yum_repository:
-    baseurl: "{{ virtualbox_rpm_repository }}"
-    description: VirtualBox repository
-    gpgcheck: true
-    gpgkey: "{{ virtualbox_rpm_key }}"
-    name: virtualbox
-
 - name: "Ensure {{ app_name }} is installed"
-  dnf:
-    name: "{{ vbox_package_name | replace('virtualbox', 'VirtualBox') }}"
-    state: present
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
-  register: install_result
+  block:
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        baseurl: "{{ virtualbox_rpm_repository }}"
+        description: VirtualBox repository
+        gpgcheck: true
+        gpgkey: "{{ virtualbox_rpm_key }}"
+        name: virtualbox
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: "{{ vbox_package_name | replace('virtualbox', 'VirtualBox') }}"
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+      register: install_result
+# @Todo Install using alternate method
+  rescue:
+    - name: Install using alternate method
+      debug:
+        msg: "Install using https://download.virtualbox.org/virtualbox/6.1.32/VirtualBox-6.1.32-149290-Linux_amd64.run"
 
 - name: "Ensure {{ app_name }} Extension pack is installed"
   block:
@@ -38,7 +45,7 @@
       args:
         creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
         executable: /bin/bash
-  when: install_result.changed
+  when: install_result is defined and install_result.changed
   always:
     - name: "Remove {{ app_name }} Extension pack installer"
       file:

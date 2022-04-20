@@ -1,55 +1,77 @@
 ---
-- name: Define the Nodesource RPM directory
-  set_fact:
-    nodejs_rhel_rpm_dir: 'pub_{{ nodejs_version }}'
-
-- name: "Ensure Nodesource's RPM key is imported (CentOS < 7)"
-  rpm_key:
-    key: http://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL
-    state: present
-  when: ansible_distribution_major_version | int < 7
-
-- name: "Ensure Nodesource's RPM key is imported (CentOS 7+)"
-  rpm_key:
-    key: https://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL
-    state: present
-  when: ansible_distribution_major_version | int >= 7
-
-- name: "Ensure Nodesource's RPM key is imported (CentOS < 7)"
-  dnf:
-    name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
-      /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
-    state: present
-  when: ansible_distribution_major_version | int < 7
-
-- name: "Ensure {{ app_name }}'s RPM key is imported (CentOS 7+)"
-  dnf:
-    name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
-      /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
-    state: present
-  when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution != 'Fedora')
-
-- name: "Ensure {{ app_name }}'s RPM key is imported (Fedora)"
-  dnf:
-    name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/fc/{{ ansible_distribution_major_version }}\
-      /{{ ansible_architecture }}/nodesource-release-fc{{ ansible_distribution_major_version }}-1.noarch.rpm"
-    state: present
-  when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution == 'Fedora')
-
-- name: "Ensure {{ app_name }}'s AppStream module is disabled (CentOS 8+)"
-  command: yum module disable -y nodejs
-  args:
-    warn: false
-  register: module_disable
-  changed_when: "'Nothing to do.' not in module_disable.stdout"
-  when: ansible_distribution_major_version|int >= 8
-
 - name: 'Ensure {{ app_name }} and npm are installed'
-  dnf:
-    name: "nodejs-{{ nodejs_version|regex_replace('.x', '') }}*"
-    state: present
-    enablerepo: nodesource
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: Define the Nodesource RPM directory
+      set_fact:
+        nodejs_rhel_rpm_dir: 'pub_{{ nodejs_version }}'
+
+    - name: "Ensure Nodesource's RPM key is imported (CentOS < 7)"
+      rpm_key:
+        key: http://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL
+        state: present
+      when: ansible_distribution_major_version | int < 7
+
+    - name: "Ensure Nodesource's RPM key is imported (CentOS 7+)"
+      rpm_key:
+        key: https://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL
+        state: present
+      when: ansible_distribution_major_version | int >= 7
+
+    - name: "Ensure Nodesource's RPM key is imported (CentOS < 7)"
+      dnf:
+        name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
+          /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
+        state: present
+      when: ansible_distribution_major_version | int < 7
+
+    - name: "Ensure {{ app_name }}'s RPM key is imported (CentOS 7+)"
+      dnf:
+        name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
+          /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
+        state: present
+      when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution != 'Fedora')
+
+    - name: "Ensure {{ app_name }}'s RPM key is imported (Fedora)"
+      dnf:
+        name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/fc/{{ ansible_distribution_major_version }}\
+          /{{ ansible_architecture }}/nodesource-release-fc{{ ansible_distribution_major_version }}-1.noarch.rpm"
+        state: present
+      when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution == 'Fedora')
+
+    - name: "Ensure {{ app_name }}'s AppStream module is disabled (CentOS 8+)"
+      command: yum module disable -y nodejs
+      args:
+        warn: false
+      register: module_disable
+      changed_when: "'Nothing to do.' not in module_disable.stdout"
+      when: ansible_distribution_major_version|int >= 8
+
+    - name: 'Ensure {{ app_name }} and npm are installed'
+      dnf:
+        name: "nodejs-{{ nodejs_version|regex_replace('.x', '') }}*"
+        state: present
+        enablerepo: nodesource
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: 'Ensure {{ app_name }} and npm are installed'
+      become: false
+      community.general.homebrew:
+        name: "node@{{ nodejs_version | regex_replace('.x', '') }}"
+        state: present
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
+    - name: 'Ensure {{ app_name }} and npm are linked'
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      loop:
+        - src: /home/linuxbrew/.linuxbrew/opt/node@{{ nodejs_version | regex_replace('.x', '') }}/bin/node
+          dest: /usr/bin/node
+        - src: /home/linuxbrew/.linuxbrew/opt/node@{{ nodejs_version | regex_replace('.x', '') }}/bin/npm
+          dest: /usr/bin/npm
+        - src: /home/linuxbrew/.linuxbrew/opt/node@{{ nodejs_version | regex_replace('.x', '') }}/bin/npx
+          dest: /usr/bin/npx
 
 - name: Run common Linux tasks
   include_tasks: install-Linux.yml

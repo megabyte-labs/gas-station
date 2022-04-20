@@ -32,7 +32,7 @@
   when: not file_stats.stat.exists
 
 - name: Run installer
-  become: true
+  become_user: root
   command: >
     {{ workstation_tempdir }}/tryworkstation-linux-64.sh --eulas-agreed --console
     --required {{ '--set-setting vmware-workstation serialNumber ' + workstation_license
@@ -56,9 +56,16 @@
     path: /etc/systemd/system
   register: systemd_dir
 
-- name: Ensure all compoments are setup # noqa 301
+- name: Ensure all compoments are setup
   become_user: root
-  command: vmware-modconfig --console --install-all
+  block:
+    - name: Ensure all components are setup # noqa 301
+      command: vmware-modconfig --console --install-all
+# @Todo Setup using https://github.com/mkubecek/vmware-host-modules/blob/master/INSTALL
+  rescue:
+    - name: "Setup components"
+      debug:
+        msg: "Setup modules using https://github.com/mkubecek/vmware-host-modules/blob/master/INSTALL"
 
 - name: Install systemd services
   copy:

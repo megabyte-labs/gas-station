@@ -1,56 +1,63 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ amplify_apt_key_url }}"
-  when: ansible_os_family == 'Debian'
+- name: Install NGINX Amplify Agent
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ amplify_apt_key_url }}"
+      when: ansible_os_family == 'Debian'
 
-- name: Add NGINX Amplify Agent apt repository
-  apt_repository:
-    filename: "nginx-amplify"
-    repo: "{{ amplify_apt_repository }}"
-    state: present
-  when: ansible_os_family == 'Debian'
+    - name: Add NGINX Amplify Agent apt repository
+      apt_repository:
+        filename: "nginx-amplify"
+        repo: "{{ amplify_apt_repository }}"
+        state: present
+      when: ansible_os_family == 'Debian'
 
-- name: "Add {{ app_name }}'s rpm key"
-  rpm_key:
-    key: "{{ amplify_rpm_key }}"
-  when: ansible_os_family == 'RedHat'
+    - name: "Add {{ app_name }}'s rpm key"
+      rpm_key:
+        key: "{{ amplify_rpm_key }}"
+      when: ansible_os_family == 'RedHat'
 
-- name: Add NGINX Amplify Agent yum repository
-  yum_repository:
-    baseurl: "{{ amplify_baseurl }}"
-    description: "NGINX Amplify Agent's repository"
-    gpgcheck: true
-    gpgkey: "{{ amplify_rpm_key }}"
-    name: "nginx-amplify"
-    repo_gpgcheck: true
-  when: ansible_os_family == 'RedHat'
+    - name: Add NGINX Amplify Agent yum repository
+      yum_repository:
+        baseurl: "{{ amplify_baseurl }}"
+        description: "NGINX Amplify Agent's repository"
+        gpgcheck: true
+        gpgkey: "{{ amplify_rpm_key }}"
+        name: "nginx-amplify"
+        repo_gpgcheck: true
+      when: ansible_os_family == 'RedHat'
 
-- name: Ensure NGINX Amplify Agent is installed
-  package:
-    name: nginx-amplify-agent
-    state: present
-    update_cache: true
-  when: ansible_os_family != 'Darwin'
+    - name: Ensure NGINX Amplify Agent is installed
+      package:
+        name: nginx-amplify-agent
+        state: present
+        update_cache: true
+      when: ansible_os_family != 'Darwin'
 
-- name: Copy NGINX Amplify agent configuration
-  copy:
-    src: /etc/amplify-agent/agent.conf.default
-    dest: /etc/amplify-agent/agent.conf
-    mode: preserve
-    remote_src: true
+    - name: Copy NGINX Amplify agent configuration
+      copy:
+        src: /etc/amplify-agent/agent.conf.default
+        dest: /etc/amplify-agent/agent.conf
+        mode: preserve
+        remote_src: true
 
-- name: Inject the NGINX Amplify agent API key into the configuration
-  lineinfile:
-    dest: /etc/amplify-agent/agent.conf
-    regexp: api_key =.*
-    line: "api_key = {{ nginx_amplify_api_key }}"
+    - name: Inject the NGINX Amplify agent API key into the configuration
+      lineinfile:
+        dest: /etc/amplify-agent/agent.conf
+        regexp: api_key =.*
+        line: "api_key = {{ nginx_amplify_api_key }}"
 
-# @action Ensures Nginx is configured
-# Starts Nginx Amplify Agent on Linux and MacOS Systems
-- name: Start the NGINX Amplify agent
-  service:
-    name: amplify-agent
-    state: started
-  when: false
+    # @action Ensures Nginx is configured
+    # Starts Nginx Amplify Agent on Linux and MacOS Systems
+    - name: Start the NGINX Amplify agent
+      service:
+        name: amplify-agent
+        state: started
+      when: false
+# @Todo Compile Amplify from source as an alternative to the above installation method
+  rescue:
+    - name: Compile NGINX Amplify Agent from source
+      debug:
+        msg: "@TODO Compile NGINX Amplify from source"

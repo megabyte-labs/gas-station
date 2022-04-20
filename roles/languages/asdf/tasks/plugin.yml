@@ -4,6 +4,10 @@
   register: asdf_version
   when: ansible_system == 'Darwin'
 
+- name: 'Check if {{ plugin.name }} is already installed' # noqa 301
+  command: asdf list {{ plugin.name }}
+  register: plugin_installed
+
 # @action Enables and configures ASDF plugins
 # Adds the plugin
 - name: "Ensure {{ plugin.name }} ASDF Plugin is installed"
@@ -20,6 +24,7 @@
     not (asdf_plugin_install.rc == 2 and ' already added' in asdf_plugin_install.stderr)
   changed_when: asdf_plugin_install.rc != 0 and
     not (asdf_plugin_install.rc == 2 and ' already added' in asdf_plugin_install.stderr)
+  when: "'No versions installed' in plugin_installed.stdout"
 
 # @action Enables and configures ASDF plugins
 # Configures the `~/.default-<tool>-packages` file
@@ -28,7 +33,9 @@
     src: default-tool-packages.j2
     dest: "~/.{{ plugin.default_packages_file_name }}"
     mode: 0600
-  when: plugin.default_packages | default([]) | length
+  when:
+    - "'No versions installed' in plugin_installed.stdout"
+    - plugin.default_packages | default([]) | length
 
 # @action Enables and configures ASDF plugins
 # Updates the `~/.tool-versions` file
@@ -40,7 +47,9 @@
     backup: true
     create: true
     mode: 0600
-  when: plugin.version is defined and plugin.version | length > 0
+  when:
+    - "'No versions installed' in plugin_installed.stdout"
+    - plugin.version is defined and plugin.version | length > 0
 
 - name: "Ensure {{ plugin.name }} and default packages (if any) are installed"
   shell: |
@@ -55,6 +64,7 @@
     executable: /bin/bash
   register: asdf_node_install
   changed_when: not (asdf_node_install.rc == 0 and plugin.name + " " + plugin.version + " is already installed" in asdf_node_install.stdout)
+  when: "'No versions installed' in plugin_installed.stdout"
 
 - name: Ensure bashrc and zshrc files are updated (if needed)
   blockinfile:

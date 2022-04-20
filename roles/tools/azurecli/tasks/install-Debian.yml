@@ -1,20 +1,30 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    url: "{{ azurecli_deb_gpg }}"
-    state: present
-  when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'hirsute')
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ azurecli_deb_repo }}"
-    state: present
-    update_cache: true
-  when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'hirsute')
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: azure-cli
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        url: "{{ azurecli_deb_gpg }}"
+        state: present
+      when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'hirsute')
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ azurecli_deb_repo }}"
+        state: present
+        update_cache: true
+      when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'hirsute')
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: azure-cli
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: 'Ensure {{ app_name }} is installed'
+      become: false
+      community.general.homebrew:
+        name: azure-cli
+        state: present
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"

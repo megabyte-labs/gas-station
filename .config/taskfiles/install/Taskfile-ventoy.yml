@@ -3,6 +3,7 @@ version: '3'
 
 vars:
   VENTOY_CONFIG_URL: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/local/ventoy.json
+  VENTOY_DOWNLOAD_CONFIG_URL: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/local/ventoy-download.json
   VENTOY_USB_PATH: /run/media/user/Ventoy
 
 tasks:
@@ -13,28 +14,31 @@ tasks:
   download:
     deps:
       - :install:software:axel
+    todo: Add validation of md5/sha256 and add update functionality to VENTOY_DOWNLOAD_CONFIG_URL
     cmds:
-      - task: config
+      - task: download:config
       - |
-        jq -c '.distros[]' '{{.VENTOY_USB_PATH}}/ventoy/ventoy.json' | while read VENTOY_OS; do
+        jq -c '.distros[]' .ventoy.json | while read VENTOY_OS; do
           VENTORY_URL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
           VENTORY_URL_AXEL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
           VENTOY_MD5="$(jq -r -n '$in.md5' --argjson in "$VENTOY_OS")"
-          axel "$VENTOY_URL"
+          VENTOY_PATH="$(jq -r -n '$in.path' --argjson in "$VENTOY_OS")"
+          if [ ! -f "$VENTOY_PATH" ]; then
+            axel -o "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "$VENTOY_URL"
+          fi
         done
 
-  download:os:
+  download:config:
     cmds:
-      - wget {{.OS_URL}} -P /run/media/user/Ventoy
-    preconditions:
-      - sh: test -d /run/media/user/Ventoy
-        msg: The `/run/media/user/Ventoy` mounted USB directory must be available!
+      - curl -sSL '{{.VENTOY_DOWNLOAD_CONFIG_URL}}' > .ventoy.json
 
   theme:
+    deps:
+      - :install:software:git
     cmds:
       - git clone https://github.com/ProfessorManhattan/distro-grub-themes.git /tmp/distro-grub-themes
-      - mkdir -p /run/media/user/Ventoy/ventoy/theme
-      - cp -rf /tmp/distro-grub-themes/customize/ventoy /run/media/user/Ventoy/ventoy/theme/ventoy
+      - mkdir -p {{.VENTOY_USB_PATH}}/ventoy/theme
+      - cp -rf /tmp/distro-grub-themes/customize/ventoy {{.VENTOY_USB_PATH}}/ventoy/theme/ventoy
     preconditions:
-      - sh: test -d /run/media/user/Ventoy
-        msg: The `/run/media/user/Ventoy` mounted USB directory must be available!
+      - sh: test -d {{.VENTOY_USB_PATH}}
+        msg: The `{{.VENTOY_USB_PATH}}` mounted USB directory must be available!

@@ -1,0 +1,55 @@
+---
+version: '3'
+
+tasks:
+  config:
+    cmds:
+      - echo '{{.VENTOY_CONFIG}}' > /run/media/user/Ventoy/ventoy/ventoy.json
+  download:
+    vars:
+      FEDORA_ISO_URL:
+        sh: jq -r '.downloadLinks.fedora' .variables.json
+      KALI_ISO_URL:
+        sh: jq -r '.downloadLinks.kali' .variables.json
+      QUBES_ISO_URL:
+        sh: jq -r '.downloadLinks.qubes' .variables.json
+      TAILS_ISO_URL:
+        sh: jq -r '.downloadLinks.tails' .variables.json
+      UBUNTU_ISO_URL:
+        sh: jq -r '.downloadLinks.ubuntu' .variables.json
+      WINDOWS_ISO_URL:
+        sh: jq -r '.downloadLinks.windows' .variables.json
+    deps:
+      - task: download:os
+        vars:
+          OS_URL: '{{.FEDORA_ISO_URL}}'
+      - task: download:os
+        vars:
+          OS_URL: '{{.KALI_ISO_URL}}'
+      - task: download:os
+        vars:
+          OS_URL: '{{.QUBES_ISO_URL}}'
+      - task: download:os
+        vars:
+          OS_URL: '{{.TAILS_ISO_URL}}'
+      - task: download:os
+        vars:
+          OS_URL: '{{.TAILS_ISO_URL}}'
+      - task: download:os
+        vars:
+          OS_URL: '{{.UBUNTU_ISO_URL}}'
+      - task: download:os
+        vars:
+          OS_URL: '{{.WINDOWS_ISO_URL}}'
+
+  download:os:
+    cmds:
+      - wget {{.OS_URL}} -P /run/media/user/Ventoy
+    preconditions:
+      - sh: test -d /run/media/user/Ventoy
+        msg: The `/run/media/user/Ventoy` mounted USB directory must be available!
+
+  theme:
+    cmds:
+      - git clone https://github.com/ProfessorManhattan/distro-grub-themes.git /tmp/distro-grub-themes
+      - cp -rf /tmp/distro-grub-themes/customize/ventoy /run/media/user/Ventoy/ventoy/theme/ventoy

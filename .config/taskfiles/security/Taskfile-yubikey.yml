@@ -74,6 +74,11 @@ tasks:
     status:
       - '[ -n "$DONT_RESET_YUBIKEY" ]'
 
+  generate:authentication:
+    cmds:
+      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
+        --expert --edit-key "$KEYID" addkey save
+
   check:entropy:
     vars:
       ENTROPY_AVAIL:
@@ -98,11 +103,6 @@ tasks:
       - task: usb
       - task: card
       - task: usb:unmount
-
-  generate:authentication:
-    cmds:
-      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
-        --expert --edit-key "$KEYID" addkey save
 
   generate:encryption:
     cmds:
@@ -132,11 +132,7 @@ tasks:
   prepare:
     desc: Prepares an environment by provisioning all the required software / preliminary steps
     cmds:
-      - task: :install:requirements:yubikey
-      - task: :security:gpg:conf
-        vars:
-          CONFIG_DIR_PATH:
-            sh: echo "$GNUPGHOME"
+      - task: prepare:init
       - task: :install:service:start
         vars:
           SERVICE: pcscd
@@ -145,6 +141,21 @@ tasks:
       - task: generate:subkeys
       - task: export
       - task: :security:ssh:yubikey
+
+  prepare:init:
+    deps:
+      - :install:requirements:yubikey
+      - :security:gpg:conf
+      - task: :security:gpg:conf
+        vars:
+          CONFIG_DIR_PATH:
+            sh: echo "$GNUPGHOME"
+      - :security:gpg:conf:agent
+      - task: :security:gpg:conf:agent
+        vars:
+          CONFIG_DIR_PATH:
+            sh: echo "$GNUPGHOME"
+
 
   public:export:
     todo: This differs from guide

@@ -2,6 +2,8 @@
 version: '3'
 
 tasks:
+  donothing: 'true'
+
   conf:
     vars:
       GPG_CONFIG: |
@@ -29,15 +31,37 @@ tasks:
       - mkdir -p "{{if .CONFIG_DIR_PATH}}{{.CONFIG_DIR_PATH}}{{else}}$HOME/.gnupg{{end}}"
       - echo '{{.GPG_CONFIG}}' > "{{if .CONFIG_DIR_PATH}}{{.CONFIG_DIR_PATH}}{{else}}$HOME/.gnupg{{end}}/gpg.conf"
 
-  donothing: 'true'
-
-  public:import:file:
-    todo: Polish
+  conf:agent:
+    deps:
+      - :install:software:pinentry
+    vars:
+      GPG_AGENT_CONFIG: |
+        enable-ssh-support
+        default-cache-ttl 60
+        max-cache-ttl 120
+        pinentry-program {{if (eq OS "linux")}}/usr/bin/pinentry-gnome3{{else}}/usr/local/bin/pinentry-mac{{end}}
+      PROFILE_STRING: |
+        ### GPG SSH Settings ###
+        export GPG_TTY="$(tty)"
+        export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+        gpgconf --launch gpg-agent
     cmds:
-      - gpg --import /mnt/gpg-$KEYID*.asc
-      - echo -e "trust\n5\ny" | gpg --command-fd 0 --edit-key "$KEYID"
+      - mkdir -p "{{if .CONFIG_DIR_PATH}}{{.CONFIG_DIR_PATH}}{{else}}$HOME/.gnupg{{end}}"
+      - echo '{{.GPG_AGENT_CONFIG}}' > "{{if .CONFIG_DIR_PATH}}{{.CONFIG_DIR_PATH}}{{else}}$HOME/.gnupg{{end}}/gpg-agent.conf"
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: '{{.PROFILE_STRING}}'
+
+
   public:import:server:
     todo: Add prompt for KEYID
     cmds:
       - gpg --recv $KEYID
       - echo -e "trust\n5\ny" | gpg --command-fd 0 --edit-key "$KEYID"
+
+  public:import:file:
+    todo: Polish
+    cmds:
+      - gpg --import /mnt/gpg-public/gpg-$KEYID*.asc
+      - echo -e "trust\n5\ny" | gpg --command-fd 0 --edit-key "$KEYID"
+

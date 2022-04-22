@@ -281,3 +281,44 @@ tasks:
         BASENAME="$(basename {{.CLI_ARGS}})"
         REMOTE="$(git remote get-url $BASENAME)"
         HUSKY=0 git subrepo init {{.CLI_ARGS}} -r "$REMOTE" -b master
+
+  types:
+    deps:
+      - :install:npm:quicktype
+    vars:
+      TARGET_DIR: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}./environments/prod{{end}}'
+    summary: |
+      # Generate Types from Vaulted Files
+
+      Automatically generate types from vaulted files.
+
+      **Example Usage:**
+      `task ansible:playbook:types -- ./environments/prod
+    cmds:
+      - task: vault:decrypt
+        vars:
+          TARGET_DIR: '{{.TARGET_DIR}}'
+      - |
+        qtype() {
+          local FILE_NO_EXT="$(echo "$1" | sed 's/.yml$//')"
+          yq e -o=json '.' $1 | quicktype -l schema -o ${FILE_NO_EXT}.schema.json
+        }
+        while read FILE; do
+          qtype "$FILE"
+        done < <(find {{.TARGET_DIR}} -type f -name "*vault.yml")
+      - task: vault:encrypt
+        vars:
+          TARGET_DIR: '{{.TARGET_DIR}}'
+
+  vault:decrypt:
+    vars:
+      TARGET_DIR: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}./environments/prod{{end}}'
+    cmds:
+      - find {{.TARGET_DIR}} -type f -name "*vault.yml" -printf "%h/\"%f\" " | xargs ansible-vault decrypt
+
+  vault:encrypt:
+    vars:
+      TARGET_DIR: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}./environments/prod{{end}}'
+    cmds:
+      - find {{.TARGET_DIR}} -type f -name "*vault.yml" -printf "%h/\"%f\" " | xargs ansible-vault encrypt
+

@@ -6,6 +6,11 @@
     - workstation_extra_packages is undefined
     - os_workstation_extra_packages is defined
 
+- name: Ensure curl is installed
+  package:
+    name: curl
+    state: present
+
 - name: Create temporary directory
   file:
     path: "{{ workstation_tempdir }}"
@@ -61,11 +66,32 @@
   block:
     - name: Ensure all components are setup # noqa 301
       command: vmware-modconfig --console --install-all
-# @Todo Setup using https://github.com/mkubecek/vmware-host-modules/blob/master/INSTALL
+      args:
+        creates: "/lib/modules/{{ ansible_kernel }}/misc/vmmon.ko"
   rescue:
-    - name: "Setup components"
-      debug:
-        msg: "Setup modules using https://github.com/mkubecek/vmware-host-modules/blob/master/INSTALL"
+    - name: Find the version of VMware Workstation installed # noqa 301
+      command: vmware --version
+      register: workstation_version
+      changed_when: false
+
+    - name: Fetch the host modules
+      unarchive:
+        src: "https://github.com/mkubecek/vmware-host-modules/archive/workstation-\
+          {{ workstation_version.stdout | regex_search('(VMware Workstation )\\d*(\\.\\d*)*') | replace('VMware Workstation ','') }}.tar.gz"
+        dest: "{{ workstation_tempdir }}"
+        remote_src: yes
+
+    - name: Run make
+      community.general.make:
+        chdir: "{{ workstation_tempdir }}/vmware-host-modules-workstation-\
+          {{ workstation_version.stdout | regex_search('(VMware Workstation )\\d*(\\.\\d*)*') | replace('VMware Workstation ','') }}"
+
+    - name: Install the modules
+      become: yes
+      community.general.make:
+        chdir: "{{ workstation_tempdir }}/vmware-host-modules-workstation-\
+          {{ workstation_version.stdout | regex_search('(VMware Workstation )\\d*(\\.\\d*)*') | replace('VMware Workstation ','') }}"
+        target: install
 
 - name: Install systemd services
   copy:
@@ -104,3 +130,19 @@
   file:
     path: "{{ unlocker_temp_dir }}"
     state: absent
+
+- name: Check if EFI files are present
+  stat:
+    path: /sys/firmware/efi
+  register: efi_stat
+
+- name: Sign VMware modules # noqa 301 503
+  become: true
+  shell: |
+    openssl req -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -nodes -days 36500 -subj "/CN=VMware/"
+    /usr/src/linux-headers-`uname -r`/scripts/sign-file sha256 ./MOK.priv ./MOK.der $(modinfo -n vmmon)
+    /usr/src/linux-headers-`uname -r`/scripts/sign-file sha256 ./MOK.priv ./MOK.der $(modinfo -n vmnet)
+    echo '' | mokutil --import MOK.der
+  args:
+    chdir: "{{ workstation_tempdir }}"
+  when: efi_stat.stat.exists

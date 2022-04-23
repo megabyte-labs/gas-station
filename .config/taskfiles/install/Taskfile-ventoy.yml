@@ -2,9 +2,15 @@
 version: '3'
 
 vars:
-  VENTOY_CONFIG_URL: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/local/ventoy.json
-  VENTOY_DOWNLOAD_CONFIG_URL: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/local/ventoy-download.json
-  VENTOY_USB_PATH: /run/media/user/Ventoy
+  VENTOY_CONFIG_URL: https://gitlab.com/megabyte-labs/jumpusb/-/raw/master/ventoy/ventoy.json
+  VENTOY_DOWNLOAD_CONFIG_URL: https://gitlab.com/megabyte-labs/jumpusb/-/blob/master/local/distros.json
+  VENTOY_USB_PATH:
+    sh: |
+      if [ -d /run/media/user/Ventoy ]; then
+        echo "/run/media/user/Ventoy"
+      else
+        echo "."
+      fi
 
 tasks:
   config:
@@ -73,9 +79,6 @@ tasks:
       - :install:software:git
     cmds:
       - git clone https://github.com/ProfessorManhattan/distro-grub-themes.git /tmp/distro-grub-themes
-      - mkdir -p {{.VENTOY_USB_PATH}}/ventoy/theme
+      - mkdir -p ./ventoy/theme
       - rm -rf {{.VENTOY_USB_PATH}}/ventoy/theme/ventoy
       - mv /tmp/distro-grub-themes/customize/ventoy {{.VENTOY_USB_PATH}}/ventoy/theme/ventoy
-    preconditions:
-      - sh: test -d {{.VENTOY_USB_PATH}}
-        msg: The `{{.VENTOY_USB_PATH}}` mounted USB directory must be available!

@@ -9,6 +9,7 @@ vars:
 tasks:
   config:
     cmds:
+      - mkdir -p {{.VENTOY_USB_PATH}}/ventoy
       - curl -sSL '{{.VENTOY_CONFIG_URL}}' > '{{.VENTOY_USB_PATH}}/ventoy/ventoy.json'
 
   download:
@@ -23,14 +24,49 @@ tasks:
           VENTORY_URL_AXEL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
           VENTOY_MD5="$(jq -r -n '$in.md5' --argjson in "$VENTOY_OS")"
           VENTOY_PATH="$(jq -r -n '$in.path' --argjson in "$VENTOY_OS")"
-          if [ ! -f "$VENTOY_PATH" ]; then
+          if [ ! -f "{{.VENTOY_USB_PATH}}$VENTOY_PATH" ]; then
+            mkdir -p "$(dirname "{{.VENTOY_USB_PATH}}${VENTOY_PATH}")"
             axel -o "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "$VENTOY_URL"
           fi
         done
+      - task: download:others
 
   download:config:
     cmds:
       - curl -sSL '{{.VENTOY_DOWNLOAD_CONFIG_URL}}' > .ventoy.json
+
+  download:fydeos:
+    cmds:
+      - mkdir -p {{.VENTOY_USB_PATH}}/iso/fydeos
+      - axel -o {{.VENTOY_USB_PATH}}/iso/fydeos/fydeos-14.1-amd64.iso https://download.fydeos.io/FydeOS_for_PC_apu_v14.1-stable.img.xz
+      - unxz {{.VENTOY_USB_PATH}}/iso/fydeos/fydeos-14.1-amd64.iso
+
+  download:opnsense:
+    deps:
+      - :install:software:axel
+    cmds:
+      - axel -o /tmp/opnsense-22.1.2-amd64.iso.bz2
+        https://mirrors.nycbug.org/pub/opnsense/releases/22.1/OPNsense-22.1.2-OpenSSL-dvd-amd64.iso.bz2
+      - bzip2 -d /tmp/opnsense-22.1.2-amd64.iso.bz2
+      - mkdir -p {{.VENTOY_USB_PATH}}/iso/opnsense
+      - mv /tmp/opnsense-22.1.2-amd64.iso {{.VENTOY_USB_PATH}}/iso/opnsense/opnsense-22.1.2-amd64.iso
+
+  download:others:
+    deps:
+      - download:fydeos
+      - download:seconion
+      - download:opnsense
+
+  download:seconion:
+    deps:
+      - :install:software:axel
+    cmds:
+      - wget https://raw.githubusercontent.com/Security-Onion-Solutions/securityonion/master/KEYS -O - | gpg --import -
+      - wget https://github.com/Security-Onion-Solutions/securityonion/raw/master/sigs/securityonion-2.3.110-20220407.iso.sig
+      - axel https://download.securityonion.net/file/securityonion/securityonion-2.3.110-20220407.iso
+      - gpg --verify securityonion-2.3.110-20220407.iso.sig securityonion-2.3.110-20220407.iso
+      - mkdir -p {{.VENTOY_USB_PATH}}/iso/seconion
+      - mv securityonion-2.3.110-20220407.iso {{.VENTOY_USB_PATH}}/iso/seconion/seconion-2.3.110-amd64.iso
 
   theme:
     deps:

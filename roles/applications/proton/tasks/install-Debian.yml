@@ -1,0 +1,100 @@
+---
+- name: "Fetch the {{ app_name }}'s Downloads page to find the latest version"
+  uri:
+    url: "{{ protonvpn_debian_page }}"
+    return_content: true
+  register: proton_page
+
+- name: "Find {{ app_name }}'s package repository URL"
+  set_fact:
+    protonvpn_apt_repository_url: "{{ proton_page.content | regex_search('https:.*\\.deb') }}"
+
+- name: "Add {{ app_name }}'s apt repository"
+  apt:
+    deb: "{{ protonvpn_apt_repository_url }}"
+    state: present
+
+- name: 'Ensure {{ app_name }} is installed'
+  apt:
+    name: protonvpn
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: 'Ensure {{ app_name }} CLI is installed'
+  apt:
+    name: protonvpn-cli
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: Install System tray icon
+  apt:
+    name:
+      - gir1.2-appindicator3-0.1
+      - gnome-shell-extension-appindicator
+    state: present
+
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Fetch the release information of ProtonMail Import-Export App
+  uri:
+    url: "{{ import_export_releases_linux }}"
+    return_content: true
+  register: ie_releases
+
+- name: Determine whether or not the latest version of ProtonMail Import-Export App is already installed
+  set_fact:
+    install_protonmailie: "{{ (ansible_local.protonmailie is not defined) or \
+      ((ansible_local.protonmailie is defined) and \
+      (ansible_local['protonmailie']['settings']['version'] != ie_releases.json.Version)) }}"
+
+- name: Ensure ProtonMail Import-Export App is installed
+  apt:
+    deb: "{{ ie_releases.json.DebFile }}"
+    state: present
+  when: install_protonmailie
+
+- name: Save meta information about the version of ProtonMail Import-Export App that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/protonmailie.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ ie_releases.json.Version }}"
+    no_extra_spaces: true
+  when: install_protonmailie
+
+- name: Fetch the ProtonMail Bridge's Downloads page to find the latest version
+  uri:
+    url: "{{ bridge_releases }}"
+    return_content: true
+  register: bridge_page
+
+- name: Find ProtonMail Bridge's DEB package URL
+  set_fact:
+    protonmail_bridge_deb: "{{ bridge_page.content | regex_search('https:\\/\\/protonmail.com\\/download\\/bridge\\/protonmail-bridge.*\\.deb') }}"
+
+- name: Determine whether or not the latest version of ProtonMail Bridge is already installed
+  set_fact:
+    install_protonmailbridge: "{{ (ansible_local.protonmailbridge is not defined) or \
+      ((ansible_local.protonmailbridge is defined) and \
+      (ansible_local['protonmailbridge']['settings']['version'] != protonmail_bridge_deb | regex_search('(\\d\\.)*\\d*'))) }}"
+
+- name: Ensure ProtonMail Bridge is installed
+  apt:
+    deb: "{{ protonmail_bridge_deb }}"
+    state: present
+  when: install_protonmailbridge
+
+- name: Save meta information about the version of ProtonMail Bridge that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/protonmailbridge.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ protonmail_bridge_deb | regex_search('(\\d\\.)*\\d*') }}"
+    no_extra_spaces: true
+  when: install_protonmailbridge

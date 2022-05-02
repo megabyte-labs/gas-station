@@ -29,6 +29,30 @@
     dest: ~/.mackup.cfg
     mode: 0700
     backup: true
+  register: mackupcfg_template
+
+- name: Ensure config backup directory exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "~/.config/megabytelabs/backups"
+    state: directory
+    mode: 0700
+  when: mackupcfg_template.backup_file is defined and mackupcfg_template.backup_file | length > 0
+
+- name: Copy the backup file
+  become_user: "{{ user.username }}"
+  copy:
+    src: "{{ mackupcfg_template.backup_file }}"
+    dest: "~/.config/megabytelabs/backups/"
+    remote_src: true
+  when: mackupcfg_template.backup_file is defined and mackupcfg_template.backup_file | length > 0
+
+- name: Delete the backup file
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ mackupcfg_template.backup_file }}"
+    state: absent
+  when: mackupcfg_template.backup_file is defined and mackupcfg_template.backup_file | length > 0
 
 - name: Ensure ~/.mackup folder exists
   become_user: "{{ user.username }}"

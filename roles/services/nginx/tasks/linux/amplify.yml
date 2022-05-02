@@ -56,8 +56,21 @@
         name: amplify-agent
         state: started
       when: false
-# @Todo Compile Amplify from source as an alternative to the above installation method
   rescue:
-    - name: Compile NGINX Amplify Agent from source
-      debug:
-        msg: "@TODO Compile NGINX Amplify from source"
+    - name: Ensure NGINX Amplify agent's dependencies are installed
+      package:
+        name: "{{ amplify_build_dependencies }}"
+        state: present
+
+    - name: Copy the installer script
+      copy:
+        src: install-amplify.sh
+        dest: /tmp/install-amplify.sh
+        mode: 0500
+
+    - name: Compile NGINX Amplify Agent from source # noqa 301
+      command: /tmp/install-amplify.sh
+      environment:
+        API_KEY: "{{ nginx_amplify_api_key }}"
+      args:
+        executable: /bin/bash

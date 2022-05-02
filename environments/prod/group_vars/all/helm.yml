@@ -56,6 +56,17 @@ helm_charts:
   kubernetes-dashboard:
     command: helm install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard
     repository: https://kubernetes.github.io/dashboard/
+  # @helm [Linkerd](https://linkerd.io/) | [GitHub](https://github.com/linkerd/linkerd2) | [Helm](https://linkerd.io/2.10/tasks/install-helm/) - Linkerd is a service mesh that is ultra light, ultra simple, ultra powerful. According to their website, Linkerd adds security, observability, and reliability to Kubernetes, without the complexity.
+  linkerd:
+    command: |
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        CERT_EXP_DATE=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ")
+      else
+        CERT_EXP_DATE=$(date -d '+8760 hour' +"%Y-%m-%dT%H:%M:%SZ")
+      fi
+      helm install linkerd2 --set-file identityTrustAnchorsPEM=ca.crt --set-file identity.issuer.tls.crtPEM=issuer.crt --set-file identity.issuer.tls.keyPEM=issuer.key --set identity.issuer.crtExpiry=$CERT_EXP_DATE linkerd/linkerd2
+    repository: https://helm.linkerd.io/stable
+    repository_name: linkered
   # @helm [Loki](https://grafana.com/oss/loki/) | [GitHub](https://github.com/grafana/loki) | [Helm](https://grafana.com/docs/loki/latest/installation/microservices-helm/) - Grafana Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus. It is designed to be very cost effective and easy to operate.
   loki:
     command: helm install loki-grafana grafana/grafana
@@ -98,7 +109,6 @@ helm_charts:
     repository: https://vmware-tanzu.github.io/helm-charts
 
 
-# @helm [Loki](https://artifacthub.io/packages/helm/grafana/loki)
 # @helm [Fission](https://artifacthub.io/packages/helm/fission-charts/fission-all) 8
 # @helm [Rancher](https://artifacthub.io/packages/helm/rancher-stable/rancher) - Helm
 # @helm [Vector](https://vector.dev/docs/setup/installation/package-managers/helm/)

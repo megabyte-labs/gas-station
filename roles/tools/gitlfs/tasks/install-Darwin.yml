@@ -9,8 +9,15 @@
 - name: Ensure git-lfs global configuration is run # noqa 303 503
   environment:
     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  become: false
-  command: git lfs install --system
+  become: true
+  become_user: "{{ user.username }}"
+  command: git lfs install
   args:
     chdir: ~/
-  when: install_result.changed
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_result.changed
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -2,7 +2,6 @@
 version: '3'
 
 vars:
-  VENTOY_CONFIG_URL: https://gitlab.com/megabyte-labs/jumpusb/-/raw/master/ventoy/ventoy.json
   VENTOY_DOWNLOAD_CONFIG_URL: https://gitlab.com/megabyte-labs/jumpusb/-/blob/master/local/distros.json
   VENTOY_USB_PATH:
     sh: |
@@ -13,72 +12,62 @@ vars:
       fi
 
 tasks:
-  config:
+  clone:
     cmds:
-      - mkdir -p {{.VENTOY_USB_PATH}}/ventoy
-      - curl -sSL '{{.VENTOY_CONFIG_URL}}' > '{{.VENTOY_USB_PATH}}/ventoy/ventoy.json'
+      - |
+        cd {{.VENTOY_USB_PATH}}
+        git init
+        git remote add origin https://gitlab.com/megabyte-labs/jumpusb.git
+        git fetch
+        git pull origin master
 
   download:
     deps:
       - :install:software:axel
     todo: Add validation of md5/sha256 and add update functionality to VENTOY_DOWNLOAD_CONFIG_URL
     cmds:
-      - task: download:config
+      - task: setup:persistence
+      - curl -sSL '{{.VENTOY_DOWNLOAD_CONFIG_URL}}' > .ventoy.json
       - |
         jq -c '.distros[]' .ventoy.json | while read VENTOY_OS; do
-          VENTORY_URL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
-          VENTORY_URL_AXEL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
+          VENTOR_URL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
+          VENTOR_URL_AXEL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
           VENTOY_MD5="$(jq -r -n '$in.md5' --argjson in "$VENTOY_OS")"
           VENTOY_PATH="$(jq -r -n '$in.path' --argjson in "$VENTOY_OS")"
+          VENTOY_PER_BASE="$(jq -r -n '$in.persistence_base' --argjson in "$VENTOY_OS")"
+          VENTOY_PER_FILE="$(jq -r -n '$in.persistence_file' --argjson in "$VENTOY_OS")"
+          mkdir -p "$(dirname {{.VENTOY_USB_PATH}}$VENTOY_PATH)"
           if [ ! -f "{{.VENTOY_USB_PATH}}$VENTOY_PATH" ]; then
             mkdir -p "$(dirname "{{.VENTOY_USB_PATH}}${VENTOY_PATH}")"
-            axel -o "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "$VENTOY_URL"
+            axel -o "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "$VENTOY_URL_AXEL"
+            if [[ "$VENTOY_URL" == *.gz ]]; then
+              mv "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.gz"
+              gzip -d "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.gz"
+            elif [[ "$VENTOY_URL" == *.bz2 ]]; then
+              mv "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.bz2"
+              bzip2 -d "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.bz2"
+            fi
+          fi
+          if [ ! -f "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_FILE" ]; then
+            7z x "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_BASE"
+            UNCOMPRESSED_FILE="$(echo $VENTOY_PER_BASE | sed 's/.7z$//')"
+            mv "$UNCOMPRESSED_FILE" "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_FILE"
           fi
         done
-      - task: download:others
 
-  download:config:
+  install:
     cmds:
-      - curl -sSL '{{.VENTOY_DOWNLOAD_CONFIG_URL}}' > .ventoy.json
+      - curl -sSL https://github.com/ventoy/Ventoy/releases/download/v1.0.74/ventoy-1.0.74-linux.tar.gz > ventoy.tar.gz
+      - tar -xzvf ventoy.tar.gz
+      - .config/log info 'Running sudo command `sudo sh ventoy/Ventoy2Disk.sh -ui {{.CLI_ARGS}}`'
+      - sudo sh ventoy/Ventoy2Disk.sh -ui {{.CLI_ARGS}}
+      - rm -rf ventoy
 
-  download:fydeos:
+  setup:persistence:
     cmds:
-      - mkdir -p {{.VENTOY_USB_PATH}}/iso/fydeos
-      - axel -o {{.VENTOY_USB_PATH}}/iso/fydeos/fydeos-14.1-amd64.iso https://download.fydeos.io/FydeOS_for_PC_apu_v14.1-stable.img.xz
-      - unxz {{.VENTOY_USB_PATH}}/iso/fydeos/fydeos-14.1-amd64.iso
-
-  download:opnsense:
-    deps:
-      - :install:software:axel
-    cmds:
-      - axel -o /tmp/opnsense-22.1.2-amd64.iso.bz2
-        https://mirrors.nycbug.org/pub/opnsense/releases/22.1/OPNsense-22.1.2-OpenSSL-dvd-amd64.iso.bz2
-      - bzip2 -d /tmp/opnsense-22.1.2-amd64.iso.bz2
-      - mkdir -p {{.VENTOY_USB_PATH}}/iso/opnsense
-      - mv /tmp/opnsense-22.1.2-amd64.iso {{.VENTOY_USB_PATH}}/iso/opnsense/opnsense-22.1.2-amd64.iso
-
-  download:others:
-    deps:
-      - download:fydeos
-      - download:seconion
-      - download:opnsense
-
-  download:seconion:
-    deps:
-      - :install:software:axel
-    cmds:
-      - wget https://raw.githubusercontent.com/Security-Onion-Solutions/securityonion/master/KEYS -O - | gpg --import -
-      - wget https://github.com/Security-Onion-Solutions/securityonion/raw/master/sigs/securityonion-2.3.110-20220407.iso.sig
-      - axel https://download.securityonion.net/file/securityonion/securityonion-2.3.110-20220407.iso
-      - gpg --verify securityonion-2.3.110-20220407.iso.sig securityonion-2.3.110-20220407.iso
-      - mkdir -p {{.VENTOY_USB_PATH}}/iso/seconion
-      - mv securityonion-2.3.110-20220407.iso {{.VENTOY_USB_PATH}}/iso/seconion/seconion-2.3.110-amd64.iso
-
-  theme:
-    deps:
-      - :install:software:git
-    cmds:
-      - git clone https://github.com/ProfessorManhattan/distro-grub-themes.git /tmp/distro-grub-themes
-      - mkdir -p ./ventoy/theme
-      - rm -rf {{.VENTOY_USB_PATH}}/ventoy/theme/ventoy
-      - mv /tmp/distro-grub-themes/customize/ventoy {{.VENTOY_USB_PATH}}/ventoy/theme/ventoy
+      - curl -sSL https://github.com/ventoy/backend/releases/download/v5.0/images.zip > images.zip
+      - unzip images.zip
+      - rm images.zip
+      - mkdir -p {{.VENTOY_USB_PATH}}/persistence
+      - mv images/* {{.VENTOY_USB_PATH}}/persistence
+      - rm -rf images

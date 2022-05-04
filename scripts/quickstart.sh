@@ -94,7 +94,7 @@ fi
 # task. The source to the `ansible:quickstart` task can be found
 # [here](https://gitlab.com/megabyte-labs/common/shared/-/blob/master/common/.config/taskfiles/ansible/Taskfile.yml).
 cd "$HOME/$PLAYBOOKS_DIR" || exit
-bash start.sh
+NO_GIT_CREDS=true bash start.sh
 # There is really no perfect way of getting the PATH right with a one-click install
 # so this line is included to minimize the number of problems that arise
 export PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin:$HOME/.gem/bin:$HOME/.asdf/bin:$HOME/.local/go/bin:$HOME/go/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"

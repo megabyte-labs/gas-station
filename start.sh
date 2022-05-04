@@ -523,6 +523,10 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
         # shellcheck disable=SC2016
         brew install poetry || logger info 'There may have been an issue installing `poetry` with `brew`'
       fi
+      if ! type jq &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install jq || logger info 'There may have been an issue installiny `jq` with `brew`'
+      fi
       if ! type yq &> /dev/null; then
         # shellcheck disable=SC2016
         brew install yq || logger info 'There may have been an issue installing `yq` with `brew`'

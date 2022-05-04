@@ -91,22 +91,23 @@ tasks:
       success: Successfully installed local NPM dependencies
     cmds:
       - task: tslib
-      - |
-        if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
-          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
-            {{.NPM_PROGRAM_LOCAL}} update
-          else
-            {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
-            --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
-            --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
-            if [ -n "$EXIT_CODE" ]; then
-              .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+      - cmd: |
+          if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
+            if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
               {{.NPM_PROGRAM_LOCAL}} update
+            else
+              {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
+              --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
+              --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
+              if [ -n "$EXIT_CODE" ]; then
+                .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+                {{.NPM_PROGRAM_LOCAL}} update
+              fi
             fi
           fi
-        fi
-        mkdir -p .task
-        echo "$DEPS" > .task/npm-deps
+          mkdir -p .task
+          echo "$DEPS" > .task/npm-deps
+        ignore_error: true
     sources:
       - package.json
 
@@ -246,6 +247,30 @@ tasks:
       - jq --arg scoops "$(jq -n '[["Project", "Description"], (inputs | ["**[" + .homepage + "](" + .homepage + ")**", .description ])]' Scoops/*.json)"
         '.scoop_var_chart = $scoops' .variables.json > "$TMP" && mv "$TMP" .variables.json
 
+  tslib:
+    vars:
+      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
+        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
+        install tslib.
+    run: once
+    log:
+      error: Failed to probe `tslib`
+      start: Checking if `tslib` is being used
+    cmds:
+      - |
+        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
+          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
+            .config/log info '{{.TSLIB_MSG}}'
+          else
+            .config/log info 'Adding `tslib` to dependencies since `importHelpers` is set to true in tsconfig.json'
+            TMP="$(mktemp)"
+            jq '.dependencies.tslib = "latest"' package.json > "$TMP"
+            mv "$TMP" package.json
+          fi
+        fi
+    status:
+      - '[ ! -f tsconfig.json ]'
+
   system:upgrade:
     log:
       error: Encountered error while upgrading system
@@ -357,30 +382,6 @@ tasks:
         fi
     status:
       - '[ -z "$(which yum)" ]'
-
-  tslib:
-    vars:
-      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
-        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
-        install tslib.
-    run: once
-    log:
-      error: Failed to probe `tslib`
-      start: Checking if `tslib` is being used
-    cmds:
-      - |
-        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
-          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
-            .config/log info '{{.TSLIB_MSG}}'
-          else
-            .config/log info 'Adding `tslib` to dependencies since `importHelpers` is set to true in tsconfig.json'
-            TMP="$(mktemp)"
-            jq '.dependencies.tslib = "latest"' package.json > "$TMP"
-            mv "$TMP" package.json
-          fi
-        fi
-    status:
-      - '[ ! -f tsconfig.json ]'
 
   ventoy:
     cmds:

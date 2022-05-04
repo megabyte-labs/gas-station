@@ -231,9 +231,26 @@ tasks:
   quickstart:
     deps:
       - :ansible:symlink:{{.REPOSITORY_SUBTYPE}}
+      - :install:software:jq
       - task: :install:python:requirements
         vars:
           INSTALL_OPTIONS: --no-dev
+    cmds:
+      - task: quickstart:environment
+      - |
+        if [ -f files/inventory-map.json ]; then
+          MAC_ADDRESS="$(cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address)"
+          TARGET_INV="$(jq --arg macAddress "$MAC_ADDRESS" -r '.[$macAddress]' files/inventory-map.json)"
+          if [ "$TARGET_INV" != 'null' ]; then
+            task ansible:quickstart:mapped -- "$TARGET_INV"
+          else
+            .config/log info 'MAC address missing from inventory-map.json'
+          fi
+        else
+          task ansible:quickstart:demo
+        fi
+
+  quickstart:demo:
     vars:
       INSTALLING:
         sh: if test -f install_in_progress; then echo 'true'; else echo 'false'; fi
@@ -253,6 +270,22 @@ tasks:
         playbooks/init.yml{{else}} main.yml{{end}}
       - if [ -f ansible.cfg.bak ]; then mv ansible.cfg.bak ansible.cfg; fi
       - if [ -f inventory ]; then rm inventory; fi
+
+  quickstart:environment:
+    cmds:
+      - task ansible:playbook:environment:cli -- "$ENV"
+    status:
+      - '[ -z "$ENV" ]'
+
+  quickstart:mapped:
+    vars:
+      INSTALLING:
+        sh: if test -f install_in_progress; then echo 'true'; else echo 'false'; fi
+    cmds:
+      - >
+        {{.PYTHON_HANDLE}}ansible-playbook --ask-vault-pass -i {{.CLI_ARGS}}
+        {{if eq .INSTALLING 'false'}}--skip-tags "skip_on_init"
+        playbooks/init.yml{{else}} main.yml{{end}}
 
   sync:requirements:
     deps:

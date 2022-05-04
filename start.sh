@@ -168,7 +168,7 @@ function ensureLocalPath() {
     # shellcheck disable=SC2016
     PATH_STRING='export PATH="$HOME/.local/bin:$PATH"'
     mkdir -p "$HOME/.local/bin"
-    if ! grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+    if ! cat "$HOME/.profile" | grep "$PATH_STRING" > /dev/null; then
       echo -e "${PATH_STRING}\n" >> "$HOME/.profile"
       logger info "Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
     fi

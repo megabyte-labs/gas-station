@@ -220,7 +220,7 @@ tasks:
         if [ '{{OS}}' == 'darwin' ] || [ '{{OS}}' == 'linux' ]; then
           # shellcheck disable=SC2016
           PROFILE_STRING='{{.PROFILE_STRING}}'
-          if ! grep "$PROFILE_STRING" "$HOME/.profile" > /dev/null; then
+          if ! cat "$HOME/.profile" | grep "$PATH_STRING" > /dev/null; then
             echo -e "${PROFILE_STRING}\n" >> "$HOME/.profile"
             .config/log info 'Added `{{.PROFILE_STRING}}` to '"$HOME/.profile"
           fi
@@ -245,6 +245,30 @@ tasks:
     cmds:
       - jq --arg scoops "$(jq -n '[["Project", "Description"], (inputs | ["**[" + .homepage + "](" + .homepage + ")**", .description ])]' Scoops/*.json)"
         '.scoop_var_chart = $scoops' .variables.json > "$TMP" && mv "$TMP" .variables.json
+
+  tslib:
+    vars:
+      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
+        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
+        install tslib.
+    run: once
+    log:
+      error: Failed to probe `tslib`
+      start: Checking if `tslib` is being used
+    cmds:
+      - |
+        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
+          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
+            .config/log info '{{.TSLIB_MSG}}'
+          else
+            .config/log info 'Adding `tslib` to dependencies since `importHelpers` is set to true in tsconfig.json'
+            TMP="$(mktemp)"
+            jq '.dependencies.tslib = "latest"' package.json > "$TMP"
+            mv "$TMP" package.json
+          fi
+        fi
+    status:
+      - '[ ! -f tsconfig.json ]'
 
   system:upgrade:
     log:
@@ -357,30 +381,6 @@ tasks:
         fi
     status:
       - '[ -z "$(which yum)" ]'
-
-  tslib:
-    vars:
-      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
-        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
-        install tslib.
-    run: once
-    log:
-      error: Failed to probe `tslib`
-      start: Checking if `tslib` is being used
-    cmds:
-      - |
-        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
-          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
-            .config/log info '{{.TSLIB_MSG}}'
-          else
-            .config/log info 'Adding `tslib` to dependencies since `importHelpers` is set to true in tsconfig.json'
-            TMP="$(mktemp)"
-            jq '.dependencies.tslib = "latest"' package.json > "$TMP"
-            mv "$TMP" package.json
-          fi
-        fi
-    status:
-      - '[ ! -f tsconfig.json ]'
 
   ventoy:
     cmds:

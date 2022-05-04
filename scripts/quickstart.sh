@@ -15,6 +15,34 @@ set -eo pipefail
 # @description The folder to store the Playbook files in the current user's home directory
 PLAYBOOKS_DIR="Playbooks"
 
+# @description Ensures Homebrew and Poetry are installed
+if [ -z "$NO_INSTALL_HOMEBREW" ]; then
+  if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
+    if [ -z "$INIT_CWD" ]; then
+      if ! type brew &> /dev/null; then
+        if type sudo &> /dev/null && sudo -n true; then
+          echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        else
+          echo "Homebrew is not installed. The script will attempt to install Homebrew and you might be prompted for your password."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+      fi
+      if [ -f "$HOME/.profile" ]; then
+        # shellcheck disable=SC1091
+        . "$HOME/.profile"
+      fi
+      if ! type poetry &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install poetry || echo 'There may have been an issue installing `poetry` with `brew`'
+      fi
+      if ! type yq &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install yq || echo 'There may have been an issue installing `yq` with `brew`'
+      fi
+    fi
+  fi
+fi
+
 # @description Ensures given package is installed on a system.
 #
 # @example

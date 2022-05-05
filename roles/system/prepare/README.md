@@ -1,12 +1,12 @@
 <!-- ⚠️ This README has been generated from the file(s) "./.modules/docs/blueprint-readme.md" ⚠️--><div align="center">
   <center>
-    <a href="https://gitlab.com/megabyte-space/ansible-roles/connect">
-      <img width="140" height="140" alt="Connect logo" src="https://gitlab.com/megabyte-space/ansible-roles/connect/-/raw/master/logo.png" />
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/prepare">
+      <img width="140" height="140" alt="Prepare logo" src="https://gitlab.com/megabyte-space/ansible-roles/prepare/-/raw/master/logo.png" />
     </a>
   </center>
 </div>
 <div align="center">
-  <center><h1 align="center">Ansible Role: Connect</h1></center>
+  <center><h1 align="center">Ansible Role: Prepare</h1></center>
   <center><h4 style="color: #18c3d1;">An open-source Ansible role brought to you by <a href="https://megabyte.space" target="_blank">Megabyte Labs</a></h4></center>
 </div>
 
@@ -15,10 +15,10 @@
     <a href="https://megabyte.space" title="Megabyte Labs homepage" target="_blank">
       <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/home-solid.svg" />
     </a>
-    <a href="https://galaxy.ansible.com/professormanhattan/connect" title="Connect role on Ansible Galaxy" target="_blank">
+    <a href="https://galaxy.ansible.com/professormanhattan/prepare" title="Prepare role on Ansible Galaxy" target="_blank">
       <img height="50" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/ansible-galaxy.svg" />
     </a>
-    <a href="https://gitlab.com/megabyte-space/ansible-roles/connect/-/blob/master/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/prepare/-/blob/master/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
       <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/contributing-solid.svg" />
     </a>
     <a href="https://www.patreon.com/ProfessorManhattan" title="Support us on Patreon" target="_blank">
@@ -27,39 +27,39 @@
     <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/" title="Slack chat room" target="_blank">
       <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/chat-solid.svg" />
     </a>
-    <a href="https://github.com/ProfessorManhattan/ansible-connect" title="GitHub mirror" target="_blank">
+    <a href="https://github.com/ProfessorManhattan/ansible-prepare" title="GitHub mirror" target="_blank">
       <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/github-solid.svg" />
     </a>
-    <a href="https://gitlab.com/megabyte-space/ansible-roles/connect" title="GitLab repository" target="_blank">
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/prepare" title="GitLab repository" target="_blank">
       <img src="https://gitlab.com/megabyte-labs/assets/-/raw/master/svg/gitlab-solid.svg" />
     </a>
   </h4>
   <p align="center">
-    <a href="https://galaxy.ansible.com/professormanhattan/connect" target="_blank">
-      <img alt="Ansible Galaxy role: professormanhattan.connect" src="https://img.shields.io/ansible/role/ansible_galaxy_project_id?logo=ansible&style=flat" />
+    <a href="https://galaxy.ansible.com/professormanhattan/prepare" target="_blank">
+      <img alt="Ansible Galaxy role: professormanhattan.prepare" src="https://img.shields.io/ansible/role/ansible_galaxy_project_id?logo=ansible&style=flat" />
     </a>
-    <a href="https://gitlab.com/megabyte-space/ansible-roles/connect" target="_blank">
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/prepare" target="_blank">
       <img alt="Version: 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue.svg?cacheSeconds=2592000" />
     </a>
-    <a href="https://github.com/ProfessorManhattan/ansible-connect/actions/Windows.yml" target="_blank">
-      <img alt="Windows 10 build status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-connect/Windows/master?color=cyan&label=Windows%20build&logo=windows&style=flat">
+    <a href="https://github.com/ProfessorManhattan/ansible-prepare/actions/Windows.yml" target="_blank">
+      <img alt="Windows 10 build status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-prepare/Windows/master?color=cyan&label=Windows%20build&logo=windows&style=flat">
     </a>
-    <a href="https://github.com/ProfessorManhattan/ansible-connect/actions/macOS.yml" target="_blank">
-      <img alt="macOS build status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-connect/macOS/master?label=macOS%20build&logo=apple&style=flat">
+    <a href="https://github.com/ProfessorManhattan/ansible-prepare/actions/macOS.yml" target="_blank">
+      <img alt="macOS build status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-prepare/macOS/master?label=macOS%20build&logo=apple&style=flat">
     </a>
-    <a href="https://gitlab.com/megabyte-space/ansible-roles/connect/commits/master" target="_blank">
-      <img alt="Linux build status" src="https://gitlab.com/megabyte-space/ansible-roles/connect/badges/master/pipeline.svg">
+    <a href="https://gitlab.com/megabyte-space/ansible-roles/prepare/commits/master" target="_blank">
+      <img alt="Linux build status" src="https://gitlab.com/megabyte-space/ansible-roles/prepare/badges/master/pipeline.svg">
     </a>
-    <a href="https://galaxy.ansible.com/professormanhattan/connect" target="_blank" title="Ansible Galaxy quality score (out of 5)">
+    <a href="https://galaxy.ansible.com/professormanhattan/prepare" target="_blank" title="Ansible Galaxy quality score (out of 5)">
       <img alt="Ansible Galaxy quality score" src="https://img.shields.io/ansible/quality/ansible_galaxy_project_id?logo=ansible&style=flat" />
     </a>
-    <a href="https://galaxy.ansible.com/professormanhattan/connect" target="_blank">
+    <a href="https://galaxy.ansible.com/professormanhattan/prepare" target="_blank">
       <img alt="Ansible Galaxy downloads" src="https://img.shields.io/ansible/role/d/53381?logo=ansible&style=flat">
     </a>
     <a href="https://megabyte.space/docs/ansible" target="_blank">
       <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&style=flat" />
     </a>
-    <a href="repository.gitlab_ansible_roles_group/connect/-/raw/master/LICENSE" target="_blank">
+    <a href="repository.gitlab_ansible_roles_group/prepare/-/raw/master/LICENSE" target="_blank">
       <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat" />
     </a>
     <a href="https://opencollective.com/megabytelabs" title="Support us on Open Collective" target="_blank">
@@ -77,29 +77,29 @@
   </p>
 </div>
 
-> </br><h3 align="center">**An Ansible role that handles the connection process for hosts that have not been reassigned a "secure" \ non-default port and sets variables that are used later in the playbook**</h3></br>
+> </br><h3 align="center">**An Ansible role that prepares hosts for playbook execution**</h3></br>
 
-<!--TERMINALIZER![terminalizer_title](https://gitlab.com/megabyte-space/ansible-roles/connect/-/raw/master/.demo.gif)TERMINALIZER-->
+<!--TERMINALIZER![terminalizer_title](https://gitlab.com/megabyte-space/ansible-roles/prepare/-/raw/master/.demo.gif)TERMINALIZER-->
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#one-line-install-method)
 
 ## ➤ One-Line Install Method
 
-Looking to install Connect without having to deal with [Ansible](https://www.ansible.com/)? Simply run the following command that correlates to your operating system:
+Looking to install Prepare without having to deal with [Ansible](https://www.ansible.com/)? Simply run the following command that correlates to your operating system:
 
 **Linux/macOS:**
 
 ```shell
-curl -sS https://install.doctor/connect | bash
+curl -sS https://install.doctor/prepare | bash
 ```
 
 **Windows:**
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://win.install.doctor/connect'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://win.install.doctor/prepare'))
 ```
 
-And there you go. Installing connect can be as easy as that. If, however, you would like to incorporate this into an Ansible playbook (and customize settings) then please continue reading below.
+And there you go. Installing prepare can be as easy as that. If, however, you would like to incorporate this into an Ansible playbook (and customize settings) then please continue reading below.
 
 **Important Note:** _Before running the commands above you should probably directly access the URL to make sure the code is legit. We already know it is safe but, before running any script on your computer, you should inspect it._
 
@@ -120,7 +120,7 @@ And there you go. Installing connect can be as easy as that. If, however, you wo
 
 ## ➤ Overview
 
-This repository is the home of an Ansible role that handles the connection process for hosts that have not been reassigned a "secure" \ non-default port and sets variables that are used later in the playbook.
+This repository is the home of an Ansible role that prepares hosts for playbook execution. This role is intended to be used as the first role in the playbook.
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 
@@ -168,7 +168,7 @@ With the dependencies installed, all you have to do is add the role to your main
 ```lang-yml
 - hosts: all
   roles:
-    - professormanhattan.connect
+    - professormanhattan.prepare
 ```
 
 If you are incorporating this role into a pre-existing playbook, then it might be prudent to copy the requirements in `requirements.txt` and `requirements.yml` to their corresponding files in the root of your playbook.
@@ -177,7 +177,7 @@ If you are incorporating this role into a pre-existing playbook, then it might b
 
 ## ➤ Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://gitlab.com/megabyte-space/ansible-roles/connect/-/issues). If you would like to contribute, please take a look at the [contributing guide](https://gitlab.com/megabyte-space/ansible-roles/connect/-/raw/master/CONTRIBUTING.md).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://gitlab.com/megabyte-space/ansible-roles/prepare/-/issues). If you would like to contribute, please take a look at the [contributing guide](https://gitlab.com/megabyte-space/ansible-roles/prepare/-/raw/master/CONTRIBUTING.md).
 
 <details>
 <summary>Sponsorship</summary>
@@ -201,4 +201,4 @@ I create open source projects out of love. Although I have a job, shelter, and a
 
 ## ➤ License
 
-Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/connect/-/raw/master/LICENSE) licensed.
+Copyright © 2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](repository.gitlab_ansible_roles_group/prepare/-/raw/master/LICENSE) licensed.

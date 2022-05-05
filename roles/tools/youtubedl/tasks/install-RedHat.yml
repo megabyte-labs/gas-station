@@ -1,7 +1,14 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
+  block:
   dnf:
     name: youtube-dl
     state: "{{ app_state | default('present') }}"
     enablerepo: epel
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Ensure {{ app_name }} is installed"
+      become: false
+      community.general.homebrew:
+        name: youtube-dl
+        state: "{{ app_state | default('present') }}"

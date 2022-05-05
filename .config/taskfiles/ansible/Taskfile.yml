@@ -230,29 +230,81 @@ tasks:
 
   quickstart:
     deps:
-      - :ansible:symlink:{{.REPOSITORY_SUBTYPE}}
+      - :install:software:jq
+      - :symlink:{{.REPOSITORY_SUBTYPE}}
       - task: :install:python:requirements
         vars:
           INSTALL_OPTIONS: --no-dev
+    cmds:
+      - task: quickstart:environment
+      - task: quickstart:map
+      - task: quickstart:demo
+
+  quickstart:cli:
     vars:
-      INSTALLING:
-        sh: if test -f install_in_progress; then echo 'true'; else echo 'false'; fi
+      INVENTORY: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}inventories/local.yml{{end}}'
+      PLAY_PARAMS:
+        sh: |
+          if [ -f .cache/playbook-quickstart-demo-called ]; then
+            echo '--skip-tags "skip_on_init" playbooks/init.yml'
+          else
+            echo 'main.yml'
+          fi
+      VAULT_PASS:
+        sh: |
+          {{if .VAULT_PASS}}echo '{{.VAULT_PASS}}'{{else}}
+          if [ -f ~/.vault_pass ]; then
+            echo '--vault-pass-file ~/.vault_pass'
+          else
+            echo '--ask-vault-pass'
+          fi
+          {{end}}
     log:
       error: Error occurred while running the Ansible play
       start: Running the Ansible play locally
       success: Successfully ran the Ansible play locally
     cmds:
-      - cp test/{{OS}}/inventory inventory
-      - if [ ! -f ansible.cfg.bak ]; then cp ansible.cfg ansible.cfg.bak; fi
-      - cp test/{{OS}}/ansible.cfg ansible.cfg
-      - touch install_in_progress
-      - .config/log info 'Prompting for sudo password and vault password which is required to run the playbook'
-      - .config/log info 'If you do not have a vault password, just enter a blank password at the vault password prompt'
+      - |
+        if [ ! -f .cache/playbook-quickstart-demo-called ]; then
+          echo "cd $PWD" >> ~/.config/ansible-playbook-continue-command
+          echo 'task ansible:quickstart:cli -- {{.INVENTORY}}' >> ~/.config/ansible-playbook-continue-command
+          mkdir .cache && touch .cache/playbook-quickstart-demo-called
+          .config/log info 'Prompting for sudo / vault password'
+        fi
       - >
-        {{.PYTHON_HANDLE}}ansible-playbook --ask-sudo-pass {{.CLI_ARGS}}{{if eq .INSTALLING 'false'}} --skip-tags "skip_on_init"
-        playbooks/init.yml{{else}} main.yml{{end}}
-      - if [ -f ansible.cfg.bak ]; then mv ansible.cfg.bak ansible.cfg; fi
-      - if [ -f inventory ]; then rm inventory; fi
+        {{.PYTHON_HANDLE}}ansible-playbook {{.VAULT_PASS}} -i {{.INVENTORY}} {{.PLAY_PARAMS}}
+
+  quickstart:demo:
+    cmds:
+      - task: quickstart:cli
+    status:
+      - '[ -f files/inventory-map.json ]'
+
+  quickstart:environment:
+    cmds:
+      - task: :ansible:playbook:environment:cli
+        vars:
+          CLI_ARGS:
+            sh: echo "$ENV"
+    status:
+      - '[ -z "$ENV" ]'
+
+  quickstart:map:
+    deps:
+      - :install:pipx:getmac
+      - :install:software:jq
+    cmds:
+      - |
+        # MAC_ADDRESS="$(cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address)" # Does not work on macOS
+        MAC_ADDRESS="$(getmac)"
+        TARGET_INV="$(jq --arg macAddress "$MAC_ADDRESS" -r '.[$macAddress]' files/inventory-map.json)"
+        if [ "$TARGET_INV" != 'null' ]; then
+          task ansible:quickstart:cli -- "$TARGET_INV"
+        else
+          .config/log error "MAC address missing from inventory-map.json ($MAC_ADDRESS)"
+        fi
+    status:
+      - '[ ! -f files/inventory-map.json ]'
 
   sync:requirements:
     deps:

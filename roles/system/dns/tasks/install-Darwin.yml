@@ -29,17 +29,18 @@
     block: |
       {{ dns_setting | to_nice_yaml(indent=2) }}
 
-- name: Start Stubby service # noqa 301 # TODO This should be run for each user (perhaps only if user_configs.use_stubby equals true)
-  become_user: root
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: brew services start stubby
+- name: Start Stubby service # noqa 301 # TODO --- only run this if the service is not already started -- causes an issue if run twice in a row
+  become: false
+  shell: brew services start stubby
+  ignore_errors: true
 
 - name: Update DNS setting # noqa 301
+  become: true
   become_user: root
-  command: /usr/local/opt/stubby/sbin/stubby-setdns-macos.sh
+  shell: bash /usr/local/opt/stubby/sbin/stubby-setdns-macos.sh &
 
 - name: Run generic Configuration tasks
+  become: true
   become_user: root
   block:
     - include_tasks: config-Linux.yml

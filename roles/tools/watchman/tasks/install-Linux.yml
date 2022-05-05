@@ -23,14 +23,23 @@
 
 - name: "Detect the latest {{ app_name }} version"
   uri:
-    url: https://api.github.com/repos/facebook/watchman/releases/latest
-  register: watchman_latest_release_tag
+    url: https://api.github.com/repos/facebook/watchman/releases
+  register: watchman_releases
+
+- name: Find the URL of the archive
+  set_fact:
+    watchman_url: "{{ (watchman_releases.json | map(attribute='assets') | flatten | \
+      selectattr('browser_download_url','match','.*-linux.zip$'))[0].browser_download_url }}"
+
+- name: Find the URL of the archive
+  set_fact:
+    watchman_version: "{{ watchman_url | regex_search('(\\d{4})\\.(\\d*\\.)*\\d*') }}"
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
     install_watchman: "{{ (current_watchman_version.skipped | default(false)) or \
       ((not current_watchman_version.skipped | default(false)) and \
-      (current_watchman_version.stdout != watchman_latest_release_tag.json.tag_name | replace('v',''))) }}"
+      (current_watchman_version.stdout != watchman_version)) }}"
 
 - name: "Ensure {{ watchman_src_folder }} directory exists"
   file:
@@ -46,15 +55,14 @@
 
 - name: "Ensure latest version of {{ app_name }} is downloaded"
   unarchive:
-    src: "{{ 'https://github.com/facebook/watchman/releases/download/' + watchman_latest_release_tag.json.tag_name + \
-      '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux.zip' }}"
+    src: "{{ watchman_url }}"
     dest: "{{ watchman_src_folder }}"
     remote_src: true
   when: install_watchman
 
 - name: "Ensure {{ app_name }} is installed"
   copy:
-    src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/bin/watchman' }}"
+    src: "{{ watchman_src_folder + '/watchman-v' + watchman_version + '-linux/bin/watchman' }}"
     dest: /usr/local/bin/watchman
     mode: 0755
     remote_src: true
@@ -62,7 +70,7 @@
 
 - name: "Ensure {{ app_name }}'s libraries are installed"
   copy:
-    src: "{{ watchman_src_folder + '/watchman-' + watchman_latest_release_tag.json.tag_name + '-linux/lib/' }}"
+    src: "{{ watchman_src_folder + '/watchman-v' + watchman_version + '-linux/lib/' }}"
     dest: /usr/local/lib/
     mode: 0755
     remote_src: true
@@ -73,7 +81,7 @@
     dest: ~/.config/megabytelabs/watchman
     mode: 0600
     content: |
-      {{ watchman_latest_release_tag.json.tag_name | replace('v','') }}
+      {{ watchman_version }}
   when: install_watchman
 
 - name: Ensure system configuration is updated

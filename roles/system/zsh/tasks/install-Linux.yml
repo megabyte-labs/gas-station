@@ -10,8 +10,10 @@
   file:
     mode: 0755
     path: "{{ omz_destination }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
-  when: not install_prezto
+  when:
+    - not install_prezto
 
 - name: Ensure Oh My Zsh installer script is downloaded
   get_url:
@@ -58,6 +60,30 @@
   loop_control:
     label: "{{ user.username }}"
     loop_var: user
+  register: zshrc_template
   when:
     - not install_prezto
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: Ensure config backup directory exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "~/.config/megabytelabs/backups"
+    state: directory
+    mode: 0700
+  when: zshrc_template.backup_file is defined and zshrc_template.backup_file | length > 0
+
+- name: Copy the backup file
+  become_user: "{{ user.username }}"
+  copy:
+    src: "{{ zshrc_template.backup_file }}"
+    dest: "~/.config/megabytelabs/backups/"
+    remote_src: true
+  when: zshrc_template.backup_file is defined and zshrc_template.backup_file | length > 0
+
+- name: Delete the backup file
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ zshrc_template.backup_file }}"
+    state: absent
+  when: zshrc_template.backup_file is defined and zshrc_template.backup_file | length > 0

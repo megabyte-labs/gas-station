@@ -1,46 +1,70 @@
 ---
 # yamllint disable rule:line-length
-# Defaults are used in cases where no host is specified (i.e. in Molecule tests)
+# Defaults are used in cases where no host is specified (i.e. in Molecule tests) TODO
+# TODO Add explanation of what this does and the relation to the apps.yml
 apps:
   - testapp
   - workstation
 
+# @var git_docker_projects: []
+# A list of projects managed by the gitdocker role
 git_docker_projects: []
-#  - folder: /srv/testapp
-#    name: TestApp
-#    repo: git@github.com:ProfessorManhattan/TestApp.git
+# @example #
+# git_docker_projects:
+#   - folder: /srv/testapp
+#     name: TestApp
+#     repo: git@github.com:ProfessorManhattan/TestApp.git
+# @end
 
+# @var host_id: workstation
+# A required variable defined in the targets host_vars folder that is used to look up values in maps in some places
 host_id: workstation
 
-samba_allowed_hosts: 127.0.0.1 10.14.141. 10.14.14. 10.0.0.
+# @var samba_allowed_hosts: 127.0.0.1
+# Restricts Samba sharing to certain IP addresses
+samba_allowed_hosts: 127.0.0.1
+# @example #
+# samba_allowed_hosts: 127.0.0.1 10.14.141. 10.14.14. 10.0.0.
 
 samba_netbios_name: HTPC
 
-samba_printers:
-  - id: HPOfficeJetPro
-    comment: HP OfficeJet Pro 6978 (in Garage)
-    name: HP OfficeJet Pro 6978
+# @var samba_printers: []
+# A configurable list of Samba printers to share
+samba_printers: []
+# @example #
+# samba_printers:
+#  - id: HPOfficeJetPro
+#    comment: HP OfficeJet Pro 6978 (in Garage)
+#    name: HP OfficeJet Pro 6978
+# @end
 
-samba_shares:
-  - id: Media
-    comment: Movies, TV Shows, and other read-only multimedia
-    follow_symlinks: true
-    path: /mnt/htpc
-    public: true
-  - id: Private
-    comment: Authenticated share with read/write capabilities (backed up to OneDrive)
-    follow_symlinks: true
-    path: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/Documents"
-    public: false
-    users: '@sambausers'
-    writable: true
-  - id: Public
-    comment: Public folder provided for file sharing on the LAN
-    path: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/Public"
-    public: true
-    writable: true
+# @var samba_shares: []
+# A configurable list of Samba paths to share
+samba_shares: []
+# @example #
+# samba_shares:
+#  - id: Media
+#    comment: Movies, TV Shows, and other read-only multimedia
+#    follow_symlinks: true
+#    path: /mnt/htpc
+#    public: true
+#  - id: Private
+#    comment: Authenticated share with read/write capabilities (backed up to OneDrive)
+#    follow_symlinks: true
+#    path: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/Documents"
+#    public: false
+#    users: '@sambausers'
+#    writable: true
+#  - id: Public
+#    comment: Public folder provided for file sharing on the LAN
+#    path: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/Public"
+#    public: true
+#    writable: true
+# @end
 
-samba_workgroup: MEGAGROUP
+# @var samba_workgroup: MEGABYTE
+# The Samba workgroup name
+samba_workgroup: MEGABYTE
 
 user_configs:
   - username: "{{ ansible_user | default(lookup('env', 'USER')) }}"
@@ -60,8 +84,8 @@ user_configs:
         value: '600'
       - key: /org/gnome/desktop/privacy/report-technical-problems
         value: 'false'
-    git_user_email: '{{ git_user_email }}'
-    git_user_name: '{{ git_user_name }}'
+    git_user_email: '{{ git_user_email | default(omit) }}'
+    git_user_name: '{{ git_user_name | default(omit) }}'
     gnome_extensions:
       - url: https://extensions.gnome.org/extension/750/openweather/
         regex: openweather-extension
@@ -91,61 +115,105 @@ user_configs:
         regex: lan-ip-address
       - url: https://extensions.gnome.org/extension/2224/easy-docker-containers/
         regex: easy_docker_containers
-    groups: # This link may be useful for determining which groups to add a user to https://wiki.debian.org/SystemGroups
-      - lpadmin # Allows members to manage printers and pending jobs sent by other users
+    # @var user_configs.groups: []
+    # Groups to assign the user to (see [this link](https://wiki.debian.org/SystemGroups) for tips on determining which groups to add a user to)
+    groups: []
+    # @example #
+    # user_configs:
+    #   - username: myuser
+    #     groups:
+    #       - lpadmin # Allows members to manage printers and pending jobs sent by other users
+    # @end
+    # @var user_configs.kvm_admin: false
+    # TODO ADD DESCRIPTION FOR THIS
     kvm_admin: true
-    netrc_hosts:
-      - machine: surge.surge.sh
-        username: '{{ surgesh_username }}'
-        password: '{{ surgesh_password }}'
-    npm_author_email: '{{ npm_author_email }}'
-    npm_author_name: '{{ npm_author_name }}'
+    # @var user_configs.netrc_hosts: []
+    # TODO ADD DESCRIPTION FOR THIS
+    netrc_hosts: []
+    # @example #
+    # netrc_hosts:
+    #   - machine: surge.surge.sh
+    #     username: '{{ surgesh_username }}'
+    #     password: '{{ surgesh_password }}'
+    # @end
+    # @var user_configs.npm_author_email: TODO_ADD_DEFAULT_VALUE
+    # TODO ADD DESCRIPTION
+    npm_author_email: '{{ npm_author_email | default(omit) }}'
+    # @var user_configs.npm_author_name: TODO_ADD_DEFAULT_VALUE
+    # TODO ADD DESCRIPTION
+    npm_author_name: '{{ npm_author_name | default(omit) }}'
+    # @var user_configs.npm_author_url: TODO_ADD_DEFAULT_VALUE
+    # TODO ADD DESCRIPTION
     npm_author_url: https://megabyte.space
-    pips:
-      - pipx
-    rclone:
-      - name: Dropbox
-        provider: dropbox
-        config: |
-          type = dropbox
-          token = {"access_token":"{{ dropbox_access_token }}","token_type":"bearer","expiry":"0001-01-01T00:00:00Z"}
+    # @var user_configs.pips: []
+    # Python pip packages installed at the user level (the `pip_packages` variable can be modified to install global packages which has its default defined in `group_vars/desktop/pip-packages.yml`)
+    pips: []
+    # @var user_configs.rclone: TODO_ADD_DEFAULT_VALUE
+    # TODO ADD DESCRIPTION - ADD FULL EXAMPLE AS WELL
+    rclone: []
+    # @var user_configs.samba_user: TODO_ADD_DEFAULT_VALUE
+    # TODO ADD DESCRIPTION FOR SAMBA_USER
     samba_user: true
-    # ssh_authorized_keys:
-    #   - "{{ lookup('file', 'files/ssh/id_rsa_local.pub') }}"
-    # ssh_private_keys:
-    #   - files/ssh/id_rsa_dev
-    symlinks:
-      - path: /mnt/auxilary/Camera
-        link: ~/Pictures/Camera
-      - path: /mnt/auxilary/Games
-        link: ~/Games
-      - path: /mnt/auxilary/Music
-        link: ~/Music/Library
-      - path: /mnt/movies
-        link: ~/Videos/Movies
-      - path: /mnt/auxilary/Music Videos
-        link: ~/Videos/Music Videos
-      - path: /mnt/auxilary/Shorts
-        link: ~/Videos/Shorts
-      - path: /mnt/tv
-        link: ~/Videos/TV
-      - create: /mnt/htpc # Does not support relative paths
-        path: /mnt/movies
-        link: /mnt/htpc/Movies
-      - path: /mnt/auxilary/Music Videos
-        link: /mnt/htpc/Music Videos
-      - path: /mnt/tv
-        link: /mnt/htpc/TV
-      - path: /mnt/auxilary/Shorts
-        link: /mnt/htpc/Shorts
-      - path: /mnt/auxilary/Games
-        link: /mnt/htpc/Games
-      - path: /mnt/auxilary/Music
-        link: /mnt/htpc/Music
-    vscode_extensions: '{{ vscode_extensions }}'
+    # @var user_configs.ssh_authorized_keys: []
+    # Keys to add to the authorized_keys configuration
+    ssh_authorized_keys: []
+    # @example #
+    # user_configs:
+    #   - username: myuser
+    #     ssh_authorized_keys:
+    #       - "{{ lookup('file', 'files/ssh/id_rsa_local.pub') }}"
+    # @var user_configs.ssh_private_keys: []
+    # SSH private keys
+    ssh_private_keys: []
+    # @example #
+    # user_configs:
+    #   - username: myuser
+    #     ssh_private_keys:
+    #       - files/ssh/id_rsa_dev
+    # @end
+    # @var user_configs.symlinks: []
+    # User-scoped symlinks to add
+    symlinks: []
+    # @example #
+    # user_configs:
+    #   - username: myuser
+    #     symlinks:
+    #     - path: /mnt/auxilary/Camera
+    #       link: ~/Pictures/Camera
+    #     - path: /mnt/auxilary/Games
+    #       link: ~/Games
+    #     - path: /mnt/auxilary/Music
+    #       link: ~/Music/Library
+    #     - path: /mnt/movies
+    #       link: ~/Videos/Movies
+    #     - path: /mnt/auxilary/Music Videos
+    #       link: ~/Videos/Music Videos
+    #     - path: /mnt/auxilary/Shorts
+    #       link: ~/Videos/Shorts
+    #     - path: /mnt/tv
+    #       link: ~/Videos/TV
+    #     - create: /mnt/htpc # Does not support relative paths
+    #       path: /mnt/movies
+    #       link: /mnt/htpc/Movies
+    #     - path: /mnt/auxilary/Music Videos
+    #       link: /mnt/htpc/Music Videos
+    #     - path: /mnt/tv
+    #       link: /mnt/htpc/TV
+    #     - path: /mnt/auxilary/Shorts
+    #       link: /mnt/htpc/Shorts
+    #     - path: /mnt/auxilary/Games
+    #       link: /mnt/htpc/Games
+    #     - path: /mnt/auxilary/Music
+    #       link: /mnt/htpc/Music
+    # @end
+    # @var user_configs.vscode_extensions: []
+    # VSCode extensions to install (the default list is defined in `group_vars/desktop/vscode-extensions.yml`)
+    vscode_extensions: []
   - username: root
     git_user_email: '{{ git_user_email }}'
     git_user_name: '{{ git_user_name }}'
     # ssh_private_keys:
     #   - files/ssh/id_rsa_dev
+    # @var user_configs.system: false
+    # Set to true if the account is a system user without a home folder (root is considered a system user)
     system: true

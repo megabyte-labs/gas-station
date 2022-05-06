@@ -32,8 +32,8 @@ tasks:
       - curl -sSL '{{.VENTOY_DOWNLOAD_CONFIG_URL}}' > .ventoy.json
       - |
         jq -c '.distros[]' .ventoy.json | while read VENTOY_OS; do
-          VENTOY_URL_AXEL="$(jq -r -n '$in.url_axel' --argjson in "$VENTOY_OS")"
-          VENTOY_URL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
+          VENTOY_URL_AXEL="$(jq -r -n "$in.url_axel" --argjson in "$VENTOY_OS")"
+          VENTOY_URL="$(jq -r -n "$in.url" --argjson in "$VENTOY_OS")"
           if [ "$VENTOY_URL_AXEL" == 'null' ]; then
             VENTOY_URL_AXEL="$VENTOY_URL"
           fi
@@ -41,22 +41,24 @@ tasks:
           VENTOY_PATH="$(jq -r -n '$in.path' --argjson in "$VENTOY_OS")"
           VENTOY_PER_BASE="$(jq -r -n '$in.persistence_base' --argjson in "$VENTOY_OS")"
           VENTOY_PER_FILE="$(jq -r -n '$in.persistence_file' --argjson in "$VENTOY_OS")"
-          mkdir -p "$(dirname {{.VENTOY_USB_PATH}}$VENTOY_PATH)"
-          if [ ! -f "{{.VENTOY_USB_PATH}}/$VENTOY_PATH" ]; then
-            mkdir -p "$(dirname "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}")"
-            axel -o "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}" "$VENTOY_URL_AXEL"
+          mkdir -p "$(dirname ./jumpusb-fs/$VENTOY_PATH)"
+          if [ ! -f "./jumpusb-fs/$VENTOY_PATH" ]; then
+            mkdir -p "$(dirname ./jumpusb-fs/${VENTOY_PATH})"
+            ISO_TMP="$(mktemp)"
+            axel -o "$ISO_TMP" "$VENTOY_URL_AXEL"
+            mv "$ISO_TMP" "./jumpusb-fs/${VENTOY_PATH}"
             if [[ "$VENTOY_URL" == *.gz ]]; then
-              mv "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}" "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}.gz"
-              gzip -d "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}.gz"
+              mv "./jumpusb-fs/${VENTOY_PATH}" "./jumpusb-fs/${VENTOY_PATH}.gz"
+              gzip -d "./jumpusb-fs/${VENTOY_PATH}.gz"
             elif [[ "$VENTOY_URL" == *.bz2 ]]; then
-              mv "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}" "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}.bz2"
-              bzip2 -d "{{.VENTOY_USB_PATH}}/${VENTOY_PATH}.bz2"
+              mv "./jumpusb-fs/${VENTOY_PATH}" "./jumpusb-fs/${VENTOY_PATH}.bz2"
+              bzip2 -d "./jumpusb-fs/${VENTOY_PATH}.bz2"
             fi
           fi
-          if [ "$VENTOY_PER_FILE" != 'null' ] && [ ! -f "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_FILE" ]; then
-            7z x "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_BASE"
+          if [ "$VENTOY_PER_FILE" != 'null' ] && [ ! -f "./jumpusb-fs/persistence/$VENTOY_PER_FILE" ]; then
+            7z x "./jumpusb-fs/persistence/$VENTOY_PER_BASE"
             UNCOMPRESSED_FILE="$(echo $VENTOY_PER_BASE | sed 's/.7z$//')"
-            mv "$UNCOMPRESSED_FILE" "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_FILE"
+            mv "$UNCOMPRESSED_FILE" "./jumpusb-fs/persistence/$VENTOY_PER_FILE"
           fi
         done
 

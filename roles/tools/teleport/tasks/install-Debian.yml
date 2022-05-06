@@ -1,18 +1,38 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ teleport_apt_key_url }}"
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ teleport_apt_repository }}"
-    state: present
-    update_cache: true
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: teleport
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ teleport_apt_key_url }}"
+        keyring: /usr/share/keyrings/teleport.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ teleport_apt_repository }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: teleport
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/teleport.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ teleport_apt_repository }}"
+        state: absent
+
+    - name: "Ensure {{ app_name }} is installed"
+      become: false
+      community.general.homebrew:
+        name: teleport
+        state: "{{ app_state | default('present') }}"

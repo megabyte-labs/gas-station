@@ -1,18 +1,36 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    url: "{{ nomad_deb_gpg }}"
-    state: present
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ nomad_deb_repo }}"
-    state: present
-    update_cache: true
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: nomad
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        url: "{{ nomad_deb_gpg }}"
+        state: present
+        keyring: /usr/share/keyrings/hashicorp.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ nomad_deb_repo }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: nomad
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/hashicorp.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ nomad_deb_repo }}"
+        state: absent
+
+    - name: Run Linux installation tasks
+      include_tasks: install-Linux.yml
+

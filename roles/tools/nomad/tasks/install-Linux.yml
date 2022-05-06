@@ -1,0 +1,39 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Find the latest version of {{ app_name }} from the release page"
+  uri:
+    url: https://releases.hashicorp.com/nomad/
+    return_content: true
+  register: nomad_releases
+
+- name: "Save the version of {{ app_name }} to a variable"
+  set_fact:
+    nomad_version: "{{ nomad_releases.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_nomad: "{{ (ansible_local.nomad is not defined) or \
+      ((ansible_local.nomad is defined) and \
+      (ansible_local['nomad']['settings']['version'] != nomad_version)) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_linux_amd64.zip"
+    dest: /usr/local/bin
+    remote_src: true
+  when: install_nomad
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/nomad.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ nomad_version }}"
+    no_extra_spaces: true
+  when: install_nomad

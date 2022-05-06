@@ -1,21 +1,31 @@
 ---
-- name: "Add {{ app_name }}'s yum repository"
-  yum_repository:
-    baseurl: "{{ sysdig_rpm_repository }}"
-    description: "{{ app_name }}'s repository"
-    gpgcheck: true
-    gpgkey: "{{ sysdig_rpm_key }}"
-    name: "{{ app_name | lower | replace(' ', '-') }}"
-    repo_gpgcheck: false
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  dnf:
+    name: kernel-devel
+    state: present
 
 - name: "Ensure {{ app_name }} is installed"
-  dnf:
-    name:
-      - kernel-devel
-      - sysdig
-    state: "{{ app_state | default('present') }}"
-    enablerepo: "{{ 'epel' if ansible_distribution != 'Fedora' else omit }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        baseurl: "{{ sysdig_rpm_repository }}"
+        description: "{{ app_name }}'s repository"
+        gpgcheck: true
+        gpgkey: "{{ sysdig_rpm_key }}"
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        repo_gpgcheck: false
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: sysdig
+        state: "{{ app_state | default('present') }}"
+        enablerepo: "{{ 'epel' if ansible_distribution != 'Fedora' else omit }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
 
 - name: Ensure sysdig group exists
   group:

@@ -1,10 +1,10 @@
 ---
-- name: Add Docker GPG key
+- name: "Add {{ app_name }}'s yum key"
   rpm_key:
     key: '{{ docker_yum_gpg_key }}'
     state: present
 
-- name: Add Docker repository
+- name: "Add {{ app_name }}'s yum repository"
   get_url:
     url: '{{ docker_yum_repo_url }}'
     dest: '/etc/yum.repos.d/docker-{{ docker_edition }}.repo'
@@ -43,6 +43,11 @@
         name: containerd.io
         state: present
   when: ansible_distribution_major_version | int == 8
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: docker
+        state: absent
 
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml

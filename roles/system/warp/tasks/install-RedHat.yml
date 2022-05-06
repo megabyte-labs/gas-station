@@ -1,17 +1,28 @@
 ---
-- name: "Add {{ app_name }}'s yum repository"
-  yum_repository:
-    baseurl: "{{ warp_rpm_repository }}"
-    description: "{{ app_name }}'s repository"
-    gpgcheck: false
-    name: "{{ app_name | lower | replace(' ', '-') }}"
-    repo_gpgcheck: false
-
 - name: "Ensure {{ app_name }} is installed"
-  dnf:
-    name: cloudflare-warp
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        baseurl: "{{ warp_rpm_repository }}"
+        description: "{{ app_name }}'s repository"
+        gpgcheck: false
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        repo_gpgcheck: false
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: cloudflare-warp
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
+
+    - name: Message to the user
+      debug:
+        msg: "There is no official support for the OS/Distribution/Release. Please check back later..."
 
 - name: Run user configuration tasks
   include_tasks: user-Linux.yml

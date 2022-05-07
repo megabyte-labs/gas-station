@@ -74,6 +74,11 @@ tasks:
     status:
       - '[ -n "$DONT_RESET_YUBIKEY" ]'
 
+  generate:authentication:
+    cmds:
+      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
+        --expert --edit-key "$KEYID" addkey save
+
   check:entropy:
     vars:
       ENTROPY_AVAIL:
@@ -98,11 +103,6 @@ tasks:
       - task: usb
       - task: card
       - task: usb:unmount
-
-  generate:authentication:
-    cmds:
-      - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
-        --expert --edit-key "$KEYID" addkey save
 
   generate:encryption:
     cmds:
@@ -155,6 +155,7 @@ tasks:
         vars:
           CONFIG_DIR_PATH:
             sh: echo "$GNUPGHOME"
+
 
   public:export:
     todo: This differs from guide
@@ -221,3 +222,22 @@ tasks:
     deps:
       - :security:disk:encrypt:unmount
       - :security:disk:unencrypted:unmount
+
+  yubikey-agent:
+    deps:
+      - :install:software:yubikey-agent
+    summary: |
+      # Sets Up Resident SSH Key
+
+      According to [this guide](https://github.com/jamesog/yubikey-ssh), the yubikey-agent
+      package is a simplest, best way of utilizing a YubiKey for SSH by leveraging
+      YubiKey's onboard SSH key generator. By using this method, the private key never leaves
+      the YubiKey which increases security tremendously.
+
+      See: https://github.com/FiloSottile/yubikey-agent
+
+      A new method is detailed here: https://www.yubico.com/blog/github-now-supports-ssh-security-keys/
+      It may be worth migrating to that approach.
+    cmds:
+      - brew services start yubikey-agent
+      - yubikey-agent -setup

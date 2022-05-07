@@ -1,19 +1,38 @@
 ---
-- name: "Add {{ app_name }}'s rpm key"
-  rpm_key:
-    key: "{{ edge_key }}"
-
-- name: "Add {{ app_name }}'s yum repository"
-  yum_repository:
-    baseurl: "{{ edge_baseurl }}"
-    description: "{{ app_name }}'s repository"
-    gpgcheck: true
-    gpgkey: "{{ edge_key }}"
-    name: "{{ app_name | lower | replace(' ', '-') }}"
-    repo_gpgcheck: true
-
 - name: "Ensure {{ app_name }} is installed"
-  dnf:
-    name: microsoft-edge-dev
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+  - name: "Add {{ app_name }}'s rpm key"
+    rpm_key:
+      key: "{{ edge_key }}"
+      state: present
+
+  - name: "Add {{ app_name }}'s yum repository"
+    yum_repository:
+      baseurl: "{{ edge_baseurl }}"
+      description: "{{ app_name }}'s repository"
+      gpgcheck: true
+      gpgkey: "{{ edge_key }}"
+      name: "{{ app_name | lower | replace(' ', '-') }}"
+      repo_gpgcheck: true
+
+  - name: "Ensure {{ app_name }} is installed"
+    dnf:
+      name: microsoft-edge-dev
+      state: "{{ app_state | default('present') }}"
+      update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
+
+    - name: "Find the latest version of {{ app_name }} from the release page"
+      uri:
+        url: "{{ edge_baseurl }}"
+        return_content: true
+      register: edge_releases
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: "{{ edge_baseurl }}/{{ edge_releases.content | regex_search('microsoft-edge-stable-((\\d)*\\.)*\\d*-1.x86_64.rpm') }}"
+        state: "{{ app_state | default('present') }}"

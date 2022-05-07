@@ -9,9 +9,11 @@
   ansible.builtin.file:
     mode: 0755
     path: "{{ msedge_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
   ansible.builtin.git:
     dest: "{{ msedge_src_dir }}"
     repo: "{{ msedge_aur_git_repository }}"
@@ -19,12 +21,13 @@
 
 - name: "Remove /usr/bin/microsoft-edge-dev if the source files have changed" # noqa 503
   file:
-    path: /usr/bin/microsoft-edge-dev
+    path: /usr/bin/microsoft-edge-stable
     state: absent
   when: msedge_git.changed
 
 - name: "Ensure {{ app_name }} is installed"
+  become: false
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ msedge_src_dir }}"
-    creates: /usr/bin/microsoft-edge-dev
+    creates: /usr/bin/microsoft-edge-stable

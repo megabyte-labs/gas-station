@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# @file .config/husky/pre-commit
+# @brief A git hook script for the `pre-commit` hook
+
+if [ -f "$(dirname "$0")/_/husky.sh" ]; then
+  . "$(dirname "$0")/_/husky.sh"
+  
+  chmod +x .config/log
+  
+  .config/log info "Performing various pre-commit tasks on staged files (like autofixing, detecting private keys, etc.)"
+  
+  STAGED_FILES=$(git diff --cached --name-only)
+  for FILE in "$STAGED_FILES"; do
+    if [ -f "$1" ]; then
+      task git:hook:pre-commit -- "$FILE" &
+    fi
+  done
+  wait
+
+  .config/log info 'Linting and fixing the staged files with `lint-staged`'
+  task lint:lint-staged
+
+  .config/log info 'Reporting possible spelling errors in the staged files with `cspell`'
+  task lint:spelling
+
+  .config/log success 'Pre-commit validation complete!'
+else
+  .config/log warn 'Husky pre-commit hooks are currently not properly setup.'
+fi

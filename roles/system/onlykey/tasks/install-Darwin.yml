@@ -1,0 +1,37 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Detect the latest OnlyKey App version
+  uri:
+    url: https://api.github.com/repos/trustcrypto/OnlyKey-App/releases/latest
+  register: onlykeyapp_latest_release
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s is already installed"
+  set_fact:
+    install_onlykeyapp: "{{ (ansible_local.onlykeyapp is not defined) or \
+      ((ansible_local.onlykeyapp is defined) and \
+      (ansible_local['onlykeyapp']['settings']['version'] != onlykeyapp_latest_release.json.tag_name | replace('v',''))) }}"
+
+- name: Ensure OnlyKey App is installed
+  include_role:
+    name: dmginstall
+  vars:
+    dmgs:
+      - name: OnlyKey
+        url: "https://github.com/trustcrypto/OnlyKey-App/releases/download/{{ onlykeyapp_latest_release.json.tag_name }}/\
+          OnlyKey.App.{{ onlykeyapp_latest_release.json.tag_name | replace('v','') }}.dmg"
+  when: install_onlykeyapp
+
+- name: Save meta information about the version of OnlyKey App that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/onlykeyapp.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ onlykeyapp_latest_release.json.tag_name | replace('v','') }}"
+    no_extra_spaces: true
+  when: install_onlykeyapp

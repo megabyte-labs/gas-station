@@ -32,6 +32,14 @@
     return_content: true
   register: solarized_theme_vscode
 
+- name: "Ensure {{ settings_path | replace('settings.json','') }} exists"
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ settings_path | replace('settings.json','') }}"
+    state: directory
+    mode: 0700
+
 - name: Create the settings.json file
   become: true
   become_user: "{{ user.username }}"
@@ -57,6 +65,7 @@
     chdir: ~/.vscode/extensions
   register: extension_ls
   changed_when: false
+  when: user.vscode_extensions | default([]) | length
 
 - name: Install iTerm2 theme sync plugin for VS Code
   become: true
@@ -64,4 +73,6 @@
   command: "{{ code_binary_path }} --install-extension tusaeff.vscode-iterm2-theme-sync"
   when:
     - ansible_os_family == 'Darwin'
-    - not ('tusaeff.vscode-iterm2-theme-sync' in extension_ls)
+    - user.vscode_extensions | default([]) | length
+    - extension_ls is defined
+    - not ('tusaeff.vscode-iterm2-theme-sync' in extension_ls.stdout)

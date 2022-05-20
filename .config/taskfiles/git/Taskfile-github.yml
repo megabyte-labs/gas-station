@@ -23,14 +23,14 @@ tasks:
       start: Checking for presence of GitHub repository and creating one if it does not exist
       success: Ensure GitHub repository is present
     cmds:
-      - cmd: gh repo create "{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}"
+      - cmd: |
+          gh repo create "{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}" \
           --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} > /dev/null
+          task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
+          git add --all
+          git commit --quiet -m "✨ feat(birth): Birth" -n || true
+          git push github master
         ignore_error: true
-      - |
-        task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
-        git add --all
-      - git commit --quiet -m "✨ feat(birth): Birth" -n || true
-      - git push github master
     status:
       - '[ -z "$GITHUB_TOKEN" ] || ! test -e .git || gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} > /dev/null'
     preconditions:

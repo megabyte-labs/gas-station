@@ -520,6 +520,10 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         fi
       fi
+      if ! (grep "/bin/brew shellenv" < "$HOME/.profile" &> /dev/null) && [[ "$OSTYPE" != 'darwin'* ]]; then
+        logger info 'Adding linuxbrew source command to `~/.profile`'
+        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$HOME/.profile"
+      fi
       if [ -f "$HOME/.profile" ]; then
         # shellcheck disable=SC1091
         . "$HOME/.profile"

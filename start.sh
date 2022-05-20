@@ -452,6 +452,7 @@ function ensureTaskfiles() {
     fi
     if [ -n "$BOOTSTRAP_EXIT_CODE" ] && ! task donothing; then
       # task donothing still does not work so issue must be with main Taskfile.yml
+      logger warn 'The `Taskfile.yml` was reset to `HEAD~1` because it appears to be misconfigured'
       git checkout HEAD~1 -- Taskfile.yml
     fi
   fi

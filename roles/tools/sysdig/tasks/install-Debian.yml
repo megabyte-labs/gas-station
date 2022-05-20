@@ -1,23 +1,40 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  apt:
+    name: "linux-headers-{{ ansible_kernel }}"
     state: present
-    url: "{{ sysdig_apt_key_url }}"
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ sysdig_apt_repository }}"
-    state: present
-    update_cache: true
 
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name:
-      - "linux-headers-{{ ansible_kernel }}"
-      - sysdig
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ sysdig_apt_key_url }}"
+            keyring: /usr/share/keyrings/sysdig.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ sysdig_apt_repository }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: sysdig
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/sysdig.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ sysdig_apt_repository }}"
+        state: absent
 
 - name: Ensure sysdig group exists
   group:

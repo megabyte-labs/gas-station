@@ -17,21 +17,21 @@
         state: present
       when: ansible_distribution_major_version | int >= 7
 
-    - name: "Ensure Nodesource's RPM key is imported (CentOS < 7)"
+    - name: "Ensure Nodesource's repository is added (CentOS < 7)"
       dnf:
         name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
           /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
         state: present
       when: ansible_distribution_major_version | int < 7
 
-    - name: "Ensure {{ app_name }}'s RPM key is imported (CentOS 7+)"
+    - name: "Ensure {{ app_name }}'s repository is added (CentOS 7+)"
       dnf:
         name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
           /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
         state: present
       when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution != 'Fedora')
 
-    - name: "Ensure {{ app_name }}'s RPM key is imported (Fedora)"
+    - name: "Ensure {{ app_name }}'s repository is added (Fedora)"
       dnf:
         name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/fc/{{ ansible_distribution_major_version }}\
           /{{ ansible_architecture }}/nodesource-release-fc{{ ansible_distribution_major_version }}-1.noarch.rpm"
@@ -53,6 +53,38 @@
         enablerepo: nodesource
         update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   rescue:
+    - name: "Ensure Nodesource's RPM key is removed (CentOS < 7)"
+      rpm_key:
+        key: http://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL
+        state: absent
+      when: ansible_distribution_major_version | int < 7
+
+    - name: "Ensure Nodesource's RPM key is removed (CentOS 7+)"
+      rpm_key:
+        key: https://rpm.nodesource.com/pub/el/NODESOURCE-GPG-SIGNING-KEY-EL
+        state: absent
+
+    - name: "Ensure Nodesource's repository is removed (CentOS < 7)"
+      dnf:
+        name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
+          /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
+        state: absent
+      when: ansible_distribution_major_version | int < 7
+
+    - name: "Ensure {{ app_name }}'s repository is removed (CentOS 7+)"
+      dnf:
+        name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/{{ ansible_distribution_major_version }}\
+          /{{ ansible_architecture }}/nodesource-release-el{{ ansible_distribution_major_version }}-1.noarch.rpm"
+        state: absent
+      when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution != 'Fedora')
+
+    - name: "Ensure {{ app_name }}'s repository is removed (Fedora)"
+      dnf:
+        name: "https://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/fc/{{ ansible_distribution_major_version }}\
+          /{{ ansible_architecture }}/nodesource-release-fc{{ ansible_distribution_major_version }}-1.noarch.rpm"
+        state: absent
+      when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution == 'Fedora')
+
     - name: 'Ensure {{ app_name }} and npm are installed'
       become: false
       community.general.homebrew:
@@ -60,6 +92,7 @@
         state: present
       environment:
         PATH: "{{ ansible_env.PATH }}:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
+
     - name: 'Ensure {{ app_name }} and npm are linked'
       file:
         src: "{{ item.src }}"

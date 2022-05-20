@@ -7,23 +7,41 @@
       - lsb-release
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    url: "{{ wazuh_apt_key_url }}"
-    state: present
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ wazuh_apt_repository }}"
-    state: present
-    update_cache: true
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: "{% if wazuh_version %}{{ 'wazuh-agent=' + wazuh_version }}{% else %}wazuh-agent{% endif %}"
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        url: "{{ wazuh_apt_key_url }}"
+        state: present
+        keyring: /usr/share/keyrings/wazuh.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ wazuh_apt_repository }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: "{% if wazuh_version %}{{ 'wazuh-agent=' + wazuh_version }}{% else %}wazuh-agent{% endif %}"
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/wazuh.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ wazuh_apt_repository }}"
+        state: absent
+
+    - name: Message to the user
+      debug:
+        msg: "Please check if the provided version is available for installation..."
 
 - name: Run generic Linux tasks
   include_tasks: config-Linux.yml

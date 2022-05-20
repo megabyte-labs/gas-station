@@ -5,6 +5,7 @@
       apt_key:
         url: "{{ azurecli_deb_gpg }}"
         state: present
+        keyring: /usr/share/keyrings/microsoft.gpg
       when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'hirsute')
 
     - name: "Add {{ app_name }}'s apt repository"
@@ -21,6 +22,17 @@
         state: "{{ app_state | default('present') }}"
         update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/microsoft.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ azurecli_deb_repo }}"
+        state: absent
+
     - name: 'Ensure {{ app_name }} is installed'
       become: false
       community.general.homebrew:

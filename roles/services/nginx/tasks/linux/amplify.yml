@@ -1,10 +1,11 @@
 ---
 - name: Install NGINX Amplify Agent
   block:
-    - name: "Add {{ app_name }}'s apt key"
+    - name: "Add NGINX Amplify Agent's apt key"
       apt_key:
         state: present
         url: "{{ amplify_apt_key_url }}"
+        keyring: /usr/share/keyrings/nginx.gpg
       when: ansible_os_family == 'Debian'
 
     - name: Add NGINX Amplify Agent apt repository
@@ -14,7 +15,7 @@
         state: present
       when: ansible_os_family == 'Debian'
 
-    - name: "Add {{ app_name }}'s rpm key"
+    - name: "Add NGINX Amplify Agent's rpm key"
       rpm_key:
         key: "{{ amplify_rpm_key }}"
       when: ansible_os_family == 'RedHat'
@@ -57,6 +58,25 @@
         state: started
       when: false
   rescue:
+    - name: "Remove NGINX Amplify Agent's apt key"
+      file:
+        keyring: /usr/share/keyrings/nginx.gpg
+        state: absent
+      when: ansible_os_family == 'Debian'
+
+    - name: "Remove NGINX Amplify Agent's apt repository"
+      apt_repository:
+        filename: nginx-amplify
+        repo: "{{ amplify_apt_repository }}"
+        state: absent
+      when: ansible_os_family == 'Debian'
+
+    - name: "Remove NGINX Amplify Agent's yum repository"
+      yum_repository:
+        name: nginx-amplify
+        state: absent
+      when: ansible_os_family == 'RedHat'
+
     - name: Ensure NGINX Amplify agent's dependencies are installed
       package:
         name: "{{ amplify_build_dependencies }}"

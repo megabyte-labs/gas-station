@@ -1,26 +1,44 @@
 ---
-- name: Add EPEL repository
-  yum_repository:
-    baseurl: "{{ epel_repo_url }}"
-    description: EPEL Repo
-    gpgcheck: true
-    gpgkey: "{{ epel_repo_gpg_key_url }}"
-    name: epel
-    repo_gpgcheck: true
-  when: ansible_distribution != 'Fedora'
-
-- name: Add RPM Fusion Free repository
-  yum_repository:
-    baseurl: "{{ rpmfusion_repo_url }}"
-    description: RPM Fusion Free Repository
-    gpgcheck: true
-    gpgkey: "{{ rpmfusion_repo_gpg_key_url }}"
-    name: rpmfusionfree
-    repo_gpgcheck: true
-
 - name: "Ensure {{ app_name }} is installed"
-  dnf:
-    name: ffmpeg
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
-  when: false
+  block:
+    - name: Add EPEL repository
+      yum_repository:
+        baseurl: "{{ epel_repo_url }}"
+        description: EPEL Repo
+        gpgcheck: true
+        gpgkey: "{{ epel_repo_gpg_key_url }}"
+        name: epel
+        repo_gpgcheck: true
+      when: ansible_distribution != 'Fedora'
+
+    - name: Add RPM Fusion Free repository
+      yum_repository:
+        baseurl: "{{ rpmfusion_repo_url }}"
+        description: RPM Fusion Free Repository
+        gpgcheck: true
+        gpgkey: "{{ rpmfusion_repo_gpg_key_url }}"
+        name: rpmfusionfree
+        repo_gpgcheck: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: ffmpeg
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: Remove EPEL repository
+      yum_repository:
+        name: epel
+        state: absent
+      when: ansible_distribution != 'Fedora'
+
+    - name: Remove RPM Fusion Free repository
+      yum_repository:
+        name: rpmfusionfree
+        state: absent
+
+    - name: "Ensure {{ app_name }} is installed"
+      become: false
+      community.general.homebrew:
+        name: ffmpeg
+        state: "{{ app_state | default('present') }}"

@@ -1,0 +1,69 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ etcher_src_dir }} directory exists"
+  file:
+    mode: 0755
+    path: "{{ etcher_src_dir }}"
+    state: directory
+
+- name: "Find the latest version of {{ app_name }} from the release page"
+  uri:
+    url: https://api.github.com/repos/balena-io/etcher/releases/latest
+    return_content: true
+  register: etcher_releases
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_etcher: "{{ (ansible_local.etcher is not defined) or \
+      ((ansible_local.etcher is defined) and \
+      (ansible_local['etcher']['settings']['version'] != etcher_releases.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} from the release page"
+  uri:
+    url: "https://github.com/balena-io/etcher/releases/download/{{ etcher_releases.json.tag_name }}/latest-linux.yml"
+    return_content: true
+  register: etcher_checksum_file
+  when: install_etcher
+
+- name: "Find the Checksum of {{ app_name }}'s AppImage"
+  set_fact:
+    etcher_checksum: "{{ etcher_checksum_file.content | regex_search('sha512. .*') | regex_replace('sha512. ','') }}"
+  when: install_etcher
+
+- name: "Ensure {{ app_name }}'s AppImage is downloaded"
+  get_url:
+    url: "https://github.com/balena-io/etcher/releases/download/{{ etcher_releases.json.tag_name }}/\
+      balenaEtcher-{{ etcher_releases.json.tag_name | replace('v','') }}-x64.AppImage"
+    dest: "{{ etcher_src_dir }}/Etcher-{{ etcher_releases.json.tag_name | replace('v','') }}-x64.AppImage"
+  when: install_etcher
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_etcher
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: "Ensure {{ app_name }}'s AppImage is removed from {{ etcher_src_dir }}"
+  file:
+    path: "{{ etcher_src_dir }}/Etcher-{{ etcher_releases.json.tag_name | replace('v','') }}-x64.AppImage"
+    state: absent
+  when: install_etcher
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/etcher.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ etcher_releases.json.tag_name | replace('v','') }}"
+    no_extra_spaces: true
+  when: install_etcher

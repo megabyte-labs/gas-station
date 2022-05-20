@@ -86,6 +86,7 @@ if [ ! -d "$HOME/$PLAYBOOKS_DIR" ]; then
     echo "You should not run this as the root user. Try again with a non-root user that preferrably has sudo privileges." && exit 1
   else
     ensurePackageInstalled "git"
+    ensurePackageInstalled "jq"
     git clone https://gitlab.com/megabyte-labs/gas-station.git "$PLAYBOOKS_DIR"
   fi
 fi

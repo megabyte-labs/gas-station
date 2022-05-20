@@ -1,0 +1,16 @@
+---
+- name: Ensure OnlyKey App is installed
+  community.general.snap:
+    name: onlykey-app
+    state: "{{ app_state | default('present') }}"
+
+- name: Download udev rules for OnlyKey
+  get_url:
+    url: https://raw.githubusercontent.com/trustcrypto/trustcrypto.github.io/pages/49-onlykey.rules
+    dest: /etc/udev/rules.d/
+    mode: 0644
+  register: udev_rule_download
+
+- name: Reload udev rules # noqa 301 503
+  shell: udevadm control --reload-rules && udevadm trigger
+  when: udev_rule_download is defined and udev_rule_download.changed

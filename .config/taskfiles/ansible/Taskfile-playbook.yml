@@ -24,15 +24,25 @@ tasks:
     cmds:
       - |
         function populateChartVar() {
-          CHART='[["Package", "Description"]'
+          CHART='[["Package", "Description", "GitHub Popularity"]'
           jq --arg tag "$(echo $2 | tr '[a-z]' '[A-Z]')" -r '.[] | select(.tag == $tag) | .
           | del(. ["file", "ref", "line", "tag"]) | .text' "$1" | while read COMMENT; do
             if [ "$CHART" != '[' ]; then
               CHART="${CHART},"
             fi
             LINK="$(echo $COMMENT | sed 's/ - .*//')"
+            URL_LINK="$(echo "$LINK" | sed 's/^\([^|]*\).*/\1/' | sed 's/ $//')"
+            GITHUB_PATH="$(echo "$LINK" | sed 's/.*\[GitHub\](https:\/\/github.com\/\([^|]*\)).*/\1/' | \
+            sed 's/.*\[.*\](https:\/\/github.com\/\([^)]*\)).*/\1/' | sed 's/\/$//')"
+            GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
+            GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
+            GITHUB_SHIELD="![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)"
+            if [[ "$LINK" == *"[Helm]"* ]] || [[ "$LINK" == *"[Operator]"* ]]; then
+              REFERENCE_LINK=" *[Reference]("$(echo "$LINK" | sed 's/.*\[Helm\](\([^)]*\)).*/\1/' | sed 's/.*\[Operator\](\([^)]*\)).*/\1/')")*"
+            fi
             DESCRIPTION="$(echo $COMMENT | sed 's/.* - //' | sed 's/\"/\\\"/g')"
-            CHART="${CHART}[\"**$LINK**\",\"$DESCRIPTION\"]"
+            CHART="${CHART}[\"**$URL_LINK**\",\"${DESCRIPTION}${REFERENCE_LINK}\",\"$GITHUB_SHIELD\"]"
+            REFERENCE_LINK=""
           done
           CHART="${CHART}]"
           TMP_CHART="$(mktemp)"

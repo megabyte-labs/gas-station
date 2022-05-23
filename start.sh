@@ -195,7 +195,7 @@ function ensurePackageInstalled() {
     if [[ "$OSTYPE" == 'darwin'* ]]; then
       brew install "$1"
     elif [[ "$OSTYPE" == 'linux'* ]]; then
-      if [ -f "/etc/redhat-release" ]; then
+      if [ -f "/etc/redhat-release" ] || type dnf &> /dev/null || type yum &> /dev/null; then
         if type sudo &> /dev/null; then
           if type dnf &> /dev/null; then
             sudo dnf install -y "$1"
@@ -209,7 +209,7 @@ function ensurePackageInstalled() {
             yum install -y "$1"
           fi
         fi
-      elif [ -f "/etc/lsb-release" ]; then
+      elif [ -f "/etc/lsb-release" ] || type apt-get &> /dev/null; then
         if type sudo &> /dev/null; then
           sudo apt-get update
           sudo apt-get install -y "$1"
@@ -217,7 +217,7 @@ function ensurePackageInstalled() {
           apt-get update
           apt-get install -y "$1"
         fi
-      elif [ -f "/etc/arch-release" ]; then
+      elif [ -f "/etc/arch-release" ] || type pacman &> /dev/null; then
         if type sudo &> /dev/null; then
           sudo pacman update
           sudo pacman -S "$1"
@@ -225,7 +225,7 @@ function ensurePackageInstalled() {
           pacman update
           pacman -S "$1"
         fi
-      elif [ -f "/etc/alpine-release" ]; then
+      elif [ -f "/etc/alpine-release" ] || type apk &> /dev/null; then
         if type sudo &> /dev/null; then
           sudo apk --no-cache add "$1"
         else

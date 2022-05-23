@@ -2,15 +2,25 @@
 
 This project breaks down software into a role (found in the subdirectories of the `roles/` folder) if the software requires anything other than being added to the `PATH` variable. Below is a quick description of what each role does. Browsing through this list, along with the conditions laid out in `main.yml`, you will be able to get a better picture of what software will be installed by the default `main.yml` playbook.
 
-{{ role_descriptions }}
+### Role-Based Software
 
-We encourage you to browse through the repositories that are linked to in the table above to learn about the configuration options they support.
+{{ role_var_chart }}
+
+We encourage you to browse through the repositories that are linked to in the table above to learn about the configuration options they support. Some of the roles are included as roles because they support configurations that rely on user-specific variables like API keys.
 
 ### Binaries
 
-A lot of nifty software does not require any configuration other than being added to the `PATH` or being installed with an installer like `brew`. For this kind of software that requires no configuration, we list the software we would like installed by the playbook as a variable in `group_vars/` or `host_vars/` as an array of keys assigned to the `software` variable ([example here](environments/prod/group_vars/desktop/vars.yml)). With those keys, we install the software using the `[professormanhattan.genericinstaller](https://galaxy.ansible.com/professormanhattan/genericinstaller)` role which determines how to install the binaries by looking up the keys against the `software_package` object ([example here](environments/prod/group_vars/all/software.yml)). For your convienience, the software we recommend and install by default is listed below:
+A lot of the nifty software we install by default does not require any configuration other than being added to the `PATH` or being installed with an installer like `brew`. For this kind of software that requires no configuration, we list the software we would like installed by the playbook as a variable in `group_vars/` or `host_vars/` as an array of keys assigned to the `software` variable ([example here](environments/prod/group_vars/desktop/vars.yml)). With those keys, we install the software using the `[professormanhattan.genericinstaller](https://galaxy.ansible.com/professormanhattan/genericinstaller)` role which determines how to install the binaries by looking up the keys against the `software_package` object ([example here](environments/prod/group_vars/all/software.yml)).
 
-{{ binary_var_chart }}
+For your convienience, we have split the long list of single binary based software into two lists - one for CLIs and one for Applications:
+
+#### Binary Desktop Applications
+
+{{ binaryapp_var_chart }}
+
+#### Binary CLIs / TUIs
+
+{{ binarycli_var_chart }}
 
 ### NPM Packages
 
@@ -41,6 +51,12 @@ A considerable amount of effort has gone into researching and finding the "best"
 To reduce the amount of time it takes to configure Chromium-based browsers like Brave, Chromium, and Chrome, we also include the capability of automatically installing Chromium-based browser extensions (via a variable [defined here](environments/prod/group_vars/desktop/chrome-extensions.yml)):
 
 {{ chrome_var_chart }}
+
+### Firefox Add-Ons
+
+Below you can find the Firefox extensions that the base configuration of this playbook will automatically install:
+
+{{ firefox_var_chart }}
 
 ### Homebrew Formulae (macOS and Linux only)
 

@@ -4,6 +4,69 @@ version: '3'
 tasks:
   docs:
     deps:
+      - docs:roles
+      - docs:tags
+
+  docs:roles:
+    deps:
+      - :install:software:jq
+      - :install:software:yq
+    log:
+      error: Failed to acquire README chart data for the roles
+      start: Scanning roles folder and generating chart data
+      success: Finished populating roles folder chart data
+    cmds:
+      - |
+        TMP="$(mktemp)"
+        jq --arg name "Role Name" --arg description "Description" --arg github "GitHub Popularity" \
+        '.role_var_chart = [[$name, $description, $github]]' .variables.json > "$TMP"
+        mv "$TMP" .variables.json
+        for ROLE_PATH in roles/*/*; do
+          if [ "$(yq e '.galaxy_info.project.documentation' "${ROLE_PATH}/meta/main.yml")" != 'null' ]; then
+            DOCUMENTATION_LINK="*[Documentation]($(yq e '.galaxy_info.project.documentation' "${ROLE_PATH}/meta/main.yml" | sed 's/null//'))* | "
+          else
+            DOCUMENTATION_LINK=""
+          fi
+          if [ "$(yq e '.galaxy_info.project.homepage' "${ROLE_PATH}/meta/main.yml")" != 'null' ]; then
+            HOMEPAGE_LINK="*[Homepage]($(yq e '.galaxy_info.project.homepage' "${ROLE_PATH}/meta/main.yml"))* | "
+          else
+            HOMEPAGE_LINK=""
+          fi
+          GITHUB_URL="$(yq e '.galaxy_info.project.github' "${ROLE_PATH}/meta/main.yml")"
+          if [ "$GITHUB_URL" != 'null' ]; then
+            GITHUB_PATH="$(echo "$GITHUB_URL" | sed 's/https:\/\/github.com\///' | sed 's/\/$//')"
+            GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
+            GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
+            GITHUB_SHIELD="![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)"
+          else
+            GITHUB_SHIELD="*N/A*"
+          fi
+          SOFTWARE_NAME="$(jq -r '.blueprint.name' "${ROLE_PATH}/package.json")"
+          DESCRIPTION="$(jq -r '.blueprint.overview' "${ROLE_PATH}/package.json")"
+          ROLE_GITHUB_LINK="*[Role on GitHub]$(jq -r '.blueprint.repository.github' "${ROLE_PATH}/package.json")*"
+          ANSIBLE_GALAXY_NAMESPACE="$(yq e '.galaxy_info.namespace' "${ROLE_PATH}/meta/main.yml")"
+          ANSIBLE_GALAXY_ROLE_NAME="$(yq e '.galaxy_info.role_name' "${ROLE_PATH}/meta/main.yml")"
+          ROLE_ANSIBLE_GALAXY_URL="https://galaxy.ansible.com/${ANSIBLE_GALAXY_NAMESPACE}/${ANSIBLE_GALAXY_ROLE_NAME}"
+          if [ "$ANSIBLE_GALAXY_NAMESPACE" != 'null' ] && [ "$ANSIBLE_GALAXY_ROLE_NAME" != 'null' ]; then
+            URL_LINK="**[${SOFTWARE_NAME}](${ROLE_ANSIBLE_GALAXY_URL})**"
+          else
+            URL_LINK="**${SOFTWARE_NAME}**"
+          fi
+          DESCRIPTION_LINKS="(${HOMEPAGE_LINK}${DOCUMENTATION_LINK}${ROLE_GITHUB_LINK})"
+          if [ "$DESCRIPTION_LINKS" != "()" ]; then
+            # Leaving this sed in just in case anything is added after ROLE_GITHUB_LINK
+            DESCRIPTION_LINKS=" $(echo "$DESCRIPTION_LINKS" | sed 's/ | )$/)/')"
+          else
+            DESCRIPTION_LINKS=""
+          fi
+          TMP="$(mktemp)"
+          jq --arg name "${URL_LINK}" --arg description "${DESCRIPTION}${DESCRIPTION_LINKS}" --arg github "${GITHUB_SHIELD}" \
+          '.role_var_chart = .role_var_chart + [[$name, $description, $github]]' .variables.json > "$TMP"
+          mv "$TMP" .variables.json
+        done
+
+  docs:tags:
+    deps:
       - :install:npm:leasot
     summary: |
       ```shell
@@ -32,17 +95,38 @@ tasks:
             fi
             LINK="$(echo $COMMENT | sed 's/ - .*//')"
             URL_LINK="$(echo "$LINK" | sed 's/^\([^|]*\).*/\1/' | sed 's/ $//')"
-            GITHUB_PATH="$(echo "$LINK" | sed 's/.*\[GitHub\](https:\/\/github.com\/\([^|]*\)).*/\1/' | \
-            sed 's/.*\[.*\](https:\/\/github.com\/\([^)]*\)).*/\1/' | sed 's/\/$//')"
-            GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
-            GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
-            GITHUB_SHIELD="![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)"
+            if [[ "$LINK" == *"[GitHub](NO_GITHUB_REPOSITORY_LINK)"* ]] || [[ "$LINK" != *"[GitHub]"* ]]; then
+              GITHUB_SHIELD="*N/A*"
+            else
+              GITHUB_PATH="$(echo "$LINK" | sed 's/.*\[GitHub\](https:\/\/github.com\/\([^|]*\)).*/\1/' | \
+              sed 's/.*\[.*\](https:\/\/github.com\/\([^)]*\)).*/\1/' | sed 's/\/$//')"
+              GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
+              GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
+              GITHUB_SHIELD="![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)"
+            fi
+            if [[ "$LINK" == *"[Documentation]"* ]]; then
+              DOCUMENTATION_LINK="*[Documentation]("$(echo "$LINK" | sed 's/.*[Documentation](\([^|]*\)).*/\1/' | sed 's/ $//')")* | "
+            else
+              DOCUMENTATION_LINK=""
+            fi
+            if [[ "$LINK" == *"[Homepage]"* ]]; then
+              HOMEPAGE_LINK="*[Homepage]("$(echo "$LINK" | sed 's/.*[Homepage](\([^|]*\)).*/\1/' | sed 's/ $//')")* | "
+            else
+              HOMEPAGE_LINK=""
+            fi
             if [[ "$LINK" == *"[Helm]"* ]] || [[ "$LINK" == *"[Operator]"* ]]; then
-              REFERENCE_LINK=" *[Reference]("$(echo "$LINK" | sed 's/.*\[Helm\](\([^)]*\)).*/\1/' | sed 's/.*\[Operator\](\([^)]*\)).*/\1/')")*"
+              REFERENCE_LINK=" *[Helm Reference]("$(echo "$LINK" | sed 's/.*\[Helm\](\([^)]*\)).*/\1/' | sed 's/.*\[Operator\](\([^)]*\)).*/\1/')")* | "
+            else
+              REFERENCE_LINK=""
+            fi
+            DESCRIPTION_LINKS="(${HOMEPAGE_LINK}${DOCUMENTATION_LINK}${REFERENCE_LINK})"
+            if [ "$DESCRIPTION_LINKS" != "()" ]; then
+              DESCRIPTION_LINKS=" $(echo "$DESCRIPTION_LINKS" | sed 's/ | )$/)/')"
+            else
+              DESCRIPTION_LINKS=""
             fi
             DESCRIPTION="$(echo $COMMENT | sed 's/.* - //' | sed 's/\"/\\\"/g')"
-            CHART="${CHART}[\"**$URL_LINK**\",\"${DESCRIPTION}${REFERENCE_LINK}\",\"$GITHUB_SHIELD\"]"
-            REFERENCE_LINK=""
+            CHART="${CHART}[\"**$URL_LINK**\",\"${DESCRIPTION}${DESCRIPTION_LINKS}\",\"$GITHUB_SHIELD\"]"
           done
           CHART="${CHART}]"
           TMP_CHART="$(mktemp)"

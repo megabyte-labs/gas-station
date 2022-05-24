@@ -18,7 +18,7 @@ tasks:
     cmds:
       - |
         TMP="$(mktemp)"
-        jq --arg name "Role Name" --arg description "Description" --arg github "GitHub Popularity" \
+        jq --arg name "Role Name" --arg description "Description" --arg github "GitHub" \
         '.role_var_chart = [[$name, $description, $github]]' .variables.json > "$TMP"
         mv "$TMP" .variables.json
         for ROLE_PATH in roles/*/*; do
@@ -33,13 +33,20 @@ tasks:
             HOMEPAGE_LINK=""
           fi
           GITHUB_URL="$(yq e '.galaxy_info.project.github' "${ROLE_PATH}/meta/main.yml")"
-          if [ "$GITHUB_URL" != 'null' ]; then
+          if [ "$GITHUB_URL" == 'Not open-source' ]; then
+            GITHUB_SHIELD="**❌ Closed source**"
+          elif [ "$GITHUB_URL" != 'null' ]; then
             GITHUB_PATH="$(echo "$GITHUB_URL" | sed 's/https:\/\/github.com\///' | sed 's/\/$//')"
             GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
             GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
             GITHUB_SHIELD="[![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)]($GITHUB_URL)"
           else
-            GITHUB_SHIELD="*N/A*"
+            UPSTREAM_URL="$(yq e '.galaxy_info.project.upstream' "${ROLE_PATH}/meta/main.yml")"
+            if [ "$UPSTREAM_URL" != 'null' ]; then
+              GITHUB_SHIELD="**[✅ Open-source]($UPSTREAM_URL)**"
+            else
+              GITHUB_SHIELD="*N/A*"
+            fi
           fi
           SOFTWARE_NAME="$(jq -r '.blueprint.name' "${ROLE_PATH}/package.json")"
           DESCRIPTION="$(jq -r '.blueprint.overview' "${ROLE_PATH}/package.json")"
@@ -89,14 +96,14 @@ tasks:
     cmds:
       - |
         function populateChartVar() {
-          CHART='[["Package", "Description", "GitHub Popularity"]'
+          CHART='[["Package", "Description", "GitHub"]'
           jq --arg tag "$(echo $2 | tr '[a-z]' '[A-Z]')" -r '.[] | select(.tag == $tag) | .
           | del(. ["file", "ref", "line", "tag"]) | .text' "$1" | while read COMMENT; do
             if [ "$CHART" != '[' ]; then
               CHART="${CHART},"
             fi
             LINK="$(echo $COMMENT | sed 's/ - .*//')"
-            URL_LINK="$(echo "$LINK" | sed 's/\[[^]]\](\([^)]*\))$/[\1](\2)/' | sed 's/ $//')"
+            URL_LINK="$(echo "$LINK" | sed 's/\[[^]]*\](\([^)]*\))$/[\1](\2)/' | sed 's/ $//' | sed 's/\/$//')"
             if [[ "$LINK" == *"[GitHub](NO_GITHUB_REPOSITORY_LINK)"* ]] || [[ "$LINK" != *"https://github.com"* ]]; then
               GITHUB_SHIELD="*N/A*"
             else

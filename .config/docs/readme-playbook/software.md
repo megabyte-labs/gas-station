@@ -1,9 +1,3 @@
-<style>
-table th:nth-of-type(3) {
-    width: 124px;
-}
-</style>
-
 ## Software
 
 This project breaks down software into a role (found in the subdirectories of the `roles/` folder) if the software requires anything other than being added to the `PATH` variable. Below is a quick description of what each role does. Browsing through this list, along with the conditions laid out in `main.yml`, you will be able to get a better picture of what software will be installed by the default `main.yml` playbook.

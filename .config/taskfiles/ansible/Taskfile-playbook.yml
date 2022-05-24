@@ -22,56 +22,58 @@ tasks:
         '.role_var_chart = [[$name, $description, $github]]' .variables.json > "$TMP"
         mv "$TMP" .variables.json
         for ROLE_PATH in roles/*/*; do
-          if [ "$(yq e '.galaxy_info.project.documentation' "${ROLE_PATH}/meta/main.yml")" != 'null' ]; then
-            DOCUMENTATION_LINK="*[Documentation]($(yq e '.galaxy_info.project.documentation' "${ROLE_PATH}/meta/main.yml" | sed 's/null//'))* | "
-          else
-            DOCUMENTATION_LINK=""
-          fi
-          if [ "$(yq e '.galaxy_info.project.homepage' "${ROLE_PATH}/meta/main.yml")" != 'null' ]; then
-            HOMEPAGE_LINK="*[Homepage]($(yq e '.galaxy_info.project.homepage' "${ROLE_PATH}/meta/main.yml"))* | "
-          else
-            HOMEPAGE_LINK=""
-          fi
-          GITHUB_URL="$(yq e '.galaxy_info.project.github' "${ROLE_PATH}/meta/main.yml")"
-          if [ "$GITHUB_URL" == 'Not open-source' ]; then
-            GITHUB_SHIELD="**❌ Closed source**"
-          elif [ "$GITHUB_URL" != 'null' ]; then
-            GITHUB_PATH="$(echo "$GITHUB_URL" | sed 's/https:\/\/github.com\///' | sed 's/\/$//')"
-            GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
-            GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
-            GITHUB_SHIELD="[![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)]($GITHUB_URL)"
-          else
-            UPSTREAM_URL="$(yq e '.galaxy_info.project.upstream' "${ROLE_PATH}/meta/main.yml")"
-            if [ "$UPSTREAM_URL" != 'null' ]; then
-              GITHUB_SHIELD="**[✅ Open-source]($UPSTREAM_URL)**"
+          if [[ "$ROLE_PATH" != *"roles/deprecated/"* ]] && [[ "$ROLE_PATH" != *"roles/cloud/"* ]] && [[ "$ROLE_PATH" != *"roles/helpers/"* ]]; then
+            if [ "$(yq e '.galaxy_info.project.documentation' "${ROLE_PATH}/meta/main.yml")" != 'null' ]; then
+              DOCUMENTATION_LINK="*[Documentation]($(yq e '.galaxy_info.project.documentation' "${ROLE_PATH}/meta/main.yml" | sed 's/null//'))* | "
             else
-              GITHUB_SHIELD="*N/A*"
+              DOCUMENTATION_LINK=""
             fi
+            if [ "$(yq e '.galaxy_info.project.homepage' "${ROLE_PATH}/meta/main.yml")" != 'null' ]; then
+              HOMEPAGE_LINK="*[Homepage]($(yq e '.galaxy_info.project.homepage' "${ROLE_PATH}/meta/main.yml"))* | "
+            else
+              HOMEPAGE_LINK=""
+            fi
+            GITHUB_URL="$(yq e '.galaxy_info.project.github' "${ROLE_PATH}/meta/main.yml")"
+            if [ "$GITHUB_URL" == 'Not open-source' ]; then
+              GITHUB_SHIELD="**❌ Closed source**"
+            elif [ "$GITHUB_URL" != 'null' ]; then
+              GITHUB_PATH="$(echo "$GITHUB_URL" | sed 's/https:\/\/github.com\///' | sed 's/\/$//')"
+              GITHUB_OWNER="$(echo "$GITHUB_PATH" | sed 's/\/.*$//')"
+              GITHUB_PROJECT_SLUG="$(echo "$GITHUB_PATH" | sed 's/^.*\///')"
+              GITHUB_SHIELD="[![GitHub Repo stars](https://img.shields.io/github/stars/$GITHUB_OWNER/$GITHUB_PROJECT_SLUG?style=social)]($GITHUB_URL)"
+            else
+              UPSTREAM_URL="$(yq e '.galaxy_info.project.upstream' "${ROLE_PATH}/meta/main.yml")"
+              if [ "$UPSTREAM_URL" != 'null' ]; then
+                GITHUB_SHIELD="**[✅ Open-source]($UPSTREAM_URL)**"
+              else
+                GITHUB_SHIELD="*N/A*"
+              fi
+            fi
+            SOFTWARE_NAME="$(jq -r '.blueprint.name' "${ROLE_PATH}/package.json")"
+            DESCRIPTION="$(jq -r '.blueprint.overview' "${ROLE_PATH}/package.json")"
+            ROLE_GITHUB_LINK="*[Role on GitHub]$(jq -r '.blueprint.repository.github' "${ROLE_PATH}/package.json")*"
+            ANSIBLE_GALAXY_NAMESPACE="$(yq e '.galaxy_info.namespace' "${ROLE_PATH}/meta/main.yml")"
+            ANSIBLE_GALAXY_ROLE_NAME="$(yq e '.galaxy_info.role_name' "${ROLE_PATH}/meta/main.yml")"
+            ROLE_ANSIBLE_GALAXY_URL="https://galaxy.ansible.com/${ANSIBLE_GALAXY_NAMESPACE}/${ANSIBLE_GALAXY_ROLE_NAME}"
+            if [ "$ANSIBLE_GALAXY_NAMESPACE" != 'null' ] && [ "$ANSIBLE_GALAXY_ROLE_NAME" != 'null' ]; then
+              URL_LINK="**[${SOFTWARE_NAME}](${ROLE_ANSIBLE_GALAXY_URL})**"
+            else
+              URL_LINK="**${SOFTWARE_NAME}**"
+            fi
+            if [ "$(jq -r '.blueprint.ansible_galaxy_project_id' "${ROLE_PATH}/package.json")" == 'null' ]; then
+              ROLE_GITHUB_LINK=""
+            fi
+            DESCRIPTION_LINKS="(${HOMEPAGE_LINK}${DOCUMENTATION_LINK}${ROLE_GITHUB_LINK})"
+            if [ "$DESCRIPTION_LINKS" != "()" ]; then
+              DESCRIPTION_LINKS=" $(echo "$DESCRIPTION_LINKS" | sed 's/ | )$/)/')"
+            else
+              DESCRIPTION_LINKS=""
+            fi
+            TMP="$(mktemp)"
+            jq --arg name "${URL_LINK}" --arg description "${DESCRIPTION}${DESCRIPTION_LINKS}" --arg github "${GITHUB_SHIELD}" \
+            '.role_var_chart = .role_var_chart + [[$name, $description, $github]]' .variables.json > "$TMP"
+            mv "$TMP" .variables.json
           fi
-          SOFTWARE_NAME="$(jq -r '.blueprint.name' "${ROLE_PATH}/package.json")"
-          DESCRIPTION="$(jq -r '.blueprint.overview' "${ROLE_PATH}/package.json")"
-          ROLE_GITHUB_LINK="*[Role on GitHub]$(jq -r '.blueprint.repository.github' "${ROLE_PATH}/package.json")*"
-          ANSIBLE_GALAXY_NAMESPACE="$(yq e '.galaxy_info.namespace' "${ROLE_PATH}/meta/main.yml")"
-          ANSIBLE_GALAXY_ROLE_NAME="$(yq e '.galaxy_info.role_name' "${ROLE_PATH}/meta/main.yml")"
-          ROLE_ANSIBLE_GALAXY_URL="https://galaxy.ansible.com/${ANSIBLE_GALAXY_NAMESPACE}/${ANSIBLE_GALAXY_ROLE_NAME}"
-          if [ "$ANSIBLE_GALAXY_NAMESPACE" != 'null' ] && [ "$ANSIBLE_GALAXY_ROLE_NAME" != 'null' ]; then
-            URL_LINK="**[${SOFTWARE_NAME}](${ROLE_ANSIBLE_GALAXY_URL})**"
-          else
-            URL_LINK="**${SOFTWARE_NAME}**"
-          fi
-          if [ "$(jq -r '.blueprint.ansible_galaxy_project_id' "${ROLE_PATH}/package.json")" == 'null' ]; then
-            ROLE_GITHUB_LINK=""
-          fi
-          DESCRIPTION_LINKS="(${HOMEPAGE_LINK}${DOCUMENTATION_LINK}${ROLE_GITHUB_LINK})"
-          if [ "$DESCRIPTION_LINKS" != "()" ]; then
-            DESCRIPTION_LINKS=" $(echo "$DESCRIPTION_LINKS" | sed 's/ | )$/)/')"
-          else
-            DESCRIPTION_LINKS=""
-          fi
-          TMP="$(mktemp)"
-          jq --arg name "${URL_LINK}" --arg description "${DESCRIPTION}${DESCRIPTION_LINKS}" --arg github "${GITHUB_SHIELD}" \
-          '.role_var_chart = .role_var_chart + [[$name, $description, $github]]' .variables.json > "$TMP"
-          mv "$TMP" .variables.json
         done
 
   docs:tags:

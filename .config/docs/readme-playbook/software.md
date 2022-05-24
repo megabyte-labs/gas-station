@@ -12,6 +12,13 @@ We encourage you to browse through the repositories that are linked to in the ta
 
 A lot of the nifty software we install by default does not require any configuration other than being added to the `PATH` or being installed with an installer like `brew`. For this kind of software that requires no configuration, we list the software we would like installed by the playbook as a variable in `group_vars/` or `host_vars/` as an array of keys assigned to the `software` variable ([example here](environments/prod/group_vars/desktop/vars.yml)). With those keys, we install the software using the `[professormanhattan.genericinstaller](https://galaxy.ansible.com/professormanhattan/genericinstaller)` role which determines how to install the binaries by looking up the keys against the `software_package` object ([example here](environments/prod/group_vars/all/software.yml)).
 
+**NOTE:** The binary packages listed in these charts will attempt to install using the system package manager and then from source if the option is available before resorting to less desirable methods like downloading the binary from GitHub releases. The order of installation method preference that the `[professormanhattan.genericinstaller](https://galaxy.ansible.com/professormanhattan/genericinstaller)` role attempts to use is defined in the `INSERT_VARIABLE_NAME` variable. The default order is:
+
+1. System package managers
+2. Compiling from source (via Go, Rust, etc.)
+3. Installing via Homebrew
+4. Downloading the pre-compiled assets from GitHub releases
+
 For your convienience, we have split the long list of single binary based software into two lists - one for CLIs and one for Applications:
 
 #### Binary Desktop Applications

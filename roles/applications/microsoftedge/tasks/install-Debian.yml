@@ -1,18 +1,43 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ microsoft_edge_apt_key_url }}"
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ microsoft_edge_apt_repository }}"
-    state: present
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: microsoft-edge-dev
-    state: "{{ app_state | default('present') }}"
-    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ microsoft_edge_apt_key_url }}"
+        keyring: /usr/share/keyrings/microsoft.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ microsoft_edge_apt_repository }}"
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: microsoft-edge-dev
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/microsoft.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ microsoft_edge_apt_repository }}"
+        state: absent
+
+    - name: "Find the latest version of {{ app_name }} from the release page"
+      uri:
+        url: "{{ edge_baseurl }}"
+        return_content: true
+      register: edge_releases
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        deb: "{{ edge_baseurl }}/{{ edge_releases.content | regex_search('microsoft-edge-stable_((\\d)*\\.)*\\d*-1_amd64.deb') }}"
+        state: "{{ app_state | default('present') }}"

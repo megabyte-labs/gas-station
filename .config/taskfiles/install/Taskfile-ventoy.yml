@@ -2,19 +2,20 @@
 version: '3'
 
 vars:
-  VENTOY_DOWNLOAD_CONFIG_URL: https://gitlab.com/megabyte-labs/jumpusb/-/blob/master/local/distros.json
+  VENTOY_DOWNLOAD_CONFIG_URL: https://gitlab.com/megabyte-labs/jumpusb/-/raw/master/local/distros.json
   VENTOY_USB_PATH:
     sh: |
       if [ -d /run/media/user/Ventoy ]; then
         echo "/run/media/user/Ventoy"
       else
-        echo "."
+        echo "./jumpusb-fs"
       fi
 
 tasks:
   clone:
     cmds:
       - |
+        mkdir -p {{.VENTOY_USB_PATH}}
         cd {{.VENTOY_USB_PATH}}
         git init
         git remote add origin https://gitlab.com/megabyte-labs/jumpusb.git
@@ -24,44 +25,69 @@ tasks:
   download:
     deps:
       - :install:software:axel
+      - :install:software:p7zip
     todo: Add validation of md5/sha256 and add update functionality to VENTOY_DOWNLOAD_CONFIG_URL
     cmds:
       - task: setup:persistence
       - curl -sSL '{{.VENTOY_DOWNLOAD_CONFIG_URL}}' > .ventoy.json
       - |
         jq -c '.distros[]' .ventoy.json | while read VENTOY_OS; do
-          VENTOR_URL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
-          VENTOR_URL_AXEL="$(jq -r -n '$in.url' --argjson in "$VENTOY_OS")"
+          VENTOY_URL_AXEL="$(jq -r -n "$in.url_axel" --argjson in "$VENTOY_OS")"
+          VENTOY_URL="$(jq -r -n "$in.url" --argjson in "$VENTOY_OS")"
+          if [ "$VENTOY_URL_AXEL" == 'null' ]; then
+            VENTOY_URL_AXEL="$VENTOY_URL"
+          fi
           VENTOY_MD5="$(jq -r -n '$in.md5' --argjson in "$VENTOY_OS")"
           VENTOY_PATH="$(jq -r -n '$in.path' --argjson in "$VENTOY_OS")"
           VENTOY_PER_BASE="$(jq -r -n '$in.persistence_base' --argjson in "$VENTOY_OS")"
           VENTOY_PER_FILE="$(jq -r -n '$in.persistence_file' --argjson in "$VENTOY_OS")"
-          mkdir -p "$(dirname {{.VENTOY_USB_PATH}}$VENTOY_PATH)"
-          if [ ! -f "{{.VENTOY_USB_PATH}}$VENTOY_PATH" ]; then
-            mkdir -p "$(dirname "{{.VENTOY_USB_PATH}}${VENTOY_PATH}")"
-            axel -o "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "$VENTOY_URL_AXEL"
+          mkdir -p "$(dirname ./jumpusb-fs/$VENTOY_PATH)"
+          if [ ! -f "./jumpusb-fs/$VENTOY_PATH" ]; then
+            mkdir -p "$(dirname ./jumpusb-fs/${VENTOY_PATH})"
+            ISO_TMP="$(mktemp)"
+            axel -o "$ISO_TMP" "$VENTOY_URL_AXEL"
+            mv "$ISO_TMP" "./jumpusb-fs/${VENTOY_PATH}"
             if [[ "$VENTOY_URL" == *.gz ]]; then
-              mv "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.gz"
-              gzip -d "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.gz"
+              mv "./jumpusb-fs/${VENTOY_PATH}" "./jumpusb-fs/${VENTOY_PATH}.gz"
+              gzip -d "./jumpusb-fs/${VENTOY_PATH}.gz"
             elif [[ "$VENTOY_URL" == *.bz2 ]]; then
-              mv "{{.VENTOY_USB_PATH}}${VENTOY_PATH}" "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.bz2"
-              bzip2 -d "{{.VENTOY_USB_PATH}}${VENTOY_PATH}.bz2"
+              mv "./jumpusb-fs/${VENTOY_PATH}" "./jumpusb-fs/${VENTOY_PATH}.bz2"
+              bzip2 -d "./jumpusb-fs/${VENTOY_PATH}.bz2"
             fi
           fi
-          if [ ! -f "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_FILE" ]; then
-            7z x "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_BASE"
+          if [ "$VENTOY_PER_FILE" != 'null' ] && [ ! -f "./jumpusb-fs/persistence/$VENTOY_PER_FILE" ]; then
+            7z x "./jumpusb-fs/persistence/$VENTOY_PER_BASE"
             UNCOMPRESSED_FILE="$(echo $VENTOY_PER_BASE | sed 's/.7z$//')"
-            mv "$UNCOMPRESSED_FILE" "{{.VENTOY_USB_PATH}}/persistence/$VENTOY_PER_FILE"
+            mv "$UNCOMPRESSED_FILE" "./jumpusb-fs/persistence/$VENTOY_PER_FILE"
           fi
         done
 
   install:
     cmds:
+      - task: install:disk
+
+  install:detect:usb:
+    summary: |
+      # Detects the Drive Path of USB Last Inserted
+
+      This task detects the drive path of the last USB that was inserted. After
+      it detects the drive path, it writes the path to the file that is passed in
+      as the ANSWER_FILE Go template variable.
+    cmds:
+      - |
+        # TODO: Add bash script / darwin script that detects the drive path of
+
+  install:disk:
+    vars:
+      TARGET_DRIVE: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.TARGET_DRIVE}}{{end}}'
+    cmds:
       - curl -sSL https://github.com/ventoy/Ventoy/releases/download/v1.0.74/ventoy-1.0.74-linux.tar.gz > ventoy.tar.gz
       - tar -xzvf ventoy.tar.gz
-      - .config/log info 'Running sudo command `sudo sh ventoy/Ventoy2Disk.sh -ui {{.CLI_ARGS}}`'
-      - sudo sh ventoy/Ventoy2Disk.sh -ui {{.CLI_ARGS}}
+      - .config/log info 'Running sudo command `sudo sh ventoy/Ventoy2Disk.sh -ui {{.TARGET_DRIVE}}`'
+      - sudo sh ventoy/Ventoy2Disk.sh -ui {{.TARGET_DRIVE}}
       - rm -rf ventoy
+    status:
+      - '[ -z "{{.TARGET_DRIVE}}" ]'
 
   setup:persistence:
     cmds:

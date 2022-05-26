@@ -6,6 +6,8 @@
     dest: ~/.vault_pass
     owner: "{{ ansible_user }}"
     mode: 0600
+  when:
+    - vault_password is defined
 
 - name: Ensure ~/.config/autostart exists
   become_user: "{{ ansible_user }}"
@@ -51,12 +53,16 @@
       function cleanup {
         rm -f ~/.config/ansible-continue.sh
         rm -f ~/.config/autostart/ansible-installer.desktop
+        rm -f ~/.vault_pass
         crontab -r || echo $1
-        # rm -rf "$HOME/gas-station"
       }
       trap cleanup EXIT
-      cd "$HOME/gas-station"
-      ansible-playbook --ask-sudo-pass -i inventories/ main.yml
+      if [ -f ~/.config/ansible-playbook-continue-command ]; then
+        $(cat ~/.config/ansible-playbook-continue-command)
+      else
+        echo "Continue running the Ansible playbook manually. See task --menu for help."
+      fi
+      sleep 2
     mode: 0700
 
 - name: Ensure cron/cronie is installed

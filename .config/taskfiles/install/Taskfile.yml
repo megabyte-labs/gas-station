@@ -91,22 +91,23 @@ tasks:
       success: Successfully installed local NPM dependencies
     cmds:
       - task: tslib
-      - |
-        if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
-          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
-            {{.NPM_PROGRAM_LOCAL}} update
-          else
-            {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
-            --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
-            --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
-            if [ -n "$EXIT_CODE" ]; then
-              .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+      - cmd: |
+          if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
+            if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
               {{.NPM_PROGRAM_LOCAL}} update
+            else
+              {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
+              --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
+              --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
+              if [ -n "$EXIT_CODE" ]; then
+                .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+                {{.NPM_PROGRAM_LOCAL}} update
+              fi
             fi
           fi
-        fi
-        mkdir -p .task
-        echo "$DEPS" > .task/npm-deps
+          mkdir -p .task
+          echo "$DEPS" > .task/npm-deps
+        ignore_error: true
     sources:
       - package.json
 
@@ -220,7 +221,7 @@ tasks:
         if [ '{{OS}}' == 'darwin' ] || [ '{{OS}}' == 'linux' ]; then
           # shellcheck disable=SC2016
           PROFILE_STRING='{{.PROFILE_STRING}}'
-          if ! grep "$PROFILE_STRING" "$HOME/.profile" > /dev/null; then
+          if ! cat "$HOME/.profile" | grep "$PATH_STRING" > /dev/null; then
             echo -e "${PROFILE_STRING}\n" >> "$HOME/.profile"
             .config/log info 'Added `{{.PROFILE_STRING}}` to '"$HOME/.profile"
           fi

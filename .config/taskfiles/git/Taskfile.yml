@@ -272,16 +272,22 @@ tasks:
         fi
 
   update:
-    run: once
     cmds:
-      - task: :git:gitlab:create
-      - task: :git:github:create
-      - task: update:continue
+      - task: update:start
     status:
-      - '[ -n "$CI" ] || ([ -z "$GITLAB_TOKEN" ] && [ -z "$GITHUB_TOKEN" ])'
+      - '[ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
-  update:continue:
+  update:finish:
     deps:
       - :git:gitlab:update
       - :git:github:update
     run: once
+
+  update:start:
+    run: once
+    cmds:
+      - task: :git:gitlab:create
+      - task: :git:github:create
+      - task: update:finish
+    status:
+      - '[ -n "$CI" ] || ([ -z "$GITLAB_TOKEN" ] && [ -z "$GITHUB_TOKEN" ])'

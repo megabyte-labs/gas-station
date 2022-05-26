@@ -1,23 +1,41 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ warp_apt_key_url }}"
-  when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ warp_apt_repository }}"
-    state: present
-    update_cache: true
-  when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: cloudflare-warp
-    state: "{{ app_state | default('present') }}"
-  when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ warp_apt_key_url }}"
+        keyring: /usr/share/keyrings/warp.gpg
+      when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ warp_apt_repository }}"
+        state: present
+        update_cache: true
+      when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: cloudflare-warp
+        state: "{{ app_state | default('present') }}"
+      when: ansible_distribution == 'Debian' or (ansible_distribution == 'Ubuntu' and ansible_distribution_release in ('focal', 'xenial'))
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/warp.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ warp_apt_key_url }}"
+        state: absent
+
+    - name: Message to the user
+      debug:
+        msg: "There is no official support for the OS/Distribution/Release. Please check back later..."
 
 - name: Run user configuration tasks
   include_tasks: user-Linux.yml

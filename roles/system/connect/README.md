@@ -120,7 +120,7 @@ And there you go. Installing connect can be as easy as that. If, however, you wo
 
 ## ➤ Overview
 
-This repository is the home of an Ansible role that handles the connection process for hosts that have not been reassigned a "secure" \ non-default port and sets variables that are used later in the playbook. This role is intended to be used as the first role in the playbook.
+This repository is the home of an Ansible role that handles the connection process for hosts that have not been reassigned a "secure" \ non-default port and sets variables that are used later in the playbook.
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png)](#supported-operating-systems)
 

@@ -168,7 +168,7 @@ function ensureLocalPath() {
     # shellcheck disable=SC2016
     PATH_STRING='export PATH="$HOME/.local/bin:$PATH"'
     mkdir -p "$HOME/.local/bin"
-    if ! grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+    if ! cat "$HOME/.profile" | grep "$PATH_STRING" > /dev/null; then
       echo -e "${PATH_STRING}\n" >> "$HOME/.profile"
       logger info "Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
     fi
@@ -195,7 +195,7 @@ function ensurePackageInstalled() {
     if [[ "$OSTYPE" == 'darwin'* ]]; then
       brew install "$1"
     elif [[ "$OSTYPE" == 'linux'* ]]; then
-      if [ -f "/etc/redhat-release" ]; then
+      if [ -f "/etc/redhat-release" ] || type dnf &> /dev/null || type yum &> /dev/null; then
         if type sudo &> /dev/null; then
           if type dnf &> /dev/null; then
             sudo dnf install -y "$1"
@@ -209,7 +209,7 @@ function ensurePackageInstalled() {
             yum install -y "$1"
           fi
         fi
-      elif [ -f "/etc/lsb-release" ]; then
+      elif [ -f "/etc/lsb-release" ] || type apt-get &> /dev/null; then
         if type sudo &> /dev/null; then
           sudo apt-get update
           sudo apt-get install -y "$1"
@@ -217,7 +217,7 @@ function ensurePackageInstalled() {
           apt-get update
           apt-get install -y "$1"
         fi
-      elif [ -f "/etc/arch-release" ]; then
+      elif [ -f "/etc/arch-release" ] || type pacman &> /dev/null; then
         if type sudo &> /dev/null; then
           sudo pacman update
           sudo pacman -S "$1"
@@ -225,7 +225,7 @@ function ensurePackageInstalled() {
           pacman update
           pacman -S "$1"
         fi
-      elif [ -f "/etc/alpine-release" ]; then
+      elif [ -f "/etc/alpine-release" ] || type apk &> /dev/null; then
         if type sudo &> /dev/null; then
           sudo apk --no-cache add "$1"
         else
@@ -450,6 +450,11 @@ function ensureTaskfiles() {
         rm -rf shared-master
       fi
     fi
+    if [ -n "$BOOTSTRAP_EXIT_CODE" ] && ! task donothing; then
+      # task donothing still does not work so issue must be with main Taskfile.yml
+      logger warn 'The `Taskfile.yml` was reset to `HEAD~1` because it appears to be misconfigured'
+      git checkout HEAD~1 -- Taskfile.yml
+    fi
   fi
 }
 
@@ -493,7 +498,7 @@ if [[ "$OSTYPE" == 'darwin'* ]]; then
     sudo xcode-select --install
   fi
 elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
-  if ! type curl &> /dev/null || ! type git &> /dev/null || ! type gzip &> /dev/null; then
+  if ! type curl &> /dev/null || ! type git &> /dev/null || ! type gzip &> /dev/null || ! type sudo &> /dev/null || ! type jq &> /dev/null; then
     ensurePackageInstalled "curl"
     ensurePackageInstalled "file"
     ensurePackageInstalled "git"
@@ -515,6 +520,10 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         fi
       fi
+      if ! (grep "/bin/brew shellenv" < "$HOME/.profile" &> /dev/null) && [[ "$OSTYPE" != 'darwin'* ]]; then
+        logger info 'Adding linuxbrew source command to `~/.profile`'
+        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$HOME/.profile"
+      fi
       if [ -f "$HOME/.profile" ]; then
         # shellcheck disable=SC1091
         . "$HOME/.profile"
@@ -522,6 +531,10 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
       if ! type poetry &> /dev/null; then
         # shellcheck disable=SC2016
         brew install poetry || logger info 'There may have been an issue installing `poetry` with `brew`'
+      fi
+      if ! type jq &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install jq || logger info 'There may have been an issue installiny `jq` with `brew`'
       fi
       if ! type yq &> /dev/null; then
         # shellcheck disable=SC2016
@@ -566,7 +579,12 @@ if [ -d .git ] && type git &> /dev/null; then
       git reset --hard origin/master
       git push --force origin synchronize || FORCE_SYNC_ERR=$?
       if [ -n "$FORCE_SYNC_ERR" ] && type task &> /dev/null; then
-        NO_GITLAB_SYNCHRONIZE=true task ci:synchronize
+        NO_GITLAB_SYNCHRONIZE=true task ci:synchronize || CI_SYNC_TASK_ISSUE=$?
+        if [ -n "$CI_SYNC_TASK_ISSUE" ]; then
+          logger warn 'Possible issue with `Taskfile.yml` -- attempting to fix by reverting `Taskfile.yml` to previous commit'
+          git checkout HEAD~1 -- Taskfile.yml
+          NO_GITLAB_SYNCHRONIZE=true task ci:synchronize
+        fi
       else
         DELAYED_CI_SYNC=true
       fi

@@ -5,11 +5,22 @@
     name: "{{ plugin_dependencies }}"
     state: present
 
-- name: "Ensure {{ app_name }} is installed"
+- name: Ensure macvim is installed
   become: false
   community.general.homebrew:
-    name: vim
+    name: macvim
     state: "{{ app_state | default('present') }}"
+
+- name: Fetch the release information
+  uri:
+    url: "https://formulae.brew.sh/api/bottle/macvim.json"
+  register: macvim_release
+
+- name: Link to macvim
+  file:
+    src: "/usr/local/Cellar/macvim/{{ macvim_release.json.pkg_version }}/bin/mvim"
+    dest: /usr/local/bin/vi
+    state: link
 
 - name: Run user configuration tasks
   include_tasks: user-Linux.yml

@@ -14,7 +14,7 @@ task ansible:test:vagrant
 ### macOS/Linux
 
 ```shell
-curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quickstart.sh | bash
+curl -sSL https://install.doctor/quickstart | bash
 ```
 
 ### Windows
@@ -22,5 +22,5 @@ curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quic
 In an administrative PowerShell session, run:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://gitlab.com/megabyte-labs/gas-station/-/raw/master/files/quickstart.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/windows-quickstart'))
 ```

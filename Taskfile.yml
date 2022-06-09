@@ -71,6 +71,9 @@ includes:
   docker:update:
     taskfile: ./.config/taskfiles/docker/Taskfile-update.yml
     optional: true
+  dotfiles:
+    taskfile: ./.config/taskfiles/dotfiles/Taskfile.yml
+    optional: true
   fix:
     taskfile: ./.config/taskfiles/fix/Taskfile.yml
     optional: true
@@ -287,6 +290,9 @@ includes:
   web:
     taskfile: ./.config/taskfiles/web/Taskfile.yml
     optional: true
+  web:cloudflare:
+    taskfile: ./.config/taskfiles/web/Taskfile-cloudflare.yml
+    optional: true
   web:ionic:
     taskfile: ./.config/taskfiles/web/Taskfile-ionic.yml
     optional: true
@@ -372,7 +378,7 @@ vars:
       fi
   PROJECT_TYPE:
     sh: |
-      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.group' package.json)"; if [ "$VER" == 'null' ]; then echo TYPE="$GROUP_TYPE"; else TYPE="$VER"; fi; else TYPE="$GROUP_TYPE"; fi
+      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.group' package.json)"; if [ "$VER" == 'null' ]; then TYPE="$GROUP_TYPE"; else TYPE="$VER"; fi; else TYPE="$GROUP_TYPE"; fi
       if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.subgroup' package.json)"; if [ "$VER" == 'null' ]; then SUBTYPE="$REPOSITORY_TYPE"; else SUBTYPE="$VER"; fi; else SUBTYPE="$REPOSITORY_TYPE"; fi
       if [ "$TYPE" == 'common' ] && [ "$SUBTYPE" == 'shared' ]; then
         echo 'shared'
@@ -443,6 +449,7 @@ env:
       PATH="$PATH:$HOME/.local/go/bin:$HOME/go/bin"
       PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
       PATH="$PATH:$PWD/bin"
+      PATH="$PATH:$VOLTA_HOME/bin"
       echo "$PATH"
   RECORD_INSTALL:
     sh: if [ -n "$CI" ]; then echo 'true'; fi
@@ -452,6 +459,8 @@ env:
         DSN="$(jq -r '.blueprint.sentryDSN' package.json)"
         if [ "$DSN" != 'null' ]; then echo "$DSN"; fi
       fi
+  VOLTA_HOME:
+    sh: echo "$HOME/.volta"
 
 profile: |
   if [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then

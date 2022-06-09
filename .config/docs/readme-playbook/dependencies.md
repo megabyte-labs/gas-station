@@ -9,13 +9,13 @@
 There are Python and Ansible package requirements need to be installed by running the following command (or equivalent) in the root of this repository:
 
 ```
-if type poetry &> /dev/null; then poetry install --no-root; else pip3 install -r .config/requirements.txt; fi
+pip3 install -r .config/requirements.txt
 ansible-galaxy install requirements.yml
 ```
 
 #### Easier Method of Installing the Host Requirements
 
-You can also run `bash .config/scripts/start.sh` if you do not mind development dependencies being installed as well. This method will even handle installing Python 3 and Ansible.
+You can also run `bash start.sh` if you do not mind development dependencies being installed as well. This method will even handle installing Python 3 and Ansible.
 
 ### Operating System
 
@@ -26,7 +26,7 @@ You can also run `bash .config/scripts/start.sh` if you do not mind development 
 SSH (or WinRM in the case of Windows) and Python should be available on the target systems you would like to provision. If you are attempting to provision a Windows machine, you can ensure that WinRM is enabled and configured so that you can remotely provision the Windows target by running the following command with PowerShell:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://gitlab.com/megabyte-labs/gas-station/-/raw/master/files/client.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/windows-client'))
 ```
 
 ### MAS on Mac OS X

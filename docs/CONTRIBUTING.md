@@ -651,3 +651,5 @@ Here is an example of code that will remove the error:
 #### [305] Use shell only when shell functionality is required
 
 Only use the Ansible `shell:` task when absolutely necessary. If you get this error then test if replacing `shell:` with `command:` resolves the error. If that does not work and you can not figure out how to properly configure the environment for `command:` to work, then you can add `# noqa 305` at the end of the line that includes the `name:` property. The same is true for other linting errors - `# noqa` followed by the reported lint error code will instruct `ansible-lint` to ignore the error.
+
+{{ load:.config/docs/common/contributing/troubleshooting.md }}

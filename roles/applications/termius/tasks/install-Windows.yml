@@ -1,0 +1,40 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/termius'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\termius'
+  register: termius_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type termius
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_termius_version
+  when: termius_config.stat.exists
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_termius: "{{ (current_termius_version.skipped | default(false)) or \
+      ((not current_termius_version.skipped | default(false)) and (current_termius_version.stdout | trim != termius_latest_version)) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_package:
+    path: https://autoupdate.termius.com/windows/Termius.exe
+    state: present
+    arguments: /S
+  when: install_termius
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\termius'
+    content: |
+      {{ termius_latest_version }}
+  when: install_termius
+
+- name: "Ensure {{ app_name }} CLI is installed"
+  ansible.windows.win_command: pip install -U termius

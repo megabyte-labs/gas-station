@@ -11,7 +11,12 @@ env:
   GNUPGHOME:
     sh: echo "$HOME/.gnupghome"
   MASTER_KEY:
-    sh: LC_ALL=C tr -dc '[:upper:]' < /dev/urandom | fold -w 30 | head -n1
+    sh: |
+      if [ -f .yubi-masterkey ]; then
+        cat .yubi-masterkey
+      else
+        LC_ALL=C tr -dc '[:upper:]' < /dev/urandom | fold -w 30 | head -n1
+      fi
 
 tasks:
   add:identities:
@@ -126,12 +131,16 @@ tasks:
     cmds:
       - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
         --expert --edit-key "$KEYID" addkey save
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   generate:encryption:
     env:
       KEYID: '{{.KEYID}}'
     cmds:
       - echo -e "6\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" addkey save
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   generate:master:
     cmds:
@@ -141,12 +150,16 @@ tasks:
       # Original: echo -e "8\nE\nS\nQ\n4096\n0\ny\n{{.YUBI_MASTER_NAME}}\n{{.YUBI_MASTER_EMAIL}}\n\no\n" -- removed \ny for macOS
       - echo -e "8\nE\nS\nQ\n4096\n0\n{{.YUBI_MASTER_NAME}}\n{{.YUBI_MASTER_EMAIL}}\n\no\n" | gpg --expert --command-fd 0
         --pinentry-mode loopback --passphrase "$MASTER_KEY" --full-generate-key
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   generate:signing:
     env:
       KEYID: '{{.KEYID}}'
     cmds:
       - echo -e "4\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" addkey save
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   generate:subkeys:
     vars:
@@ -170,6 +183,7 @@ tasks:
     desc: Prepares an environment by provisioning all the required software / preliminary steps
     cmds:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
+      - echo '{{.MASTER_KEY}}' > .yubi-masterkey
       - task: prepare:init
       - task: :install:service:start
         vars:
@@ -184,6 +198,12 @@ tasks:
       - task: :security:ssh:yubikey
 
   prepare:init:
+    cmds:
+      - task: prepare:init:continue
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
+
+  prepare:init:continue:
     deps:
       - :install:requirements:yubikey
       - :security:gpg:conf
@@ -204,6 +224,8 @@ tasks:
     cmds:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --armor --export "$KEYID" > "$GNUPGHOME/gpg-$KEYID-$(date +%F).asc"
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   public:upload:
     cmds:
@@ -213,7 +235,7 @@ tasks:
       - gpg --keyserver hkps://keyserver.ubuntu.com:443 --send-key "$KEYID"
     status:
       - |
-        [ "$(echo -e "GET http://google.com HTTP/1.0\n\n" | nc google.com 80 > /dev/null 2>&1)" != "0" ]
+        [ "$(echo -e "GET http://google.com HTTP/1.0\n\n" | nc google.com 80 > /dev/null 2>&1)" != "0" ] || [ -n "$YUBIKEY_BACKUP" ]
 
   revocation:export:
     env:
@@ -221,6 +243,8 @@ tasks:
     cmds:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --output $GNUPGHOME/revoke.asc --gen-revoke "$KEYID"
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   secrets:export:
     env:
@@ -231,6 +255,8 @@ tasks:
         --passphrase "$MASTER_KEY" --expert "$KEYID" > $GNUPGHOME/mastersub.key
       - gpg --armor --export-secret-subkeys --command-fd 0 --pinentry-mode loopback
         --passphrase "$MASTER_KEY" --expert "$KEYID" > $GNUPGHOME/sub.key
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   secure:delete:
     env:
@@ -257,6 +283,8 @@ tasks:
       - task: usb:mount
       - mkdir ~/.gpg-encrypted-storage && cp -rf $GNUPGHOME ~/.gpg-encrypted-storage # TODO /mnt/gpg-encrypted-storage
       - mkdir ~/.gpg-public && cp $GNUPGHOME/gpg-$KEYID* ~/.gpg-public # TODO /mnt/gpg-public
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   usb:create:
     deps:
@@ -272,6 +300,8 @@ tasks:
     deps:
       - :security:disk:encrypt:unmount
       - :security:disk:unencrypted:unmount
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   yubikey-agent:
     deps:

@@ -4,6 +4,8 @@ version: '3'
 todo: Collect YUBI_USER_PIN, YUBI_ADMIN_PIN, YUBI_LAST_NAME, YUBI_EMAIL, YUBI_FIRST_NAME, YUBI_TITLE (Principal Software Engineer), YUBI_ALT_NAME, YUBI_ALT_EMAIL, YUBI_ALT_TITLE
 
 env:
+  GNUPGHOME:
+    sh: echo "$HOME/.gnupghome"
   MASTER_KEY:
     sh: LC_ALL=C tr -dc '[:upper:]' < /dev/urandom | fold -w 30 | head -n1
 
@@ -111,8 +113,9 @@ tasks:
 
   generate:master:
     cmds:
-      - mkdir -p "$HOME/.gnupg/private-keys-v1.d"
-      - chmod 700 "$HOME/.gnupg/private-keys-v1.d"
+      - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
+      - mkdir -p "$GNUPGHOME/private-keys-v1.d"
+      - chmod 700 "$GNUPGHOME/private-keys-v1.d"
       # Original: echo -e "8\nE\nS\nQ\n4096\n0\ny\nMegabyte Labs\nno-reply@megabyte.space\n\no\n" -- removed \ny for macOS
       - echo -e "8\nE\nS\nQ\n4096\n0\nMegabyte Labs\nno-reply@megabyte.space\n\no\n" | gpg --expert --command-fd 0
         --pinentry-mode loopback --passphrase "$MASTER_KEY" --full-generate-key
@@ -148,6 +151,7 @@ tasks:
     deps:
       - :install:requirements:yubikey
       - :security:gpg:conf
+      - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - task: :security:gpg:conf
         vars:
           CONFIG_DIR_PATH:
@@ -161,7 +165,7 @@ tasks:
   public:export:
     todo: This differs from guide
     cmds:
-      - mkdir -p "$GNUPGHOME"
+      - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --armor --export "$KEYID" > "$GNUPGHOME/gpg-$KEYID-$(date +%F).asc"
 
   public:upload:
@@ -176,18 +180,18 @@ tasks:
 
   revocation:export:
     cmds:
-      - mkdir -p "$GNUPGHOME"
+      - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --output $GNUPGHOME/revoke.asc --gen-revoke "$KEYID"
 
   secrets:export:
     cmds:
-      - mkdir -p "$GNUPGHOME"
+      - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --armor --export-secret-keys "$KEYID" > $GNUPGHOME/mastersub.key
       - gpg --armor --export-secret-subkeys "$KEYID" > $GNUPGHOME/sub.key
 
   secure:delete:
     cmds:
-      - sudo srm -r "$GNUPGHOME" || sudo rm -rf "$GNUPGHOME"
+      - sudo srm -rf "$GNUPGHOME" || sudo rm -rf "$GNUPGHOME"
       - gpg --delete-secret-key "$KEYID"
 
   stub:

@@ -3,6 +3,10 @@ version: '3'
 
 todo: Collect YUBI_USER_PIN, YUBI_ADMIN_PIN, YUBI_LAST_NAME, YUBI_EMAIL, YUBI_FIRST_NAME, YUBI_TITLE (Principal Software Engineer), YUBI_ALT_NAME, YUBI_ALT_EMAIL, YUBI_ALT_TITLE
 
+vars:
+  YUBI_MASTER_EMAIL: no-reply@megabyte.space
+  YUBI_MASTER_NAME: Megabyte Labs
+
 env:
   GNUPGHOME:
     sh: echo "$HOME/.gnupghome"
@@ -12,6 +16,7 @@ env:
 tasks:
   add:identities:
     env:
+      KEYID: '{{.KEYID}}'
       YUBI_ALT_EMAIL:
         sh: jq -r '.YUBI_ALT_EMAIL' .yubi.json
       YUBI_ALT_NAME:
@@ -33,9 +38,11 @@ tasks:
         --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" adduid save
 
   card:
-    env:
+    vars:
       KEYID:
-        sh: gpg --keyid-format long --list-keys no-reply@megabyte.space | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
+        sh: gpg --keyid-format long --list-keys {{.YUBI_MASTER_EMAIL}} | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
+    env:
+      KEYID: '{{.KEYID}}'
       YUBI_ADMIN_PIN:
         sh: jq -r '.YUBI_ADMIN_PIN' .yubi.json
       YUBI_EMAIL:
@@ -52,15 +59,18 @@ tasks:
       - echo -e "admin\nkdf-setup\n12345678\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
       - echo -e "admin\npasswd\n1\n123456\n${YUBI_USER_PIN}\n${YUBI_USER_PIN}\nq\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
       - echo -e "admin\npasswd\n3\n12345678\n${YUBI_ADMIN_PIN}\n${YUBI_ADMIN_PIN}\nq\n" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
-      - echo -e "admin\nname\n${YUBI_LAST_NAME}\n${YUBI_FIRST_NAME}\nlang\nen\nlogin\n${YUBI_EMAIL}\nquit" | gpg --command-fd 0 --card-edit
+      - echo -e "admin\nname\n${YUBI_LAST_NAME}\n${YUBI_FIRST_NAME}\n${YUBI_ADMIN_PIN}\nlang\nen\nlogin\n${YUBI_EMAIL}\nquit" | gpg --command-fd 0 --pinentry-mode loopback --card-edit
       - task: card:keys
-      - gpg --delete-secret-key "$KEYID"
-      - mv ~/.gnupg ~/.gnupg-generated # TODO
-      - rm -rf ~/.gnupg
-      - mv ~/.gnupg.bak ~/.gnupg
+        vars:
+          KEYID: '{{.KEYID}}'
+      # - gpg --delete-secret-key "$KEYID"
+      # - mv ~/.gnupg ~/.gnupg-generated # TODO
+      # - rm -rf ~/.gnupg
+      # - mv ~/.gnupg.bak ~/.gnupg
 
   card:keys:
     env:
+      KEYID: '{{.KEYID}}'
       YUBI_ADMIN_PIN:
         sh: jq -r '.YUBI_ADMIN_PIN' .yubi.json
     cmds:
@@ -90,24 +100,36 @@ tasks:
       - '[ "{{OS}}" != "linux" ]'
 
   export:
-    env:
+    vars:
       KEYID:
-        sh: gpg --keyid-format long --list-keys no-reply@megabyte.space | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
+        sh: gpg --keyid-format long --list-keys {{.YUBI_MASTER_EMAIL}} | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
     cmds:
       - task: public:export
-      - task: revocation:export
+        vars:
+          KEYID: '{{.KEYID}}'
+      # - task: revocation:export
+      #   vars:
+      #     KEYID: '{{.KEYID}}'
       - task: secrets:export
+        vars:
+          KEYID: '{{.KEYID}}'
       - task: public:upload
+        vars:
+          KEYID: '{{.KEYID}}'
       # - task: usb
       - task: card
       # - task: usb:unmount
 
   generate:authentication:
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - echo -e "8\nS\nE\nA\nQ\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY"
         --expert --edit-key "$KEYID" addkey save
 
   generate:encryption:
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - echo -e "6\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" addkey save
 
@@ -116,23 +138,33 @@ tasks:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - mkdir -p "$GNUPGHOME/private-keys-v1.d"
       - chmod 700 "$GNUPGHOME/private-keys-v1.d"
-      # Original: echo -e "8\nE\nS\nQ\n4096\n0\ny\nMegabyte Labs\nno-reply@megabyte.space\n\no\n" -- removed \ny for macOS
-      - echo -e "8\nE\nS\nQ\n4096\n0\nMegabyte Labs\nno-reply@megabyte.space\n\no\n" | gpg --expert --command-fd 0
+      # Original: echo -e "8\nE\nS\nQ\n4096\n0\ny\n{{.YUBI_MASTER_NAME}}\n{{.YUBI_MASTER_EMAIL}}\n\no\n" -- removed \ny for macOS
+      - echo -e "8\nE\nS\nQ\n4096\n0\n{{.YUBI_MASTER_NAME}}\n{{.YUBI_MASTER_EMAIL}}\n\no\n" | gpg --expert --command-fd 0
         --pinentry-mode loopback --passphrase "$MASTER_KEY" --full-generate-key
 
   generate:signing:
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - echo -e "4\n4096\n1y\n" | gpg --command-fd 0 --pinentry-mode loopback --passphrase "$MASTER_KEY" --expert --edit-key "$KEYID" addkey save
 
   generate:subkeys:
-    env:
+    vars:
       KEYID:
-        sh: gpg --keyid-format long --list-keys no-reply@megabyte.space | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
+        sh: gpg --keyid-format long --list-keys {{.YUBI_MASTER_EMAIL}} | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
     cmds:
       - task: generate:signing
+        vars:
+          KEYID: '{{.KEYID}}'
       - task: generate:encryption
+        vars:
+          KEYID: '{{.KEYID}}'
       - task: generate:authentication
+        vars:
+          KEYID: '{{.KEYID}}'
       - task: add:identities
+        vars:
+          KEYID: '{{.KEYID}}'
 
   prepare:
     desc: Prepares an environment by provisioning all the required software / preliminary steps
@@ -145,6 +177,9 @@ tasks:
       - task: check:entropy
       - task: generate:master
       - task: generate:subkeys
+        vars:
+          KEYID:
+            sh: gpg --keyid-format long --list-keys {{.YUBI_MASTER_EMAIL}} | grep "pub   rsa" | sed 's/pub   rsa4096\///' | sed 's/^\([^ ]*\).*/\1/'
       - task: export
       - task: :security:ssh:yubikey
 
@@ -164,6 +199,8 @@ tasks:
 
   public:export:
     todo: This differs from guide
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --armor --export "$KEYID" > "$GNUPGHOME/gpg-$KEYID-$(date +%F).asc"
@@ -179,17 +216,25 @@ tasks:
         [ "$(echo -e "GET http://google.com HTTP/1.0\n\n" | nc google.com 80 > /dev/null 2>&1)" != "0" ]
 
   revocation:export:
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
       - gpg --output $GNUPGHOME/revoke.asc --gen-revoke "$KEYID"
 
   secrets:export:
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
-      - gpg --armor --export-secret-keys "$KEYID" > $GNUPGHOME/mastersub.key
-      - gpg --armor --export-secret-subkeys "$KEYID" > $GNUPGHOME/sub.key
+      - gpg --armor --export-secret-keys --command-fd 0 --pinentry-mode loopback
+        --passphrase "$MASTER_KEY" --expert "$KEYID" > $GNUPGHOME/mastersub.key
+      - gpg --armor --export-secret-subkeys --command-fd 0 --pinentry-mode loopback
+        --passphrase "$MASTER_KEY" --expert "$KEYID" > $GNUPGHOME/sub.key
 
   secure:delete:
+    env:
+      KEYID: '{{.KEYID}}'
     cmds:
       - sudo srm -rf "$GNUPGHOME" || sudo rm -rf "$GNUPGHOME"
       - gpg --delete-secret-key "$KEYID"

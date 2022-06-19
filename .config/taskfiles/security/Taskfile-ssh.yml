@@ -6,12 +6,12 @@ tasks:
     vars:
       SSH_CIPHER: '{{if .SSH_CIPHER}}{{.SSH_CIPHER}}{{else}}ed25519{{end}}'
       SSH_EMAIL_COMMENT:
-        sh: echo "{{if .SSH_EMAIL}}{{.SSH_EMAIL}}{{else}}$(jq -r '.author.email' .variables.json){{end}}"
+        sh: echo "{{if .SSH_EMAIL}}{{.SSH_EMAIL}}{{else}}$(jq -r '.YUBI_EMAIL' .yubi.json){{end}}"
       SSH_KEY_CATEGORY: '{{if .SSH_KEY_CATEGORY}}{{.SSH_KEY_CATEGORY}}{{else}}ssh{{end}}'
     cmds:
       - mkdir -p "$HOME/.ssh"
       - ssh-keygen -t {{.SSH_CIPHER}} -C "{{.SSH_EMAIL_COMMENT}} ({{.SSH_CIPHER}} - {{.SSH_KEY_CATEGORY}})"
-        -f "$HOME/.ssh/id_{{.SSH_CIPHER}}_{{.SSH_KEY_CATEGORY}}" -q -P ""{{if (eq .SSH_CIPHER "rsa")}} -b 4096{{end}}
+        -f "$HOME/.ssh/id_gpg_{{.SSH_CIPHER}}_{{.SSH_KEY_CATEGORY}}" -q -P ""{{if (eq .SSH_CIPHER "rsa")}} -b 4096{{end}}
 
   yubikey:
     summary: |
@@ -21,26 +21,18 @@ tasks:
       - task: generate
         vars:
           SSH_CIPHER: ed25519
-          SSH_EMAIL_COMMENT:
-            sh: jq -r '.email.help' .variables.json
           SSH_KEY_CATEGORY: alt_auto
       - task: generate
         vars:
           SSH_CIPHER: rsa
-          SSH_EMAIL_COMMENT:
-            sh: jq -r '.email.help' .variables.json
           SSH_KEY_CATEGORY: alt_auto
       - task: generate
         vars:
           SSH_CIPHER: ed25519
-          SSH_EMAIL_COMMENT:
-            sh: jq -r '.email.help' .variables.json
           SSH_KEY_CATEGORY: auto
       - task: generate
         vars:
           SSH_CIPHER: rsa
-          SSH_EMAIL_COMMENT:
-            sh: jq -r '.email.help' .variables.json
           SSH_KEY_CATEGORY: auto
       - task: generate
         vars:

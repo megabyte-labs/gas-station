@@ -100,11 +100,10 @@ function RunPlaybook {
 
 # @description The main logic for the script - enable Windows features, set up Ubuntu WSL, and install Docker Desktop
 # while continuing script after a restart.
-workflow Provision-Windows-WSL-Ansible {
+workflow ProvisionWindowsWSLAnsible {
     EnsureLinuxSubsystemEnabled
     EnsureVirtualMachinePlatformEnabled
     if ($rebootrequired -eq 1) {
-        Write-Host "Rebooting.." -ForegroundColor Yellow -BackgroundColor DarkGreen
         Restart-Computer -Wait
     }
     EnsureUbuntuAPPXInstalled
@@ -122,5 +121,5 @@ $Action = New-ScheduledTaskAction -Execute $PSPath -Argument $Args
 $Option = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -WakeToRun
 $Trigger = New-JobTrigger -AtStartUp -RandomDelay (New-TimeSpan -Minutes 5)
 Register-ScheduledTask -TaskName ResumeJob -Action $Action -Trigger $Trigger -Settings $Option -RunLevel Highest
-Provision-Windows-WSL-Ansible -AsJob
+ProvisionWindowsWSLAnsible -AsJob
 

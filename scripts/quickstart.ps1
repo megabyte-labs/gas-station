@@ -120,6 +120,6 @@ $Args = '-Command "& {Import-Module PSWorkflow ; Get-Job | Resume-Job}"'
 $Action = New-ScheduledTaskAction -Execute $PSPath -Argument $Args
 $Option = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -WakeToRun
 $Trigger = New-JobTrigger -AtStartUp -RandomDelay (New-TimeSpan -Minutes 5)
-Register-ScheduledTask -TaskName ResumeJob -Action $Action -Trigger $Trigger -Settings $Option -RunLevel Highest
+Register-ScheduledTask -TaskName GasStationJob -Action $Action -Trigger $Trigger -Settings $Option -RunLevel Highest
 ProvisionWindowsWSLAnsible -AsJob
 

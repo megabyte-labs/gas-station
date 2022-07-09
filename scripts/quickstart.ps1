@@ -100,7 +100,7 @@ function RunPlaybook {
 
 # @description The main logic for the script - enable Windows features, set up Ubuntu WSL, and install Docker Desktop
 # while continuing script after a restart.
-workflow ProvisionWindowsWSLAnsible {
+workflow Provision-Windows-WSL-Ansible {
     EnsureLinuxSubsystemEnabled
     EnsureVirtualMachinePlatformEnabled
     if ($rebootrequired -eq 1) {
@@ -115,11 +115,4 @@ workflow ProvisionWindowsWSLAnsible {
 }
 
 # @description Run the PowerShell workflow job that spans across reboots
-$PSPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-$Args = '-Command "& {Import-Module PSWorkflow ; Get-Job | Resume-Job}"'
-$Action = New-ScheduledTaskAction -Execute $PSPath -Argument $Args
-$Option = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -WakeToRun
-$Trigger = New-JobTrigger -AtStartUp -RandomDelay (New-TimeSpan -Minutes 5)
-Register-ScheduledTask -TaskName GasStationJob -Action $Action -Trigger $Trigger -Settings $Option -RunLevel Highest
-ProvisionWindowsWSLAnsible -AsJob
-
+Provision-Windows-WSL-Ansible

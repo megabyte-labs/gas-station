@@ -60,7 +60,7 @@ function EnsureUbuntuAPPXInstalled {
 function SetupUbuntuWSL {
     Write-Host "Configuring Ubuntu 20.04 WSL.." -ForegroundColor Yellow -BackgroundColor DarkGreen
     Start-Process "ubuntu.exe" -ArgumentList "install --root" -Wait -NoNewWindow
-    $username = Read-Host -Prompt 'Enter a username for the WSL environment'
+    $username = $env:username
     Write-Host "Creating the $username user.." -ForegroundColor Yellow -BackgroundColor DarkGreen
     Start-Process "ubuntu.exe" -ArgumentList "run adduser $username --gecos 'First,Last,RoomNumber,WorkPhone,HomePhone' --disabled-password" -Wait -NoNewWindow
     Write-Host "Adding $username to sudo group" -ForegroundColor Yellow -BackgroundColor DarkGreen

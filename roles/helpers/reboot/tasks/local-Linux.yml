@@ -8,6 +8,8 @@
     mode: 0600
   when:
     - vault_password is defined
+    - "not (wsl_environment | default(false))"
+    - "'wsl' not in group_names"
 
 - name: Ensure ~/.config/autostart exists
   become_user: "{{ ansible_user }}"
@@ -15,7 +17,10 @@
     path: ~/.config/autostart
     state: directory
     mode: 0755
-  when: ansible_system == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - "not (wsl_environment | default(false))"
+    - "'wsl' not in group_names"
 
 - name: Register display manager path
   command: cat /etc/X11/default-display-manager
@@ -44,6 +49,8 @@
   when:
     - ansible_system == 'Linux'
     - rb_display_manager.stdout is defined and rb_display_manager.stdout | regex_search('lightdm|gdm|sddm')
+    - "not (wsl_environment | default(false))"
+    - "'wsl' not in group_names"
 
 - name: Copy the script that will be run upon reboot
   become_user: "{{ ansible_user }}"
@@ -64,6 +71,9 @@
       fi
       sleep 2
     mode: 0700
+  when:
+    - "not (wsl_environment | default(false))"
+    - "'wsl' not in group_names"
 
 - name: Ensure cron/cronie is installed
   package:
@@ -88,7 +98,13 @@
     job: ~/.config/ansible-continue.sh
     special_time: reboot
     user: "{{ ansible_user }}"
-  when: "ansible_system == 'Darwin' or (rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr)"
+  when:
+    - "ansible_system == 'Darwin' or (rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr)"
+    - "not (wsl_environment | default(false))"
+    - "'wsl' not in group_names"
 
 - name: Reboot # noqa 301
   command: reboot
+  when:
+    - "not (wsl_environment | default(false))"
+    - "'wsl' not in group_names"

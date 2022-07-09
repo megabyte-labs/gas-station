@@ -81,7 +81,7 @@ function ensurePackageInstalled() {
 # @description Clone the repository if `git` is available, otherwise, use `curl` and `tar`. Also,
 # if the repository is already cloned then attempt to pull the latest changes if `git` is installed.
 cd ~ || exit
-if [ ! -d "$PLAYBOOKS_DIR" ]; then
+if [ ! -d "$HOME/$PLAYBOOKS_DIR" ]; then
   if [ "$USER" == 'root' ]; then
     echo "You should not run this as the root user. Try again with a non-root user that preferrably has sudo privileges." && exit 1
   else
@@ -93,6 +93,6 @@ fi
 # @description Ensure Task is installed and properly configured and then run the `ansible:quickstart`
 # task. The source to the `ansible:quickstart` task can be found
 # [here](https://gitlab.com/megabyte-labs/common/shared/-/blob/master/common/.config/taskfiles/ansible/Taskfile.yml).
-cd "$PLAYBOOKS_DIR" || exit
+cd "$HOME/$PLAYBOOKS_DIR" || exit
 bash start.sh
 task ansible:quickstart

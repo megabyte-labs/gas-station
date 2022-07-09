@@ -13,7 +13,35 @@
 #   7. The playbook is run.
 
 New-Item -ItemType Directory -Force -Path C:\Temp
-$rebootrequired=0
+$rebootrequired = 0
+
+# @description Determines whether or not a reboot is pending
+function Test-PendingReboot {
+  if (Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending" -EA Ignore) { return 1 }
+  if (Get-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired" -EA Ignore) { return 1 }
+  if (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name PendingFileRenameOperations -EA Ignore) { return 1 }
+  try {
+    $util = [wmiclass]"\\.\root\ccm\clientsdk:CCM_ClientUtilities"
+    $status = $util.DetermineIfRebootPending()
+    if (($status -ne $null) -and $status.RebootPending) {
+      return 1
+    }
+  } catch {}
+  return 0
+}
+
+# @description Ensure all Windows updates have been applied and then starts the provisioning process
+function EnsureWindowsUpdated {
+    Write-Host "Ensuring all the available Windows updates have been applied." -ForegroundColor Yellow -BackgroundColor DarkGreen
+    Get-WUInstall -AcceptAll -IgnoreReboot
+    $rebootrequired = Test-PendingReboot
+    if ($rebootrequired -eq 1) {
+        Restart-Computer -Wait
+        $rebootrequired = 0
+        # Recursively update and reboot until machine is fully updated
+        EnsureWindowsUpdated
+    }
+}
 
 # @description Ensures Microsoft-Windows-Subsystem-Linux feature is available
 function EnsureLinuxSubsystemEnabled {
@@ -101,6 +129,9 @@ function RunPlaybook {
 # @description The main logic for the script - enable Windows features, set up Ubuntu WSL, and install Docker Desktop
 # while continuing script after a restart.
 workflow Provision-Windows-WSL-Ansible {
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+    Install-Module -Name PSWindowsUpdate -Force
+    EnsureWindowsUpdated
     EnsureLinuxSubsystemEnabled
     EnsureVirtualMachinePlatformEnabled
     if ($rebootrequired -eq 1) {

@@ -3,12 +3,14 @@
 # file should only be used if your main computer that provisions other machines is a Windows machine.
 
 Write-Host "Enabling the Microsoft Windows Subsystem Linux feature" -ForegroundColor Black -BackgroundColor Cyan
-Enable-WindowsOptionalFeature -Online -FeatureName "Microsoft-Windows-Subsystem-Linux" -All
-Write-Host "Downloading the script used to enable Ansible management" -ForegroundColor Black -BackgroundColor Cyan
+Enable-WindowsOptionalFeature -Online -FeatureName "Microsoft-Windows-Subsystem-Linux" -All -NoRestart
+Write-Host "Enabling the VirtualMachinePlatform feature" -ForegroundColor Black -BackgroundColor Cyan
+Enable-WindowsOptionalFeature -Online -FeatureName "VirtualMachinePlatform" -All -NoRestart
+Write-Host "Downloading the script used to enable Ansible WinRM" -ForegroundColor Black -BackgroundColor Cyan
 $url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
 $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
 (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
-Write-Host "Running the Ansible management script" -ForegroundColor Black -BackgroundColor Cyan
+Write-Host "Running the Ansible WinRM script (ConfigureRemotingForAnsible.ps1)" -ForegroundColor Black -BackgroundColor Cyan
 powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth
 
 # Write-Host "Downloading/setting up a script that will continue the installation after reboot" -ForegroundColor Black -BackgroundColor Cyan

@@ -121,7 +121,8 @@ function EnableWinRM {
 
 # @description Run the playbook
 function RunPlaybook {
-    Start-Process "WSL" -ArgumentList "curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quickstart.sh > quickstart.sh && bash quickstart.sh" -Wait -NoNewWindow
+    Start-Process "ubuntu.exe" -ArgumentList "run curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quickstart.sh > quickstart.sh && bash quickstart.sh" -Wait -NoNewWindow
+    Start-Process "ubuntu.exe" -ArgumentList "run bash ~/Playbooks/.cache/ansible-playbook-continue-command.sh" -Wait -NoNewWindow
 }
 
 # @description The main logic for the script - enable Windows features, set up Ubuntu WSL, and install Docker Desktop
@@ -144,6 +145,7 @@ workflow Provision-Windows-WSL-Ansible {
     Restart-Computer -Wait
     EnableWinRM
     RunPlaybook
+    Write-Host "All done! If you encountered errors, please open an issue and/or PR! :) Thank you!" -ForegroundColor Yellow -BackgroundColor DarkGreen
 }
 
 # @description Run the PowerShell workflow job that spans across reboots

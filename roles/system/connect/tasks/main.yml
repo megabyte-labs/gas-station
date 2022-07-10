@@ -7,13 +7,16 @@
   ignore_errors: true
   register: ssh_check_test
   delegate_to: localhost
-  when: ansible_connection != 'local'
+  when:
+    - ansible_connection != 'local'
+    - ansible_connection != 'winrm'
 
 - name: Revert to standard port 22 for SSH if the "secure" port has not been configured yet
   set_fact:
     ansible_port: "22"
   when:
     - ansible_connection != 'local'
+    - ansible_connection != 'winrm'
     - ssh_check_test.failed is defined
     - ssh_check_test.failed
 
@@ -31,17 +34,17 @@
 
 - name: Determine facts based on the host's ID
   set_fact:
-    fqdn: "{{ domains[inventory_hostname].hosts.split()[-1] }}"
-    hostname: "{{ domains[inventory_hostname].hostname }}"
-    ip_address: "{{ domains[inventory_hostname].ip_address }}"
+    fqdn: "{{ domains[inventory_hostname | lower].hosts.split()[-1] }}"
+    hostname: "{{ domains[inventory_hostname | lower].hostname }}"
+    ip_address: "{{ domains[inventory_hostname | lower].ip_address }}"
   when:
     - domains is defined
-    - domains[inventory_hostname] is defined
-    - domains[inventory_hostname].hosts is defined
+    - domains[inventory_hostname | lower] is defined
+    - domains[inventory_hostname | lower].hosts is defined
 
-- name: Print the domains[inventory_hostname]
+- name: Print the domains[inventory_hostname | lower]
   debug:
-    var: domains[inventory_hostname]
+    var: domains[inventory_hostname | lower]
 
 - name: Determine the VLAN (set to cloud if none match)
   vars:
@@ -49,8 +52,8 @@
   block:
     - name: Set value for the variable vlan_ip
       set_fact:
-        vlan_ip: "{{ hosts
-          | map('extract', hosts)
+        vlan_ip: "{{ domains
+          | map('extract', domains)
           | selectattr('hostname', 'defined')
           | selectattr('hostname', 'equalto', hostname)
           | map(attribute='ip_address')
@@ -70,11 +73,11 @@
     - name: Set value for the variable vlan
       set_fact:
         vlan: cloud
-      when: not vlan_ip
+      when: not (vlan_ip | default(false))
   when:
     - domains is defined
-    - domains[inventory_hostname] is defined
-    - domains[inventory_hostname].hosts is defined
+    - domains[inventory_hostname | lower] is defined
+    - domains[inventory_hostname | lower].hosts is defined
 
 - name: Set miscellaneous facts
   set_fact:
@@ -85,7 +88,7 @@
 
 - name: Set the appropriate netdata room
   set_fact:
-    netdata_room: "{{ netdata_rooms[vlan] }}"
+    netdata_room: "{{ netdata_rooms[(vlan | default('cloud'))] }}"
   when:
     - netdata_rooms is defined
 
@@ -101,6 +104,11 @@
 
 - name: Check if ubuntu user is present
   block:
+    - name: Ensure pexpect is installed
+      connection: local
+      pip:
+        name: pexpect
+        state: present
     - name: Check if connection is possible
       expect:
         command: "ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no ubuntu@{{ ansible_host }} -p {{ ansible_port | default('22') }}"

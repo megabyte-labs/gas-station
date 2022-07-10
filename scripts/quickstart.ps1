@@ -116,7 +116,7 @@ function EnableWinRM {
     $url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
     $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
     (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
-    powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth
+    powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth -SkipNetworkProfileCheck
 }
 
 # @description Run the playbook
@@ -134,6 +134,7 @@ workflow Provision-Windows-WSL-Ansible {
     # Because of the error "A workflow cannot use recursion," we can just run the update process a few times to ensure everything is updated
     EnsureWindowsUpdated
     EnsureWindowsUpdated
+    EnableWinRM
     EnsureLinuxSubsystemEnabled
     EnsureVirtualMachinePlatformEnabled
     if ($rebootrequired -eq 1) {
@@ -143,7 +144,6 @@ workflow Provision-Windows-WSL-Ansible {
     SetupUbuntuWSL
     EnsureDockerDesktopInstalled
     Restart-Computer -Wait
-    EnableWinRM
     RunPlaybook
     Write-Host "All done! If you encountered errors, please open an issue and/or PR! :) Thank you!" -ForegroundColor Yellow -BackgroundColor DarkGreen
 }

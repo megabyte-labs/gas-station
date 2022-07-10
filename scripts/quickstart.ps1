@@ -38,8 +38,6 @@ function EnsureWindowsUpdated {
     if ($rebootrequired -eq 1) {
         Restart-Computer -Wait
         $rebootrequired = 0
-        # Recursively update and reboot until machine is fully updated
-        EnsureWindowsUpdated
     }
 }
 
@@ -131,6 +129,9 @@ function RunPlaybook {
 workflow Provision-Windows-WSL-Ansible {
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
     Install-Module -Name PSWindowsUpdate -Force
+    EnsureWindowsUpdated
+    # Because of the error "A workflow cannot use recursion," we can just run the update process a few times to ensure everything is updated
+    EnsureWindowsUpdated
     EnsureWindowsUpdated
     EnsureLinuxSubsystemEnabled
     EnsureVirtualMachinePlatformEnabled

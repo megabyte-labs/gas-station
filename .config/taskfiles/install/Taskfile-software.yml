@@ -927,6 +927,57 @@ tasks:
     status:
       - type python3 > /dev/null
 
+
+  python:pip:
+    run: once
+    cmds:
+      - |
+        PIP_LOCATION="$(which pip)"
+        PIP3_LOCATION="$(which pip3)"
+        if [ "$USER" == "root" ]; then
+          if type pip &> /dev/null && type pip3 &> /dev/null; then
+            rm "$PIP_LOCATION"
+            ln -s "$PIP3_LOCATION" "$PIP_LOCATION"
+          elif type pip3 &> /dev/null; then
+            ln -s "$PIP3_LOCATION" /usr/bin/pip
+          elif type pip &> /dev/null; then
+            ln -s "$PIP_LOCATION" /usr/bin/pip3
+          else
+            .config/log warn 'Both `pip` and `pip3` appear to be missing'
+          fi
+        elif type sudo &> /dev/null && sudo -n true; then
+          if type pip &> /dev/null && type pip3 &> /dev/null; then
+            sudo rm "$PIP_LOCATION"
+            sudo ln -s "$PIP3_LOCATION" "$PIP_LOCATION"
+          elif type pip3 &> /dev/null; then
+            sudo ln -s "$PIP3_LOCATION" /usr/bin/pip
+          elif type pip &> /dev/null; then
+            sudo ln -s "$PIP_LOCATION" /usr/bin/pip3
+          else
+            .config/log warn 'Both `pip` and `pip3` appear to be missing'
+          fi
+        elif type sudo &> /dev/null; then
+          if type pip &> /dev/null && type pip3 &> /dev/null; then
+            .config/log info 'Running `sudo rm $(which pip)`'
+            sudo rm "$PIP_LOCATION"
+            sudo ln -s "$PIP3_LOCATION" "$PIP_LOCATION"
+          elif type pip3 &> /dev/null; then
+            .config/log info 'Running `sudo ln -s $(which pip3) /usr/bin/pip`'
+            sudo ln -s "$PIP3_LOCATION" /usr/bin/pip
+          elif type pip &> /dev/null; then
+            .config/log info 'Running `sudo ln -s $(which pip) /usr/bin/pip3`'
+            sudo ln -s "$PIP_LOCATION" /usr/bin/pip3
+          else
+            .config/log warn 'Both `pip` and `pip3` appear to be missing'
+          fi
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - which pip > /dev/null
+      - which pip3 > /dev/null
+      - '[ "$(which pip)" == "$(which pip3)" ]'
+
   python:windows:
     log:
       error: These scripts are not currently compatible with Windows. Try using WSL.

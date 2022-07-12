@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# @file scripts/quickstart.sh
+# @file files/quickstart.sh
 # @brief Installs the playbook on the local machine with little, if any, input required
 # @description
 #   This script will run the `ansible:quickstart` task on the local machine without much input

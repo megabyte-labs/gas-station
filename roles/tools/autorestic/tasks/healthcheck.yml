@@ -1,9 +1,14 @@
 ---
-- name: Set autorestic_from
+- name: Set autorestic_docker
   set_fact:
-    autorestic_from: "{{ docker_volume }}"
+    autorestic_docker: "{{ autorestic_docker_volume }}"
   when:
-    - docker_volume is defined
+    - autorestic_docker_volume is defined
+
+- name: "Set Healthchecks endpoint keys"
+  set_fact:
+    healthcheck_uuid_cloud_name: "Autorestic {%if autorestic_docker is defined %}docker-cloud-{{ autorestic_docker }}{% else %}home-cloud{% endif %} / {{ inventory_hostname }} / {{ user.username }})"
+    healthcheck_uuid_local_name: Autorestic {%if autorestic_docker is defined %}docker-local-{{ autorestic_docker }}{% else %}home-local{% endif %} / {{ inventory_hostname}} / {{ user.username }})
 
 - name: "Set Healthchecks endpoints facts for {{ user.username }}"
   set_fact:
@@ -18,8 +23,8 @@
 - name: "Ensure {{ backup.target }} Healthchecks job is created for {{ user.username }}"
   command: >
     curl {{ healthcheck_endpoint }}/api/v1/checks/ --header "X-Api-Key: {{ healthcheck_api_key }}" --data '{"name": "Autorestic {{ backup.target }} / {{ inventory_hostname}} / {{ user.username }})", "channels": "*",
-    "schedule": "{{ backup.cron }}", "tags": "host-{{ inventory_hostname }} {{ backup.tag }} {%if autorestic_volume is defined %}docker{% else %}home{% endif %}", "tz": "{{ timezone }}", "desc": "The
-    {%if autorestic_volume is defined %}{{ backup.target }} Docker volume Autorestic{% else %}{{ backup.target }} Autorestic home folder backup{% endif %} job for {{ user.username }} on
+    "schedule": "{{ backup.cron }}", "tags": "host-{{ inventory_hostname }} {{ backup.tag }} {%if autorestic_docker is defined %}docker{% else %}home{% endif %}", "tz": "{{ timezone }}", "desc": "The
+    {%if autorestic_docker is defined %}{{ backup.target }} Docker volume Autorestic{% else %}{{ backup.target }} Autorestic home folder backup{% endif %} job for {{ user.username }} on
     {{ inventory_hostname }}.", "grace": 3600}' | jq -r '.ping_url' | sed 's/.*\///'
   delegate_to: localhost
   register: healthcheck_curl_registration

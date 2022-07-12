@@ -1,14 +1,9 @@
 version: 2
 
-extras:
-  exclude: &exclude
-    - .venv
-    - node_modules
-    - venv
-
 locations:
-  home-cloud:
+  docker-cloud-{{ docker_volume_name }}:
     from: {{ ansible_env.HOME }}
+    type: docker
     to:
       - primary
       - secondary
@@ -22,7 +17,7 @@ locations:
         keep-daily: 7
         keep-weekly: 14
 
-  home-local:
+  docker-local-{{ docker_volume_name }}:
     from: {{ ansible_env.HOME }}
     to: local
     cron: '*/15 * * * *'
@@ -37,12 +32,12 @@ locations:
 backends:
   local:
     type: local
-    path: /var/local/backups/home/{{ user.username }}
+    path: /var/local/backups/docker/{{ docker_volume_name }}
 
-  primary:
+  primary-{{ docker_volume_name }}:
     type: s3
-    path: {{ primary_s3_bucket }}/{{ hostname }}/home/{{ user.username }}
+    path: {{ primary_s3_bucket }}/docker/{{ docker_volume_name }}
 
-  secondary:
+  secondary-{{ docker_volume_name }}:
     type: s3
-    path: {{ secondary_s3_bucket }}/{{ hostname }}/home/{{ user.username }}
+    path: {{ secondary_s3_bucket }}/docker/{{ docker_volume_name }}

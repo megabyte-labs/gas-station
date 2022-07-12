@@ -27,6 +27,10 @@
     src: .autorestic.env.j2
     dest: ~/.autorestic.env
 
+- name: Acquire Healthchecks endpoint information for user-folder backup
+  become_user: "{{ user.username }}"
+  include_tasks: healthcheck.yml
+
 # @action Enables cron jobs for Autorestic
 # Ensures the user's default Autorestic configuration is cron-enabled
 - name: Create default Autorestic cron (for ~/.autorestic.yml)
@@ -43,4 +47,4 @@
   ansible.builtin.cron:
     name: "App-specific Autorestic ({{ user.username }})"
     minute: "*/5"
-    job: 'for FILE in "{{ ansible_env.HOME }}/.config/.autorestic/*"; do {{ autorestic_bin_path }} -c "$FILE" --ci cron; done'
+    job: 'for FILE in "{{ ansible_env.HOME }}/.config/autorestic/*"; do {{ autorestic_bin_path }} -c "$FILE" --ci cron; done'

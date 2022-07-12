@@ -7,12 +7,21 @@ extras:
     - venv
 
 locations:
-  home-cloud:
-    from: {{ ansible_env.HOME }}
+  {%if autorestic_docker %}docker-cloud-{{ autorestic_from }}{% else %}home-cloud{% endif %}:
+    from: {{ autorestic_from | default(ansible_env.HOME) }}
+{% if autorestic_docker %}
+    type: volume{% endif %}
     to:
       - primary
       - secondary
     cron: '0 * * * *'
+    hooks:
+      before:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker %} (Docker){% endif %} ${AUTORESTIC_LOCATION} BEFORE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_from | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/start'
+      failure:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker %} (Docker){% endif %} ${AUTORESTIC_LOCATION} FAILURE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_from | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/fail'
+      success:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker %} (Docker){% endif %} ${AUTORESTIC_LOCATION} SUCCESS hook / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_from | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}'
     options:
       backup:
         exclude:
@@ -22,27 +31,51 @@ locations:
         keep-daily: 7
         keep-weekly: 14
 
-  home-local:
-    from: {{ ansible_env.HOME }}
+  {%if autorestic_docker %}docker-local-{{ autorestic_from }}{% else %}home-local{% endif %}:
+    from: {{ autorestic_from | default(ansible_env.HOME) }}
+{% if autorestic_docker %}
+    type: volume{% endif %}
     to: local
     cron: '*/15 * * * *'
+    hooks:
+      before:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker %} (Docker){% endif %} ${AUTORESTIC_LOCATION} BEFORE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_from | default(ansible_env.HOME) }}}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/start'
+      failure:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker %} (Docker){% endif %} ${AUTORESTIC_LOCATION} FAILURE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_from | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/fail'
+      success:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker %} (Docker){% endif %} ${AUTORESTIC_LOCATION} SUCCESS / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_from | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}'
     options:
       backup:
         exclude:
           <<: *exclude
       forget:
+        keep-last: 14
         keep-hourly: 24
         keep-daily: 3
 
 backends:
+{% if autorestic_docker %}
+  local:
+    type: local
+    path: /var/local/backups/docker/{{ autorestic_from }}
+
+  primary:
+    type: s3
+    path: {{ primary_s3_bucket }}/docker/{{ autorestic_from }}
+
+  secondary:
+    type: s3
+    path: {{ primary_s3_bucket }}/docker/{{ autorestic_from }}
+{% else %}
   local:
     type: local
     path: /var/local/backups/home/{{ user.username }}
 
   primary:
     type: s3
-    path: {{ primary_s3_bucket }}/{{ hostname }}/home/{{ user.username }}
+    path: {{ primary_s3_bucket }}/home/{{ user.username }}
 
   secondary:
     type: s3
-    path: {{ secondary_s3_bucket }}/{{ hostname }}/home/{{ user.username }}
+    path: {{ secondary_s3_bucket }}/home/{{ user.username }}
+{% endif %}

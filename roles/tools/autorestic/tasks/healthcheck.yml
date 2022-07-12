@@ -1,0 +1,57 @@
+---
+- name: Set autorestic_from
+  set_fact:
+    autorestic_from: "{{ docker_volume }}"
+  when:
+    - docker_volume is defined
+
+- name: "Set Healthchecks endpoints facts for {{ user.username }}"
+  set_fact:
+    healthcheck_uuid_cloud: "{{ healthchecks_facts[healthcheck_uuid_cloud_name] }}"
+    healthcheck_uuid_local: "{{ healthchecks_facts[healthcheck_uuid_local_name] }}"
+  when:
+    - healthcheck_endpoint is defined
+    - healthcheck_api_key is defined
+
+# @action Integrates Autorestic with [Healthchecks](https://healthchecks.io/)
+# Ensures Healthchecks endpoint for backup job exists
+- name: "Ensure {{ backup.target }} Healthchecks job is created for {{ user.username }}"
+  command: >
+    curl {{ healthcheck_endpoint }}/api/v1/checks/ --header "X-Api-Key: {{ healthcheck_api_key }}" --data '{"name": "Autorestic {{ backup.target }} / {{ inventory_hostname}} / {{ user.username }})", "channels": "*",
+    "schedule": "{{ backup.cron }}", "tags": "host-{{ inventory_hostname }} {{ backup.tag }} {%if autorestic_volume is defined %}docker{% else %}home{% endif %}", "tz": "{{ timezone }}", "desc": "The
+    {%if autorestic_volume is defined %}{{ backup.target }} Docker volume Autorestic{% else %}{{ backup.target }} Autorestic home folder backup{% endif %} job for {{ user.username }} on
+    {{ inventory_hostname }}.", "grace": 3600}' | jq -r '.ping_url' | sed 's/.*\///'
+  delegate_to: localhost
+  register: healthcheck_curl_registration
+  loop:
+    - target: "{{ healthcheck.from }}"
+      cron: '*/15 * * * *'
+      tag: local
+      healthcheck_uuid: "{{ healthcheck_uuid_local }}"
+    - target: "{{ healthcheck.from }}"
+      cron: '0 * * * *'
+      tag: cloud
+      healthcheck_uuid: "{{ healthcheck_uuid_cloud }}"
+  loop_control:
+    label: "{{ user.username }} - {{ backup.target }}"
+    loop_var: backup
+  when:
+    - healthcheck_endpoint is defined
+    - healthcheck_api_key is defined
+    - backup.healthcheck_uuid is not defined
+
+- name: Update Healthchecks job UUID (for local)
+  set_fact:
+    healthcheck_uuid_local: "{{ healthcheck_curl_registration.results[0].stdout }}"
+  when:
+    - healthcheck_endpoint is defined
+    - healthcheck_api_key is defined
+    - healthcheck_uuid_local is not defined
+
+- name: Update Healthchecks job UUID (for cloud)
+  set_fact:
+    healthcheck_uuid_cloud: "{{ healthcheck_curl_registration.results[1].stdout }}"
+  when:
+    - healthcheck_endpoint is defined
+    - healthcheck_api_key is defined
+    - healthcheck_uuid_cloud is not defined

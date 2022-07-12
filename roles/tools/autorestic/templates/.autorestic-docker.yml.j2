@@ -1,13 +1,23 @@
 version: 2
 
+extras:
+  healthchecks: &healthchecks
+
 locations:
   docker-cloud-{{ docker_volume_name }}:
     from: {{ ansible_env.HOME }}
-    type: docker
+    type: volume
     to:
       - primary
       - secondary
     cron: '0 * * * *'
+    hooks:
+      before:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Starting backup for location: ${AUTORESTIC_LOCATION}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/start'
+      failure:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Backup failed for location: ${AUTORESTIC_LOCATION}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/fail'
+      success:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Backup successful for location: ${AUTORESTIC_LOCATION}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}'
     options:
       backup:
         exclude:
@@ -21,16 +31,24 @@ locations:
     from: {{ ansible_env.HOME }}
     to: local
     cron: '*/15 * * * *'
+    hooks:
+      before:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "{{ inventory_hostname }}: Docker Autorestic backup job for the {{ docker_volume_name }} volume" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/start'
+      failure:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Backup failed for location: ${AUTORESTIC_LOCATION}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/fail'
+      success:
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Successful local Docker Autorestic backup on {{ inventory_hostname }} for volume named {{ docker_volume_name }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}'
     options:
       backup:
         exclude:
           <<: *exclude
       forget:
+        keep-last: 12
         keep-hourly: 24
         keep-daily: 3
 
 backends:
-  local:
+  local-{{ docker_volume_name }}:
     type: local
     path: /var/local/backups/docker/{{ docker_volume_name }}
 

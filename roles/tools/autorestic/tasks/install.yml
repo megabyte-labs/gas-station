@@ -21,6 +21,25 @@
     mode: 0755
     recurse: yes
 
+- name: Get pre-existing Healthcheck data
+  command: >
+    curl --header "X-Api-Key: {{ healthcheck_api_key }}" {{ healthcheck_endpoint }}/api/v1/checks/ | jq -r
+      '[. | (.checks[] | .uid = (.ping_url | split("/") | last) | .name as $a | .uid as $b | . = {} | .[$a] = $b)] as $filtered
+      | reduce $filtered[] as $o ({}; . + $o)'
+  delegate_to: localhost
+  register: existing_healthchecks
+  when:
+    - healthcheck_api_key is defined
+    - healthcheck_endpoint is defined
+
+- name: Register Healthcheck data
+  set_fact:
+    healthchecks_facts: "{{ existing_healthchecks.stdout | from_json }}"
+  when:
+    - existing_healthchecks is defined
+    - existing_healthchecks.stdout is defined
+    - existing_healthchecks.stdout != 'null'
+
 - name: Perform user-specific tasks
   include_tasks: user.yml
   loop: "{{ user_configs | default([]) }}"

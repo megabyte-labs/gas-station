@@ -5,7 +5,9 @@
     dest: "{{ fail2ban_local_jail_file }}"
     owner: root
     mode: 0644
-  when: install_fail2ban
+  when:
+    - install_fail2ban
+    - 'wsl' not in group_names
 
 - name: Ensure fail2ban is running and that it will start on boot
   service:
@@ -14,13 +16,16 @@
     enabled: true
   when:
     - install_fail2ban
+    - 'wsl' not in group_names
     - ansible_system == 'Linux'
 
 - name: Ensure SSH daemon is running and that it will start on boot
   service:
     name: "{{ sshd_service_name }}"
     state: started
-  when: ansible_system == 'Linux'
+  when:
+    - 'wsl' not in group_names
+    - ansible_system == 'Linux'
 
 - name: Copy banner
   copy:

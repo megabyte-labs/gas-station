@@ -1,0 +1,36 @@
+---
+version: '3.8'
+
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: WireGuard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - SERVERURL=wg.lab.megabyte.space
+      - SERVERPORT=51820
+      - PEERS=1
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.48.48.0
+      - ALLOWEDIPS=10.48.48.0/24
+      - LOG_CONFS=true
+    volumes:
+      - /srv/stacks/wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+networks:
+  agent_network:
+    driver: overlay
+    attachable: true
+  nginx_network:
+    external: true

@@ -46,10 +46,20 @@
     minute: "*/5"
     job: "{{ autorestic_bin_path }} -c {{ ansible_env.HOME }}/.autorestic.yml --ci cron"
 
+- name: Set swarm master ID, if node is a swarm master
+  become_user: "{{ user.username }}"
+  set_fact:
+    swarm_master_id: "swarm-{{ inventory_hostname | lower }}"
+  when:
+    - user.swarm_master is defined
+    - user.swarm_master
+
 - name: Add Autorestic configs for any apps configured to be saved by this user (good idea to put these under user_configs.root)
   become_user: "{{ user.username }}"
   include_tasks: app.yml
-  loop: "{{ user.autorestic_docker_volumes | default([]) }}"
+  loop:
+    - "{{ user.autorestic_docker_volumes | default([]) }}"
+    - "{{ swarm_master_id | default(omit) }}"
   loop_control:
     label: "{{ autorestic_docker_volume }}"
     loop_var: autorestic_docker_volume

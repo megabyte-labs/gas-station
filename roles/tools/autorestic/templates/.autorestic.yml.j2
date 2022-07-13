@@ -8,8 +8,8 @@ extras:
 
 locations:
   {%if autorestic_docker is defined %}docker-cloud-{{ autorestic_docker }}{% else %}home-cloud{% endif %}:
-    from: {{ autorestic_docker | default(ansible_env.HOME) }}
-{% if autorestic_docker is defined %}
+    from: {%if autorestic_docker_swarm is defined and autorestic_docker_swarm %}/var/lib/docker/swarm{% else %}{{ autorestic_docker | default(ansible_env.HOME) }}{% endif %}
+{% if (autorestic_docker is defined) and (autorestic_docker_swarm is not defined) %}
     type: volume{% endif %}
     to:
       - primary
@@ -17,11 +17,11 @@ locations:
     cron: '0 * * * *'
     hooks:
       before:
-        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker){% endif %} ${AUTORESTIC_LOCATION} BEFORE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/start'
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker{%if autorestic_docker_swarm is defined %} Swarm Manager{% endif %}){% endif %} ${AUTORESTIC_LOCATION} BEFORE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/start'
       failure:
-        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker){% endif %} ${AUTORESTIC_LOCATION} FAILURE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/fail'
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker{%if autorestic_docker_swarm is defined %} Swarm Manager{% endif %}){% endif %} ${AUTORESTIC_LOCATION} FAILURE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}/fail'
       success:
-        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker){% endif %} ${AUTORESTIC_LOCATION} SUCCESS hook / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}'
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker{%if autorestic_docker_swarm is defined %} Swarm Manager{% endif %}){% endif %} ${AUTORESTIC_LOCATION} SUCCESS hook / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_cloud }}'
     options:
       backup:
         exclude:
@@ -32,24 +32,25 @@ locations:
         keep-weekly: 14
 
   {%if autorestic_docker is defined %}docker-local-{{ autorestic_docker }}{% else %}home-local{% endif %}:
-    from: {{ autorestic_docker | default(ansible_env.HOME) }}
-{% if autorestic_docker is defined %}
+    from: {%if autorestic_docker_swarm is defined and autorestic_docker_swarm %}/var/lib/docker/swarm{% else %}{{ autorestic_docker | default(ansible_env.HOME) }}{% endif %}
+{% if (autorestic_docker is defined) and (autorestic_docker_swarm is not defined) %}
     type: volume{% endif %}
     to: local
-    cron: '*/15 * * * *'
+    cron: '{%if autorestic_docker is defined %}0{% else %}*/15{% endif %} * * * *'
     hooks:
       before:
-        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker){% endif %} ${AUTORESTIC_LOCATION} BEFORE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/start'
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker{%if autorestic_docker_swarm is defined %} Swarm Manager{% endif %}){% endif %} ${AUTORESTIC_LOCATION} BEFORE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/start'
       failure:
-        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker){% endif %} ${AUTORESTIC_LOCATION} FAILURE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/fail'
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker{%if autorestic_docker_swarm is defined %} Swarm Manager{% endif %}){% endif %} ${AUTORESTIC_LOCATION} FAILURE / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}/fail'
       success:
-        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker){% endif %} ${AUTORESTIC_LOCATION} SUCCESS / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}'
+        - 'curl -m 10 --retry 5 -X POST -H "Content-Type: text/plain" --data "Autorestic{%if autorestic_docker is defined %} (Docker{%if autorestic_docker_swarm is defined %} Swarm Manager{% endif %}){% endif %} ${AUTORESTIC_LOCATION} SUCCESS / Host: {{ inventory_hostname }} / User: {{ user.username }} / Source: {{ autorestic_docker | default(ansible_env.HOME) }}" {{ healthcheck_endpoint }}/ping/{{ healthcheck_uuid_local }}'
     options:
       backup:
         exclude:
           <<: *exclude
       forget:
-        keep-last: 14
+{%if autorestic_docker is not defined %}
+        keep-last: 14{% endif %}
         keep-hourly: 24
         keep-daily: 3
 

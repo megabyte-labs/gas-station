@@ -1,12 +1,12 @@
 ---
-- name: Ensure apt locks are cleared
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_os_family == 'Debian'
+
+# @action Prepares the System
+# Ensure package locks are cleared
+- name: Include tasks based on the operating system
   become: true
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /var/lib/apt/lists/lock
-    - /var/cache/apt/archives/lock
-    - /var/lib/dpkg/lock
-  when:
-    - "'windows' not in group_names"
+  block:
+    - include_tasks: "prepare-{{ ansible_os_family }}.yml"
+  when: ansible_os_family == 'Debian'

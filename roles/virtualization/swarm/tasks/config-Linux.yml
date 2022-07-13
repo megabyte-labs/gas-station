@@ -50,7 +50,7 @@
     loop_var: stack
   when: swarm_master is defined and swarm_master
 
-- name: Ensure Secrets are created
+- name: Ensure Secrets are updated
   include_tasks: secrets.yml
   loop: "{{ docker_stacks }}"
   loop_control:
@@ -58,7 +58,26 @@
     loop_var: stack
   when:
     - swarm_master is defined and swarm_master
-    - stack.environment is defined
+    - stack.secrets is defined
+
+- name: Ensure Docker configs (i.e. docker config) are updated
+  include_tasks: configs.yml
+  loop: "{{ docker_stacks }}"
+  loop_control:
+    label: "{{ stack.app_name }}"
+    loop_var: stack
+  when:
+    - swarm_master is defined and swarm_master
+    - stack.configs is defined
+
+- name: Ensure nginx_proxy network is initialized
+  community.docker.docker_network:
+    name: nginx_proxy
+    driver: overlay
+    internal: true
+    scope: swarm
+  when:
+    - swarm_master is defined and swarm_master
 
 - name: Ensure Stacks are deloyed
   community.docker.docker_stack:

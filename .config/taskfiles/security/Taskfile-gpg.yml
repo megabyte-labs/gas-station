@@ -28,6 +28,8 @@ tasks:
     cmds:
       - mkdir -p "{{if .CONFIG_DIR_PATH}}{{.CONFIG_DIR_PATH}}{{else}}$HOME/.gnupg{{end}}"
       - echo '{{.GPG_CONFIG}}' > "{{if .CONFIG_DIR_PATH}}{{.CONFIG_DIR_PATH}}{{else}}$HOME/.gnupg{{end}}/gpg.conf"
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   conf:agent:
     deps:
@@ -49,6 +51,8 @@ tasks:
       - task: :install:profile:add
         vars:
           PROFILE_STRING: '{{.PROFILE_STRING}}'
+    status:
+      - '[ -n "$YUBIKEY_BACKUP" ]'
 
   donothing: 'true'
 
@@ -57,6 +61,9 @@ tasks:
     cmds:
       - gpg --import /mnt/gpg-public/gpg-$KEYID*.asc
       - echo -e "trust\n5\ny" | gpg --command-fd 0 --edit-key "$KEYID"
+    status:
+      - '[ ! -f /mnt/gpg-public ]'
+
   public:import:server:
     todo: Add prompt for KEYID
     cmds:

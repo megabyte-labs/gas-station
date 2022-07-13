@@ -185,15 +185,25 @@ tasks:
       LINUX_FAMILY:
         sh: |
           if [ -f "/etc/debian_version" ]; then
-            echo "debian"
+            echo 'debian'
           elif [ -f "/etc/redhat-release" ]; then
-            echo "redhat"
+            echo 'redhat'
           elif [ -f "/etc/arch-release" ]; then
-            echo "archlinux"
+            echo 'archlinux'
           elif [ -f "/etc/alpine-release" ]; then
-            echo "alpine"
+            echo 'alpine'
+          elif type apk &> /dev/null; then
+            echo 'alpine'
+          elif type apt-get &> /dev/null; then
+            echo 'debian'
+          elif type dnf &> /dev/null; then
+            echo 'redhat'
+          elif type pacman &> /dev/null; then
+            echo 'archlinux'
+          elif type yum &> /dev/null; then
+            echo 'redhat'
           else
-            echo "unknown"
+            echo 'unknown'
           fi
     log:
       error: Failed to ensure basic system dependencies are installed
@@ -784,13 +794,18 @@ tasks:
       - type qemu-system-x86_64 > /dev/null
 
   node:
+    deps:
+      - common
+      - volta
     run: once
     cmds:
-      - task: install:software
-        vars:
-          PACKAGE: node
+      - task: node:install
     status:
       - type node &> /dev/null
+
+  node:install:
+    cmds:
+      - volta install node
 
   p7zip:
     run: once
@@ -849,7 +864,7 @@ tasks:
 
   pipx:linux:
     cmds:
-      - python3 -m pip install --user pipx
+      - python3 -m ensurepip && python3 -m pip install --user pipx
       - python3 -m pipx ensurepath
 
   pipx:windows:
@@ -889,6 +904,8 @@ tasks:
       - exit 1
 
   python:
+    deps:
+      - common
     run: once
     cmds:
       - task: brew
@@ -913,6 +930,56 @@ tasks:
           PACKAGE: python@3.10
     status:
       - type python3 > /dev/null
+
+  python:pip:
+    run: once
+    cmds:
+      - |
+        PIP_LOCATION="$(which pip)"
+        PIP3_LOCATION="$(which pip3)"
+        if [ "$USER" == "root" ]; then
+          if type pip &> /dev/null && type pip3 &> /dev/null; then
+            rm "$PIP_LOCATION"
+            ln -s "$PIP3_LOCATION" "$PIP_LOCATION"
+          elif type pip3 &> /dev/null; then
+            ln -s "$PIP3_LOCATION" /usr/bin/pip
+          elif type pip &> /dev/null; then
+            ln -s "$PIP_LOCATION" /usr/bin/pip3
+          else
+            .config/log warn 'Both `pip` and `pip3` appear to be missing'
+          fi
+        elif type sudo &> /dev/null && sudo -n true; then
+          if type pip &> /dev/null && type pip3 &> /dev/null; then
+            sudo rm "$PIP_LOCATION"
+            sudo ln -s "$PIP3_LOCATION" "$PIP_LOCATION"
+          elif type pip3 &> /dev/null; then
+            sudo ln -s "$PIP3_LOCATION" /usr/bin/pip
+          elif type pip &> /dev/null; then
+            sudo ln -s "$PIP_LOCATION" /usr/bin/pip3
+          else
+            .config/log warn 'Both `pip` and `pip3` appear to be missing'
+          fi
+        elif type sudo &> /dev/null; then
+          if type pip &> /dev/null && type pip3 &> /dev/null; then
+            .config/log info 'Running `sudo rm $(which pip)`'
+            sudo rm "$PIP_LOCATION"
+            sudo ln -s "$PIP3_LOCATION" "$PIP_LOCATION"
+          elif type pip3 &> /dev/null; then
+            .config/log info 'Running `sudo ln -s $(which pip3) /usr/bin/pip`'
+            sudo ln -s "$PIP3_LOCATION" /usr/bin/pip
+          elif type pip &> /dev/null; then
+            .config/log info 'Running `sudo ln -s $(which pip) /usr/bin/pip3`'
+            sudo ln -s "$PIP_LOCATION" /usr/bin/pip3
+          else
+            .config/log warn 'Both `pip` and `pip3` appear to be missing'
+          fi
+        else
+           .config/log warn '`sudo` unavailable and user has no permissions'
+        fi
+    status:
+      - which pip > /dev/null
+      - which pip3 > /dev/null
+      - '[ "$(which pip)" == "$(which pip3)" ]'
 
   python:windows:
     log:
@@ -1197,7 +1264,7 @@ tasks:
       - task: vmware:{{OS}}
       - task: exit:notice:restart
     status:
-      - type vmware > /dev/null
+      - type vmrun > /dev/null
 
   vmware:darwin:
     run: once
@@ -1212,6 +1279,12 @@ tasks:
       - task: :install:install-doctor
         vars:
           SOFTWARE: vmware
+
+  volta:
+    cmds:
+      - curl https://get.volta.sh | bash
+    status:
+      - type volta > /dev/null
 
   yarn:
     tags:

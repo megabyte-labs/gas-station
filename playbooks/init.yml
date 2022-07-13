@@ -1,17 +1,31 @@
 ---
 - hosts: localhost
   gather_facts: false
-  roles:
-    - ../roles/system/connect
-
-- hosts: localhost
   vars:
     autologin_enabled: true
-  roles:
-    - ../roles/services/aptcacherng
-    - ../roles/system/firewall
-    - ../roles/system/common
-    - ../roles/system/disks
-    - ../roles/virtualization/docker # Added here because it requires a reboot
-    - ../roles/services/cockpit # Added here because it requires a reboot
-    - ../roles/helpers/reboot
+  tasks:
+    - name: Determining if environment is a WSL environment
+      command: grep Microsoft /proc/version
+      register: microsoft_grep
+      when: ansible_system == 'Linux'
+    - name: Add WSL hosts to the wsl host group
+      set_fact:
+        wsl_environment: true
+      when: microsoft_grep.rc == 0
+    - include_role:
+        name: ../roles/system/connect
+    - include_role:
+        name: ../roles/system/firewall
+      when: not wsl_environment
+    - include_role:
+        name: ../roles/system/common
+    - include_role:
+        name: ../roles/system/disks
+    - include_role:
+        name: ../roles/virtualization/docker
+      when: not wsl_environment
+    - include_role:
+        name: ../roles/services/cockpit
+      when: not wsl_environment
+    - include_role:
+        name: ../roles/helpers/reboot

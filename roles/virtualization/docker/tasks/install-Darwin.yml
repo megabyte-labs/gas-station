@@ -10,3 +10,27 @@
 - name: Ensure vmnetd service is started # noqa 301
   become: true
   command: launchctl load -w /Library/LaunchDaemons/com.docker.vmnetd.plist
+
+- name: Ensure bash_profile is setup
+  lineinfile:
+    path: '~/.bash_profile'
+    create: true
+    line: "{{ 'PATH=/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:' + ansible_env.PATH }}"
+    mode: 0700
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: Ensure zshrc is setup
+  lineinfile:
+    path: ~/.zshrc
+    create: true
+    line: "{{ 'PATH=/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:' + ansible_env.PATH }}"
+    mode: 0700
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

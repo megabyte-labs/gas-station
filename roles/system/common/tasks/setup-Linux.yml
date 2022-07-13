@@ -3,8 +3,9 @@
 # Ensures ansible_user has password set
 - name: Ensure ansible_user has password set
   user:
-    name: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     password: "{{ ansible_password | password_hash('sha512', password_salt) }}"
+  when:
+    - ansible_password is defined
 
 - name: Set hostname
   hostname:
@@ -41,21 +42,36 @@
 
 - name: Customize GRUB
   include_tasks: linux/grub.yml
+  when:
+    - "'wsl' not in group_names"
+    - not wsl_environment
 
 # @action Ensures common configuration settings are applied
 # Configures Plymouth theme
 - name: Customize boot loading image (Plymouth)
   include_tasks: linux/plymouth.yml
+  when:
+    - "'wsl' not in group_names"
+    - not wsl_environment
 
 - name: Configure swap
   include_tasks: linux/swap.yml
+  when:
+    - "'wsl' not in group_names"
+    - not wsl_environment
 
 # @action Ensures common configuration settings are applied
 # Configures Autologin for various Desktop Managers on Linux Systems
 - name: Ensure auto-login is enabled
   include_tasks: linux/autologin-enable.yml
-  when: autologin_enabled
+  when:
+    - autologin_enabled
+    - "'wsl' not in group_names"
+    - not wsl_environment
 
 - name: Ensure auto-login is disabled
   include_tasks: linux/autologin-disable.yml
-  when: not autologin_enabled
+  when:
+    - not autologin_enabled
+    - "'wsl' not in group_names"
+    - not wsl_environment

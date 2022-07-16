@@ -123,3 +123,31 @@
     - docker_tls | bool
     - ansible_os_family == 'Windows'
     - not docker_ca_pem_win.stat.exists
+
+# @action Login to Docker Hub if credentials are provided
+# Logs on to Docker Hub if the credentials are provided
+- name: Login to Docker Hub
+  command: docker login -u {{ user.dockerhub_username }} -p {{ user.dockerhub_password }}
+  environment:
+    PATH: "{{ ('/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:' if ansible_system == 'Darwin' else '') + ansible_env.PATH }}"
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when:
+    - ansible_os_family != 'Windows'
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.dockerhub_username is defined and user.dockerhub_username | length > 0
+    - user.dockerhub_password is defined and user.dockerhub_password | length > 0
+
+- name: Login to Docker Hub
+  ansible.windows.win_command: docker login -u {{ user.dockerhub_username }} -p {{ user.dockerhub_password }}
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when:
+    - ansible_os_family == 'Windows'
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.dockerhub_username is defined and user.dockerhub_username | length > 0
+    - user.dockerhub_password is defined and user.dockerhub_password | length > 0

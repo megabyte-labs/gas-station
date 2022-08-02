@@ -13,12 +13,12 @@
 # Installs software on Windows Systems using `Scoop`
 - name: "Ensure {{ software_item }} is installed (Scoop)"
   community.windows.win_scoop:
-    name: "{{ software_package[software_item]['scoop'] }}1"
+    name: "{{ software_package[software_item]['scoop'] }}"
     state: present
+    global: true
   when:
     - "'scoop' in available_methods"
-    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
-        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined"
   register: scoop_result
   failed_when: "scoop_result.stdout is defined and not ('installed successfully' in scoop_result.stdout or \
     'Couldn\\'t find manifest for' in scoop_result.stdout)"
@@ -29,16 +29,15 @@
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
     {{ software_package[software_item]['go'] }}
     {%- else -%}
-    go get {{ software_package[software_item]['go'] }}
+    go install {{ software_package[software_item]['go'] }}
     {%- endif -%}
   environment:
     GOPATH: "{{ 'C:/Users/' + ansible_user + '/.local/go' }}"
   register: go_result
   when:
     - "'go' in available_methods"
-    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
-        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
-    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined"
+    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout or scoop_result.skipped is defined"
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)"
@@ -51,10 +50,9 @@
   register: cargo_result
   when:
     - "'cargo' in available_methods"
-    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
-        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
-    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout"
-    - "go_result.rc is defined and go_result.rc != 0"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined"
+    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout or scoop_result.skipped is defined"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (Binary)"
@@ -75,22 +73,25 @@
           - "C:/Program Files/{{ software_item }}"
   when:
     - "'exe' in available_methods"
-    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
-        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
-    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout"
-    - "go_result.rc is defined and go_result.rc != 0"
-    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined"
+    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout or scoop_result.skipped is defined"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
 
-- name: "Ensure {{ software_item }} is installed (GitHub)"
-  include_role:
-    name: githubbinary
-  vars:
-    github_binaries:
-      - "{{ software_package[software_item]['github'] }}"
+- name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
+  ansible.windows.win_command: task install:gh:"{{ software_item }}"
+  args:
+    chdir: 'C:\ProgramData\MegabyteLabs\shared-master'
+  register: github_install_result
   when:
     - "'github' in available_methods"
-    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined or \
-        ((choco_result.changed and choco_result.failed) and (not choco_result.changed))"
-    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout"
-    - "go_result.rc is defined and go_result.rc != 0"
-    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "(choco_result.rc is defined and choco_result.rc != 0) or choco_result.skipped is defined"
+    - "scoop_result.stdout is defined and 'Couldn\\'t find manifest for' in scoop_result.stdout or scoop_result.skipped is defined"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
+  failed_when: "github_install_result.rc != 0 and not (github_install_result.rc == 1 and ('No tasks with description available' in github_install_result.stdout \
+    or 'no assets match the file pattern' in github_install_result.stderr))"
+  changed_when: "github_install_result.rc == 1 and not (('No tasks with description available' in github_install_result.stdout \
+    or 'no assets match the file pattern' in github_install_result.stderr)) or not ('is up to date' in github_install_result.stderr)"

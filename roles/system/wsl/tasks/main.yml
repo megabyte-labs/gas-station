@@ -1,15 +1,16 @@
 ---
 - name: Determining if environment is a WSL environment
-  command: grep Microsoft /proc/version
+  command: grep -i Microsoft /proc/version
   register: microsoft_grep
   when: ansible_system == 'Linux'
 
 - name: Detect if environment is WSL
   set_fact:
     wsl_environment: true
-  when: microsoft_grep.rc == 0
+  when: microsoft_grep.rc is defined and microsoft_grep.rc == 0
 
 - name: Perform WSL tasks if environment is WSL
   become: true
   block:
     - include_tasks: wsl.yml
+  when: wsl_environment is defined and wsl_environment

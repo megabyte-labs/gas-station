@@ -93,6 +93,25 @@
   register: clean_files
   when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
 
+- name: Determine whether or not a Desktop Environment is installed
+  stat:
+    path: "{{ item }}"
+  with_items:
+    - /usr/bin/gnome-session
+    - /usr/bin/xfce4-session
+    - /usr/bin/lxsession
+    - /usr/bin/kded5
+    - /usr/bin/icewm-session
+    - /usr/bin/mate-session
+    - /usr/bin/cinnamon
+  register: session_files
+  when: ansible_system == 'Linux'
+
+- name: Set results of checking for Desktop Environment to a variable
+  set_fact:
+    desktop_env_results: "{{ session_files.results | map(attribute='stat.exists') }}"
+  when: ansible_system == 'Linux'
+
 - name: Setup SwitchHosts
   include_tasks: user-Linux.yml
   loop: "{{ user_configs }}"
@@ -100,6 +119,7 @@
     label: "{{ user.username }}"
     loop_var: user
   when:
+    - ansible_system == 'Darwin' or (ansible_system == 'Linux' and desktop_env_results | join(',') | regex_search('true'))
     - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
 

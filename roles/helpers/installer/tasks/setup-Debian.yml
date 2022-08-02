@@ -9,12 +9,26 @@
   register: apt_result
   failed_when: "apt_result.msg is defined and 'No package matching' not in apt_result.msg"
 
+- name: "Ensure {{ software_item }} is installed (Homebrew)"
+  become: false
+  community.general.homebrew:
+    name: "{{ software_package[software_item]['brew'] }}"
+    state: present
+  when:
+    - "'brew' in available_methods"
+    - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
+        ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
+  register: brew_result
+  failed_when: not ("'No available formula or cask with the name' in brew_result.msg or 'already installed' in brew_result.msg \
+    or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
+
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
+  become_user: false
   shell: |
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
     {{ software_package[software_item]['go'] }}
     {%- else -%}
-    go get {{ software_package[software_item]['go'] }}
+    go install {{ software_package[software_item]['go'] }}
     {%- endif -%}
   environment:
     GOPATH: "{{ '/home/' + ansible_user + '/.local/go' }}"
@@ -23,9 +37,11 @@
     - "'go' in available_methods"
     - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
         ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
+    - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
+  become_user: false
   shell: |
     {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
     {{ software_package[software_item]['cargo'] }}
@@ -37,9 +53,9 @@
   register: cargo_result
   when:
     - "'cargo' in available_methods"
-    - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
-        ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
-    - "go_result.rc is defined and go_result.rc != 0"
+    - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined"
+    - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (Binary)"
@@ -51,38 +67,43 @@
     - "'binary' in available_methods"
     - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
         ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
-    - "go_result.rc is defined and go_result.rc != 0"
-    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
+    - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
   register: binary_result
   failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
 
 - name: "Ensure {{ software_item }} is installed (snap)"
-  snap:
+  community.general.snap:
     name: "{{ software_package[software_item]['snap'] }}"
     state: present
   when:
     - "'snap' in available_methods"
     - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
         ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
-    - "go_result.rc is defined and go_result.rc != 0"
-    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
-    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
-        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+    - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
   register: snap_result
   failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
 
-- name: "Ensure {{ software_item }} is installed (GitHub)"
-  include_role:
-    name: githubbinary
-  vars:
-    github_binaries:
-      - "{{ software_package[software_item]['github'] }}"
+- name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
+  command: task install:gh:"{{ software_item }}"
+  args:
+    chdir: /tmp/shared-master
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_env.PATH }}"
   when:
     - "'github' in available_methods"
     - "(apt_result.msg is defined and 'No package matching' in apt_result.msg) or apt_result.skipped is defined or \
         ((apt_result.changed and apt_result.failed) and (not apt_result.changed))"
-    - "go_result.rc is defined and go_result.rc != 0"
-    - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
-    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined or \
-        ((binary_result.changed and binary_result.failed) and (not binary_result.changed))"
+    - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
     - snap_result.msg is defined or snap_result.skipped is defined or ((snap_result.changed and snap_result.failed) and (not snap_result.changed))
+  failed_when: github_install_result.rc != 0 and not (github_install_result.rc == 1 and 'No tasks with description available' in github_install_result.stdout)

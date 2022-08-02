@@ -3,9 +3,35 @@
   dnf:
     update_cache: true
 
-- name: Run generic tasks
-  include_tasks: continue.yml
-  loop: "{{ software }}"
-  loop_control:
-    label: "{{ software_item }}"
-    loop_var: software_item
+- name: Ensure software is installed
+  block:
+    - name: Setup Taskfiles to install from GitHub Releases
+      unarchive:
+        src: https://gitlab.com/megabyte-labs/common/shared/-/archive/master/shared-master.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Configure Taskfile to call GitHub installation method
+      copy:
+        dest: /tmp/shared-master/Taskfile.yml
+        content: |
+          version: '3'
+          includes:
+            install:gh:
+              taskfile: ./common/.config/taskfiles/install/Taskfile-gh.yml
+              optional: true
+            install:software:
+              taskfile: ./common/.config/taskfiles/install/Taskfile-software.yml
+              optional: true
+
+    - name: Run generic tasks
+      include_tasks: continue.yml
+      loop: "{{ software }}"
+      loop_control:
+        label: "{{ software_item }}"
+        loop_var: software_item
+  always:
+    - name: Remove Taskfile setup
+      file:
+        path: /tmp/shared-master
+        state: absent

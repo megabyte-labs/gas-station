@@ -805,7 +805,9 @@ tasks:
 
   node:install:
     cmds:
-      - volta install node
+      - |
+        . "$HOME/.profile" &> /dev/null || true
+        volta install node
 
   p7zip:
     run: once
@@ -863,9 +865,30 @@ tasks:
       - pipx ensurepath
 
   pipx:linux:
+    deps:
+      - pipx:linux:brew
+      - pipx:linux:system
+
+  pipx:linux:brew:
     cmds:
       - python3 -m ensurepip && python3 -m pip install --user pipx
       - python3 -m pipx ensurepath
+    status:
+      - '[ "$(which python3)" == "/usr/bin/python3" ]'
+
+  pipx:linux:system:
+    cmds:
+      - task: system
+        vars:
+          PACKAGE: pipx
+      - task: system
+        vars:
+          PACKAGE: python3-pip
+      - task: system
+        vars:
+          PACKAGE: python3-venv
+    status:
+      - '[ "$(which python3)" != "/usr/bin/python3" ]'
 
   pipx:windows:
     log:
@@ -930,6 +953,7 @@ tasks:
           PACKAGE: python@3.10
     status:
       - type python3 > /dev/null
+
 
   python:pip:
     run: once
@@ -1259,6 +1283,17 @@ tasks:
         vars:
           SOFTWARE: virtualbox
 
+  volta:
+    cmds:
+      - .config/log info 'Installing Volta'
+      - curl https://get.volta.sh | bash
+      - |
+        . "$HOME/.profile" &> /dev/null || true
+        volta setup
+      - .config/log success 'Successfully setup Volta'
+    status:
+      - type volta > /dev/null
+
   vmware:
     cmds:
       - task: vmware:{{OS}}
@@ -1279,12 +1314,6 @@ tasks:
       - task: :install:install-doctor
         vars:
           SOFTWARE: vmware
-
-  volta:
-    cmds:
-      - curl https://get.volta.sh | bash
-    status:
-      - type volta > /dev/null
 
   yarn:
     tags:

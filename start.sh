@@ -508,7 +508,7 @@ elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
   fi
 fi
 
-# @description Ensures Homebrew and Poetry are installed
+# @description Ensures Homebrew, Poetry, and Volta are installed
 if [ -z "$NO_INSTALL_HOMEBREW" ]; then
   if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
     if [ -z "$INIT_CWD" ]; then
@@ -526,7 +526,7 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
       fi
       if [ -f "$HOME/.profile" ]; then
         # shellcheck disable=SC1091
-        . "$HOME/.profile"
+        . "$HOME/.profile" &> /dev/null || true
       fi
       if ! type poetry &> /dev/null; then
         # shellcheck disable=SC2016
@@ -539,6 +539,10 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
       if ! type yq &> /dev/null; then
         # shellcheck disable=SC2016
         brew install yq || logger info 'There may have been an issue installing `yq` with `brew`'
+      fi
+      if ! type volta &> /dev/null; then
+        # shellcheck disable=SC2016
+        curl https://get.volta.sh | bash
       fi
     fi
   fi
@@ -626,7 +630,7 @@ fi
 # @description Run the start logic, if appropriate
 if [ -z "$CI" ] && [ -z "$START" ] && [ -z "$INIT_CWD" ]; then
   # shellcheck disable=SC1091
-  . "$HOME/.profile"
+  . "$HOME/.profile" &> /dev/null || true
   ensureProjectBootstrapped
   if task donothing &> /dev/null; then
     task -vvv start

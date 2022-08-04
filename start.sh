@@ -606,8 +606,8 @@ if [ -d .git ] && type git &> /dev/null; then
         git reset --hard HEAD
         git checkout "$DEFAULT_BRANCH"
         git pull origin "$DEFAULT_BRANCH" --ff-only || true
+        cd "$ROOT_DIR"
       done
-      cd "$ROOT_DIR"
       # shellcheck disable=SC2016
       logger success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
     fi

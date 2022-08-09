@@ -159,21 +159,18 @@ tasks:
     cmds:
       - |
         if [ -n "$CI" ]; then echo "*************** npm global --> {{.PACKAGE}}"; fi
-      - '{{.NPM_PROGRAM}} install -g {{.PACKAGE}}'
+      - volta install {{.PACKAGE}}'
     status:
       - '[[ "$PACKAGE_EXISTS" == "true" ]]'
 
   global:package-manager:
+    deps:
+      - :install:software:volta
     run: once
-    log:
-      error: Failed to install `{{.NPM_PROGRAM}}`
-      start: Installing `{{.NPM_PROGRAM}}`
-      success: Successfully installed `{{.NPM_PROGRAM}}`
     cmds:
-      - task: :install:software:node
-      - |
-        if [ -n "$CI" ]; then echo "*************** npm global --> {{.PACKAGE}}"; fi
-      - npm install -g {{.NPM_PROGRAM}}
+      - .config/log info 'Installing `{{.NPM_PROGRAM}}`'
+      - volta install {{.NPM_PROGRAM}}
+      - .config/log info 'Successfully installed `{{.NPM_PROGRAM}}`'
     status:
       - type {{.NPM_PROGRAM}} > /dev/null
 
@@ -200,6 +197,8 @@ tasks:
           PACKAGE: ifttt-cli
 
   install:npm:
+    deps:
+      - global:package-manager
     vars:
       BIN: '{{if .BIN_NAME}}{{.BIN_NAME}}{{else}}{{.PACKAGE}}{{end}}'
     run: when_changed
@@ -208,10 +207,9 @@ tasks:
       start: Installing NPM package `{{.PACKAGE}}` globally
       success: Installed NPM package `{{.PACKAGE}}` globally
     cmds:
-      - task: global:package-manager
       - |
         if [ -n "$CI" ]; then echo "*************** npm global --> {{.PACKAGE}}"; fi
-      - '{{.NPM_PROGRAM}} install -g {{.PACKAGE}}'
+      - volta install {{.PACKAGE}}'
     status:
       - type {{.BIN}} > /dev/null
 

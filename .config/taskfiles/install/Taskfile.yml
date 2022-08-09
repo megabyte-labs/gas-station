@@ -39,7 +39,7 @@ tasks:
 
   modules:global:
     deps:
-      - :install:npm:{{.NPM_PROGRAM}}
+      - :install:software:volta
       - :install:software:yq
     run: once
     log:
@@ -56,7 +56,7 @@ tasks:
         done
         if [ -n "$LIST" ]; then
           .config/log info "Installing the following NPM packages globally - $LIST"
-          npm install -g $LIST
+          volta install $LIST
         fi
     status:
       - '[[ "${container:=}" == "docker" ]]'
@@ -69,7 +69,7 @@ tasks:
 
   modules:local:init:
     deps:
-      - :install:npm:{{.NPM_PROGRAM_LOCAL}}
+      - :install:npm:{{.NPM_PROGRAM}}
       - :install:software:jq
     vars:
       PREVIOUS_DEPS:
@@ -94,14 +94,14 @@ tasks:
       - cmd: |
           if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
             if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
-              {{.NPM_PROGRAM_LOCAL}} update
+              {{.NPM_PROGRAM}} update
             else
-              {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
+              {{.NPM_PROGRAM}} install {{if eq .NPM_PROGRAM "pnpm"}}--public-hoist-pattern *types* \
               --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
               --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
               if [ -n "$EXIT_CODE" ]; then
-                .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
-                {{.NPM_PROGRAM_LOCAL}} update
+                .config/log info 'Running `{{.NPM_PROGRAM}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+                {{.NPM_PROGRAM}} update
               fi
             fi
           fi
@@ -168,7 +168,7 @@ tasks:
         if [[ "$REFRESH_PACKAGES" == 'true' ]]; then
           PACKAGE_LIST="$(echo $PACKAGE_LIST | sed 's/^.//')"
           .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
-          {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
+          {{.NPM_PROGRAM}} update $PACKAGE_LIST
           .config/log success 'Successfully updated to the following - `'"$PACKAGE_LIST"'`'
         else
           {{if .CLI_ARGS}}
@@ -180,10 +180,10 @@ tasks:
 
   modules:prompt:
     deps:
-      - :install:npm:{{.NPM_PROGRAM}}
+      - :install:software:volta
     run: once
     cmds:
-      - npm install chalk inquirer signale
+      - volta install chalk inquirer signale
     sources:
       - .config/scripts/prompts/**
 

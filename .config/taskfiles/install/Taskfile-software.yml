@@ -196,7 +196,7 @@ tasks:
             echo 'alpine'
           elif type apt-get &> /dev/null; then
             echo 'debian'
-          elif type dnf &> /dev/null; then
+          elif type dnf &> /dev/null || type yum &> /dev/null; then
             echo 'redhat'
           elif type pacman &> /dev/null; then
             echo 'archlinux'
@@ -734,6 +734,13 @@ tasks:
         vars:
           PACKAGE: anchore/grype/grype
 
+  gum:
+    run: once
+    cmds:
+      - task: install:software
+        vars:
+          PACKAGE: gum
+
   gzip:
     run: once
     cmds:
@@ -953,6 +960,7 @@ tasks:
           PACKAGE: python@3.10
     status:
       - type python3 > /dev/null
+
 
   python:pip:
     run: once
@@ -1282,6 +1290,17 @@ tasks:
         vars:
           SOFTWARE: virtualbox
 
+  volta:
+    cmds:
+      - .config/log info 'Installing Volta'
+      - curl https://get.volta.sh | bash
+      - |
+        . "$HOME/.profile" &> /dev/null || true
+        volta setup
+      - .config/log success 'Successfully setup Volta'
+    status:
+      - type volta > /dev/null
+
   vmware:
     cmds:
       - task: vmware:{{OS}}
@@ -1302,17 +1321,6 @@ tasks:
       - task: :install:install-doctor
         vars:
           SOFTWARE: vmware
-
-  volta:
-    cmds:
-      - .config/log info 'Installing Volta'
-      - curl https://get.volta.sh | bash
-      - |
-        . "$HOME/.profile" &> /dev/null || true
-        volta setup
-      - .config/log success 'Successfully setup Volta'
-    status:
-      - type volta > /dev/null
 
   yarn:
     tags:

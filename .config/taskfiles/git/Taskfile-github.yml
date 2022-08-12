@@ -63,7 +63,16 @@ tasks:
   ssh-keys:
     deps:
       - :install:software:gh
+      - :install:software:jq
     cmds:
+      - .config/log info 'Clearing GitLab SSH keys'
+      - |
+        ACCEPT_HEADER="Accept: application/vnd.github+json"
+        GH_KEYS_URL="https://api.github.com/user/keys"
+        KEYIDS="$(curl -sSL -H "$ACCEPT_HEADER" -H "Authorization: token $GITHUB_TOKEN" "$GH_KEYS_URL" | jq '.[].id')"
+        for KEYID in $KEYIDS; do
+          curl -H "$ACCEPT_HEADER" -H "Authorization: token $GITHUB_TOKEN" -X DELETE "$GH_KEYS_URL/$KEYID"
+        done
       - .config/log start 'Syncing SSH keys with GitHub'
       - |
         for KEY in `ls $HOME/.ssh/*.pub`; do

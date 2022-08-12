@@ -357,7 +357,15 @@ tasks:
   ssh-keys:
     deps:
       - :install:software:glab
+      - :install:software:jq
     cmds:
+      - .config/log info 'Clearing GitLab SSH keys'
+      - |
+        KEY_URL='https://gitlab.com/api/v4/user/keys'
+        KEYIDS="$(curl -sSL --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$KEY_URL" | jq '.[].id')"
+        for KEYID in $KEYIDS; do
+          curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -X DELETE "$KEY_URL/$KEYID"
+        done
       - .config/log start 'Syncing SSH keys with GitLab'
       - |
         for KEY in `ls $HOME/.ssh/*.pub`; do

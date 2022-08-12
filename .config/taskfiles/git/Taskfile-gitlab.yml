@@ -354,6 +354,21 @@ tasks:
     status:
       - '[ -z "$GITLAB_TOKEN" ]'
 
+  ssh-keys:
+    deps:
+      - :install:software:glab
+    cmds:
+      - .config/log start 'Syncing SSH keys with GitLab'
+      - |
+        for KEY in `ls $HOME/.ssh/*.pub`; do
+          TITLE="$(cat $KEY | sed 's/\(.*\=\) \(.*\)$/\2/')"
+          glab ssh-key add $KEY -t "$TITLE"
+        done
+      - .config/log success 'Finished syncing SSH keys with GitLab'
+    preconditions:
+      - sh: '[ -n "$GITLAB_TOKEN" ]'
+        msg: The GITLAB_TOKEN must be set to a personal access token.
+
   update:
     run: once
     cmds:

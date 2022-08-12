@@ -1,0 +1,49 @@
+---
+- name: List installed plugins # noqa 301
+  become_user: "{{ user.username }}"
+  command: heroku plugins
+  register: heroku_installed_plugins
+
+- name: Ensure plugins are installed # noqa 301
+  become_user: "{{ user.username }}"
+  command: "heroku plugins:install {{ plugin }}"
+  loop: "{{ heroku_plugins }}"
+  loop_control:
+    label: "{{ plugin }}"
+    loop_var: plugin
+  when: "not (plugin in heroku_installed_plugins.stdout)"
+
+- name: Configure ~/.netrc with Heroku credentials
+  become_user: "{{ user.username }}"
+  copy:
+    content: |
+      machine api.heroku.com
+        login {{ user.heroku_email }}
+        password {{ user.heroku_api_key }}
+      machine git.heroku.com
+        login {{ user.heroku_email }}
+        password {{ user.heroku_api_key }}
+    dest: ~/.netrc
+    mode: 0700
+  register: heroku_netrc
+  when:
+    - user.heroku_email is defined and user.heroku_email | length > 0
+    - user.heroku_api_key is defined and user.heroku_api_key | length > 0
+
+- name: Fetch the list of installed applications # noqa 301
+  become_user: "{{ user.username }}"
+  command: heroku apps
+  register: heroku_deployed_apps
+  when: not heroku_netrc.skipped is defined
+
+- name: Install Applications # noqa 301
+  become_user: "{{ user.username }}"
+  block:
+    - include_tasks: dyno.yml
+      loop: "{{ heroku_dynos.items() }}"
+      loop_control:
+        label: "{{ dyno[0] }}"
+        loop_var: dyno
+      when:
+        - not heroku_netrc.skipped is defined
+        - not (dyno[0] in heroku_deployed_apps.stdout)

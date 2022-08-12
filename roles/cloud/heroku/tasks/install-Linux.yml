@@ -1,0 +1,62 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Ensure {{ herokucli_src_dir }} directory exists"
+  file:
+    path: "{{ herokucli_src_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Detect the latest Heroku CLI version
+  uri:
+    url: https://cli-assets.heroku.com/linux-x64
+  register: herokucli_latest_release
+
+- name: Determine whether or not the latest version of Heroku CLI AppImage is already installed
+  set_fact:
+    install_herokucli: "{{ (ansible_local.herokucli is not defined) or \
+      ((ansible_local.herokucli is defined) and \
+      (ansible_local['herokucli']['settings']['version'] != herokucli_latest_release.json.version)) }}"
+
+- name: Download Heroku CLI Installation Archive
+  get_url:
+    url: "{{ herokucli_latest_release.json.gz }}"
+    dest: "{{ herokucli_src_dir }}/heroku-cli.tar.gz"
+    checksum: "sha256:{{ herokucli_latest_release.json.sha256gz }}"
+    mode: 0755
+  when: install_herokucli
+
+- name: Ensure Heroku CLI is installed
+  unarchive:
+    src: "{{ herokucli_src_dir }}/heroku-cli.tar.gz"
+    dest: /opt/
+    remote_src: true
+  when: install_herokucli
+
+- name: Link heroku cli to /usr/local/bin
+  file:
+    src: /opt/heroku/bin/heroku
+    dest: /usr/local/bin/heroku
+    state: link
+
+- name: Save meta information about the version of Heroku CLI that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/herokucli.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ herokucli_latest_release.json.version | replace('v','') }}"
+    no_extra_spaces: true
+  when: install_herokucli
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

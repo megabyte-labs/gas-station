@@ -41,7 +41,7 @@ tasks:
   azurefunctions:windows:
     cmds:
       - echo 'Install azure-functions-core-tools using Chocolatey on Windows'
-      
+
   bat:
     cmds:
       - task: install:gh
@@ -577,13 +577,17 @@ tasks:
         mkdir -p {{.BIN_FOLDER}}
         if [ "$(ls 2>/dev/null * | wc -l)" == "1" ]; then
           {{.LOG_SCRIPT}} info 'Moving `{{.BIN_NAME}}` from its default location'
-          mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}
+          if ! mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}; then
+            sudo mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}
+          fi
         else
           if [ -d bin ]; then
             cd bin
             if [ "$(ls 2>/dev/null * | wc -l)" == "1" ]; then
               {{.LOG_SCRIPT}} info 'Moving `{{.BIN_NAME}}` from the `bin` folder'
-              mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}
+              if ! mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}; then
+                sudo mv * {{.BIN_FOLDER}}/{{.BIN_NAME}}
+              fi
             else
               {{.LOG_SCRIPT}} warn 'Unmatched binary named `{{.BIN_NAME}}` from `*.tar.gz` with a `bin` folder'
               {{.COMMANDS}}
@@ -591,7 +595,9 @@ tasks:
             cd ..
           elif [ "$(ls 2>/dev/null {{.BIN_NAME}} | wc -l)" == "1" ]; then
             {{.LOG_SCRIPT}} warn 'Moving `{{.BIN_NAME}}` from its default location, but, there are other files that are not moved'
-            mv {{.BIN_NAME}} {{.BIN_FOLDER}}/{{.BIN_NAME}}
+            if ! mv {{.BIN_NAME}} {{.BIN_FOLDER}}/{{.BIN_NAME}}; then
+              sudo mv {{.BIN_NAME}} {{.BIN_FOLDER}}/{{.BIN_NAME}}
+            fi
           else
             {{.LOG_SCRIPT}} warn 'Unmatched binary named `{{.BIN_NAME}}`'
             {{.COMMANDS}}

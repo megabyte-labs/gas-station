@@ -753,6 +753,13 @@ tasks:
     status:
       - type gzip > /dev/null
 
+  heroku:
+    run: once
+    cmds:
+      - task: install:software
+        vars:
+          PACKAGE: heroku/brew/heroku
+
   hey:
     run: once
     cmds:
@@ -873,29 +880,16 @@ tasks:
 
   pipx:linux:
     deps:
-      - pipx:linux:brew
-      - pipx:linux:system
-
-  pipx:linux:brew:
+      - python
     cmds:
-      - python3 -m ensurepip && python3 -m pip install --user pipx
-      - python3 -m pipx ensurepath
-    status:
-      - '[ "$(which python3)" == "/usr/bin/python3" ]'
-
-  pipx:linux:system:
-    cmds:
-      - task: system
-        vars:
-          PACKAGE: pipx
       - task: system
         vars:
           PACKAGE: python3-pip
       - task: system
         vars:
           PACKAGE: python3-venv
-    status:
-      - '[ "$(which python3)" != "/usr/bin/python3" ]'
+      - python3 -m ensurepip && python3 -m pip install --user pipx
+      - python3 -m pipx ensurepath
 
   pipx:windows:
     log:
@@ -1100,28 +1094,38 @@ tasks:
   system:
     vars:
       PACKAGE: '{{if .PACKAGE}}{{.PACKAGE}}{{else}}{{.CLI_ARGS}}{{end}}'
-    log:
-      error: Failed to install `{{.PACKAGE}}` with the system package manager
-      start: Attempting to install `{{.PACKAGE}}` using the system package manager
     cmds:
-      - task: system:apk
-        vars:
-          PACKAGE: '{{.PACKAGE}}'
-      - task: system:apt-get
-        vars:
-          PACKAGE: '{{.PACKAGE}}'
-      - task: system:dnf
-        vars:
-          PACKAGE: '{{.PACKAGE}}'
-      - task: system:pacman
-        vars:
-          PACKAGE: '{{.PACKAGE}}'
-      - task: system:yum
-        vars:
-          PACKAGE: '{{.PACKAGE}}'
-      - task: system:macos
-        vars:
-          PACKAGE: '{{.PACKAGE}}'
+      - .config/log start 'Attempting to install `{{.PACKAGE}}` using the system package manager'
+      - |
+        if [ -f "/etc/redhat-release" ]; then
+          if type dnf &> /dev/null; then
+            task install:software:system:dnf -- '{{.PACKAGE}}'
+          else
+            task install:software:system:yum -- '{{.PACKAGE}}'
+          fi
+        elif [ -f "/etc/debian_version" ]; then
+          task install:software:system:apt-get -- '{{.PACKAGE}}'
+        elif [ -f "/etc/arch-release" ]; then
+          task install:software:system:pacman -- '{{.PACKAGE}}'
+        elif [ -f "/etc/alpine-release" ]; then
+          task install:software:system:apk -- '{{.PACKAGE}}'
+        elif type dnf &> /dev/null; then
+          task install:software:system:dnf -- '{{.PACKAGE}}'
+        elif type yum &> /dev/null; then
+          task install:software:system:yum -- '{{.PACKAGE}}'
+        elif type apt-get &> /dev/null; then
+          task install:software:system:apt-get -- '{{.PACKAGE}}'
+        elif type pacman &> /dev/null; then
+          task install:software:system:pacman -- '{{.PACKAGE}}'
+        elif type apk &> /dev/null; then
+          task install:software:system:apk -- '{{.PACKAGE}}'
+        else
+          if [ '{{OS}}' == 'darwin' ]; then
+            task install:software:system:macos -- '{{.PACKAGE}}'
+          else
+            .config/log error 'No matching system. Cannot continue with installation.' && exit 1
+          fi
+        fi
     status:
       - type {{.PACKAGE}} > /dev/null || [ '{{.PACKAGE}}' == 'null' ]
 

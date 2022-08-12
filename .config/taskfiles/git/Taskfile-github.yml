@@ -60,6 +60,30 @@ tasks:
     status:
       - '[[ "{{.CURRENT_PROJECT_ID}}" == "{{.PROJECT_ID}}" ]]'
 
+  ssh-keys:
+    deps:
+      - :install:software:gh
+      - :install:software:jq
+    cmds:
+      - .config/log info 'Clearing GitLab SSH keys'
+      - |
+        ACCEPT_HEADER="Accept: application/vnd.github+json"
+        GH_KEYS_URL="https://api.github.com/user/keys"
+        KEYIDS="$(curl -sSL -H "$ACCEPT_HEADER" -H "Authorization: token $GITHUB_TOKEN" "$GH_KEYS_URL" | jq '.[].id')"
+        for KEYID in $KEYIDS; do
+          curl -H "$ACCEPT_HEADER" -H "Authorization: token $GITHUB_TOKEN" -X DELETE "$GH_KEYS_URL/$KEYID"
+        done
+      - .config/log start 'Syncing SSH keys with GitHub'
+      - |
+        for KEY in `ls $HOME/.ssh/*.pub`; do
+          TITLE="$(cat $KEY | sed 's/\(.*\=\) \(.*\)$/\2/')"
+          gh ssh-key add $KEY -t "$TITLE"
+        done
+      - .config/log success 'Finished syncing SSH keys with GitHub'
+    preconditions:
+      - sh: '[ -n "$GITHUB_TOKEN" ]'
+        msg: The GITHUB_TOKEN must be set to a personal access token.
+
   update:
     run: once
     cmds:

@@ -1,0 +1,36 @@
+---
+- name: Create S3 bucket if needed by the application
+  amazon.aws.s3_bucket:
+    aws_access_key: "{{ dyno[1].variables.AWS_ACCESS_KEY_ID | default(dyno[1].variables.S3_ACCESS_KEY_ID) }}"
+    aws_secret_key: "{{ dyno[1].variables.AWS_SECRET_ACCESS_KEY | default(dyno[1].variables.S3_ACCESS_SECRET_KEY) }}"
+    name: "{{ dyno[1].variables.AWS_STORAGE_BUCKET_NAME | default(dyno[1].variables.S3_BUCKET_NAME) }}"
+    state: present
+  when: (dyno[1].variables.AWS_STORAGE_BUCKET_NAME is defined and dyno[1].variables.AWS_STORAGE_BUCKET_NAME | length > 0) or
+    (dyno[1].variables.S3_BUCKET_NAME is defined and dyno[1].variables.S3_BUCKET_NAME | length > 0) or
+    (dyno[1].variables.AWS_BUCKET is defined and dyno[1].variables.AWS_BUCKET | length > 0)
+
+- name: Generate a random string to use for the Application name
+  set_fact:
+    random_suffix: "{{ lookup('community.general.random_string', special=false, upper=false, length=5) }}"
+
+- name: 'Create the command to setup the Application {{ dyno[0] }}'
+  set_fact:
+    heroku_json: "heroku api POST /app-setups --body '{\"app\":{\"region\":\"{{ dyno[1].region | default(default_app_deployment_region) }}\",\"name\":\"{{ \
+      dyno[0] + '-' + random_suffix }}\"},\"source_blob\":{\"url\":\"{{ 'https://api.github.com/repos/' + (dyno[1].deploy_url.split('github.com')[1])\
+      .split('/')[1] + '/' + (dyno[1].deploy_url.split('github.com')[1]).split('/')[2] + '/tarball/master\"' }}{{ '},\"overrides\":{\"env\":' + \
+      dyno[1].variables | to_json + '}' if dyno[1].variables is defined else '}' }}}'"
+
+- name: Ensure the application is created # noqa 301
+  command: "{{ heroku_json }}"
+
+- name: Ensure custom domain is added to the application # noqa 301
+  command: "heroku domains:add {{ dyno[1].domain }} -a {{ dyno[0] + '-' + random_suffix }}"
+  when: add_custom_domain | bool
+
+- name: Create Cloudflare DNS entry if desired
+  community.general.cloudflare_dns:
+    zone: "{{ dyno[1].variables.cloudflare.zone }}"
+    type: CNAME
+    value: "{{ dyno[1].variables.cloudflare.value }}"
+    api_token: "{{ dyno[1].variables.cloudflare.api_token }}"
+  when: dyno[1].variables.cloudflare is defined

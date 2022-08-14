@@ -1,0 +1,275 @@
+---
+- name: Provision / initialize dom0
+  hosts: localhost
+  connection: local
+  tasks:
+    # Update dom0
+    - name: Update dom0
+      command: sudo qubesctl --show-output state.sls update.qubes-dom0 # TODO: Add proper changed_when
+    - name: Complete dom0 update with alternate method
+      command: sudo qubes-dom0-update --clean -y
+      register: qubes_dom0_update_clean
+      changed_when: "{{ not ('No updates available' in qubes_dom0_update_clean.stdout) }}"
+
+    # Update TemplateVMs
+    - name: Ensure the TemplateVMs are updated
+      command: sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm # TODO: Add proper changed_when
+
+    # Set up sys-usb
+    - name: Ensure sys-usb is setup and that it is properly configured with the keyboard # TODO: Add proper changed_when
+      command: sudo qubesctl state.sls qvm.usb-keyboard
+
+    # Ensure keyboard security settings are correct
+    - name: Block USB keyboards from connecting without prompt
+      copy:
+        content: |
+          sys-usb dom0 ask,default_target=dom0
+        dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
+      when: qubes_keyboard_ask_policy | default(false)
+    - name: Ensure USB keyboard can connect without prompt
+      copy:
+        content: |
+          sys-usb dom0 allow,user=root
+        dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
+      when: not (qubes_keyboard_ask_policy | default(false))
+
+    # Prompt after new mice are attached
+    - name: Ensure newly connected USB mouse devices are only allowed to connect after a prompt is accepted
+      copy:
+        content: |
+          sys-usb dom0 ask,default_target=dom0
+        dest: /etc/qubes-rpc/policy/qubes.InputMouse
+
+    # Ensure the debian-11-minimal template is installed
+    - name: Check if qubes-template-debian-11-minimal is already installed
+      stat:
+        path: /var/lib/qubes/vm-templates/debian-11-minimal
+      register: debian_11_minimal_path
+    - name: Install qubes-template-debian-11-minimal
+      command: sudo qubes-dom0-update qubes-template-debian-11-minimal
+      when: not debian_11_minimal_path.stat.exists
+
+    # Ensure the fedora-36 template is installed
+    - name: Check if qubes-template-fedora-36 is already installed
+      stat:
+        path: /var/lib/qubes/vm-templates/fedora-36
+      register: fedora_36_path
+    - name: Install qubes-template-fedora-36
+      command: sudo qubes-dom0-update qubes-template-fedora-36
+      when: not fedora_36_path.stat.exists
+
+    # Ensure the fedora-36-minimal template is installed
+    - name: Check if qubes-template-fedora-36-minimal is already installed
+      stat:
+        path: /var/lib/qubes/vm-templates/fedora-36-minimal
+      register: fedora_36_minimal_path
+    - name: Install qubes-template-fedora-36-minimal
+      command: sudo qubes-dom0-update qubes-template-fedora-36-minimal
+      when: not fedora_36_minimal_path.stat.exists
+
+    # Ensure qubes-u2f-dom0 is installed
+    - name: Determine if qubes-u2f-dom0 is already installed
+      command: sudo dnf search qubes-u2f-dom0
+      changed_when: false
+      register: qubes_u2f_dom0_dnf
+    - name: Ensure qubes-u2f-dom0 is installed
+      command: sudo qubes-dom0-update -y qubes-u2f-dom0
+      when: qubes_u2f_dom0_dnf.stdout == '0'
+
+    # Ensure qubes-gpg-split-dom0 is installed
+    - name: Determine if qubes-gpg-split-dom0 is already installed
+      command: sudo dnf search qubes-gpg-split-dom0
+      changed_when: false
+      register: qubes_gpg_split_dom0_dnf
+    - name: Ensure qubes-gpg-split-dom0 is installed
+      command: sudo qubes-dom0-update -y qubes-gpg-split-dom0
+      when: qubes_gpg_split_dom0_dnf.stdout == '0'
+
+    # Cache time so this block can be skipped on subsequent runs
+    - name: Ensure directory for custom Ansible facts exists
+      ansible.builtin.file:
+        state: directory
+        recurse: yes
+        path: /etc/ansible/facts.d
+    - name: Write time to file for determining whether or not this block should run (on subsequent runs)
+      copy:
+        content: |
+          dom0_provision_time={{ ansible_date_time.iso8601 }}
+        dest: /etc/ansible/facts.d/qubes.fact
+  when:
+    - (ansible_local.qubes is not defined) or
+      ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
+
+- name: Ensure additional Debian/Whonix TemplateVM packages are installed to non-minimal templates
+  hosts: debian-11:whonix-ws-16
+  connection: qubes
+  tasks:
+    - name: Ensure qubes-gpg-split and qubes-u2f are installed
+      ansible.builtin.apt:
+        name:
+          - qubes-gpg-split
+          - qubes-u2f
+        state: latest
+        update_cache: yes
+
+- name: Ensure additional Fedora TemplateVM packages are installed to non-minimal templates
+  hosts: fedora-36
+  connection: qubes
+  tasks:
+    - name: Ensure qubes-gpg-split and qubes-u2f are installed
+      ansible.builtin.dnf:
+        name:
+          - qubes-gpg-split
+          - qubes-u2f
+        state: latest
+
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Ensure TemplateVMs are initialized
+      qubesos:
+        guest: "{{ vm.name | lower }}{%if (vm.dvm == true) %}-dvm{% endif %}"
+        state: create
+        vmtype: TemplateVM
+        properties:
+          autostart: false
+          default_dispvm: "{%if ((vm.virt_mode == 'hvm') and (vm.default_dispvm is not defined)) %}{{ omit }}{% else %}{{ vm.default_dispvm | default('debian-11-dvm') }}{% endif %}"
+          features: "{{ vm.features | default(omit) }}"
+          include_in_backups: "{{ vm.include_in_backups | default(true) }}"
+          kernel: "{% if (vm.virt_mode == 'hvm') %}''{% else %}{{ omit }}{% endif %}"
+          label: "{{ vm.color | default('black') }}"
+          memory: "{{ vm.memory | default('2048') }}"
+          maxmem: "{{ vm.maxmem | default('4096') }}"
+          netvm: "{{ vm.netvm | default('sys-firewall') }}"
+          provides_network: "{{ vm.provides_network | default(false) }}"
+          template_for_dispvms: "{{ vm.dvm == true }}"
+          vcpus: "{{ vm.vcpus | default(2) }}"
+          virt_mode: "{{ vm.virt_mode | default(omit) }}"
+          volume:
+            name: root
+            size: "{{ vm.volume.root | default('20g') }}"
+      loop: "{{ qubes_vms }}"
+      loop_control:
+        label: "{{ vm.name }}"
+        loop_var: vm
+
+    # Attach sys-net PCI devices to opnsense-dvm
+    - name: Determine number of PCI devices attached to opnsense-dvm
+      command: qvm-device pci list opnsense | wc -l
+      changed_when: false
+      register: opnsense_pci_list
+    - name: Determine number of PCI devices attached to sys-net
+      command: qvm-device pci list sys-net | wc -l
+      changed_when: false
+      register: sys_net_pci_list
+    - name: Attach network PCI devices to opnsense-dvm
+      command: |
+        while read DEVID; do
+          qvm-device pci attach opnsense-dvm "$DEVID" --persistent
+        done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
+      when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
+    - name: Spin up disposable Qube to attach/transfer files from USB
+      qubesos:
+        guest: "{{ qubes_usb_transfer_vm }}"
+        label: red
+        state: running
+        template: debian-11-minimal-dvm
+    - name: Check if the USB storage device is already attached to the disposable USB Qube
+      command: test -n "$(qvm-device usb list | grep "{{ qubes_ventoy_usb_description }}" | sed 's/^[^ ]*[ ]*[^ ]*[ ]*\([^ ]*\)$/\1/')"
+      changed_when: false
+      register: usb_device_test
+    - name: Attach the USB storage device to the disposable USB Qube
+      command: |
+        DEVID="$(qvm-device usb list | grep "{{ qubes_ventoy_usb_description }}" | sed 's/^\([^ ]*\) .*/\1/')"
+        qvm-device usb attach {{ qubes_usb_transfer_vm }} "$DEVID"
+      when: usb_device_test.rc == 1
+    - name: Create LVM volumes for Packer-built desktop HVMs
+      block:
+        - name: Create LVM volume
+          command: sudo lvcreate -n "{{ vm.lvm }}" -V "{{ vm.disk_size | default('100G') }}" --thinpool vm-pool qubes_dom0 # TODO Convert to Ansible syntax
+        - name: Format the volume to EXT4
+          command: sudo mkfs.ext4 /dev/qubes_dom0/{{ vm.lvm }} # TODO Convert to Ansible syntax
+        - name: Create mounting point
+          become: true
+          file:
+            mode: 0755
+            path: /srv/disks/{{ vm.lvm }}
+            state: directory
+        - name: Mount the volume
+          command: sudo mount /dev/qubes_dom0/{{ vm.lvm }} /srv/disks/{{ vm.lvm }} # TODO Convert to Ansible syntax
+        - name: Update the permissions of the mount
+          command: sudo chown -R user:user /srv/{{ vm.lvm }} # TODO Convert to Ansible syntax
+        - name: Determine if the image for {{ vm.name }} is already present
+          ansible.builtin.stat:
+            path: /srv/disks/{{ vm.lvm }}/{{ vm.slug | lower }}.img
+          register: vm_image_path
+        - name: Copy raw image to dom0
+          command: |
+            qvm-run --pass-io {{ qubes_usb_transfer_vm }} "cat /media/user/disk/img/{{ vm.slug | lower }}.img" > '/srv/disks/{{ vm.lvm }}/{{ vm.slug }}.img'
+          when: not vm_image_path.stat.exists
+        - name: Creating TemplateVM for {{ vm.name }} # Cannot use `qubesos:` because it relies on `--root-move-from`
+          command: >
+            qvm-create
+            --class TemplateVM
+            --label purple
+            --property=include_in_backups=true
+            --property=kernel=''
+            --property=maxmem=8192
+            --property=memory=4096
+            --property=vcpus=4
+            --property=virt_mode=hvm
+            --root-move-from /srv/disks/{{ vm.lvm }}/{{ vm.slug | lower }}.img
+            {{ (vm.slug | lower) + '-desktop' }}
+        - name: Create AppVMs based on the TemplateVM for {{ vm.name }}
+          qubesos:
+            guest: "{{ vm.slug + '-Desktop' }}"
+            label: purple
+            state: create
+            template: "{{ (vm.slug | lower) + '-desktop' }}"
+      loop: "{{ qubes_vagrant_vms }}"
+      loop_control:
+        label: "{{ vm.name }}"
+        loop_var: vm
+          
+- name: Configure systems with common settings and applications
+  hosts: anonymous-dvm:crypto:development:gpg:media:personal:provision:remote:swarm:vpn-dvm:vault:web-dvm:work
+  connection: qubes
+  strategy: free
+  roles: "{{ qubes_roles[ansible_hostname] }}"
+
+- name: Finish configuring dom0
+  connection: local
+  hosts: localhost
+  tasks:
+    # Initialize all the template-based AppVMs
+    - name: Ensure AppVMs/DisposableVMs are initialized
+      qubesos:
+        guest: "{{ vm.name }}{%if (vm.dvm == true) %}-dvm{% endif %}"
+        state: create
+        vmtype: "{% if ((vm.type is not defined) and (vm.virt_mode == 'hvm')) %}AppVM{% else %}{{ vm.type | default('AppVM') }}{% endif %}"
+        properties:
+          autostart: "{{ vm.autostart | default(false) }}"
+          default_dispvm: "{{ vm.default_dispvm | default('debian-11-dvm') }}"
+          features: "{{ vm.features | default(omit) }}"
+          include_in_backups: "{{ vm.include_in_backups | default(true) }}"
+          kernel: "{% if (vm.virt_mode == 'hvm') %}{% else %}{{ omit }}{% endif %}"
+          label: "{{ vm.color | default('black') }}"
+          memory: "{{ vm.memory | default('2048') }}"
+          maxmem: "{{ vm.maxmem | default('4096') }}"
+          netvm: "{{ vm.netvm | default('sys-firewall') }}"
+          provides_network: "{{ vm.provides_network | default(false) }}"
+          template: "{{ vm.name | lower }}"
+          template_for_dispvms: false
+          vcpus: "{{ vm.vcpus | default(2) }}"
+          virt_mode: "{{ vm.virt_mode | default(omit) }}"
+          volume:
+            name: private
+            size: "{{ vm.volume.private | default('5g') }}"
+      loop: "{{ qubes_vms }}"
+      loop_control:
+        label: "{{ vm.name }}"
+        loop_var: vm
+
+    # Configure Qubes dom0 to download future updates over Tor
+    - name: Enable updates over Tor
+      command: sudo qubesctl state.sls qvm.updates-via-whonix dom0

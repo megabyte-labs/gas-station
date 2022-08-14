@@ -10,7 +10,9 @@
   become: true
   block:
     - include_tasks: sudo.yml
-  when: ansible_os_family != 'Windows'
+  when:
+    - ansible_os_family != 'Windows'
+    - "'qubes' not in group_names"
 
 # @action Configures Automatic Update settings
 # Installs autoupdate provider on Linux Systems
@@ -22,7 +24,9 @@
   become_user: "{{ ansible_user if ansible_os_family == 'Windows' }}"
   block:
     - include_tasks: "autoupdate-{{ ansible_os_family }}.yml"
-  when: security_autoupdate_enabled | bool
+  when:
+    - security_autoupdate_enabled | bool
+    - "'qubes' not in group_names"
 
 - name: Configure tweaks
   become: true
@@ -37,4 +41,6 @@
   become_user: "{{ ansible_user if ansible_os_family == 'Windows' }}"
   block:
     - include_tasks: "config-Linux.yml"
-  when: ansible_system == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - "'qubes' not in group_names"

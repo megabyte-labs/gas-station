@@ -227,7 +227,7 @@ tasks:
         ENV_OPTION="$(gum choose "$ENVIRONMENT_OPTIONS")"
         task ansible:environment:cli -- "$ENV_OPTION"
 
-  find-missing:
+  find-missing:files:
     desc: Find roles that are missing files
     hide: '{{ne (print .REPOSITORY_TYPE "-" .REPOSITORY_SUBTYPE) "ansible-playbook"}}'
     summary: |
@@ -253,6 +253,35 @@ tasks:
     preconditions:
       - sh: test -d roles
         msg: The `roles/` folder is missing. Is the project set up right?
+
+  find-missing:roles:
+    summary: |
+      # Find roles that are not in main.yml
+
+      This task will collect all the role paths in the `roles/` folder and return a list
+      of roles that are not present in the `main.yml` file.
+
+      If you want to scan something other than `main.yml`, you can pass the file in as a
+      CLI argument like so:
+
+      **Example scanning file other than `main.yml`:**
+      `task ansible:playbook:find-missing:roles -- playbooks/qubes.yml`
+    cmds:
+      - |
+        TMP="$(mktemp)"
+        RESULTS="$(mktemp)"
+        while read ROLE; do
+          ROLE_TITLE="$(echo "$ROLE" | sed 's/^.\///')"
+          if ! grep "$ROLE_TITLE" '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}' > /dev/null; then
+            echo "$ROLE_TITLE" >> "$RESULTS"
+          fi
+        done< <(find ./roles -maxdepth 2 -mindepth 2)
+        if grep ".*" "$RESULTS"; then
+          .config/log info 'The roles missing from `{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}` are:'
+          cat "$RESULTS"
+        else
+          .config/log info 'All of the roles are included in `{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}`'
+        fi
 
   remotes:
     deps:

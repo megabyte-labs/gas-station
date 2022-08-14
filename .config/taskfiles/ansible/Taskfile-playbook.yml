@@ -269,16 +269,19 @@ tasks:
     cmds:
       - |
         TMP="$(mktemp)"
-        find ./roles -maxdepth 2 -mindepth 2 > "$TMP"
-        for ROLE in $(cat "$TMP"); do
-          GREP_ROLE="$(grep -n "$ROLE" "$TMP")"
-          if [ -n "$GREP_ROLE" ]; then
-            LINE_NUMBER="$(echo "$GREP_ROLE" | cut -d : -f 1)"
-            sed -e "$LINE_NUMBER"'d' > "$TMP"
-          else
-            .config/log info 'Could not find `'"$ROLE"'` in `{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}`'
+        RESULTS="$(mktemp)"
+        while read ROLE; do
+          ROLE_TITLE="$(echo "$ROLE" | sed 's/^.\///')"
+          if ! grep "$ROLE_TITLE" '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}' > /dev/null; then
+            echo "$ROLE_TITLE" >> "$RESULTS"
           fi
-        done
+        done< <(find ./roles -maxdepth 2 -mindepth 2)
+        if grep ".*" "$RESULTS"; then
+          .config/log info 'The roles missing from `{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}` are:'
+          cat "$RESULTS"
+        else
+          .config/log info 'All of the roles are included in `{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}main.yml{{end}}`'
+        fi
 
   remotes:
     deps:

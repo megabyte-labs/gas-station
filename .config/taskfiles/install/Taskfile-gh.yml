@@ -82,18 +82,18 @@ tasks:
     status:
       - '[ -f "C:\Program Files\Betwixt\Betwixt.exe" ]'
 
-  bitwarden:
-    cmds:
-      - task: bw:{{OS}}
-    status:
-      - '[ -f /usr/local/bin/bw ]'
-
   bivac:
     cmds:
       - task: install:gh
         vars:
           BIN_NAME: bivac
           PACKAGE: camptocamp/bivac
+
+  bitwarden:
+    cmds:
+      - task: bw:{{OS}}
+    status:
+      - '[ -f /usr/local/bin/bw ]'
 
   bw:darwin:
     cmds:
@@ -170,9 +170,9 @@ tasks:
         vars:
           BIN_NAME: dat
           PACKAGE: dat-ecosystem-archive/dat
+          ZIP_OPTIONS: ' -j'
           TAR_OPTIONS: ' --strip-components 1'
 
-          ZIP_OPTIONS: ' -j'
   delta:
     cmds:
       - task: install:gh
@@ -180,6 +180,13 @@ tasks:
           BIN_NAME: delta
           PACKAGE: dandavison/delta
           TAR_OPTIONS: ' --strip-components 1'
+
+  dog:
+    cmds:
+      - task: install:gh
+        vars:
+          BIN_NAME: dog
+          PACKAGE: ogham/dog
 
   deno:
     cmds:
@@ -229,13 +236,6 @@ tasks:
         vars:
           BIN_NAME: doctl
           PACKAGE: digitalocean/doctl
-
-  dog:
-    cmds:
-      - task: install:gh
-        vars:
-          BIN_NAME: dog
-          PACKAGE: ogham/dog
 
   duf:
     cmds:
@@ -325,9 +325,9 @@ tasks:
       - task: install:gh
         vars:
           BIN_NAME: Ganache
-          EXE_PATTERN: '-p *setup.exe'
-
           PACKAGE: trufflesuite/ganache-ui
+          EXE_PATTERN: "-p *setup.exe"
+
   gh:
     cmds:
       - task: install:gh
@@ -359,9 +359,9 @@ tasks:
       - task: install:gh
         vars:
           BIN_NAME: gitify
-          EXE_PATTERN: '-p *Setup*.exe'
-
           PACKAGE: manosim/gitify
+          EXE_PATTERN: "-p *Setup*.exe"
+
   gitleaks:
     cmds:
       - task: install:gh
@@ -416,14 +416,16 @@ tasks:
     status:
       - '[ -f C:/ProgramData/bin/hey.exe ]'
 
-  install:appimage:
+  install:gh:
+    deps:
+      - :install:software:gh
     cmds:
-      - gh release download -R '{{.PACKAGE}}' -p "*.AppImage"
-      - mv *.AppImage /opt/{{.DEST_APPIMAGE_NAME}}.AppImage
-      - chmod +x /opt/{{.DEST_APPIMAGE_NAME}}.AppImage
-      - ln -s /opt/{{.DEST_APPIMAGE_NAME}}.AppImage /usr/local/bin/{{.DEST_APPIMAGE_NAME}}
-    status:
-      - '[ -f /opt/{{.DEST_APPIMAGE_NAME}}.AppImage ]'
+      - task: install:gh:{{OS}}
+        vars:
+          BIN_NAME: '{{.BIN_NAME}}'
+          PACKAGE: '{{.PACKAGE}}'
+          TAR_OPTIONS: '{{.TAR_OPTIONS}}'
+          ZIP_OPTIONS: '{{.ZIP_OPTIONS}}'
 
   install:dmg:
     vars:
@@ -452,16 +454,14 @@ tasks:
     status:
       - '[ -f /Applications/{{.DMG_NAME}}.app ]'
 
-  install:gh:
-    deps:
-      - :install:software:gh
+  install:appimage:
     cmds:
-      - task: install:gh:{{OS}}
-        vars:
-          BIN_NAME: '{{.BIN_NAME}}'
-          PACKAGE: '{{.PACKAGE}}'
-          TAR_OPTIONS: '{{.TAR_OPTIONS}}'
-          ZIP_OPTIONS: '{{.ZIP_OPTIONS}}'
+      - gh release download -R '{{.PACKAGE}}' -p "*.AppImage"
+      - mv *.AppImage /opt/{{.DEST_APPIMAGE_NAME}}.AppImage
+      - chmod +x /opt/{{.DEST_APPIMAGE_NAME}}.AppImage
+      - ln -s /opt/{{.DEST_APPIMAGE_NAME}}.AppImage /usr/local/bin/{{.DEST_APPIMAGE_NAME}}
+    status:
+      - '[ -f /opt/{{.DEST_APPIMAGE_NAME}}.AppImage ]'
 
   install:gh:darwin:
     deps:
@@ -612,8 +612,7 @@ tasks:
       - :install:software:gh
     vars:
       BIN_FOLDER: C:/ProgramData/bin
-      PATTERNS:
-        -p "*x86_64-windows.zip" -p "*Windows_64-bit.tar.gz" -p "*windows-amd64*.zip" -p "*windows_amd64.zip" -p "*windows_amd64.tar.gz" -p "*windows-amd64*"
+      PATTERNS: -p "*x86_64-windows.zip" -p "*Windows_64-bit.tar.gz" -p "*windows-amd64*.zip" -p "*windows_amd64.zip" -p "*windows_amd64.tar.gz" -p "*windows-amd64*"
         -p "*win-x64.zip" -p "*Windows-64bit.zip" -p "*64*windows-msvc.zip" -p "*windows_x64.zip" -p "*Windows_x86_64.tar.gz" -p "*win-*.exe" -p "*setup*.exe" -p "*Setup*.exe"
         -p "*installer*64*.exe"
     env:
@@ -625,46 +624,46 @@ tasks:
         $COUNT = 0;
         $installer=$false;
         Get-ChildItem -File | %{
-        $FILE = $_.Name;
-        $COUNT = $COUNT + 1;
-        if($COUNT -eq 1 ){
-        if (("$FILE" -like "*.tar.gz") -or ("$FILE" -like "*.zip")){
-        tar -xzf "$FILE"{{.TAR_OPTIONS}};
-        Remove-Item "$FILE" -Force;
-        }elseif((! $installer) -and (("$FILE" -like "*setup*64*.exe") -or ("$FILE" -like "*setup*.exe") -or ("$FILE" -like "*installer*64*.exe") -or ("$FILE" -like "*64*installer*.exe"))){
-        $installer=$true;
-        Start-Process "$FILE" /S -NoNewWindow -Wait -PassThru;
-        Remove-Item "$FILE" -Force;
-        }
-        }else{
-        Write-Host 'Multiple releases have possibly been downloaded' -ForegroundColor Yellow;
-        }
+          $FILE = $_.Name;
+          $COUNT = $COUNT + 1;
+          if($COUNT -eq 1 ){
+            if (("$FILE" -like "*.tar.gz") -or ("$FILE" -like "*.zip")){
+              tar -xzf "$FILE"{{.TAR_OPTIONS}};
+              Remove-Item "$FILE" -Force;
+            }elseif((! $installer) -and (("$FILE" -like "*setup*64*.exe") -or ("$FILE" -like "*setup*.exe") -or ("$FILE" -like "*installer*64*.exe") -or ("$FILE" -like "*64*installer*.exe"))){
+              $installer=$true;
+              Start-Process "$FILE" /S -NoNewWindow -Wait -PassThru;
+              Remove-Item "$FILE" -Force;
+            }
+          }else{
+            Write-Host 'Multiple releases have possibly been downloaded' -ForegroundColor Yellow;
+          }
         };
         Get-ChildItem;
         Remove-Item "CHANGELOG.md", "LICENSE", "LICENSE*", "README.md", "autocomplete", "completion*", "*_autocomplete", "contrib", "Changes" -EA SilentlyContinue -Force;
         mkdir {{.BIN_FOLDER}} -EA SilentlyContinue;
         pwd;
         if($installer){
-        Write-Host '{{.BIN_NAME}} installed using the installer';
+          Write-Host '{{.BIN_NAME}} installed using the installer';
         }elseif((Get-ChildItem -File | Measure).Count -eq 1){
-        Write-Host 'Moving {{.BIN_NAME}} from its default location';
-        Move-Item -Force * {{.BIN_FOLDER}}/{{.BIN_NAME}}.exe;
+          Write-Host 'Moving {{.BIN_NAME}} from its default location';
+          Move-Item -Force * {{.BIN_FOLDER}}/{{.BIN_NAME}}.exe;
         }else{
-        if(Test-Path .\bin){
-        cd bin;
-        if((Get-ChildItem -File | Measure).Count -eq 1){
-        Write-Host 'Moving {{.BIN_NAME}} from the bin folder';
-        Move-Item -Force * {{.BIN_FOLDER}}/{{.BIN_NAME}}.exe;
-        }else{
-        Write-Host 'Unmatched binary named {{.BIN_NAME}} from *.tar.gz with a bin folder' -ForegroundColor Yellow;
-        }
-        cd ..;
-        }elseif((Get-ChildItem -File {{.BIN_NAME}}* -ea SilentlyContinue | Measure).Count -gt 0){
-        Write-Host 'Moving {{.BIN_NAME}} from its default location, but, there are other files that are not moved' -ForeGroundColor Yellow;
-        Move-Item -Force {{.BIN_NAME}}*.exe {{.BIN_FOLDER}}/;
-        }else{
-        Write-Host 'Unmatched binary named {{.BIN_NAME}}' -ForegroundColor Yellow;
-        }
+          if(Test-Path .\bin){
+            cd bin;
+            if((Get-ChildItem -File | Measure).Count -eq 1){
+              Write-Host 'Moving {{.BIN_NAME}} from the bin folder';
+              Move-Item -Force * {{.BIN_FOLDER}}/{{.BIN_NAME}}.exe;
+            }else{
+              Write-Host 'Unmatched binary named {{.BIN_NAME}} from *.tar.gz with a bin folder' -ForegroundColor Yellow;
+            }
+            cd ..;
+          }elseif((Get-ChildItem -File {{.BIN_NAME}}* -ea SilentlyContinue | Measure).Count -gt 0){
+            Write-Host 'Moving {{.BIN_NAME}} from its default location, but, there are other files that are not moved' -ForeGroundColor Yellow;
+            Move-Item -Force {{.BIN_NAME}}*.exe {{.BIN_FOLDER}}/;
+          }else{
+            Write-Host 'Unmatched binary named {{.BIN_NAME}}' -ForegroundColor Yellow;
+          }
         }'
     status:
       - '[ -f {{.BIN_FOLDER}}/{{.BIN_NAME}}.exe ]'
@@ -816,9 +815,9 @@ tasks:
       - task: install:gh
         vars:
           BIN_NAME: Manta
-          EXE_PATTERN: '*Setup*.exe'
-
           PACKAGE: hql287/manta
+          EXE_PATTERN: "*Setup*.exe"
+
   mark-text:
     cmds:
       - task: marktext:{{OS}}
@@ -863,9 +862,9 @@ tasks:
       - task: install:gh
         vars:
           BIN_NAME: masscode
-          EXE_PATTERN: '*Setup*.exe'
-
           PACKAGE: antonreshetov/masscode
+          EXE_PATTERN: "*Setup*.exe"
+
   mergestat:
     cmds:
       - task: install:gh
@@ -910,9 +909,9 @@ tasks:
       - task: install:gh
         vars:
           BIN_NAME: mqttx
-          EXE_PATTERN: '*Setup*x64.exe'
-
           PACKAGE: agalwood/mqttx
+          EXE_PATTERN: "*Setup*x64.exe"
+
   nebula:
     cmds:
       - task: install:gh
@@ -1019,9 +1018,9 @@ tasks:
       - task: install:gh
         vars:
           BIN_NAME: raindrop
-          EXE_PATTERN: '*Installer.exe'
-
           PACKAGE: raindropio/raindrop
+          EXE_PATTERN: "*Installer.exe"
+
   responsively:
     cmds:
       - task: responsively:{{OS}}

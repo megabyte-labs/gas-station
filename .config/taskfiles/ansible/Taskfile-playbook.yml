@@ -217,19 +217,15 @@ tasks:
   environment:prompt:continue:
     interactive: true
     deps:
+      - :install:software:gum
       - :install:software:jq
     vars:
       ENVIRONMENT_OPTIONS:
         sh: find ./environments -maxdepth 1 -mindepth 1 | sed 's/\.\/environments\///' | jq -R '[.]' | jq -s -c 'add'
-    prompt:
-      type: select
-      message: Which environment would you like to use?
-      options: '{{.ENVIRONMENT_OPTIONS}}'
-      answer:
-        cmds:
-          - task: environment:cli
-            vars:
-              CLI_ARGS: '{{.ANSWER}}'
+    cmds:
+      - |
+        ENV_OPTION="$(gum choose "$ENVIRONMENT_OPTIONS")"
+        task ansible:environment:cli -- "$ENV_OPTION"
 
   find-missing:
     desc: Find roles that are missing files

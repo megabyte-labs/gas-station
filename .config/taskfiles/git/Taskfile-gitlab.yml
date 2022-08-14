@@ -167,10 +167,24 @@ tasks:
         wait){{else}}){{end}}
 
   group:exec:prompt:
+    deps:
+      - :install:software:glab
+      - :install:software:jq
     interactive: true
     cmds:
-      - mkdir -p .cache
-      - node .config/scripts/prompts/gitlab-group.js
+      - |
+        GITLAB_GROUPS="$(glab api --paginate groups | jq -r '.[].full_path')"
+        GROUP_OPTION="$(gum choose "$ENVIRONMENT_OPTIONS")"
+        GUM_CONFIRM_MSG="Would you like to use the previously run script (i.e. .cache/gitlab-group.sh)?"
+        if [ -f .cache/gitlab-group.sh ] && gum confirm "$GUM_CONFIRM_MSG"; then
+          bash .cache/gitlab-group.sh
+        else
+          TMP="$(mktemp)"
+          gum write --placeholder "Enter the script you would like to run including the hashbang (CTRL+D to finish)" --show-cursor-line --show-line-numbers > "$TMP"
+          bash "$TMP"
+          mkdir -p .cache
+          mv "$TMP" > .cache/gitlab-group.sh
+        fi
 
   group:repositories:
     deps:

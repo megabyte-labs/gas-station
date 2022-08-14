@@ -3,6 +3,7 @@
   package:
     name: stubby
     state: "{{ app_state | default('present') }}"
+  when: (dns_over_tls is not defined) or (dns_provider is not defined) or (ansible_system != 'Linux')
 
 # TODO: Get rid of everything below and install it with the generic installer since hostctl is in the software.yml list
 - name: Ensure custom facts directory exists
@@ -16,17 +17,20 @@
     path: "{{ hostctl_src_dir }}"
     state: directory
     mode: 0755
+  when: install_hostctl
 
 - name: Detect the latest hostctl version
   uri:
     url: https://api.github.com/repos/guumaster/hostctl/releases/latest
   register: hostctl_latest_release_tag
+  when: install_hostctl
 
 - name: Determine whether or not the latest version of hostctl is already installed
   set_fact:
     install_hostctl: "{{ (ansible_local.hostctl is not defined) or \
       ((ansible_local.hostctl is defined) and \
       (ansible_local['hostctl']['settings']['version'] != hostctl_latest_release_tag.json.tag_name | replace('v',''))) }}"
+  when: install_hostctl
 
 - name: Fetch CHECKSUMS file of hostctl installer
   uri:

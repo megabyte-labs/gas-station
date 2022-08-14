@@ -4,6 +4,7 @@
     mode: 0755
     path: "{{ hostsfile_dest_dir }}"
     state: directory
+  when: hostsfile_default_loopback
 
 - name: Ensure hosts files are downloaded
   get_url:
@@ -26,6 +27,7 @@
   loop_control:
     loop_var: hostsfile
   register: download_result
+  when: hostsfile_default_loopback
 
 - name: Ensure a copy of hosts files are created
   copy:
@@ -42,7 +44,9 @@
     - all
   loop_control:
     loop_var: filename
-  when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - hostsfile_default_loopback
 
 - name: Ensure the hosts file are sanitized
   lineinfile:
@@ -59,10 +63,13 @@
     - all
   loop_control:
     loop_var: filename
-  when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - hostsfile_default_loopback
 
 - name: Backup the default hosts file # noqa 301
   command: hostctl backup --path "{{ hostsfile_dest_dir }}/"
+  when: hostsfile_default_loopback
 
 # @action `hostctl` versions after v1.0.15 check for unique domains in a profile which makes
 # it extremely slow to process large hosts files. Revisit after a future version provides a
@@ -91,7 +98,9 @@
   loop_control:
     loop_var: filename
   register: clean_files
-  when: "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - hostsfile_default_loopback
 
 - name: Determine whether or not a Desktop Environment is installed
   stat:
@@ -122,6 +131,7 @@
     - ansible_system == 'Darwin' or (ansible_system == 'Linux' and desktop_env_results | join(',') | regex_search('true'))
     - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - install_switchhosts
 
 - name: Set systemd-resolved DNS
   lineinfile:

@@ -572,6 +572,11 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
         volta setup
         volta install node
       fi
+      if ! type pipx &> /dev/null; then
+        task install:software:pipx
+        . "$HOME/.profile" &> /dev/null || true
+        PATH="$PATH:$HOME/.local/bin"
+      fi
     fi
   fi
 fi

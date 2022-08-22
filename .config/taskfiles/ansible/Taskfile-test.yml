@@ -283,23 +283,35 @@ tasks:
   molecule:docker:prompt:continue:
     interactive: true
     deps:
+      - :install:software:gum
       - :install:software:jq
       - :install:software:yq
     vars:
       DOCKER_OPTIONS:
-        sh: yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys'
-    prompt:
-      type: select
-      message: Which environment(s) would you like to run the test on?
-      options: '{{.DOCKER_OPTIONS}}'
-      answer:
-        cmds:
-          - task: molecule:docker:cli
-            vars:
-              CLI_ARGS: '{{.ANSWER}}'
-            env:
-              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
-          - task: allure:report
+        sh: yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys | join("\" \"")'
+      DOCKER_OPTIONS_LENGTH:
+        sh: yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys | length'
+    cmds:
+      - |
+        if [[ '{{.DOCKER_OPTIONS_LENGTH}}' == '0' ]]; then
+          .config/log error 'There are no Molecule groups defined in `molecule/desktop/molecule.yml`' && exit 1
+        else
+          .config/log prompt 'Which environment(s) would you like to run the test on?'
+          CHOSEN_OPTIONS="$(gum choose --no-limit {{.DOCKER_OPTIONS}})"
+          COMBINED_OPTIONS=""
+          CHOSEN_COUNT="$(echo "$CHOSEN_OPTIONS" | wc -l)"
+          if [[ "$CHOSEN_COUNT" == '0' ]]; then
+            .config/log error 'No items were selected!' && exit 1
+          else
+            while read CURRENT_OPTION; do
+              COMBINED_OPTIONS="${COMBINED_OPTIONS}:${CURRENT_OPTION}"
+            done< <(echo "$CHOSEN_OPTIONS")
+            CHOSEN_OPTION="${COMBINED_OPTIONS:1}"
+            export ANSIBLE_ENABLE_TASK_DEBUGGER=true
+            task ansible:test:molecule:docker:cli -- "$CHOSEN_OPTION"
+          fi
+        fi
+      - task: allure:report
     preconditions:
       - sh: test -f molecule/docker/molecule.yml
         msg: The `molecule/docker/molecule.yml` file must be present and in the proper format
@@ -415,17 +427,17 @@ tasks:
       - task: molecule:local:prompt:continue
 
   molecule:local:prompt:continue:
+    deps:
+      - :install:software:gum
     interactive: true
-    prompt:
-      type: input
-      message: What is the sudo password for the current user?
-      answer:
-        cmds:
-          - task: molecule:local:test
-            env:
-              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
-              TEST_PASSWORD: '{{.ANSWER}}'
-          - task: allure:report
+    cmds:
+      - .config/log prompt 'What is the sudo password for the current user?'
+      - |
+        SUDO_PASS="$(.config/log password 'Enter sudo password for local machine..')"
+        export ANSIBLE_ENABLE_TASK_DEBUGGER=true
+        export TEST_PASSWORD="$SUDO_PASS"
+        task ansible:test:molecule:local:test
+      - task: allure:report
 
   molecule:local:test:
     deps:
@@ -497,70 +509,43 @@ tasks:
       - task: :log:markdown
         vars:
           MARKDOWN: '{{.MARKDOWN}}'
-      - echo 'This is incomplete - try again another time'
-      - exit 1
       - task: molecule:ssh:prompt:continue
 
   molecule:ssh:prompt:continue:
+    deps:
+      - :install:software:gum
     interactive: true
-    todo: https://gitlab.com/megabyte-labs/common/ansible/-/blob/310e721494c7395e2dae0c95462a42d9240fc167/.config/scripts/prompts/molecule/ssh.js
-    prompt:
-      type: input
-      message: What is the target's IP address or FQDN?
-      validate:
-        sh: >
-          [[ '{{.ANSWER}}' =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ ]] ||
-          [[ '{{.ANSWER}}' =~ ^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$ ]]
-      answer:
-        vars:
-          TARGET_HOST: '{{.ANSWER}}'
-        prompt:
-          type: input
-          message: What port should the SSH connection be made over?
-          default: 22
-          validate:
-            sh: >
-              [[ '{{.ANSWER}}' =~ ^[0-9]*$ ]]
-          answer:
-            vars:
-              TARGET_PORT: '{{.ANSWER}}'
-            prompt:
-              type: input
-              message: What is the username of a user that has both sudo and SSH privileges?
-              default: root
-              validate:
-                sh: >
-                  [[ '{{.ANSWER}}' =~ ^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$ ]]
-              answer:
-                env:
-                  PASSWORD_TMP:
-                    sh: mktemp
-                cmds:
-                  - |
-                    if [ '{{.ANSWER}}' != 'root' ]; then
-                      task ansible:test:molecule:ssh:prompt:password -- "$PASSWORD_TMP"
-                    fi
-                  - task: molecule:ssh:cli
-                    env:
-                      ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
-                      TEST_BECOME_PASSWORD:
-                        sh: cat "$PASSWORD_TMP"
-                      TEST_HOST: '{{.TARGET_HOST}}'
-                      TEST_PASSWORD:
-                        sh: cat "$PASSWORD_TMP"
-                      TEST_PORT:
-                        sh: '{{.TARGET_PORT}}'
-                      TEST_SSH_USER: '{{.ANSWER}}'
-                      TEST_USER: '{{.ANSWER}}'
-
-  molecule:ssh:prompt:password:
-    interactive: true
-    prompt:
-      type: input
-      message: What is the user's sudo password?
-      answer:
-        cmds:
-          - echo '{{.ANSWER}}' > {{.CLI_ARGS}}
+    cmds:
+      - |
+        .config/log prompt 'What is the IP address or the FQDN of the target host?'
+        IP_ANSWER="$(.config/log input 'Enter IP address or FQDN..')"
+        if [[ "$IP_ANSWER" =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ ]] || \
+          [[ "$IP_ANSWER" =~ ^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$ ]]; then
+          .config/log prompt 'What port should the SSH connection use?'
+          PORT_ANSWER="$(gum input --placeholder='Enter SSH port..' --value='22')"
+          if [[ "$PORT_ANSWER" =~ ^[0-9]*$ ]]; then
+            .config/log prompt 'What is the username of a user that has both sudo and SSH privileges?'
+            USER_ANSWER="$(.config/log input 'SSH username..')"
+            if [[ "$USER_ANSWER" ^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$ ]]; then
+              export ANSIBLE_ENABLE_TASK_DEBUGGER=true
+              export TEST_HOST="$IP_ANSWER"
+              export TEST_PORT="$PORT_ANSWER"
+              export TEST_SSH_USER="$USER_ANSWER"
+              export TEST_USER="$USER_ANSWER"
+              if [[ "$USER_ANSWER" != 'root' ]]; then
+                .config/log prompt 'What is the user's sudo password?'
+                SUDO_PASS_ANSWER="$(.config/log password 'Enter sudo password..')"
+                export TEST_PASSWORD="$SUDO_PASS_ANSWER"
+                export TEST_BECOME_PASSWORD="$SUDO_PASS_ANSWER"
+              fi
+              task ansible:test:molecule:ssh:cli
+            else
+              .config/log error 'Username is invalid!' && exit 1
+          else
+            .config/log error 'That SSH port is not valid!' && exit 1
+        else
+          .config/log error 'An invalid IP address / FQDN was entered.' && exit 1
+        fi
 
   molecule:virtualbox:
     desc: Runs a full E2E Molecule test for all supported operating systems
@@ -670,26 +655,29 @@ tasks:
   molecule:virtualbox:converge:prompt:continue:
     interactive: true
     deps:
+      - :install:software:gum
       - :install:software:jq
       - :install:software:yq
     vars:
       VIRTUALBOX_OPTIONS:
-        sh: yq eval -o=j '.groups' molecule/desktop/molecule.yml | jq -r 'keys'
-    prompt:
-      type: select
-      message: Which desktop operating system would you like to test the Ansible play against?
-      options: '{{.VIRTUALBOX_OPTIONS}}'
-      answer:
-        cmds:
-          - task: molecule:virtualbox:converge:cli
-            vars:
-              CLI_ARGS: '{{.ANSWER}}'
-            env:
-              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
-          - task: allure:report
+        sh: echo "\"$(yq eval -o=j '.groups' molecule/desktop/molecule.yml | jq -r 'keys | join("\" \"")')\""
+      VIRTUALBOX_OPTIONS_LENGTH:
+        sh: yq eval -o=j '.groups' molecule/desktop/molecule.yml | jq -r 'keys | length'
+    cmds:
+      - |
+        if [[ '{{.VIRTUALBOX_OPTIONS_LENGTH}}' == '0' ]]; then
+          .config/log error 'There are no Molecule groups defined in `molecule/desktop/molecule.yml`' && exit 1
+        else
+          .config/log prompt 'Which desktop operating system would you like to test the Ansible play against?'
+          CHOSEN_OPTION="$(.config/log choose {{.VIRTUALBOX_OPTIONS}})"
+          export ANSIBLE_ENABLE_TASK_DEBUGGER=true
+          task ansible:test:molecule:virtualbox:converge:cli -- "$CHOSEN_OPTION"
+        fi
+      - task: allure:report
     preconditions:
       - sh: test -f molecule/desktop/molecule.yml
         msg: The `molecule/desktop/molecule.yml` file must be present and in the proper format
+
 
   molecule:virtualbox:matrix:
     deps:
@@ -738,23 +726,35 @@ tasks:
   molecule:virtualbox:prompt:continue:
     interactive: true
     deps:
+      - :install:software:gum
       - :install:software:jq
       - :install:software:yq
     vars:
       VIRTUALBOX_OPTIONS:
-        sh: yq eval -o=j '.groups' molecule/default/molecule.yml | jq -r 'keys'
-    prompt:
-      type: select
-      message: What environment(s) would you like to target with this test?
-      options: '{{.VIRTUALBOX_OPTIONS}}'
-      answer:
-        cmds:
-          - task: molecule:virtualbox:cli
-            vars:
-              CLI_ARGS: '{{.ANSWER}}'
-            env:
-              ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
-          - task: allure:report
+        sh: echo "\"$(yq eval -o=j '.groups' molecule/desktop/molecule.yml | jq -r 'keys | join("\" \"")')\""
+      VIRTUALBOX_OPTIONS_LENGTH:
+        sh: yq eval -o=j '.groups' molecule/desktop/molecule.yml | jq -r 'keys | length'
+    cmds:
+      - |
+        if [[ '{{.VIRTUALBOX_OPTIONS_LENGTH}}' == '0' ]]; then
+          .config/log error 'There are no Molecule groups defined in `molecule/desktop/molecule.yml`' && exit 1
+        else
+          .config/log prompt 'What environment(s) would you like to target with this test?'
+          CHOSEN_OPTIONS="$(gum choose --no-limit {{.VIRTUALBOX_OPTIONS}})"
+          COMBINED_OPTIONS=""
+          CHOSEN_COUNT="$(echo "$CHOSEN_OPTIONS" | wc -l)"
+          if [[ "$CHOSEN_COUNT" == '0' ]]; then
+            .config/log error 'No items were selected!' && exit 1
+          else
+            while read CURRENT_OPTION; do
+              COMBINED_OPTIONS="${COMBINED_OPTIONS}:${CURRENT_OPTION}"
+            done< <(echo "$CHOSEN_OPTIONS")
+            CHOSEN_OPTION="${COMBINED_OPTIONS:1}"
+            export ANSIBLE_ENABLE_TASK_DEBUGGER=true
+            task ansible:test:molecule:virtualbox:cli -- "$CHOSEN_OPTION"
+          fi
+        fi
+      - task: allure:report
     preconditions:
       - sh: test -f molecule/default/molecule.yml
         msg: The `molecule/default/molecule.yml` file must be present and in the proper format
@@ -841,42 +841,26 @@ tasks:
 
   prompt:continue:
     interactive: true
-    prompt:
-      type: select
-      message: What type of test would you like to perform?
-      options:
-        - VirtualBox Headless
-        - VirtualBox Desktop
-        - Docker
-        - Local
-        - SSH
-        - Google Cloud Platform
-      answer:
-        cmds:
-          - task: prompt:continue:task
-            vars:
-              MOLECULE_TASK:
-                sh: |
-                  if [ {{.ANSWER}} == 'VirtualBox Headless' ]; then
-                    echo 'virtualbox:prompt'
-                  elif [ '{{.ANSWER}}' == 'VirtualBox Desktop' ]; then
-                    echo 'virtualbox:converge:prompt'
-                  elif [ '{{.ANSWER}}' == 'Docker' ]; then
-                    echo 'docker:prompt'
-                  elif [ '{{.ANSWER}}' == 'Local' ]; then
-                    echo 'local'
-                  elif [ '{{.ANSWER}}' == 'SSH' ]; then
-                    echo 'ssh:prompt'
-                  elif [ '{{.ANSWER}}' == 'Google Cloud Platform' ]; then
-                    echo 'gcp'
-                  fi
-          - task: allure:report
-
-  prompt:continue:task:
     cmds:
-      - task: molecule:{{.MOLECULE_TASK}}
-        env:
-          ANSIBLE_ENABLE_TASK_DEBUGGER: 'true'
+      - .config/log prompt 'What type of test would you like to perform?'
+      - |
+        CHOSEN_TEST="$(.config/log choose 'VirtualBox Headless' 'VirtualBox Desktop' 'Docker' 'Local' 'SSH' 'Google Cloud Platform')"
+        if [[ "$CHOSEN_TEST" == 'VirtualBox Headless' ]]; then
+          TEST_SLUG='virtualbox:prompt'
+        elif [[ "$CHOSEN_TEST" == 'VirtualBox Desktop' ]]; then
+          TEST_SLUG='virtualbox:converge:prompt'
+        elif [[ "$CHOSEN_TEST" == 'Docker' ]]; then
+          TEST_SLUG='docker:prompt'
+        elif [ '{{.ANSWER}}' == 'Local' ]; then
+          TEST_SLUG='local'
+        elif [ '{{.ANSWER}}' == 'SSH' ]; then
+          TEST_SLUG='ssh:prompt'
+        elif [ '{{.ANSWER}}' == 'Google Cloud Platform' ]; then
+          TEST_SLUG='gcp'
+        fi
+        export ANSIBLE_ENABLE_TASK_DEBUGGER=true
+        task ansible:test:molecule:${TEST_SLUG}
+      - task: allure:report
 
   vagrant:
     desc: Runs the playbook using Vagrant
@@ -991,7 +975,7 @@ tasks:
     cmds:
       - |
         if [[ '{{.PROMPT_OPTIONS' == 'None' ]]; then
-          .config/log error 'No virtualization platforms installed. Install a platform (e.g. VirtualBox, VMWare, QEMU) to continue.'
+          .config/log error 'No virtualization platforms installed. Install a platform (e.g. VirtualBox, VMWare, QEMU) to continue.' && exit 1
         else
           .config/log prompt 'Which virtualization platform would you like to use?'
           PLATFORM_CHOICE="$(.config/log choose '{{.PROMPT_OPTIONS}}')"

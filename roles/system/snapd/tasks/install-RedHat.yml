@@ -17,6 +17,7 @@
     name: snapd.socket
     state: started
     enabled: true
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: Create a link to enable classic snap support
   file:
@@ -25,16 +26,20 @@
     state: link
 
 - name: Restart systemd-udevd # noqa 503
-  ansible.builtin.systemd:
+  systemd:
     name: systemd-udevd
     state: restarted
-  when: snapd.changed
+  when:
+    - snapd.changed
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: Restart snapd.seeded.service # noqa 503
-  ansible.builtin.systemd:
+  systemd:
     name: snapd.seeded.service
     state: restarted
-  when: snapd.changed
+  when:
+    - snapd.changed
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: Ensure snap core is installed
   community.general.snap:

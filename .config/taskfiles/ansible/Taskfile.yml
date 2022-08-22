@@ -78,6 +78,7 @@ tasks:
     cmds:
       - |
         GITHUB_ROLE_SLUG="$(jq -r '.blueprint.repository.github' package.json | sed 's/.*\///')"
+        PATH="$PATH:$HOME/.local/bin"
         {{.PYTHON_HANDLE}} ansible-galaxy role import --token "$ANSIBLE_GALAXY_TOKEN" {{.GITHUB_ORG}} "$GITHUB_ROLE_SLUG"
     status:
       - '[ -z "$ANSIBLE_GALAXY_TOKEN" ]'
@@ -102,14 +103,18 @@ tasks:
         if [ -f ~/.netrc ]; then
           chmod 600 ~/.netrc
         fi
-      - cmd: '{{.PYTHON_HANDLE}} ansible-galaxy install -r requirements.yml --ignore-errors'
+      - cmd: |
+          PATH="$PATH:$HOME/.local/bin"
+          {{.PYTHON_HANDLE}} ansible-galaxy install -r requirements.yml --ignore-errors
         ignore_error: true
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
   init:
     cmds:
-      - ansible-galaxy init --role-skeleton=/path/to/skeleton role_name
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        ansible-galaxy init --role-skeleton=/path/to/skeleton role_name
 
   keywords:sync:
     deps:
@@ -190,6 +195,8 @@ tasks:
       success: Successfully generated documentation partials with `mod-ansible-autodoc`
     cmds:
       - >
+        PATH="$PATH:$HOME/.local/bin"
+
         {{.PYTHON_HANDLE}}mod-ansible-autodoc --actions-title '## Features' --actions-description "$ACTIONS_DESCRIPTION"
         --tags-title '### Tags' --tags-description "$TAGS_DESCRIPTION" --todo-title '### TODO'
         --todo-description "$TODO_DESCRIPTION" --variables-title '## Variables' --variables-description
@@ -277,7 +284,8 @@ tasks:
           mkdir -p ~/.config && touch ~/.config/playbook-quickstart-demo-called
           .config/log info 'Prompting for sudo / vault password (if it was not already entered)'
         fi
-      - >
+      - |
+        PATH="$PATH:$HOME/.local/bin"
         {{.PYTHON_HANDLE}}ansible-playbook {{.VAULT_PASS}} -i {{.INVENTORY}} {{.PLAY_PARAMS}}
 
   quickstart:demo:
@@ -301,6 +309,7 @@ tasks:
       - :install:software:jq
     cmds:
       - |
+        PATH="$PATH:$HOME/.local/bin"
         # MAC_ADDRESS="$(cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address)" # Does not work on macOS
         MAC_ADDRESS="$(getmac)"
         TARGET_INV="$(jq --arg macAddress "$MAC_ADDRESS" -r '.[$macAddress]' files/inventory-map.json)"
@@ -340,6 +349,7 @@ tasks:
     cmds:
       - |
         TMP="$(mktemp)"
+        PATH="$PATH:$HOME/.local/bin"
         PROJECT_ID="$(ansible-galaxy info '{{.ROLE_NAME}}' 2> /dev/null | grep -E 'id: [0-9]' | cut -d ' ' -f2)"
         if [ "$PROJECT_ID" ]; then
           jq --arg a "$PROJECT_ID" '.blueprint.ansible_galaxy_project_id = $a' package.json > "$TMP"

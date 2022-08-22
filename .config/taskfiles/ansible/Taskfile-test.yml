@@ -79,7 +79,9 @@ tasks:
         else
           pip3 install ansible
         fi
-      - ansible-galaxy install -r requirements.yml
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        ansible-galaxy install -r requirements.yml
       - task: local:test:logic
 
   local:test:local:
@@ -128,6 +130,7 @@ tasks:
         if [ -n "$WINDOWS_ANSIBLE_TEST" ]; then
           export ANSIBLE_CONFIG="$PWD/ansible.cfg"
         fi
+        PATH="$PATH:$HOME/.local/bin"
         {{.PYTHON_MOLECULE_HANDLE}} ansible-playbook -i inventory{{.SUDO_PASS_PARAM}} test/{{OS}}/test.yml 2>&1 | tee debug.log || EXIT_CODE=$?
       - task: post:molecule:log
         vars:
@@ -155,6 +158,7 @@ tasks:
         fi
       - |
         .config/log info 'Running `ansible-galaxy install --ignore-errors -r requirements.yml`'
+        PATH="$PATH:$HOME/.local/bin"
         ansible-galaxy install --ignore-errors -r requirements.yml
 
   molecule:dependencies:
@@ -185,6 +189,7 @@ tasks:
       success: Installed Ansible Galaxy requirements defined in `requirements.yml`
     cmds:
       - |
+        PATH="$PATH:$HOME/.local/bin"
         if poetry &> /dev/null; then
           {{.PYTHON_HANDLE}} ansible-galaxy install --ignore-errors -r requirements.yml
         else

@@ -42,7 +42,9 @@ tasks:
       start: Linting project with Ansible Lint
       success: Validated project with Ansible Lint
     cmds:
-      - ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}
 
   any:
     deps:
@@ -53,11 +55,13 @@ tasks:
       error: Errors were reported by the global linters for `{{.CLI_ARGS}}`
       start: Linting `{{.CLI_ARGS}}` with global linters
     cmds:
-      - blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}
-      - check-merge-conflict {{.CLI_ARGS}}
-      - check-added-large-files {{.CLI_ARGS}}
-      - check-symlinks {{.CLI_ARGS}}
-      - destroyed-symlinks {{.CLI_ARGS}}
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && check-merge-conflict {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && check-added-large-files {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && check-symlinks {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && destroyed-symlinks {{.CLI_ARGS}}
 
   codeclimate:
     deps:
@@ -460,7 +464,9 @@ tasks:
       start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with flake8
       success: flake8 validation was successful
     cmds:
-      - flake8 {{.CONFIG_COMMAND}}{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        flake8 {{.CONFIG_COMMAND}}{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   python:deps:flake8:
     cmds:
@@ -610,7 +616,9 @@ tasks:
       start: Ensuring {{if .CLI_ARGS}}`{{.CLI_ARGS}}` is valid TOML{{else}}the project'\''s TOML files are valid{{end}}
       success: The TOML appears to be valid!
     cmds:
-      - check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   vagrant:
     deps:
@@ -652,7 +660,9 @@ tasks:
       start: Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid XML{{else}}the project contains only valid XML{{end}}
       success: The XML appears to be valid
     cmds:
-      - check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   yaml:
     deps:
@@ -683,4 +693,6 @@ tasks:
       start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with `yamllint`
       success: No issues were detected by `yamllint`
     cmds:
-      - yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}

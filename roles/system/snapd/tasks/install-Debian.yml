@@ -12,16 +12,19 @@
     state: present
 
 - name: Ensure snap is started and enabled on boot
-  ansible.builtin.systemd:
+  systemd:
     enabled: true
     name: snapd
     state: started
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: Reload udev # noqa 503
-  ansible.builtin.service:
+  service:
     name: udev
     state: restarted
-  when: snapd.changed
+  when:
+    - snapd.changed
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: Ensure snap core is installed
   community.general.snap:

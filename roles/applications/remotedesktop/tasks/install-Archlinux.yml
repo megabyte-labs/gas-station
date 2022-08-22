@@ -9,7 +9,7 @@
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
-  ansible.builtin.git:
+  git:
     dest: "{{ xrdp_src_dir }}"
     repo: "{{ xrdp_aur_git_repository }}"
   register: xrdp_src
@@ -18,14 +18,18 @@
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ xrdp_src_dir }}"
-  when: xrdp_src.changed
+  when:
+    - xrdp_src.changed
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: "Ensure {{ app_name }} is started on boot"
   systemd:
     enabled: true
     name: "{{ item }}"
     state: started
-  when: install_xrdp
+  when:
+    - install_xrdp
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
   with_items:
     - xrdp
     - xrdp-sesman

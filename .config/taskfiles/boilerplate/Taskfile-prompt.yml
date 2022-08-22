@@ -30,10 +30,8 @@ tasks:
       For the default value, it looks at the corresponding common respoitory by first checking the
       `project-subtype` folder and then the `project` folder's value for `scriptsBuild` inside of the
       `.config/variables.json` file.
-    prompt:
-      type: input
-      message: Enter the build command
-      default:
+    vars:
+      DEFAULT_VALUE:
         sh: |
           DATA_SUBTYPE="$(curl -sSL '{{.PROJECT_SUBTYPE_VARS_URL}}')" || EXIT_CODE=$?
           if [ -n "$EXIT_CODE" ]; then
@@ -54,23 +52,32 @@ tasks:
               echo ''
             fi
           fi
-      answer:
-        cmds:
-          - TMP="$(mktemp)" && jq --arg cmd '{{.ANSWER | replace "'" "\'"}}' '.scripts.build = $cmd' package.json && mv "$TMP" package.json
+    cmds:
+      - .config/log prompt 'Enter the build command placed in `scripts.build` inside of `package.json`'
+      - |
+        BUILD_ANSWER="$(.config/log input 'Enter build command..')"
+        task boilerplate:prompt:build:continue -- "$BUILD_ANSWER"
     status:
       - |
         [[ "$(jq -r '.blueprint.description' package.json)" != "null" ]]
 
+  build:continue:
+    cmds:
+      - TMP="$(mktemp)" && jq --arg cmd '{{.CLI_ARGS | replace "'" "\'"}}' '.scripts.build = $cmd' package.json && mv "$TMP" package.json
+
   description:
-    prompt:
-      type: input
-      message: Enter a description for the project
-      answer:
-        cmds:
-          - TMP="$(mktemp)" && jq --arg desc '{{.ANSWER | replace "'" "\'"}}' '.blueprint.description = $desc' package.json && mv "$TMP" package.json
+    cmds:
+      - .config/log prompt 'Enter a description for the project'
+      - |
+        DESC_ANSWER="$(.config/log input 'Enter description..')"
+        task boilerplate:prompt:description:continue -- "$DESC_ANSWER"
     status:
       - |
         [[ "$(jq -r '.blueprint.description' package.json)" != "null" ]]
+
+  description:continue:
+    cmds:
+      - TMP="$(mktemp)" && jq --arg desc '{{.CLI_ARGS | replace "'" "\'"}}' '.blueprint.description = $desc' package.json && mv "$TMP" package.json
 
   group:
     prompt:
@@ -95,15 +102,18 @@ tasks:
         [[ "$(jq -r '.blueprint.group' package.json)" != "null" ]] && [[ "$(yq e '.vars.REPOSITORY_TYPE' Taskfile.yml)" != "null" ]]
 
   name:
-    prompt:
-      type: input
-      message: Enter a name for the project
-      answer:
-        cmds:
-          - TMP="$(mktemp)" && jq --arg name '{{.ANSWER}}' '.blueprint.name = $name' package.json > "$TMP" && mv "$TMP" package.json
+    cmds:
+      - .config/log prompt 'Enter a name for the project'
+      - |
+        NAME_ANSWER="$(.config/log input 'Enter the project name..')"
+        task boilerplate:prompt:name:continue -- "$NAME_ANSWER"
     status:
       - |
         [[ "$(jq -r '.blueprint.name' package.json)" != "null" ]]
+
+  name:continue:
+    cmds:
+      - TMP="$(mktemp)" && jq --arg name '{{.CLI_ARGS}}' '.blueprint.name = $name' package.json > "$TMP" && mv "$TMP" package.json
 
   overview:
     prompt:
@@ -119,15 +129,18 @@ tasks:
   project-specific: 'true'
 
   slug:
-    prompt:
-      type: input
-      message: Enter a slug for the project
-      answer:
-        cmds:
-          - TMP="$(mktemp)" && jq --arg slug '{{.ANSWER}}' '.blueprint.slug = $slug' package.json > "$TMP" && mv "$TMP" package.json
+    cmds:
+      - .config/log prompt 'Enter a slug for the project'
+      - |
+        SLUG_ANSWER="$(.config/log input 'Enter a slug..')"
+        task boilerplate:prompt:slug:continue -- "$SLUG_ANSWER"
     status:
       - |
         [[ "$(jq -r '.blueprint.slug' package.json)" != "null" ]]
+
+  slug:continue:
+    cmds:
+      - TMP="$(mktemp)" && jq --arg slug '{{.CLI_ARGS}}' '.blueprint.slug = $slug' package.json > "$TMP" && mv "$TMP" package.json
 
   subgroup:
     env:
@@ -167,10 +180,8 @@ tasks:
       For the default value, it looks at the corresponding common respoitory by first checking the
       `project-subtype` folder and then the `project` folder's value for `scriptsTest` inside of the
       `.config/variables.json` file.
-    prompt:
-      type: input
-      message: Enter the test command
-      default:
+    vars:
+      DEFAULT_VALUE:
         sh: |
           DATA_SUBTYPE="$(curl -sSL '{{.PROJECT_SUBTYPE_VARS_URL}}')" || EXIT_CODE=$?
           if [ -n "$EXIT_CODE" ]; then
@@ -191,21 +202,29 @@ tasks:
               echo ''
             fi
           fi
-      answer:
-        cmds:
-          - TMP="$(mktemp)" && jq --arg cmd '{{.ANSWER | replace "'" "\'"}}' '.scripts.test = $cmd' package.json && mv "$TMP" package.json
+    cmds:
+      - .config/log prompt 'Enter the test command placed in `scripts.test` inside of `package.json`'
+      - |
+        TEST_ANSWER="$(.config/log input 'Enter test command..')"
+        task boilerplate:prompt:test:continue -- "$TEST_ANSWER"
     status:
       - |
         [[ "$(jq -r '.scripts.test' package.json)" != "null" ]]
 
+  test:continue:
+    cmds:
+      - TMP="$(mktemp)" && jq --arg cmd '{{.CLI_ARGS | replace "'" "\'"}}' '.scripts.test = $cmd' package.json && mv "$TMP" package.json
+
   title:
-    type: input
-    message: Enter the title of the README.md
-    default:
-      sh: jq -r '.blueprint.name' package.json
-    answer:
-      cmds:
-        - TMP="$(mktemp)" && jq --arg title '{{.ANSWER | replace "'" "\'"}}' '.blueprint.title = $title' package.json && mv "$TMP" package.json
+    cmds:
+      - .config/log prompt 'Enter the title of the README.md'
+      - |
+        TITLE_ANSWER="$(.config/log input 'Enter README.md title..')"
+        task boilerplate:prompt:title:continue -- "$TITLE_ANSWER"
     status:
       - |
         [[ "$(jq -r '.blueprint.title' package.json)" != "null" ]]
+
+  title:continue:
+    cmds:
+      - TMP="$(mktemp)" && jq --arg title '{{.CLI_ARGS | replace "'" "\'"}}' '.blueprint.title = $title' package.json && mv "$TMP" package.json

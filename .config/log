@@ -71,37 +71,36 @@ installGum() {
       if ! (mkdir -p "$HOME/.local/bin" && mv "$TMP_DIR/gum" "$HOME/.local/bin/gum"); then
         GUM_PATH="$(dirname "${BASH_SOURCE[0]}")/gum"
         mv "$TMP_DIR/gum" "$GUM_PATH"
+      else
+        echo "Error installing gum. There was a problem installing gum to the HOME/.local directory."
       fi
     else
-      # TODO: Handle this
-      true
+      echo "Enhanced logging is turned off because the HOME environment variable is not set."
     fi
   else
-    # TODO: Handle this
-    true
+    echo "Enhanced logging is turned off because we could not detect the system type."
   fi
 }
 
 # @description Configure the logger to use echo or gum
 if [ "${container:=}" != 'docker' ]; then
+  # Acquire gum's path or attempt to install it
   if type gum &> /dev/null; then
     GUM_PATH="$(which gum)"
-    chmod +x "$(which gum)" &> /dev/null
-    ENHANCED_LOGGING=true
   elif [ -f "$HOME/.local/bin/gum" ]; then
     GUM_PATH="$HOME/.local/bin/gum"
-    chmod +x "$GUM_PATH"
-    ENHANCED_LOGGING=true
   elif [ -f "$(dirname "${BASH_SOURCE[0]}")/gum" ]; then
     GUM_PATH="$(dirname "${BASH_SOURCE[0]}")/gum"
-    chmod +x "$GUM_PATH"
-    ENHANCED_LOGGING=true
   elif type brew &> /dev/null; then
     brew install gum
-    chmod +x "$(which gum)" &> /dev/null
-    ENHANCED_LOGGING=true
   else
     installGum
+  fi
+
+  # If gum's path was set, then turn on enhanced logging
+  if [ -n "$GUM_PATH" ]; then
+    chmod +x "$GUM_PATH"
+    ENHANCED_LOGGING=true
   fi
 fi
 

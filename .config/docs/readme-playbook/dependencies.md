@@ -19,7 +19,7 @@ You can also run `bash start.sh` if you do not mind development dependencies bei
 
 ### Operating System
 
-**This playbook is built and tested to run on fresh installs of Windows, Mac OS X, Ubuntu, Fedora, Debian, CentOS, and Archlinux**. It may still be possible to run the playbook on your current machine. However, installing the playbook on a fresh install is the only thing we actively support. That said, if you come across an issue with an environment that already has configurations and software present, please do not hesitate to [open an issue]({{ repository.gitlab }}{{ repository.location.issue.gitlab }}).
+**This playbook is built and tested to run on fresh installs of Windows, Mac OS X, Ubuntu, Fedora, Debian, CentOS, Archlinux, and Qubes**. It may still be possible to run the playbook on your current machine. However, installing the playbook on a fresh install is the only thing we actively support. That said, if you come across an issue with an environment that already has configurations and software present, please do not hesitate to [open an issue]({{ repository.gitlab }}{{ repository.location.issue.gitlab }}).
 
 ### Connection
 

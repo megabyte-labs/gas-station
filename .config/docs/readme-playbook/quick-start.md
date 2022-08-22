@@ -24,3 +24,13 @@ In an administrative PowerShell session, run:
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/windows-quickstart'))
 ```
+
+### Qubes
+
+Our playbooks include a specially crafted playbook for Qubes. It will load your VMs with sensible defaults. For more details, check out the [Qubes playbook](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/playbooks/qubes.yml) and [Qubes variables](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/environments/prod/group_vars/all/qubes.yml).
+
+To setup Qubes, run the following on a fresh install in dom0:
+
+```shell
+qvm --pass-io work "curl -sSL https://install.doctor/qubes" > ~/setup.sh && bash ~/setup.sh
+```

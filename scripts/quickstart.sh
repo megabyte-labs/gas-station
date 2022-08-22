@@ -43,7 +43,7 @@ function ensurePackageInstalled() {
             yum install -y "$1"
           fi
         fi
-      elif [ -f "/etc/lsb-release" ]; then
+      elif [ -f "/etc/lsb-release" ] || [ -f "/etc/debian_version" ]; then
         if type sudo &> /dev/null; then
           sudo apt-get update
           sudo apt-get install -y "$1"

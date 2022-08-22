@@ -6,6 +6,7 @@ vars:
   MAIN_TASKS_PATH: tasks/main.yml
   META_PATH: meta/main.yml
   MOLECULE_RESULTS_PATH: molecule/.results
+  PRE_SHARED_VAULT_KEY: YTtEnhPWtftHFcP3HneVmz6vX2qMqAwobTDAbvDwrdyunAaDCQ
   REQUIREMENTS_PATH: requirements.yml
   ROLE_NAME: '{{.GALAXY_NAMESPACE}}.{{.GALAXY_ROLE_NAME}}'
   SAMPLE_PROJECT: https://github.com/megabyte-labs/ansible-snapd
@@ -78,7 +79,6 @@ tasks:
     cmds:
       - |
         GITHUB_ROLE_SLUG="$(jq -r '.blueprint.repository.github' package.json | sed 's/.*\///')"
-        PATH="$PATH:$HOME/.local/bin"
         {{.PYTHON_HANDLE}} ansible-galaxy role import --token "$ANSIBLE_GALAXY_TOKEN" {{.GITHUB_ORG}} "$GITHUB_ROLE_SLUG"
     status:
       - '[ -z "$ANSIBLE_GALAXY_TOKEN" ]'
@@ -103,18 +103,14 @@ tasks:
         if [ -f ~/.netrc ]; then
           chmod 600 ~/.netrc
         fi
-      - cmd: |
-          PATH="$PATH:$HOME/.local/bin"
-          {{.PYTHON_HANDLE}} ansible-galaxy install -r requirements.yml --ignore-errors
+      - cmd: '{{.PYTHON_HANDLE}} ansible-galaxy install -r requirements.yml --ignore-errors'
         ignore_error: true
     status:
       - '[[ "${container:=}" == "docker" ]]'
 
   init:
     cmds:
-      - |
-        PATH="$PATH:$HOME/.local/bin"
-        ansible-galaxy init --role-skeleton=/path/to/skeleton role_name
+      - ansible-galaxy init --role-skeleton=/path/to/skeleton role_name
 
   keywords:sync:
     deps:
@@ -195,8 +191,6 @@ tasks:
       success: Successfully generated documentation partials with `mod-ansible-autodoc`
     cmds:
       - >
-        PATH="$PATH:$HOME/.local/bin"
-
         {{.PYTHON_HANDLE}}mod-ansible-autodoc --actions-title '## Features' --actions-description "$ACTIONS_DESCRIPTION"
         --tags-title '### Tags' --tags-description "$TAGS_DESCRIPTION" --todo-title '### TODO'
         --todo-description "$TODO_DESCRIPTION" --variables-title '## Variables' --variables-description
@@ -252,41 +246,68 @@ tasks:
       - task: quickstart:demo
 
   quickstart:cli:
+    deps:
+      - :install:software:openssl
+    summary: |
+      # Ansible Quickstart CLI
+
+      Use this task if you already know the inventory file you would like to run the
+      `main.yml` playbook on. The unique feature is that this task will first run
+      `playbooks/init.yml` (and skip any task tagged with `skip_on_init`), reboot,
+      and then run the normal `main.yml`. This allows you to provision a single computer
+      that serves both as the client and host of Ansible (since some software requires
+      reboots).
+
+      {{.QUICKSTART_VAULT_SECURITY}}
     vars:
       INVENTORY: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}inventories/local.yml{{end}}'
       PLAY_PARAMS:
         sh: |
-          if [ -f ~/.config/playbook-quickstart-demo-called ]; then
+          if [ ! -f ~/.VAULT_PASS_REMOVE_ME ]; then
             echo '--skip-tags "skip_on_init" playbooks/init.yml'
           else
             echo 'main.yml'
           fi
-      VAULT_PASS:
-        sh: |
-          {{if .VAULT_PASS}}echo '{{.VAULT_PASS}}'{{else}}
-          if [ -f ~/.vault_pass ]; then
-            echo '--vault-pass-file ~/.vault_pass'
-          else
-            echo '--ask-vault-pass'
-          fi
-          {{end}}
+      QUICKSTART_VAULT_SECURITY: |
+        ## Ansible Vault Password Security
+
+        To achieve automation wherever possible, we save your Ansible Vault password
+        on disk during the installation process (i.e. to preserve the information
+        inbetween reboots).
+
+        To make it more secure, we employ the following measures:
+
+        1. The password is never stored in plain text. It is encrypted with a pre-shared key
+        when on disk.
+        2. It is passed in via the `ANSIBLE_VAULT_PASS` variable to minimize the possibility
+        of the password displaying in the terminal or getting added to the command history.
+        3. It is stored in `~/.VAULT_PASS_REMOVE_ME` so you can easily spot it if something
+        goes wrong.
     log:
       error: Error occurred while running the Ansible play
       start: Running the Ansible play locally
       success: Successfully ran the Ansible play locally
     cmds:
       - |
-        if [ ! -f ~/.config/playbook-quickstart-demo-called ]; then
-          echo "#!/usr/env/bin bash" > ~/.config/ansible-playbook-continue-command.sh
-          echo "" > ~/.config/ansible-playbook-continue-command.sh
-          echo "cd $PWD" >> ~/.config/ansible-playbook-continue-command.sh
-          echo 'task ansible:quickstart:cli -- {{.INVENTORY}}' >> ~/.config/ansible-playbook-continue-command.sh
-          mkdir -p ~/.config && touch ~/.config/playbook-quickstart-demo-called
-          .config/log info 'Prompting for sudo / vault password (if it was not already entered)'
+        if [ ! -f ~/.VAULT_PASS_REMOVE_ME ]; then
+          .config/log info 'Adding `~/ANSIBLE_PLAYBOOK_CONTINUE.sh` to run on reboot'
+          echo "#!/usr/env/bin bash" > ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
+          echo "" > ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
+          echo "cd $PWD" >> ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
+          echo 'task ansible:quickstart:cli -- {{.INVENTORY}}' >> ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
+          .config/log md '{{replace "'" "\'" .QUICKSTART_VAULT_SECURITY}}'
+          .config/log info 'Read about security measures above.'
+          .config/log prompt 'What is your Ansible Vault password?'
+          export VAULT_PASS="$(.config/log password 'Enter Vault password (leave empty if there is not a password)..')"
+          openssl enc -aes-256-cbc -in env:VAULT_PASS -out ~/.VAULT_PASS_REMOVE_ME -pass pass:{{.PRE_SHARED_VAULT_KEY}}
         fi
-      - |
-        PATH="$PATH:$HOME/.local/bin"
-        {{.PYTHON_HANDLE}}ansible-playbook {{.VAULT_PASS}} -i {{.INVENTORY}} {{.PLAY_PARAMS}}
+      - cmd: |
+          export ANSIBLE_VAULT_PASS="$(openssl enc -aes-256-cbc -in ~/.VAULT_PASS_REMOVE_ME -d -pass pass:{{.PRE_SHARED_VAULT_KEY}})"
+          {{.PYTHON_HANDLE}}ansible-playbook -i {{.INVENTORY}} {{.PLAY_PARAMS}}
+        ignore_error: true
+      - sleep 5
+      - rm ~/.VAULT_PASS_REMOVE_ME
+      - rm ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
 
   quickstart:demo:
     cmds:
@@ -307,17 +328,86 @@ tasks:
     deps:
       - :install:pipx:getmac
       - :install:software:jq
+    vars:
+      INVENTORY_OPTIONS:
+        sh: echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\""
+      INVENTORY_OPTIONS_LENGTH:
+        sh: find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | length'
+      MAC_ADDRESS_EXPLANATION: |
+        ## Mapping MAC Addresses to Inventory Files
+
+        In order to achieve a completely automated flow, we have the ability
+        to define a map of MAC addresses and inventory files in the `files/`
+        folder.
+
+        You can get your MAC address by using the `getmac` program that this
+        task installs or you can run the following on Linux:
+
+        ```
+        cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address
+        ```
+
+        On Windows, if you are provisioning with Docker (the default "Quick Start" method)
+        and if you make sure you are running it on either a clean system or have no other
+        Docker containers running, then the MAC address will be:
+
+        ```
+        02:42:ac:11:00:02
+        ```
+
+        If you wanted to run the Quick Start method on Windows, you could create a file in
+        `files/inventory-map.json` that looks something like this:
+
+        ```
+        {
+          "02:42:ac:11:00:02": "inventories/workstation.yml"
+        }
+        ```
+
+        This configuration would instruct the script to automatically use the `inventories/workstation.yml`
+        inventory. If your MAC address is missing, the script will open an interactive prompt and include
+        the ability to save your MAC address to the file for later use.
+    summary: |
+      # Quickstart Mapping
+
+      This task is a helper task that attempts to automatically select the appropriate
+      Ansible inventory based on the MAC address. If the mapping entry is not already
+      saved, this task will guide the user through a series of prompts.
+
+      {{.MAC_ADDRESS_EXPLANATION}}
     cmds:
       - |
-        PATH="$PATH:$HOME/.local/bin"
         # MAC_ADDRESS="$(cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address)" # Does not work on macOS
         MAC_ADDRESS="$(getmac)"
         TARGET_INV="$(jq --arg macAddress "$MAC_ADDRESS" -r '.[$macAddress]' files/inventory-map.json)"
         if [ "$TARGET_INV" != 'null' ]; then
           task ansible:quickstart:cli -- "$TARGET_INV"
         else
-          .config/log warn "MAC address missing from inventory-map.json ($MAC_ADDRESS)"
-
+          .config/log md '{{replace "'" "\'" .MAC_ADDRESS_EXPLANATION}}'
+          .config/log warn "MAC address missing from inventory-map.json ($MAC_ADDRESS). Details printed above."
+          if [ '{{.INVENTORY_OPTIONS_LENGTH}}' != '0' ]; then
+            .config/log prompt 'Given the information above, would you like to save your MAC address to the `files/inventory-map.json` file?'
+            if .config/log confirm 'Save MAC address?'; then
+              .config/log prompt 'Which inventory file would you like the associate the MAC address with?'
+              INVENTORY_FILE="$(.config/log choose {{.INVENTORY_OPTIONS}})"
+              TMP="$(mktemp)"
+              jq --arg inventory "$INVENTORY_FILE" --arg macaddr "$MAC_ADDRESS" '.[$macaddr] = $inventory' files/inventory-map.json > "$TMP"
+              mv "$TMP" files/inventory-map.json
+              git add files/inventory-map.json
+              # The following task only runs if the FULLY_AUTOMATED_TASKS variable is set to true
+              task git:commit:automated
+              .config/log success "Successfully associated the selected inventory with this machine's MAC address (remember to git commit)"
+              task ansible:quickstart:cli - "$INVENTORY_FILE"
+            else
+              .config/log prompt 'Which inventory file would you like to use?'
+              INVENTORY_FILE="$(.config/log choose {{.INVENTORY_OPTIONS}})"
+              task ansible:quickstart:cli - "$INVENTORY_FILE"
+            fi
+          else
+            .config/log error 'There are no inventories defined in the `inventories/` folder.'
+            .config/log info 'Try running `task environment` to link to sample environments'
+            exit 1
+          fi
         fi
     status:
       - '[ ! -f files/inventory-map.json ]'
@@ -350,7 +440,6 @@ tasks:
     cmds:
       - |
         TMP="$(mktemp)"
-        PATH="$PATH:$HOME/.local/bin"
         PROJECT_ID="$(ansible-galaxy info '{{.ROLE_NAME}}' 2> /dev/null | grep -E 'id: [0-9]' | cut -d ' ' -f2)"
         if [ "$PROJECT_ID" ]; then
           jq --arg a "$PROJECT_ID" '.blueprint.ansible_galaxy_project_id = $a' package.json > "$TMP"

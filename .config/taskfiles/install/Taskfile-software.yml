@@ -897,7 +897,11 @@ tasks:
       - task: system
         vars:
           PACKAGE: python3-venv
-      - python3 -m ensurepip > /dev/null && python3 -m pip install --user pipx
+      - |
+        if ! type pip3; then
+          python3 -m ensurepip > /dev/null
+        fi
+      - python3 -m pip install --user pipx
       - python3 -m pipx ensurepath
 
   pipx:windows:
@@ -963,6 +967,7 @@ tasks:
           PACKAGE: python@3.10
     status:
       - type python3 > /dev/null
+
 
   python:pip:
     run: once
@@ -1302,6 +1307,17 @@ tasks:
         vars:
           SOFTWARE: virtualbox
 
+  volta:
+    cmds:
+      - .config/log info 'Installing Volta'
+      - curl https://get.volta.sh | bash
+      - |
+        . "$HOME/.profile" &> /dev/null || true
+        volta setup
+      - .config/log success 'Successfully setup Volta'
+    status:
+      - type volta > /dev/null
+
   vmware:
     cmds:
       - task: vmware:{{OS}}
@@ -1322,17 +1338,6 @@ tasks:
       - task: :install:install-doctor
         vars:
           SOFTWARE: vmware
-
-  volta:
-    cmds:
-      - .config/log info 'Installing Volta'
-      - curl https://get.volta.sh | bash
-      - |
-        . "$HOME/.profile" &> /dev/null || true
-        volta setup
-      - .config/log success 'Successfully setup Volta'
-    status:
-      - type volta > /dev/null
 
   yarn:
     tags:

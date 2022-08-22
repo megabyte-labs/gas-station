@@ -12,30 +12,26 @@
 #   6. Reboots and continues where it left off.
 #   7. The playbook is run.
 
-# Uncomment this to provision with WSL instead of Docker
-# $ProvisionWithWSL = true
-$QuickstartScript = "C:\Temp\quickstart.ps1"
-# Change this to modify the password that the user account resets to
-$UserPassword = 'MegabyteLabs'
+$quickstartScript = "C:\Temp\quickstart.ps1"
 
 New-Item -ItemType Directory -Force -Path C:\Temp
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # @description Reboot and continue script after reboot
 function RebootAndContinue {
-  if (!(Test-Path $QuickstartScript)) {
+  if (!(Test-Path $quickstartScript)) {
     Write-Host "Ensuring the recursive update script is downloaded"
-    Start-BitsTransfer -Source "https://install.doctor/windows-quickstart" -Destination $QuickstartScript -Description "Downloading initialization script"
+    Start-BitsTransfer -Source "https://install.doctor/windows-quickstart" -Destination $quickstartScript -Description "Downloading initialization script"
   }
   Write-Host "Ensuring start-up script is present" -ForegroundColor Black -BackgroundColor Cyan
   Set-Content -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Gas Station.bat" "PowerShell.exe -ExecutionPolicy RemoteSigned -Command `"Start-Process -FilePath powershell -ArgumentList '-File C:\Temp\quickstart.ps1 -Verbose' -verb runas`""
-  Write-Host "Changing $env:Username password to '$UserPassword' so we can automatically log back in" -ForegroundColor Black -BackgroundColor Cyan
-  $NewPassword = ConvertTo-SecureString "$UserPassword" -AsPlainText -Force
-  Set-LocalUser -Name $env:Username -Password $NewPassword
+  Write-Host "Changing $env:UserName password to 'MegabyteLabs' so we can automatically log back in" -ForegroundColor Black -BackgroundColor Cyan
+  $NewPassword = ConvertTo-SecureString "MegabyteLabs" -AsPlainText -Force
+  Set-LocalUser -Name $env:UserName -Password $NewPassword
   Write-Host "Turning on auto-logon" -ForegroundColor Black -BackgroundColor Cyan
   $RegistryPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
   Set-ItemProperty $RegistryPath 'AutoAdminLogon' -Value "1" -Type String
-  Set-ItemProperty $RegistryPath 'DefaultUsername' -Value "$env:Username" -type String
+  Set-ItemProperty $RegistryPath 'DefaultUsername' -Value "$env:username" -type String
   Set-ItemProperty $RegistryPath 'DefaultPassword' -Value "MegabyteLabs" -type String
   Restart-Computer -Force
 }
@@ -83,29 +79,26 @@ function EnsureVirtualMachinePlatformEnabled {
     }
 }
 
-# @description Ensures Ubuntu 22.04 is installed on the system from a .appx file
+# @description Ensures Ubuntu 20.04 is installed on the system from a .appx file
 function EnsureUbuntuAPPXInstalled {
-    if(!(Test-Path "C:\Temp\UBUNTU2204.appx")) {
+    if(!(Test-Path "C:\Temp\UBUNTU2004.appx")) {
         Write-Host "Downloading Ubuntu APPX" -ForegroundColor Black -BackgroundColor Cyan
-        Start-BitsTransfer -Source "https://aka.ms/wslubuntu2204" -Destination "C:\Temp\UBUNTU2204.appx" -Description "Downloading Ubuntu 22.04 WSL image"
+        Start-BitsTransfer -Source "https://aka.ms/wslubuntu2004" -Destination "C:\Temp\UBUNTU2004.appx" -Description "Downloading Ubuntu 20.04 WSL image"
     }
-    # TODO: Ensure this is the appropriate AppxPackage name
-    $Ubuntu2204APPXInstalled = Get-AppxPackage -Name CanonicalGroupLimited.Ubuntu22.04onWindows
-    if (!$Ubuntu2204APPXInstalled) {
+    $ubu2004appxinstalled = Get-AppxPackage -Name CanonicalGroupLimited.Ubuntu20.04onWindows
+    if (!$ubu2004appxinstalled) {
         Write-Host "Adding Ubuntu APPX" -ForegroundColor Black -BackgroundColor Cyan
-        Add-AppxPackage -Path "C:\Temp\UBUNTU2204.appx"
+        Add-AppxPackage -Path "C:\Temp\UBUNTU2004.appx"
     }
 }
 
-# @description Automates the process of setting up the Ubuntu 22.04 WSL environment
+# @description Automates the process of setting up the Ubuntu 20.04 WSL environment
 function SetupUbuntuWSL {
-    if ($ProvisionWithWSL) {
-      Write-Host "Set default WSL version to 1 (required for bridged eth0 adapter)" -ForegroundColor Black -BackgroundColor Cyan
-      wsl --set-default-version 1
-    }
+    Write-Host "Set default WSL version to 1 (required for bridged eth0 adapter)" -ForegroundColor Black -BackgroundColor Cyan
+    wsl --set-default-version 1
     Write-Host "Setting up Ubuntu WSL" -ForegroundColor Black -BackgroundColor Cyan
     Start-Process "ubuntu.exe" -ArgumentList "install --root" -Wait -NoNewWindow
-    $username = $env:Username.ToLower()
+    $username = $env:username.ToLower()
     Write-Host "Adding a user" -ForegroundColor Black -BackgroundColor Cyan
     Start-Process "ubuntu.exe" -ArgumentList "run adduser $username --gecos 'First,Last,RoomNumber,WorkPhone,HomePhone' --disabled-password" -Wait -NoNewWindow
     Write-Host "Adding user to sudo group" -ForegroundColor Black -BackgroundColor Cyan
@@ -123,49 +116,22 @@ function EnsureDockerDesktopInstalled {
       choco install -y docker-desktop
       RebootAndContinue
     }
+    # & 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
+    # Write-Host "Waiting for Docker Desktop to come online" -ForegroundColor Black -BackgroundColor Cyan
+    # Start-Sleep -s 30
 }
 
 # @description Enables WinRM connectivity
 function EnableWinRM {
-  Write-Host "Enabling WinRM.." -ForegroundColor Black -BackgroundColor Cyan
-  $url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
-  $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
-  (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
-  powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth -ForceNewSSLCert -SkipNetworkProfileCheck
-  choco install -y -r openssl
-  $UsernameLowercase = $env:Username.ToLower()
-  $env:OpenSSLConfig = "C:\Temp\openssl.conf"
-  Set-Content -Path $env:OpenSSLConfig -Value @"
-distinguished_name = req_distinguished_name
-[req_distinguished_name]
-[v3_req_client]
-extendedKeyUsage = clientAuth
-subjectAltName = otherName:1.3.6.1.4.1.311.20.2.3;UTF8:$UsernameLowercase@localhost
-"@
-  $UserPEMPath = Join-Path "C:\Temp" user.pem
-  $KeyPEMPath = Join-Path "C:\Temp" key.pem
-  & "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" req -x509 -nodes -days 365 -newkey rsa:2048 -out $UserPEMPath -outform PEM -keyout $KeyPEMPath -subj "/CN=$UsernameLowercase" -extensions v3_req_client 2>&1
-  Remove-Item $env:OpenSSLConfig -Force
-  Import-Certificate -FilePath $UserPEMPath -CertStoreLocation cert:\LocalMachine\root
-  $WinRMCert = Import-Certificate -FilePath $UserPEMPath -CertStoreLocation cert:\LocalMachine\TrustedPeople
-  $PasswordCred = ConvertTo-SecureString -AsPlainText -Force $UserPassword
-  $WinRMCreds = New-Object System.Management.Automation.PSCredential($UsernameLowercase, $PasswordCred) -ea Stop
-  New-Item -Path WSMan:\localhost\ClientCertificate -Subject "$UsernameLowercase@localhost" -URI * -Issuer $WinRMCert.Thumbprint -Credential $WinRMCreds -Force
-  Set-Item -Path WSMan:\localhost\Service\Auth\Certificate -Value $true
-  Restart-Service -Name WinRM -Force
+    Write-Host "Enabling WinRM.." -ForegroundColor Black -BackgroundColor Cyan
+    $url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
+    $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
+    (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
+    powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth -ForceNewSSLCert -SkipNetworkProfileCheck
 }
 
-# @description Run the playbook with Docker
-function RunPlaybookDocker {
-  Set-Location -Path "C:\Temp"
-  $CurrentLocation = Get-Location
-  $WorkDirectory = Split-Path -leaf -path (Get-Location)
-  $HostIP = (Get-NetIPConfiguration | Where-Object -Property IPv4DefaultGateway).IPv4Address.IPAddress
-  docker run -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --name provisioner --add-host='windows:'$HostIP --entrypoint /bin/bash debian:buster-slim ./quickstart.sh
-}
-
-# @description Run the playbook with WSL
-function RunPlaybookWSL {
+# @description Run the playbook
+function RunPlaybook {
     Write-Host "Running quickstart.sh in WSL environment" -ForegroundColor Black -BackgroundColor Cyan
     Start-Process "ubuntu.exe" -ArgumentList "run curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quickstart.sh > quickstart.sh && bash quickstart.sh" -Wait -NoNewWindow
     Write-Host "Running quickstart continue command in WSL environment" -ForegroundColor Black -BackgroundColor Cyan
@@ -191,11 +157,7 @@ function ProvisionWindowsWSLAnsible {
     SetupUbuntuWSL
     InstallChocolatey
     EnsureDockerDesktopInstalled
-    if ($ProvisionWithWSL) {
-      RunPlaybookWSL
-    } else {
-      RunPlaybookDocker
-    }
+    RunPlaybook
     Write-Host "All done! Make sure you change your password. It was set to 'MegabyteLabs' for automation purposes." -ForegroundColor Black -BackgroundColor Cyan
     Read-Host "Press ENTER to exit, remove temporary files, and the start-up script"
     Remove-Item -path "C:\Temp" -Recurse -Force

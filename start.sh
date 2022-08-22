@@ -166,7 +166,7 @@ function ensureRootPackageInstalled() {
     if [[ "$OSTYPE" == 'linux'* ]]; then
       if [ -f "/etc/redhat-release" ]; then
         ensureRedHatPackageInstalled "$1"
-      elif [ -f "/etc/debian_version" ]; then
+      elif [ -f "/etc/debian_version" ] || [ -f "/etc/"]; then
         ensureDebianPackageInstalled "$1"
       elif [ -f "/etc/arch-release" ]; then
         ensureArchPackageInstalled "$1"

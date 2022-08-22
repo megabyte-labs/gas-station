@@ -661,6 +661,7 @@ if [ -z "$CI" ] && [ -z "$START" ] && [ -z "$INIT_CWD" ]; then
     task install:software:pipx
   fi
   # shellcheck disable=SC1091
+  logger info "Sourcing profile located in $HOME/.profile"
   . "$HOME/.profile" &> /dev/null || true
   ensureProjectBootstrapped
   if task donothing &> /dev/null; then

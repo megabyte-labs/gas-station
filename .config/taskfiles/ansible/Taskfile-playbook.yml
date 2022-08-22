@@ -2,10 +2,6 @@
 version: '3'
 
 tasks:
-  collections:download:
-    cmds:
-      - ansible-galaxy collection download -r requirements.yml &
-
   docs:
     deps:
       - docs:roles
@@ -156,6 +152,11 @@ tasks:
         for ID in {{replace "," " " .DOC_IDS}}; do
           populateChartVar "$TMP" "$ID"
         done
+
+  collections:download:
+    cmds:
+      - ansible-galaxy collection download -r requirements.yml &
+
 
   environment:
     desc: Prompts for which environment to use and then symlinks to it
@@ -336,12 +337,20 @@ tasks:
         env:
           INSTALL_OPTIONS: --no-dev
       - :symlink:playbook
+    vars:
+      PLAYBOOK_MAIN:
+        sh: |
+          if [ -n "$PLAYBOOK_MAIN" ]; then
+            echo "$PLAYBOOK_MAIN"
+          else
+            echo "main.yml"
+          fi
     log:
       error: Error encounted while running `ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml`
       start: Running `ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml`
       success: Successfully ran `ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml`
     cmds:
-      - ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml
+      - ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass "{{.PLAYBOOK_MAIN}}"
 
   run:prompt:
     vars:
@@ -377,16 +386,25 @@ tasks:
       - :install:software:jq
     vars:
       INVENTORY_OPTIONS:
-        sh: find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c 'add'
-    prompt:
-      type: select
-      message: Which inventory would you like to use?
-      options: '{{.INVENTORY_OPTIONS}}'
-      answer:
-        cmds:
-          - task: run:cli
-            vars:
-              CLI_ARGS: '{{.ANSWER}}'
+        sh: echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\""
+      INVENTORY_OPTIONS_LENGTH:
+        sh: find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | length'
+      PLAYBOOKS_OPTIONS:
+        sh: echo "\"playbooks"$(find ./playbooks/ -mindepth 1 -maxdepth 1 -name "*.yml" | sed 's/\.\/playbooks\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"playbooks")')"\""
+    cmds:
+      - task: environment
+      - |
+        if [[ '{{.INVENTORY_OPTIONS_LENGTH}}' == '0' ]]; then
+          .config/log error 'There are no inventory files present in the `inventories/` folder' && exit 1
+        else
+          .config/log prompt 'Which inventory would you like to use?'
+          CHOSEN_INVENTORY="$(.config/log choose {{.INVENTORY_OPTIONS}})"
+          export PLAYBOOK_MAIN="main.yml"
+          if ! gum confirm "Would you like to use the main.yml playbook?"; then
+            export PLAYBOOK_MAIN="$(.config/log choose {{.PLAYBOOKS_OPTIONS}})"
+          fi
+          task ansible:playbook:run:cli -- "$CHOSEN_INVENTORY"
+        fi
 
   subrepo:init:
     deps:

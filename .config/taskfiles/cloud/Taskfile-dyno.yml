@@ -1,16 +1,55 @@
 ---
 version: '3'
 
+vars:
+  CLOUDFLARE_API_TOKEN: '' # Needed when `CONFIGURE_CLOUDFLARE_DNS` is set to `true`
+
+  CLOUDFLARE_DNS_ZONE: '' # Needed when `CONFIGURE_CLOUDFLARE_DNS` is set to `true`
+  CONFIGURE_CLOUDFLARE_DNS: false # Set to `true` to configure Cloudflare DNS to point to the custom domain. Provide values for the below variables when set to `true`
+  CONFIGURE_CUSTOM_DOMAIN: false # Used in conjunction with `DOMAIN` value set for each application. Set to `true` to configure custom domains
 env:
   REGION: us # The region to deploy the application to
 
-vars:
-  CONFIGURE_CUSTOM_DOMAIN: false # Used in conjunction with `DOMAIN` value set for each application. Set to `true` to configure custom domains
-  CONFIGURE_CLOUDFLARE_DNS: false # Set to `true` to configure Cloudflare DNS to point to the custom domain. Provide values for the below variables when set to `true`
-  CLOUDFLARE_DNS_ZONE: "" # Needed when `CONFIGURE_CLOUDFLARE_DNS` is set to `true`
-  CLOUDFLARE_API_TOKEN: "" # Needed when `CONFIGURE_CLOUDFLARE_DNS` is set to `true`
-
 tasks:
+  appsmith:
+    summary: |
+      Task to deploy `appsmith` to Heroku.
+
+      Below are the environment variables that can be configured. Set the values in the `env` section.
+
+      APPSMITH_DISABLE_TELEMETRY: Share anonymous usage data
+      APPSMITH_ENCRYPTION_PASSWORD: Encryption password to encrypt all sensitive credentials in the database. You can use any random string. The more random, the better.
+      APPSMITH_ENCRYPTION_SALT: Encryption salt used to encrypt all sensitive credentials in the database. You can use any random string. The more random, the better.
+      APPSMITH_MONGODB_URI: Your Mongo Database URI. Since Heroku doesn't support a managed MongoDB instance, you'll have to create a Mongo DB instance on another service such as https://cloud.mongodb.com
+      APPSMITH_SUPERVISOR_PASSWORD: Basic authentication password to access Supervisor UI - An web interface, which allow you to manage various process
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    env:
+      APPSMITH_DISABLE_TELEMETRY: true
+      APPSMITH_ENCRYPTION_PASSWORD: 'kna%si*sj19lk>0s'
+      APPSMITH_ENCRYPTION_SALT: 'm,a-01s'
+      APPSMITH_MONGODB_URI: mongo.example.com
+      APPSMITH_SUPERVISOR_PASSWORD: "sdf'6as9I1a"
+    cmds:
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"appsmith-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/appsmithorg/appsmith/tarball/master\"},\
+        \"overrides\":{\"env\":{\"APPSMITH_DISABLE_TELEMETRY\": $APPSMITH_DISABLE_TELEMETRY, \"APPSMITH_ENCRYPTION_PASSWORD\":\
+        \"$APPSMITH_ENCRYPTION_PASSWORD\", \"APPSMITH_ENCRYPTION_SALT\": \"$APPSMITH_ENCRYPTION_SALT\", \"APPSMITH_MONGODB_URI\":\
+        \"$APPSMITH_MONGODB_URI\", \"APPSMITH_SUPERVISOR_PASSWORD\": \"$APPSMITH_SUPERVISOR_PASSWORD\"}}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  appsmith-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: appsmith
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
   baserow:
     summary: |
       Task to deploy `baserow` to Heroku.
@@ -29,22 +68,22 @@ tasks:
       The below variable can be used to pass the value of Custom Domain for the application
       DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
     vars:
-      DOMAIN: ""
+      DOMAIN: ''
     env:
-      BASEROW_PUBLIC_URL: https://baserow.megabyte.space
+      AWS_ACCESS_KEY_ID: ''
+      AWS_S3_CUSTOM_DOMAIN: ''
+      AWS_S3_ENDPOINT_URL: ''
+      AWS_S3_REGION_NAME: ''
+      AWS_SECRET_ACCESS_KEY: ''
+      AWS_STORAGE_BUCKET_NAME: ''
       BASEROW_AMOUNT_OF_WORKERS: '1'
-      AWS_ACCESS_KEY_ID: ""
-      AWS_SECRET_ACCESS_KEY: ""
-      AWS_STORAGE_BUCKET_NAME: ""
-      AWS_S3_REGION_NAME: ""
-      AWS_S3_ENDPOINT_URL: ""
-      AWS_S3_CUSTOM_DOMAIN: ""
+      BASEROW_PUBLIC_URL: https://baserow.megabyte.space
     cmds:
       - task: bucket:create
         vars:
           AWS_ACCESS_KEY_ID: '{{.AWS_ACCESS_KEY_ID}}'
-          AWS_SECRET_ACCESS_KEY: '{{.AWS_SECRET_ACCESS_KEY}}'
           AWS_REGION: '{{.AWS_S3_REGION_NAME}}'
+          AWS_SECRET_ACCESS_KEY: '{{.AWS_SECRET_ACCESS_KEY}}'
           BUCKET_NAME: '{{.AWS_STORAGE_BUCKET_NAME}}'
       - |
         RNDM=$(shuf -i 10000-1000000 -n 1)
@@ -57,55 +96,11 @@ tasks:
         {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  baserow-$RNDM {{end}}
       - task: cloudflare:dns
         vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_RECORD_NAME: baserow
           CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-  hasura:
-    summary: |
-      Task to deploy `hasura` to Heroku.
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    cmds:
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"hasura-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/hasura/graphql-engine-heroku/tarball/master\"}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  hasura-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
           CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: hasura
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  metabase:
-    summary: |
-      Task to deploy `metabase` to Heroku.
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    cmds:
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"metabase-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/metabase/metabase-deploy/tarball/master\"}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  metabase-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: metabase
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
   chatwoot:
     summary: |
       Task to deploy `chatwoot` to Heroku.
@@ -120,7 +115,7 @@ tasks:
       The below variable can be used to pass the value of Custom Domain for the application
       DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
     vars:
-      DOMAIN: ""
+      DOMAIN: ''
     env:
       FRONTEND_URL: https://chatwoot.megabyte.space
       INSTALLATION_ENV: heroku
@@ -137,12 +132,333 @@ tasks:
         {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  chatwoot-$RNDM {{end}}
       - task: cloudflare:dns
         vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_RECORD_NAME: chatwoot
           CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
 
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  directus:
+    summary: |
+      Task to deploy `directus` to Heroku.
+
+      Below are the environment variables that can be configured. Set the values in the `env` section.
+
+      ACCESS_TOKEN_TTL: The access token TTL.
+      ADMIN_EMAIL: The initial admin email.
+      ADMIN_PASSWORD: The initial admin password.
+      CACHE_ENABLED: Whether the cache should be enabled or not.
+      CACHE_NAMESPACE: The cache namespace.
+      CACHE_STORE: The cache store to use.
+      CONFIG_PATH: Application config loader path.
+      DB_CLIENT: Database server type.
+      EMAIL_SMTP_HOST: The email server host.
+      EMAIL_SMTP_POOL: Whether to setup smtp pooling or not.
+      EMAIL_SMTP_PORT: The email server port.
+      EMAIL_SMTP_SECURE: Whether email connection is secure or not.
+      EMAIL_TRANSPORT: The email transport.
+      EXTENSIONS_PATH: The application's extension folder.
+      OAUTH_PROVIDERS: OAuth providers.
+      PUBLIC_URL: Application public URL.
+      RATE_LIMITER_DURATION: Rate limiter duration in minutes.
+      RATE_LIMITER_ENABLED: Whether the rate limiter should be enabled or not.
+      RATE_LIMITER_KEY_PREFIX: The rate limiter key prefixes.
+      RATE_LIMITER_POINTS: Rate limiter points.
+      RATE_LIMITER_STORE: The rate limiter storage type.
+      REFRESH_TOKEN_COOKIE_SAME_SITE: Same site cookie policy.
+      REFRESH_TOKEN_COOKIE_SECURE: Whether cookies should be secure (http-only) or not.
+      REFRESH_TOKEN_TTL: The refresh token TTL.
+      STORAGE_CLOUD_BUCKET: The storage bucket name.
+      STORAGE_CLOUD_DRIVER: The storage driver.
+      STORAGE_CLOUD_ENDPOINT: The storage endpoint URL.
+      STORAGE_CLOUD_KEY: The storage key id.
+      STORAGE_CLOUD_PUBLIC_URL: The storage key id.
+      STORAGE_CLOUD_REGION: The storage bucket region.
+      STORAGE_CLOUD_ROOT: Storage root location.
+      STORAGE_CLOUD_SECRET: The storage secret key.
+      STORAGE_LOCATIONS: The storage key. Please refer to the docs for more information.
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    env:
+      ACCESS_TOKEN_TTL: 15m
+      ADMIN_EMAIL: admin@email.com
+      ADMIN_PASSWORD: RandomPasword$
+      CACHE_ENABLED: true
+      CACHE_NAMESPACE: cache
+      CACHE_STORE: redis
+      CONFIG_PATH: /app/directus.config.js
+      DB_CLIENT: pg
+      EMAIL_SMTP_HOST: smtp.example.com
+      EMAIL_SMTP_POOL: true
+      EMAIL_SMTP_PORT: '587'
+      EMAIL_SMTP_SECURE: false
+      EMAIL_TRANSPORT: smtp
+      EXTENSIONS_PATH: /app/extensions
+      OAUTH_PROVIDERS: ''
+      PUBLIC_URL: /
+      RATE_LIMITER_DURATION: '1'
+      RATE_LIMITER_ENABLED: true
+      RATE_LIMITER_KEY_PREFIX: rate-limitter
+      RATE_LIMITER_POINTS: '30'
+      RATE_LIMITER_STORE: redis
+      REFRESH_TOKEN_COOKIE_SAME_SITE: true
+      REFRESH_TOKEN_COOKIE_SECURE: true
+      REFRESH_TOKEN_TTL: 7d
+      STORAGE_CLOUD_BUCKET: your-bucket
+      STORAGE_CLOUD_DRIVER: s3
+      STORAGE_CLOUD_ENDPOINT: https://nyc3.digitaloceanspaces.com
+      STORAGE_CLOUD_KEY: your-s3-key-id
+      STORAGE_CLOUD_PUBLIC_URL: https://your-bucket.nyc3.digitaloceanspaces.com
+      STORAGE_CLOUD_REGION: nyc3
+      STORAGE_CLOUD_ROOT: /
+      STORAGE_CLOUD_SECRET: your-s3-secret-key
+      STORAGE_LOCATIONS: cloud
+    cmds:
+      - task: bucket:create
+        vars:
+          AWS_ACCESS_KEY_ID: '{{.STORAGE_CLOUD_KEY}}'
+          AWS_REGION: '{{.STORAGE_CLOUD_REGION}}'
+          AWS_SECRET_ACCESS_KEY: '{{.STORAGE_CLOUD_SECRET}}'
+          BUCKET_NAME: '{{.STORAGE_CLOUD_BUCKET}}'
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"directus-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/directus-community/heroku-template/tarball/master\"},\
+        \"overrides\":{\"env\":{\"ACCESS_TOKEN_TTL\": \"$ACCESS_TOKEN_TTL\", \"ADMIN_EMAIL\": \"$ADMIN_EMAIL\", \"ADMIN_PASSWORD\":\
+        \"$ADMIN_PASSWORD$\", \"CACHE_ENABLED\": $CACHE_ENABLED, \"CACHE_NAMESPACE\": \"$CACHE_NAMESPACE\", \"CACHE_STORE\":\
+        \"$CACHE_STORE\", \"CONFIG_PATH\": \"$CONFIG_PATH\", \"DB_CLIENT\": \"$DB_CLIENT\", \"EMAIL_SMTP_HOST\": \"$EMAIL_SMTP_HOST\",\
+        \"EMAIL_SMTP_POOL\": $EMAIL_SMTP_POOL, \"EMAIL_SMTP_PORT\": \"$EMAIL_SMTP_PORT\", \"EMAIL_SMTP_SECURE\": $EMAIL_SMTP_SECURE,\
+        \"EMAIL_TRANSPORT\": \"$EMAIL_TRANSPORT\", \"EXTENSIONS_PATH\": \"$EXTENSIONS_PATH\", \"OAUTH_PROVIDERS\": \"$OAUTH_PROVIDERS\",\
+        \"PUBLIC_URL\": \"$PUBLIC_URL\", \"RATE_LIMITER_DURATION\": \"$RATE_LIMITER_DURATION\", \"RATE_LIMITER_ENABLED\": $RATE_LIMITER_ENABLED,\
+        \"RATE_LIMITER_KEY_PREFIX\": \"$RATE_LIMITER_KEY_PREFIX\", \"RATE_LIMITER_POINTS\": \"$RATE_LIMITER_POINTS\", \"RATE_LIMITER_STORE\":\
+        \"$RATE_LIMITER_STORE\", \"REFRESH_TOKEN_COOKIE_SAME_SITE\": $REFRESH_TOKEN_COOKIE_SAME_SITE, \"REFRESH_TOKEN_COOKIE_SECURE\":\
+        \"$REFRESH_TOKEN_COOKIE_SECURE\", \"REFRESH_TOKEN_TTL\": \"$REFRESH_TOKEN_TTL\", \"STORAGE_CLOUD_BUCKET\": \"$STORAGE_CLOUD_BUCKET\",\
+        \"STORAGE_CLOUD_DRIVER\": \"$STORAGE_CLOUD_DRIVER\", \"STORAGE_CLOUD_ENDPOINT\": \"$STORAGE_CLOUD_ENDPOINT\", \"STORAGE_CLOUD_KEY\":\
+        \"$STORAGE_CLOUD_KEY\", \"STORAGE_CLOUD_PUBLIC_URL\": \"$STORAGE_CLOUD_PUBLIC_URL\", \"STORAGE_CLOUD_REGION\": \"$STORAGE_CLOUD_REGION\",\
+        \"STORAGE_CLOUD_ROOT\": \"$STORAGE_CLOUD_ROOT\", \"STORAGE_CLOUD_SECRET\": \"$STORAGE_CLOUD_SECRET\", \"STORAGE_LOCATIONS\": \"$STORAGE_LOCATIONS\"}}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  directus-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: directus
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  ghostonheroku:
+    summary: |
+      Task to deploy `ghost-on-heroku` to Heroku.
+
+      Below are the environment variables that can be configured. Set the values in the `env` section.
+
+      PUBLIC_URL: The HTTPS URL of this app: either your custom domain or default 'herokuapp.com' hostname.
+      S3_ACCESS_KEY_ID: Set your AWS Access Key ID to enable S3 file storage. Leave blank to disable file uploads.
+      S3_ACCESS_SECRET_KEY: AWS Access Secret Key, if using S3 file storage.
+      S3_ASSET_HOST_URL: Optional custom CDN asset host url, if using S3 file storage.
+      S3_BUCKET_NAME: Name of your S3 bucket on AWS, if using S3 file storage.
+      S3_BUCKET_REGION: Region of your S3 bucket on AWS, if using S3 file storage.
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    env:
+      PUBLIC_URL: https://ghost.megabyte.space
+      S3_ACCESS_KEY_ID: S3 access key id
+      S3_ACCESS_SECRET_KEY: S3 secret access key
+      S3_ASSET_HOST_URL: e.g https://my.custom.domain/
+      S3_BUCKET_NAME: S3 bucket
+      S3_BUCKET_REGION: S3 bucket region (e.g. us-east-1)
+
+    cmds:
+      - task: bucket:create
+        vars:
+          AWS_ACCESS_KEY_ID: '{{.S3_ACCESS_KEY_ID}}'
+          AWS_REGION: '{{.S3_BUCKET_REGION}}'
+          AWS_SECRET_ACCESS_KEY: '{{.S3_ACCESS_SECRET_KEY}}'
+          BUCKET_NAME: '{{.S3_BUCKET_NAME}}'
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"ghostonheroku-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/cobyism/ghost-on-heroku/tarball/master\"},\
+        \"overrides\":{\"env\":{\"PUBLIC_URL\": \"$PUBLIC_URL\", \"S3_ACCESS_KEY_ID\": \"$S3_ACCESS_KEY_ID\",\
+        \"S3_ACCESS_SECRET_KEY\": \"$S3_ACCESS_SECRET_KEY\", \"S3_ASSET_HOST_URL\": \"$S3_ASSET_HOST_URL\",\
+        \"S3_BUCKET_NAME\": \"$S3_BUCKET_NAME\", \"S3_BUCKET_REGION\": \"$S3_BUCKET_REGION\"}}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  ghostonheroku-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: ghostonheroku
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  hasura:
+    summary: |
+      Task to deploy `hasura` to Heroku.
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    cmds:
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"hasura-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/hasura/graphql-engine-heroku/tarball/master\"}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  hasura-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: hasura
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  manet:
+    summary: |
+      Task to deploy `manet` to Heroku.
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    cmds:
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"manet-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/vbauer/manet/tarball/master\"}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  manet-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: manet
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  metabase:
+    summary: |
+      Task to deploy `metabase` to Heroku.
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    cmds:
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"metabase-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/metabase/metabase-deploy/tarball/master\"}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  metabase-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: metabase
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  nocodb:
+    summary: |
+      Task to deploy `nocodb` to Heroku.
+
+      Below are the environment variables that can be configured. Set the values in the `env` section.
+
+      NC_ONE_CLICK: Used for Heroku one-click deployment
+      NODE_TLS_REJECT_UNAUTHORIZED: Reject unauthorized
+      AWS_ACCESS_KEY_ID: For Litestream - S3 access key id
+      AWS_SECRET_ACCESS_KEY: For Litestream - S3 secret access key
+      AWS_BUCKET_REGION: Region where the bucket is present
+      AWS_BUCKET: For Litestream - S3 bucket
+      AWS_BUCKET_PATH: For Litestream - S3 bucket path (like folder within S3 bucket)
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    env:
+      AWS_ACCESS_KEY_ID: S3 access key id
+      AWS_BUCKET: S3 bucket
+      AWS_BUCKET_PATH: S3 bucket path (like folder within S3 bucket)
+
+      AWS_BUCKET_REGION: S3 Region
+      AWS_SECRET_ACCESS_KEY: S3 secret access key
+      NC_ONE_CLICK: true
+      NODE_TLS_REJECT_UNAUTHORIZED: '0'
+    cmds:
+      - task: bucket:create
+        vars:
+          AWS_ACCESS_KEY_ID: '{{.AWS_ACCESS_KEY_ID}}'
+          AWS_REGION: '{{.AWS_BUCKET_REGION}}'
+          AWS_SECRET_ACCESS_KEY: '{{.AWS_SECRET_ACCESS_KEY}}'
+          BUCKET_NAME: '{{.AWS_BUCKET}}'
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"nocodb-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/nocodb/nocodb-seed-heroku/tarball/master\"},\
+        \"overrides\":{\"env\":{\"NC_ONE_CLICK\": $NC_ONE_CLICK, \"NODE_TLS_REJECT_UNAUTHORIZED\": \"$NODE_TLS_REJECT_UNAUTHORIZED\",\
+        \"AWS_ACCESS_KEY_ID\": \"$AWS_ACCESS_KEY_ID\", \"AWS_SECRET_ACCESS_KEY\": \"$AWS_SECRET_ACCESS_KEY\", \"AWS_BUCKET\":\
+        \"$AWS_BUCKET\", \"AWS_BUCKET_PATH\": \"$AWS_BUCKET_PATH\"}}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  nocodb-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: nocodb
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
+  tooljet:
+    summary: |
+      Task to deploy `tooljet` to Heroku.
+
+      Below are the environment variables that can be configured. Set the values in the `env` section.
+
+      DEPLOYMENT_PLATFORM: Platform ToolJet is deployed on
+      DISABLE_MULTI_WORKSPACE: Disables Multi-Workspace feature
+      DISABLE_SIGNUPS: Disable sign up in login page only applicable if Multi-Workspace feature is turned on
+      LOCKBOX_MASTER_KEY: Master key for encrypting datasource credentials.
+      NODE_ENV: Environment [production/development]
+      NODE_OPTIONS: Node options configured to increase node memory to support app build
+      SECRET_KEY_BASE: Used by ToolJet server as the input secret to the application's key generator.
+      TOOLJET_HOST: Public URL of ToolJet installtion. This is usually https://<app-name-in-first-step>.herokuapp.com
+      TOOLJET_SERVER_URL: URL of ToolJet server installtion. (This is same as the TOOLJET_HOST for Heroku deployments)
+
+      The below variable can be used to pass the value of Custom Domain for the application
+      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
+    vars:
+      DOMAIN: ''
+    env:
+      DEPLOYMENT_PLATFORM: heroku
+      DISABLE_MULTI_WORKSPACE: false
+      DISABLE_SIGNUPS: false
+      LOCKBOX_MASTER_KEY: m@s73rk8s
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=4096
+      SECRET_KEY_BASE: SomeC0m6l00
+      TOOLJET_HOST: https://tooljet.herokuapp.com
+      TOOLJET_SERVER_URL: https://tooljet.herokuapp.com
+
+    cmds:
+      - |
+        RNDM=$(shuf -i 10000-1000000 -n 1)
+        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"tooljet-$RNDM\"},\
+        \"source_blob\":{\"url\":\"https://api.github.com/repos/tooljet/tooljet/tarball/master\"},\
+        \"overrides\":{\"env\":{\"DEPLOYMENT_PLATFORM\": \"$DEPLOYMENT_PLATFORM\", \"DISABLE_MULTI_WORKSPACE\":\
+        \"$DISABLE_MULTI_WORKSPACE\", \"DISABLE_SIGNUPS\": $DISABLE_SIGNUPS, \"LOCKBOX_MASTER_KEY\":\
+        \"$LOCKBOX_MASTER_KEY\", \"NODE_ENV\": \"$NODE_ENV\", \"NODE_OPTIONS\": \"$NODE_OPTIONS\",\
+        \"SECRET_KEY_BASE\": \"$SECRET_KEY_BASE\", \"TOOLJET_HOST\": \"$TOOLJET_HOST\", \"TOOLJET_SERVER_URL\": \"$TOOLJET_SERVER_URL\"}}}'
+        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  tooljet-$RNDM {{end}}
+      - task: cloudflare:dns
+        vars:
+          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
+          CLOUDFLARE_RECORD_NAME: tooljet
+          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
   urltopdf:
     summary: |
       Task to deploy `url-to-pdf-api` to Heroku.
@@ -155,7 +471,7 @@ tasks:
       The below variable can be used to pass the value of Custom Domain for the application
       DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
     vars:
-      DOMAIN: ""
+      DOMAIN: ''
     env:
       ALLOW_HTTP: false
       API_TOKENS: ''
@@ -168,12 +484,12 @@ tasks:
         {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  urltopdf-$RNDM {{end}}
       - task: cloudflare:dns
         vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_RECORD_NAME: urltopdf
           CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
 
+          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
   whoogle:
     summary: |
       Task to deploy `whoogle` to Heroku.
@@ -214,7 +530,7 @@ tasks:
       The below variable can be used to pass the value of Custom Domain for the application
       DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
     vars:
-      DOMAIN: ""
+      DOMAIN: ''
     env:
       WHOOGLE_ALT_IG: farside.link/bibliogram/u
       WHOOGLE_ALT_IMG: farside.link/rimgo
@@ -268,326 +584,8 @@ tasks:
         {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  whoogle-$RNDM {{end}}
       - task: cloudflare:dns
         vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
+          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
           CLOUDFLARE_RECORD_NAME: whoogle
           CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  nocodb:
-    summary: |
-      Task to deploy `nocodb` to Heroku.
-
-      Below are the environment variables that can be configured. Set the values in the `env` section.
-
-      NC_ONE_CLICK: Used for Heroku one-click deployment
-      NODE_TLS_REJECT_UNAUTHORIZED: Reject unauthorized
-      AWS_ACCESS_KEY_ID: For Litestream - S3 access key id
-      AWS_SECRET_ACCESS_KEY: For Litestream - S3 secret access key
-      AWS_BUCKET_REGION: Region where the bucket is present
-      AWS_BUCKET: For Litestream - S3 bucket
-      AWS_BUCKET_PATH: For Litestream - S3 bucket path (like folder within S3 bucket)
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    env:
-      NC_ONE_CLICK: true
-      NODE_TLS_REJECT_UNAUTHORIZED: '0'
-      AWS_ACCESS_KEY_ID: S3 access key id
-      AWS_SECRET_ACCESS_KEY: S3 secret access key
-      AWS_BUCKET_REGION: S3 Region
-      AWS_BUCKET: S3 bucket
-      AWS_BUCKET_PATH: S3 bucket path (like folder within S3 bucket)
-
-    cmds:
-      - task: bucket:create
-        vars:
-          AWS_ACCESS_KEY_ID: '{{.AWS_ACCESS_KEY_ID}}'
-          AWS_SECRET_ACCESS_KEY: '{{.AWS_SECRET_ACCESS_KEY}}'
-          AWS_REGION: '{{.AWS_BUCKET_REGION}}'
-          BUCKET_NAME: '{{.AWS_BUCKET}}'
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"nocodb-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/nocodb/nocodb-seed-heroku/tarball/master\"},\
-        \"overrides\":{\"env\":{\"NC_ONE_CLICK\": $NC_ONE_CLICK, \"NODE_TLS_REJECT_UNAUTHORIZED\": \"$NODE_TLS_REJECT_UNAUTHORIZED\",\
-        \"AWS_ACCESS_KEY_ID\": \"$AWS_ACCESS_KEY_ID\", \"AWS_SECRET_ACCESS_KEY\": \"$AWS_SECRET_ACCESS_KEY\", \"AWS_BUCKET\":\
-        \"$AWS_BUCKET\", \"AWS_BUCKET_PATH\": \"$AWS_BUCKET_PATH\"}}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  nocodb-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
           CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: nocodb
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  ghostonheroku:
-    summary: |
-      Task to deploy `ghost-on-heroku` to Heroku.
-
-      Below are the environment variables that can be configured. Set the values in the `env` section.
-
-      PUBLIC_URL: The HTTPS URL of this app: either your custom domain or default 'herokuapp.com' hostname.
-      S3_ACCESS_KEY_ID: Set your AWS Access Key ID to enable S3 file storage. Leave blank to disable file uploads.
-      S3_ACCESS_SECRET_KEY: AWS Access Secret Key, if using S3 file storage.
-      S3_ASSET_HOST_URL: Optional custom CDN asset host url, if using S3 file storage.
-      S3_BUCKET_NAME: Name of your S3 bucket on AWS, if using S3 file storage.
-      S3_BUCKET_REGION: Region of your S3 bucket on AWS, if using S3 file storage.
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    env:
-      PUBLIC_URL: https://ghost.megabyte.space
-      S3_ACCESS_KEY_ID: S3 access key id
-      S3_ACCESS_SECRET_KEY: S3 secret access key
-      S3_ASSET_HOST_URL: e.g https://my.custom.domain/
-      S3_BUCKET_NAME: S3 bucket
-      S3_BUCKET_REGION: S3 bucket region (e.g. us-east-1)
-
-    cmds:
-      - task: bucket:create
-        vars:
-          AWS_ACCESS_KEY_ID: '{{.S3_ACCESS_KEY_ID}}'
-          AWS_SECRET_ACCESS_KEY: '{{.S3_ACCESS_SECRET_KEY}}'
-          AWS_REGION: '{{.S3_BUCKET_REGION}}'
-          BUCKET_NAME: '{{.S3_BUCKET_NAME}}'
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"ghostonheroku-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/cobyism/ghost-on-heroku/tarball/master\"},\
-        \"overrides\":{\"env\":{\"PUBLIC_URL\": \"$PUBLIC_URL\", \"S3_ACCESS_KEY_ID\": \"$S3_ACCESS_KEY_ID\",\
-        \"S3_ACCESS_SECRET_KEY\": \"$S3_ACCESS_SECRET_KEY\", \"S3_ASSET_HOST_URL\": \"$S3_ASSET_HOST_URL\",\
-        \"S3_BUCKET_NAME\": \"$S3_BUCKET_NAME\", \"S3_BUCKET_REGION\": \"$S3_BUCKET_REGION\"}}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  ghostonheroku-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: ghostonheroku
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  tooljet:
-    summary: |
-      Task to deploy `tooljet` to Heroku.
-
-      Below are the environment variables that can be configured. Set the values in the `env` section.
-
-      DEPLOYMENT_PLATFORM: Platform ToolJet is deployed on
-      DISABLE_MULTI_WORKSPACE: Disables Multi-Workspace feature
-      DISABLE_SIGNUPS: Disable sign up in login page only applicable if Multi-Workspace feature is turned on
-      LOCKBOX_MASTER_KEY: Master key for encrypting datasource credentials.
-      NODE_ENV: Environment [production/development]
-      NODE_OPTIONS: Node options configured to increase node memory to support app build
-      SECRET_KEY_BASE: Used by ToolJet server as the input secret to the application's key generator.
-      TOOLJET_HOST: Public URL of ToolJet installtion. This is usually https://<app-name-in-first-step>.herokuapp.com
-      TOOLJET_SERVER_URL: URL of ToolJet server installtion. (This is same as the TOOLJET_HOST for Heroku deployments)
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    env:
-      DEPLOYMENT_PLATFORM: heroku
-      DISABLE_MULTI_WORKSPACE: false
-      DISABLE_SIGNUPS: false
-      LOCKBOX_MASTER_KEY: m@s73rk8s
-      NODE_ENV: production
-      NODE_OPTIONS: --max-old-space-size=4096
-      SECRET_KEY_BASE: SomeC0m6l00
-      TOOLJET_HOST: https://tooljet.herokuapp.com
-      TOOLJET_SERVER_URL: https://tooljet.herokuapp.com
-
-    cmds:
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"tooljet-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/tooljet/tooljet/tarball/master\"},\
-        \"overrides\":{\"env\":{\"DEPLOYMENT_PLATFORM\": \"$DEPLOYMENT_PLATFORM\", \"DISABLE_MULTI_WORKSPACE\":\
-        \"$DISABLE_MULTI_WORKSPACE\", \"DISABLE_SIGNUPS\": $DISABLE_SIGNUPS, \"LOCKBOX_MASTER_KEY\":\
-        \"$LOCKBOX_MASTER_KEY\", \"NODE_ENV\": \"$NODE_ENV\", \"NODE_OPTIONS\": \"$NODE_OPTIONS\",\
-        \"SECRET_KEY_BASE\": \"$SECRET_KEY_BASE\", \"TOOLJET_HOST\": \"$TOOLJET_HOST\", \"TOOLJET_SERVER_URL\": \"$TOOLJET_SERVER_URL\"}}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  tooljet-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: tooljet
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  appsmith:
-    summary: |
-      Task to deploy `appsmith` to Heroku.
-
-      Below are the environment variables that can be configured. Set the values in the `env` section.
-
-      APPSMITH_DISABLE_TELEMETRY: Share anonymous usage data
-      APPSMITH_ENCRYPTION_PASSWORD: Encryption password to encrypt all sensitive credentials in the database. You can use any random string. The more random, the better.
-      APPSMITH_ENCRYPTION_SALT: Encryption salt used to encrypt all sensitive credentials in the database. You can use any random string. The more random, the better.
-      APPSMITH_MONGODB_URI: Your Mongo Database URI. Since Heroku doesn't support a managed MongoDB instance, you'll have to create a Mongo DB instance on another service such as https://cloud.mongodb.com
-      APPSMITH_SUPERVISOR_PASSWORD: Basic authentication password to access Supervisor UI - An web interface, which allow you to manage various process
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    env:
-      APPSMITH_DISABLE_TELEMETRY: true
-      APPSMITH_ENCRYPTION_PASSWORD: 'kna%si*sj19lk>0s'
-      APPSMITH_ENCRYPTION_SALT: 'm,a-01s'
-      APPSMITH_MONGODB_URI: mongo.example.com
-      APPSMITH_SUPERVISOR_PASSWORD: "sdf'6as9I1a"
-    cmds:
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"appsmith-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/appsmithorg/appsmith/tarball/master\"},\
-        \"overrides\":{\"env\":{\"APPSMITH_DISABLE_TELEMETRY\": $APPSMITH_DISABLE_TELEMETRY, \"APPSMITH_ENCRYPTION_PASSWORD\":\
-        \"$APPSMITH_ENCRYPTION_PASSWORD\", \"APPSMITH_ENCRYPTION_SALT\": \"$APPSMITH_ENCRYPTION_SALT\", \"APPSMITH_MONGODB_URI\":\
-        \"$APPSMITH_MONGODB_URI\", \"APPSMITH_SUPERVISOR_PASSWORD\": \"$APPSMITH_SUPERVISOR_PASSWORD\"}}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  appsmith-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: appsmith
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  directus:
-    summary: |
-      Task to deploy `directus` to Heroku.
-
-      Below are the environment variables that can be configured. Set the values in the `env` section.
-
-      ACCESS_TOKEN_TTL: The access token TTL.
-      ADMIN_EMAIL: The initial admin email.
-      ADMIN_PASSWORD: The initial admin password.
-      CACHE_ENABLED: Whether the cache should be enabled or not.
-      CACHE_NAMESPACE: The cache namespace.
-      CACHE_STORE: The cache store to use.
-      CONFIG_PATH: Application config loader path.
-      DB_CLIENT: Database server type.
-      EMAIL_SMTP_HOST: The email server host.
-      EMAIL_SMTP_POOL: Whether to setup smtp pooling or not.
-      EMAIL_SMTP_PORT: The email server port.
-      EMAIL_SMTP_SECURE: Whether email connection is secure or not.
-      EMAIL_TRANSPORT: The email transport.
-      EXTENSIONS_PATH: The application's extension folder.
-      OAUTH_PROVIDERS: OAuth providers.
-      PUBLIC_URL: Application public URL.
-      RATE_LIMITER_DURATION: Rate limiter duration in minutes.
-      RATE_LIMITER_ENABLED: Whether the rate limiter should be enabled or not.
-      RATE_LIMITER_KEY_PREFIX: The rate limiter key prefixes.
-      RATE_LIMITER_POINTS: Rate limiter points.
-      RATE_LIMITER_STORE: The rate limiter storage type.
-      REFRESH_TOKEN_COOKIE_SAME_SITE: Same site cookie policy.
-      REFRESH_TOKEN_COOKIE_SECURE: Whether cookies should be secure (http-only) or not.
-      REFRESH_TOKEN_TTL: The refresh token TTL.
-      STORAGE_CLOUD_BUCKET: The storage bucket name.
-      STORAGE_CLOUD_DRIVER: The storage driver.
-      STORAGE_CLOUD_ENDPOINT: The storage endpoint URL.
-      STORAGE_CLOUD_KEY: The storage key id.
-      STORAGE_CLOUD_PUBLIC_URL: The storage key id.
-      STORAGE_CLOUD_REGION: The storage bucket region.
-      STORAGE_CLOUD_ROOT: Storage root location.
-      STORAGE_CLOUD_SECRET: The storage secret key.
-      STORAGE_LOCATIONS: The storage key. Please refer to the docs for more information.
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    env:
-      ACCESS_TOKEN_TTL: 15m
-      ADMIN_EMAIL: admin@email.com
-      ADMIN_PASSWORD: RandomPasword$
-      CACHE_ENABLED: true
-      CACHE_NAMESPACE: cache
-      CACHE_STORE: redis
-      CONFIG_PATH: /app/directus.config.js
-      DB_CLIENT: pg
-      EMAIL_SMTP_HOST: smtp.example.com
-      EMAIL_SMTP_POOL: true
-      EMAIL_SMTP_PORT: '587'
-      EMAIL_SMTP_SECURE: false
-      EMAIL_TRANSPORT: smtp
-      EXTENSIONS_PATH: /app/extensions
-      OAUTH_PROVIDERS: ''
-      PUBLIC_URL: /
-      RATE_LIMITER_DURATION: '1'
-      RATE_LIMITER_ENABLED: true
-      RATE_LIMITER_KEY_PREFIX: rate-limitter
-      RATE_LIMITER_POINTS: '30'
-      RATE_LIMITER_STORE: redis
-      REFRESH_TOKEN_COOKIE_SAME_SITE: true
-      REFRESH_TOKEN_COOKIE_SECURE: true
-      REFRESH_TOKEN_TTL: 7d
-      STORAGE_CLOUD_BUCKET: your-bucket
-      STORAGE_CLOUD_DRIVER: s3
-      STORAGE_CLOUD_ENDPOINT: https://nyc3.digitaloceanspaces.com
-      STORAGE_CLOUD_KEY: your-s3-key-id
-      STORAGE_CLOUD_PUBLIC_URL: https://your-bucket.nyc3.digitaloceanspaces.com
-      STORAGE_CLOUD_REGION: nyc3
-      STORAGE_CLOUD_ROOT: /
-      STORAGE_CLOUD_SECRET: your-s3-secret-key
-      STORAGE_LOCATIONS: cloud
-    cmds:
-      - task: bucket:create
-        vars:
-          AWS_ACCESS_KEY_ID: '{{.STORAGE_CLOUD_KEY}}'
-          AWS_SECRET_ACCESS_KEY: '{{.STORAGE_CLOUD_SECRET}}'
-          AWS_REGION: '{{.STORAGE_CLOUD_REGION}}'
-          BUCKET_NAME: '{{.STORAGE_CLOUD_BUCKET}}'
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"directus-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/directus-community/heroku-template/tarball/master\"},\
-        \"overrides\":{\"env\":{\"ACCESS_TOKEN_TTL\": \"$ACCESS_TOKEN_TTL\", \"ADMIN_EMAIL\": \"$ADMIN_EMAIL\", \"ADMIN_PASSWORD\":\
-        \"$ADMIN_PASSWORD$\", \"CACHE_ENABLED\": $CACHE_ENABLED, \"CACHE_NAMESPACE\": \"$CACHE_NAMESPACE\", \"CACHE_STORE\":\
-        \"$CACHE_STORE\", \"CONFIG_PATH\": \"$CONFIG_PATH\", \"DB_CLIENT\": \"$DB_CLIENT\", \"EMAIL_SMTP_HOST\": \"$EMAIL_SMTP_HOST\",\
-        \"EMAIL_SMTP_POOL\": $EMAIL_SMTP_POOL, \"EMAIL_SMTP_PORT\": \"$EMAIL_SMTP_PORT\", \"EMAIL_SMTP_SECURE\": $EMAIL_SMTP_SECURE,\
-        \"EMAIL_TRANSPORT\": \"$EMAIL_TRANSPORT\", \"EXTENSIONS_PATH\": \"$EXTENSIONS_PATH\", \"OAUTH_PROVIDERS\": \"$OAUTH_PROVIDERS\",\
-        \"PUBLIC_URL\": \"$PUBLIC_URL\", \"RATE_LIMITER_DURATION\": \"$RATE_LIMITER_DURATION\", \"RATE_LIMITER_ENABLED\": $RATE_LIMITER_ENABLED,\
-        \"RATE_LIMITER_KEY_PREFIX\": \"$RATE_LIMITER_KEY_PREFIX\", \"RATE_LIMITER_POINTS\": \"$RATE_LIMITER_POINTS\", \"RATE_LIMITER_STORE\":\
-        \"$RATE_LIMITER_STORE\", \"REFRESH_TOKEN_COOKIE_SAME_SITE\": $REFRESH_TOKEN_COOKIE_SAME_SITE, \"REFRESH_TOKEN_COOKIE_SECURE\":\
-        \"$REFRESH_TOKEN_COOKIE_SECURE\", \"REFRESH_TOKEN_TTL\": \"$REFRESH_TOKEN_TTL\", \"STORAGE_CLOUD_BUCKET\": \"$STORAGE_CLOUD_BUCKET\",\
-        \"STORAGE_CLOUD_DRIVER\": \"$STORAGE_CLOUD_DRIVER\", \"STORAGE_CLOUD_ENDPOINT\": \"$STORAGE_CLOUD_ENDPOINT\", \"STORAGE_CLOUD_KEY\":\
-        \"$STORAGE_CLOUD_KEY\", \"STORAGE_CLOUD_PUBLIC_URL\": \"$STORAGE_CLOUD_PUBLIC_URL\", \"STORAGE_CLOUD_REGION\": \"$STORAGE_CLOUD_REGION\",\
-        \"STORAGE_CLOUD_ROOT\": \"$STORAGE_CLOUD_ROOT\", \"STORAGE_CLOUD_SECRET\": \"$STORAGE_CLOUD_SECRET\", \"STORAGE_LOCATIONS\": \"$STORAGE_LOCATIONS\"}}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  directus-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: directus
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'
-
-  manet:
-    summary: |
-      Task to deploy `manet` to Heroku.
-
-      The below variable can be used to pass the value of Custom Domain for the application
-      DOMAIN: The custom domain to be added to the application. Set this to a valid value to add the domain (`CONFIGURE_CUSTOM_DOMAIN` should be set to `true`).
-    vars:
-      DOMAIN: ""
-    cmds:
-      - |
-        RNDM=$(shuf -i 10000-1000000 -n 1)
-        heroku api POST /app-setups --body '{\"app\":{\"region\":\"$REGION\",\"name\":\"manet-$RNDM\"},\
-        \"source_blob\":{\"url\":\"https://api.github.com/repos/vbauer/manet/tarball/master\"}}'
-        {{if and (eq .CONFIGURE_CUSTOM_DOMAIN "true") (ne .DOMAIN "")}}heroku domains:add {{.DOMAIN}} -a  manet-$RNDM {{end}}
-      - task: cloudflare:dns
-        vars:
-          CONFIGURE_CLOUDFLARE_DNS: '{{.CONFIGURE_CLOUDFLARE_DNS}}'
-          CLOUDFLARE_DNS_ZONE: '{{.CLOUDFLARE_DNS_ZONE}}'
-          CLOUDFLARE_API_TOKEN: '{{.CLOUDFLARE_API_TOKEN}}'
-          CLOUDFLARE_RECORD_NAME: manet
-          CLOUDFLARE_RECORD_VALUE: '{{.DOMAIN}}'

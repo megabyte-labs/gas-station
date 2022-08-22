@@ -142,14 +142,23 @@ function EnsureDockerFunctional {
     wsl --update
     Write-Host "Shutting down / rebooting WSL" -ForegroundColor Black -BackgroundColor Cyan
     wsl --shutdown
-    Write-Host "**************"
-    Write-Host "Docker Desktop does not appear to be functional yet. If you used this script, Docker Desktop should load on boot. Follow these instructions:" -ForegroundColor Black -BackgroundColor Cyan
-    Write-Host "1. Open Docker Desktop if it did not open automatically and accept the agreement." -ForegroundColor Black -BackgroundColor Cyan
-    Write-Host "2. If Docker Desktop opens a dialog that says WSL 2 installation is incomplete then click the Restart button." -ForegroundColor Black -BackgroundColor Cyan
-    Write-Host "3. The installation will continue after the reboot finishes." -ForegroundColor Black -BackgroundColor Cyan
-    Write-Host "**************"
-    Read-Host "Press ENTER to continue (after Docker Desktop stops displaying warning modals)"
-    EnsureDockerFunctional
+    & 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
+    Write-Host "Waiting for Docker Desktop to come online" -ForegroundColor Black -BackgroundColor Cyan
+    Start-Sleep -s 30
+    docker run hello-world
+    if ($?) {
+      Write-Host "Docker is now running and operational! Continuing.." -ForegroundColor Black -BackgroundColor Cyan
+    } else {
+      Write-Host "**************"
+      Write-Host "Docker Desktop does not appear to be functional yet. If you used this script, Docker Desktop should load on boot. Follow these instructions:" -ForegroundColor Black -BackgroundColor Cyan
+      Write-Host "1. Open Docker Desktop if it did not open automatically and accept the agreement if one is presented." -ForegroundColor Black -BackgroundColor Cyan
+      Write-Host "2. If Docker Desktop opens a dialog that says WSL 2 installation is incomplete then click the Restart button." -ForegroundColor Black -BackgroundColor Cyan
+      Write-Host "3. Press ENTER here to attempt to proceed." -ForegroundColor Black -BackgroundColor Cyan
+      Write-Host "4. Optionally, configure Docker to start up on boot by going to Settings -> General." -ForegroundColor Black -BackgroundColor Cyan
+      Write-Host "**************"
+      Read-Host "Press ENTER to continue (after Docker Desktop stops displaying warning modals)"
+      EnsureDockerFunctional
+    }
   }
 }
 
@@ -203,7 +212,11 @@ function RunPlaybookDocker {
   }
   Write-Host "Acquiring LAN IP address" -ForegroundColor Black -BackgroundColor Cyan
   $HostIPValue = (Get-NetIPConfiguration | Where-Object -Property IPv4DefaultGateway).IPv4Address.IPAddress
-  $HostIP = $HostIPValue[0]
+  if ($HostIPValue -is [array]) {
+    $HostIP = $HostIPValue[0]
+  } else {
+    $HostIP = $HostIPValue
+  }
   PrepareForReboot
   Write-Host "Provisioning environment with Docker using $HostIP as the IP address" -ForegroundColor Black -BackgroundColor Cyan
   docker run -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --add-host='windows:'$HostIP --entrypoint /bin/bash debian:buster-slim ./quickstart.sh
@@ -236,6 +249,7 @@ function ProvisionWindowsAnsible {
   EnsureLinuxSubsystemEnabled
   EnsureVirtualMachinePlatformEnabled
   EnsureDockerDesktopInstalled
+  EnsureDockerFunctional
   if ($ProvisionWithWSL -eq 'true') {
     EnsureUbuntuAPPXInstalled
     SetupUbuntuWSL

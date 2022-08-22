@@ -3,9 +3,49 @@ version: '3'
 
 tasks:
   markdown:
-    vars:
-      MARKDOWN_TO_RENDER:
-        sh: |
-          echo {{if .MARKDOWN}}'{{.MARKDOWN}}'{{else}}{{if .CLI_ARGS}}"$(cat {{.CLI_ARGS}})"{{else}}'Nothing to render..'{{end}}{{end}}
+    summary: |
+      # Render Markdown with Glow
+
+      [Glow]() provides pleasently formatted markdown
+      in the terminal. This task allows you to pass in data to be formatted
+      by Glow as the MARKDOWN variable or a CLI argument if the MARKDOWN
+      variable is undefined. In both cases, this task will first check if
+      the variable is a markdown file. It will render the file in this case.
+      It can also render markdown passed in as a string.
+
+      **Example with CLI and markdown file:**
+      task log:markdown -- path/to/markdown.md
+
+      **Example with MARKDOWN variable and inlined markdown:**
+      ```
+      mytask:
+        cmds:
+          - task: :log:markdown
+            vars:
+              MARKDOWN: |
+                # Markdown Title
+
+                Paragraph `code` [Link to cool website](https://megabyte.space).
+      ```
     cmds:
-      - .config/log md '{{.MARKDOWN_TO_RENDER}}'
+      - |
+        TMP="$(mktemp)"
+        {{if .MARKDOWN}}
+        if [ -f '{{.MARKDOWN}}' ]; then
+          cp '{{.MARKDOWN}}' "$TMP"
+        else
+          tee "$TMP" < '{{replace "'" "\'" .MARKDOWN}}'
+        fi
+        .config/log md "$TMP"
+        {{else}}
+        {{if .CLI_ARGS}}
+        if [ -f '{{.CLI_ARGS}}' ]; then
+          cp '{{.CLI_ARGS}}' "$TMP"
+        else
+          tee "$TMP" < '{{replace "'" "\'" .CLI_ARGS}}'
+        fi
+        .config/log md "$TMP"
+        {{else}}
+        .config/log error 'A CLI argument or the MARKDOWN variable must be passed in.'
+        {{end}}
+        {{end}}

@@ -14,6 +14,7 @@ set -eo pipefail
 # @description Initialize variables
 DELAYED_CI_SYNC=""
 ENSURED_TASKFILES=""
+export HOMEBREW_NO_INSTALL_CLEANUP=true
 
 # @description Ensure permissions in CI environments
 if [ -n "$CI" ]; then
@@ -564,9 +565,12 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
         # shellcheck disable=SC2016
         brew install yq || logger info 'There may have been an issue installing `yq` with `brew`'
       fi
-      if ! type volta &> /dev/null; then
+      if ! type volta &> /dev/null || ! type node &> /dev/null; then
         # shellcheck disable=SC2016
         curl https://get.volta.sh | bash
+        . "$HOME/.profile" &> /dev/null || true
+        volta setup
+        volta install node
       fi
     fi
   fi

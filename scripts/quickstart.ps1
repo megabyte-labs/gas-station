@@ -25,7 +25,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 # @description Prepares the machine to automatically continue installation after a reboot
 function PrepareForReboot {
   if (!(Test-Path $QuickstartScript)) {
-    Write-Host "Ensuring the recursive update script is downloaded"
+    Write-Host "Ensuring the recursive update script is downloaded" -ForegroundColor Black -BackgroundColor Cyan
     Start-BitsTransfer -Source "https://install.doctor/windows-quickstart" -Destination $QuickstartScript -Description "Downloading initialization script"
   }
   Write-Host "Ensuring start-up script is present" -ForegroundColor Black -BackgroundColor Cyan
@@ -207,7 +207,7 @@ function RunPlaybookDocker {
   $CurrentLocation = Get-Location
   $WorkDirectory = Split-Path -leaf -path (Get-Location)
   if (!(Test-Path $QuickstartShellScript)) {
-    Write-Host "Ensuring the quickstart shell script is downloaded"
+    Write-Host "Ensuring the quickstart shell script is downloaded" -ForegroundColor Black -BackgroundColor Cyan
     Start-BitsTransfer -Source "https://install.doctor/quickstart" -Destination $QuickstartShellScript -Description "Downloading initialization shell script"
   }
   Write-Host "Acquiring LAN IP address" -ForegroundColor Black -BackgroundColor Cyan
@@ -219,7 +219,7 @@ function RunPlaybookDocker {
   }
   PrepareForReboot
   Write-Host "Provisioning environment with Docker using $HostIP as the IP address" -ForegroundColor Black -BackgroundColor Cyan
-  docker run -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --add-host='windows:'$HostIP --entrypoint /bin/bash debian:buster-slim ./quickstart.sh
+  docker run -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --add-host='windows:'$HostIP --entrypoint /bin/bash megabytelabs/updater:latest-full ./quickstart.sh
 }
 
 # @description Run the playbook with WSL

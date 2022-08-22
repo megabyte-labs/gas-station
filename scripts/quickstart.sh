@@ -43,7 +43,7 @@ function ensurePackageInstalled() {
             yum install -y "$1"
           fi
         fi
-      elif [ -f "/etc/lsb-release" ] || [ -f "/etc/debian_version" ]; then
+      elif [ -f "/etc/ubuntu-release" ] || [ -f "/etc/debian_version" ]; then
         if type sudo &> /dev/null; then
           sudo apt-get update
           sudo apt-get install -y "$1"
@@ -66,12 +66,12 @@ function ensurePackageInstalled() {
           apk --no-cache add "$1"
         fi
       else
-        echo "$1 is missing. Please install $1 to continue." && exit 1
+        echo "ERROR: $1 is missing. Please install $1 to continue." && exit 1
       fi
     elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
-      echo "Windows is not directly supported. Use WSL or Docker." && exit 1
+      echo "ERROR: Windows is not directly supported. Use WSL or Docker." && exit 1
     elif [[ "$OSTYPE" == 'freebsd'* ]]; then
-      echo "FreeBSD support not added yet" && exit 1
+      echo "ERROR: FreeBSD support not added yet" && exit 1
     else
       echo "System type not recognized"
     fi

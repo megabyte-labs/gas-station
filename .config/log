@@ -33,23 +33,26 @@ installGlow() {
   elif [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ] || [ -f '/etc/redhat-release' ] || [ -f '/etc/SuSE-release' ] || [ -f '/etc/arch-release' ] || [ -f '/etc/alpine-release' ]; then
     GLOW_DOWNLOAD_URL="https://github.com/charmbracelet/glow/releases/download/v1.4.1/glow_1.4.1_linux_x86_64.tar.gz"
   fi
-  if { [ -d '/Applications' ] && [ -d '/Library' ] && [ -d '/Users' ]; } || [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ] || [ -f '/etc/redhat-release' ] || [ -f '/etc/SuSE-release' ] || [ -f '/etc/arch-release' ] || [ -f '/etc/alpine-release' ]; then
-    TMP="$(mktemp)"
-    TMP_DIR="$(dirname "$TMP")"
-    curl -sSL "$GLOW_DOWNLOAD_URL" > "$TMP"
-    tar -xzf "$TMP" -C "$TMP_DIR"
-    if [ -n "$HOME" ]; then
-      if ! (mkdir -p "$HOME/.local/bin" && mv "$TMP_DIR/glow" "$HOME/.local/bin/glow"); then
-        GLOW_PATH="$(dirname "${BASH_SOURCE[0]}")/glow"
-        mv "$TMP_DIR/gum" "$GLOW_PATH"
+  if type curl &> /dev/null; then
+    if { [ -d '/Applications' ] && [ -d '/Library' ] && [ -d '/Users' ]; } || [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ] || [ -f '/etc/redhat-release' ] || [ -f '/etc/SuSE-release' ] || [ -f '/etc/arch-release' ] || [ -f '/etc/alpine-release' ]; then
+      TMP="$(mktemp)"
+      TMP_DIR="$(dirname "$TMP")"
+      curl -sSL "$GLOW_DOWNLOAD_URL" > "$TMP"
+      tar -xzf "$TMP" -C "$TMP_DIR"
+      if [ -n "$HOME" ]; then
+        if mkdir -p "$HOME/.local/bin" && mv "$TMP_DIR/glow" "$HOME/.local/bin/glow"; then
+          GLOW_PATH="$HOME/.local/bin/glow"
+        else
+          GLOW_PATH="$(dirname "${BASH_SOURCE[0]}")/glow"
+          mv "$TMP_DIR/gum" "$GLOW_PATH"
+        fi
+        chmod +x "$GLOW_PATH"
+      else
+        echo "WARNING: The HOME environment variable is not set! (Glow)"
       fi
     else
-      # TODO: Handle this
-      true
+      echo "WARNING: Unable to detect system type. (Glow)"
     fi
-  else
-    # TODO: Handle this
-    true
   fi
 }
 
@@ -62,20 +65,26 @@ installGum() {
   elif [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ] || [ -f '/etc/redhat-release' ] || [ -f '/etc/SuSE-release' ] || [ -f '/etc/arch-release' ] || [ -f '/etc/alpine-release' ]; then
     GUM_DOWNLOAD_URL="https://github.com/charmbracelet/gum/releases/download/v0.4.0/gum_0.4.0_linux_x86_64.tar.gz"
   fi
-  if { [ -d '/Applications' ] && [ -d '/Library' ] && [ -d '/Users' ]; } || [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ] || [ -f '/etc/redhat-release' ] || [ -f '/etc/SuSE-release' ] || [ -f '/etc/arch-release' ] || [ -f '/etc/alpine-release' ]; then
-    TMP="$(mktemp)"
-    TMP_DIR="$(dirname "$TMP")"
-    curl -sSL "$GUM_DOWNLOAD_URL" > "$TMP"
-    tar -xzf "$TMP" -C "$TMP_DIR"
-    if [ -n "$HOME" ]; then
-      mkdir -p "$HOME/.local/bin"
-      mv "${TMP_DIR}/gum" "$HOME/.local/bin/gum"
-      GUM_PATH="$HOME/.local/bin/gum"
+  if type curl &> /dev/null; then
+    if { [ -d '/Applications' ] && [ -d '/Library' ] && [ -d '/Users' ]; } || [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ] || [ -f '/etc/redhat-release' ] || [ -f '/etc/SuSE-release' ] || [ -f '/etc/arch-release' ] || [ -f '/etc/alpine-release' ]; then
+      TMP="$(mktemp)"
+      TMP_DIR="$(dirname "$TMP")"
+      curl -sSL "$GUM_DOWNLOAD_URL" > "$TMP"
+      tar -xzf "$TMP" -C "$TMP_DIR"
+      if [ -n "$HOME" ]; then
+        if mkdir -p "$HOME/.local/bin" && mv "$TMP_DIR/gum" "$HOME/.local/bin/gum"; then
+          GUM_PATH="$HOME/.local/bin/gum"
+        else
+          GUM_PATH="$(dirname "${BASH_SOURCE[0]}")/gum"
+          mv "$TMP_DIR/gum" "$GLOW_PATH"
+        fi
+        chmod +x "$GUM_PATH"
+      else
+        echo "WARNING: The HOME environment variable is not set! (Gum)"
+      fi
     else
-      echo "Enhanced logging is turned off because the HOME environment variable is not set."
+      echo "WARNING: Unable to detect system type. (Gum)"
     fi
-  else
-    echo "Enhanced logging is turned off because we could not detect the system type."
   fi
 }
 
@@ -90,6 +99,7 @@ if [ "${container:=}" != 'docker' ]; then
     GUM_PATH="$(dirname "${BASH_SOURCE[0]}")/gum"
   elif type brew &> /dev/null; then
     brew install gum
+    GUM_PATH="$(which gum)"
   else
     installGum
   fi
@@ -113,19 +123,20 @@ logger() {
     if [ "${container:=}" != 'docker' ]; then
       if type glow &> /dev/null; then
         GLOW_PATH="$(which glow)"
-        chmod +x "$(which glow)" &> /dev/null
       elif [ -f "$HOME/.local/bin/glow" ]; then
         GLOW_PATH="$HOME/.local/bin/glow"
-        chmod +x "$GLOW_PATH"
       elif [ -f "$(dirname "${BASH_SOURCE[0]}")/glow" ]; then
         GLOW_PATH="$(dirname "${BASH_SOURCE[0]}")/glow"
-        chmod +x "$GLOW_PATH"
       elif type brew &> /dev/null; then
         brew install glow
-        chmod +x "$(which glow)" &> /dev/null
         GLOW_PATH="$(which glow)"
       else
         installGlow
+      fi
+
+      if [ -n "$GLOW_PATH" ]; then
+        chmod +x "$GLOW_PATH"
+        ENHANCED_LOGGING=true
       fi
     fi
     "$GLOW_PATH" "$2"
@@ -158,7 +169,11 @@ format() {
 # @example RESPONSE="$(.config/log choose "file.png" "another-file.jpg")"
 choose() {
   if type gum &> /dev/null; then
-    gum choose $@
+    CHOOSE_ARGS="gum choose"
+    for CURRENT_VAR in "$@"; do
+      CHOOSE_ARGS="$CHOOSE_ARGS \"$CURRENT_VAR\""
+    done
+    eval $CHOOSE_ARGS
   else
     echo "ERROR: gum is not installed!"
   fi
@@ -346,8 +361,10 @@ if [ -n "$1" ] && [ -n "$2" ]; then
   if [ "$1" == 'warn' ] || [ "$1" == 'success' ] || [ "$1" == 'star' ] || [ "$1" == 'info' ] \
   || [ "$1" == 'error' ] || [ "$1" == 'md' ] || [ "$1" == 'write' ] || [ "$1" == 'start' ] \
   || [ "$1" == 'spin' ] || [ "$1" == 'prompt' ] || [ "$1" == 'filter' ] || [ "$1" == 'input' ] \
-  || [ "$1" == 'choose' ] || [ "$1" == 'confirm' ] || [ "$1" == 'password' ]; then
+  || [ "$1" == 'confirm' ] || [ "$1" == 'password' ]; then
     "$1" "$2"
+  elif [[ "$1" == 'choose' ]]; then
+    "$@"
   fi
 elif [ -n "$1" ]; then
   # Public functions that can run with only one argument passed to .config/log (i.e. `.config/log password`)

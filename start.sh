@@ -572,6 +572,11 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
         volta setup
         volta install node
       fi
+      if ! type pipx &> /dev/null; then
+        task install:software:pipx
+        . "$HOME/.profile" &> /dev/null || true
+        PATH="$PATH:$HOME/.local/bin"
+      fi
     fi
   fi
 fi
@@ -657,9 +662,6 @@ fi
 
 # @description Run the start logic, if appropriate
 if [ -z "$CI" ] && [ -z "$START" ] && [ -z "$INIT_CWD" ]; then
-  if ! type pipx &> /dev/null; then
-    task install:software:pipx
-  fi
   # shellcheck disable=SC1091
   . "$HOME/.profile" &> /dev/null || true
   ensureProjectBootstrapped

@@ -2,6 +2,23 @@
 version: '3'
 
 tasks:
+  bucket:create:
+    deps:
+      - :install:software:s5cmd
+    summary: |
+      # Create S3 Bucket
+
+      This task creates an S3 bucket in the given account
+
+      `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` and `BUCKET_NAME` are passed from the calling task. The first 3
+      variables are set as environment variables
+    env:
+      AWS_ACCESS_KEY_ID: '{{.AWS_ACCESS_KEY_ID}}'
+      AWS_REGION: '{{.AWS_REGION}}'
+      AWS_SECRET_ACCESS_KEY: '{{.AWS_SECRET_ACCESS_KEY}}'
+    cmds:
+      - s5cmd mb s3://'{{.BUCKET_NAME}}'
+
   bucket:jumpusb:populate:
     deps:
       - :install:software:axel
@@ -34,23 +51,6 @@ tasks:
         sh: mktemp
     cmds:
       - curl -sSL https://gitlab.com/megabyte-labs/jumpusb/-/raw/master/local/distros.json > "$DISTROS_TMP"
-  bucket:create:
-    deps:
-      - :install:software:s5cmd
-    summary: |
-      # Create S3 Bucket
-
-      This task creates an S3 bucket in the given account
-
-      `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` and `BUCKET_NAME` are passed from the calling task. The first 3
-      variables are set as environment variables
-    env:
-      AWS_ACCESS_KEY_ID: '{{.AWS_ACCESS_KEY_ID}}'
-      AWS_SECRET_ACCESS_KEY: '{{.AWS_SECRET_ACCESS_KEY}}'
-      AWS_REGION: '{{.AWS_REGION}}'
-    cmds:
-      - s5cmd mb s3://'{{.BUCKET_NAME}}'
-
   bucket:synchronize:
     deps:
       - :install:software:s5cmd

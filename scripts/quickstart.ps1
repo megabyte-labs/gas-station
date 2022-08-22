@@ -133,8 +133,8 @@ function EnsureDockerDesktopInstalled {
 function EnsureDockerFunctional {
   Write-Host "Ensuring WSL version is set to 2 (required for Docker Desktop)" -ForegroundColor Black -BackgroundColor Cyan
   wsl --set-default-version 2
-  Write-Host "Running test command (i.e. docker run hello-world)" -ForegroundColor Black -BackgroundColor Cyan
-  docker run hello-world
+  Write-Host "Running test command (i.e. docker run --rm hello-world)" -ForegroundColor Black -BackgroundColor Cyan
+  docker run --rm hello-world
   if ($?) {
     Write-Host "Docker Desktop is operational! Continuing.." -ForegroundColor Black -BackgroundColor Cyan
   } else {
@@ -145,7 +145,7 @@ function EnsureDockerFunctional {
     & 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
     Write-Host "Waiting for Docker Desktop to come online" -ForegroundColor Black -BackgroundColor Cyan
     Start-Sleep -s 30
-    docker run hello-world
+    docker run --rm hello-world
     if ($?) {
       Write-Host "Docker is now running and operational! Continuing.." -ForegroundColor Black -BackgroundColor Cyan
     } else {

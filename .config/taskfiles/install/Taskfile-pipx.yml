@@ -100,15 +100,13 @@ tasks:
       PATH:
         sh: echo "$PATH:$HOME/.local/bin"
     run: when_changed
-    log:
-      error: Failed to install `{{.PACKAGE}}` with pipx
-      start: Installing `{{.PACKAGE}}` with pipx
-      success: Successfully installed `{{.PACKAGE}}` with pipx
     cmds:
       - task: :install:software:pipx
+      - .config/log info 'Installing `{{.PACKAGE}}` as a pipx package'
       - |
-        if [ -n "$CI" ]; then echo "*************** pipx --> {{.PACKAGE}}"; fi
-      - pipx install {{.PACKAGE}} --include-deps --force
+        PATH="$PATH:$HOME/.local/bin"
+        pipx install {{.PACKAGE}} --include-deps --force
+      - .config/log success 'Successfully installed `{{.PACKAGE}}` with pipx'
     status:
       - type {{.BIN}} > /dev/null
 

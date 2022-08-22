@@ -131,29 +131,29 @@
   tasks:
     - name: Ensure TemplateVMs are initialized
       qubesos:
-        guest: "{{ vm.name | lower }}{%if (vm.dvm == true) %}-dvm{% endif %}"
+        guest: '{{ vm.name | lower }}{%if (vm.dvm == true) %}-dvm{% endif %}'
         state: create
         vmtype: TemplateVM
         properties:
           autostart: false
           default_dispvm: "{%if ((vm.virt_mode == 'hvm') and (vm.default_dispvm is not defined)) %}{{ omit }}{% else %}{{ vm.default_dispvm | default('debian-11-dvm') }}{% endif %}"
-          features: "{{ vm.features | default(omit) }}"
-          include_in_backups: "{{ vm.include_in_backups | default(true) }}"
+          features: '{{ vm.features | default(omit) }}'
+          include_in_backups: '{{ vm.include_in_backups | default(true) }}'
           kernel: "{% if (vm.virt_mode == 'hvm') %}''{% else %}{{ omit }}{% endif %}"
           label: "{{ vm.color | default('black') }}"
           memory: "{{ vm.memory | default('2048') }}"
           maxmem: "{{ vm.maxmem | default('4096') }}"
           netvm: "{{ vm.netvm | default('sys-firewall') }}"
-          provides_network: "{{ vm.provides_network | default(false) }}"
-          template_for_dispvms: "{{ vm.dvm == true }}"
-          vcpus: "{{ vm.vcpus | default(2) }}"
-          virt_mode: "{{ vm.virt_mode | default(omit) }}"
+          provides_network: '{{ vm.provides_network | default(false) }}'
+          template_for_dispvms: '{{ vm.dvm == true }}'
+          vcpus: '{{ vm.vcpus | default(2) }}'
+          virt_mode: '{{ vm.virt_mode | default(omit) }}'
           volume:
             name: root
             size: "{{ vm.volume.root | default('20g') }}"
-      loop: "{{ qubes_vms }}"
+      loop: '{{ qubes_vms }}'
       loop_control:
-        label: "{{ vm.name }}"
+        label: '{{ vm.name }}'
         loop_var: vm
 
     # Attach sys-net PCI devices to opnsense-dvm
@@ -173,7 +173,7 @@
       when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
     - name: Spin up disposable Qube to attach/transfer files from USB
       qubesos:
-        guest: "{{ qubes_usb_transfer_vm }}"
+        guest: '{{ qubes_usb_transfer_vm }}'
         label: red
         state: running
         template: debian-11-minimal-dvm
@@ -214,8 +214,8 @@
           become: true
           file:
             path: /srv/{{ vm.lvm }}
-            owner: "{{ ansible_user | default(ansible_env.USERNAME) }}"
-            group: "{{ ansible_user | default(ansible_env.USERNAME) }}"
+            owner: '{{ ansible_user | default(ansible_env.USERNAME) }}'
+            group: '{{ ansible_user | default(ansible_env.USERNAME) }}'
             mode: 0755
         - name: Determine if the image for {{ vm.name }} is already present
           ansible.builtin.stat:
@@ -247,16 +247,16 @@
             label: purple
             state: create
             template: "{{ (vm.slug | lower) + '-desktop' }}"
-      loop: "{{ qubes_vagrant_vms }}"
+      loop: '{{ qubes_vagrant_vms }}'
       loop_control:
-        label: "{{ vm.name }}"
+        label: '{{ vm.name }}'
         loop_var: vm
 
 - name: Configure systems with common settings and applications
   hosts: anonymous-dvm:crypto:development:gpg:media:personal:provision:remote:swarm:vpn-dvm:vault:web-dvm:work
   connection: qubes
   strategy: free
-  roles: "{{ qubes_roles[ansible_hostname] }}"
+  roles: '{{ qubes_roles[ansible_hostname] }}'
 
 - name: Finish configuring dom0
   connection: local
@@ -265,30 +265,30 @@
     # Initialize all the template-based AppVMs
     - name: Ensure AppVMs/DisposableVMs are initialized
       qubesos:
-        guest: "{{ vm.name }}{%if (vm.dvm == true) %}-dvm{% endif %}"
+        guest: '{{ vm.name }}{%if (vm.dvm == true) %}-dvm{% endif %}'
         state: create
         vmtype: "{% if ((vm.type is not defined) and (vm.virt_mode == 'hvm')) %}AppVM{% else %}{{ vm.type | default('AppVM') }}{% endif %}"
         properties:
-          autostart: "{{ vm.autostart | default(false) }}"
+          autostart: '{{ vm.autostart | default(false) }}'
           default_dispvm: "{{ vm.default_dispvm | default('debian-11-dvm') }}"
-          features: "{{ vm.features | default(omit) }}"
-          include_in_backups: "{{ vm.include_in_backups | default(true) }}"
+          features: '{{ vm.features | default(omit) }}'
+          include_in_backups: '{{ vm.include_in_backups | default(true) }}'
           kernel: "{% if (vm.virt_mode == 'hvm') %}{% else %}{{ omit }}{% endif %}"
           label: "{{ vm.color | default('black') }}"
           memory: "{{ vm.memory | default('2048') }}"
           maxmem: "{{ vm.maxmem | default('4096') }}"
           netvm: "{{ vm.netvm | default('sys-firewall') }}"
-          provides_network: "{{ vm.provides_network | default(false) }}"
-          template: "{{ vm.name | lower }}"
+          provides_network: '{{ vm.provides_network | default(false) }}'
+          template: '{{ vm.name | lower }}'
           template_for_dispvms: false
-          vcpus: "{{ vm.vcpus | default(2) }}"
-          virt_mode: "{{ vm.virt_mode | default(omit) }}"
+          vcpus: '{{ vm.vcpus | default(2) }}'
+          virt_mode: '{{ vm.virt_mode | default(omit) }}'
           volume:
             name: private
             size: "{{ vm.volume.private | default('5g') }}"
-      loop: "{{ qubes_vms }}"
+      loop: '{{ qubes_vms }}'
       loop_control:
-        label: "{{ vm.name }}"
+        label: '{{ vm.name }}'
         loop_var: vm
 
     # Configure Qubes dom0 to download future updates over Tor

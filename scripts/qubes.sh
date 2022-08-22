@@ -17,22 +17,17 @@ qvm-create "$ANSIBLE_DVM" --class DispVM --label=red --property=template=debian-
 qvm-run "$ANSIBLE_DVM" curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz -o Playbooks.tar.gz
 qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > '/tmp/Playbooks.tar.gz'
 # TODO: Install Ansible collections/roles and transport to dom0
-qvm-run "$ANSIBLE_DVM" tar -xzvf '/tmp/Playbooks.tar.gz' &
-tar -xzvf '/tmp/Playbooks.tar.gz' &
-wait
+qvm-run "$ANSIBLE_DVM" tar -xzvf '/tmp/Playbooks.tar.gz'
+tar -xzvf '/tmp/Playbooks.tar.gz'
 rm '/tmp/Playbooks.tar.gz'
 
-# Install Ansible and acquire collections/roles for transfer to dom0
-qvm-run "$ANSIBLE_DVM" sudo apt install -y python3 python3-pip
-qvm-run "$ANSIBLE_DVM" sudo pip3 install ansible
-qvm-run "$ANSIBLE_DVM" (cd gas-station-master && ansible-galaxy install -r requirements.yml)
-qvm-run --pass-io "$ANSIBLE_DVM" "ansible --version"
-# TODO: Move roles/collections to dom0
+# Delete DispVM
 qvm-remove --force "$ANSIBLE_DVM"
 
 # Move files to appropriate locations
 sudo rm -rf '/etc/ansible'
 sudo mv gas-station-master '/etc/ansible'
+ansible-galaxy install -r /etc/ansible/collections/requirements.yml
 sudo mkdir -p '/usr/share/ansible/plugins/connection'
 sudo ln -s '/etc/ansible/scripts/connection/qubes.py' '/usr/share/ansible/plugins/connection'
 sudo mkdir -p '/usr/share/ansible/library'

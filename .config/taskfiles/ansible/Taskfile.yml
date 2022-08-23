@@ -278,7 +278,7 @@ tasks:
         To make it more secure, we employ the following measures:
         1. The password is never stored in plain text. It is encrypted with a pre-shared key
         when on disk.
-        2. It is passed in via the `ANSIBLE_VAULT_PASS` variable to minimize the possibility
+        2. It is passed in via the `ANSIBLE_VAULT_PASSWORD` variable to minimize the possibility
         of the password displaying in the terminal or getting added to the command history.
         3. It is stored in `~/.VAULT_PASS_REMOVE_ME` so you can easily spot it if something
         goes wrong.
@@ -296,7 +296,7 @@ tasks:
           echo "" > ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
           echo "cd $PWD" >> ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
           echo 'task ansible:quickstart:cli -- {{.INVENTORY}}' >> ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
-          if [ -z "$ANSIBLE_VAULT_PASS" ]; then
+          if [ -z "$ANSIBLE_VAULT_PASSWORD" ]; then
             MD_TMP="$(mktemp)"
             echo "$QUICKSTART_VAULT_SECURITY" > "$MD_TMP"
             .config/log md "$MD_TMP"
@@ -307,10 +307,10 @@ tasks:
           fi
         fi
       - cmd: |
-          if [ -z "$ANSIBLE_VAULT_PASS" ]; then
-            export ANSIBLE_VAULT_PASS="$(openssl enc -aes-256-cbc -in ~/.VAULT_PASS_REMOVE_ME -d -pass pass:{{.PRE_SHARED_VAULT_KEY}})"
+          if [ -z "$ANSIBLE_VAULT_PASSWORD" ]; then
+            export ANSIBLE_VAULT_PASSWORD="$(openssl enc -aes-256-cbc -in ~/.VAULT_PASS_REMOVE_ME -d -pass pass:{{.PRE_SHARED_VAULT_KEY}})"
           else
-            .config/log info 'The `ANSIBLE_VAULT_PASS` is already set'
+            .config/log info 'The `ANSIBLE_VAULT_PASSWORD` is already set'
           fi
           {{.PYTHON_HANDLE}}ansible-playbook -i {{.INVENTORY}} {{.PLAY_PARAMS}}
         ignore_error: true
@@ -345,6 +345,8 @@ tasks:
       saved, this task will guide the user through a series of prompts.
 
       {{.MAC_ADDRESS_EXPLANATION}}
+    env:
+      MAC_ADDRESS_EXPLANATION: '{{.MAC_ADDRESS_EXPLANATION}}'
     vars:
       INVENTORY_OPTIONS:
         sh: echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\""
@@ -384,8 +386,6 @@ tasks:
         This configuration would instruct the script to automatically use the `inventories/workstation.yml`
         inventory. If your MAC address is missing, the script will open an interactive prompt and include
         the ability to save your MAC address to the file for later use.
-    env:
-      MAC_ADDRESS_EXPLANATION: '{{.MAC_ADDRESS_EXPLANATION}}'
     cmds:
       - |
         # MAC_ADDRESS="$(cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address)" # Does not work on macOS

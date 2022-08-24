@@ -314,11 +314,14 @@ function ensureTaskInstalled() {
         logger info "A new version of Task is available (version $LATEST_VERSION)"
         logger info "The current version of Task installed is $CURRENT_VERSION"
         if ! type task &> /dev/null; then
+          logger info "Task is not available in the PATH"
           installTask
         else
-          if rm "$(which task)" &> /dev/null; then
+          if rm "$(which task)"; then
+            logger info "Removing task was successfully done without sudo"
             installTask
-          elif sudo rm "$(which task)" &> /dev/null; then
+          elif sudo rm "$(which task)"; then
+            logger info "Removing task was successfully done with sudo"
             installTask
           else
             logger warn "Unable to remove previous version of Task"
@@ -347,11 +350,13 @@ function installTask() {
   CHECKSUMS_URL="$TASK_RELEASE_URL/download/task_checksums.txt"
   DOWNLOAD_DESTINATION=/tmp/megabytelabs/task.tar.gz
   TMP_DIR=/tmp/megabytelabs
+  logger info "Checking if install target is macOS or Linux"
   if [[ "$OSTYPE" == 'darwin'* ]]; then
     DOWNLOAD_URL="$TASK_RELEASE_URL/download/task_darwin_amd64.tar.gz"
   else
     DOWNLOAD_URL="$TASK_RELEASE_URL/download/task_linux_amd64.tar.gz"
   fi
+  logger "Creating folder for Task download"
   mkdir -p "$(dirname "$DOWNLOAD_DESTINATION")"
   logger info "Downloading latest version of Task"
   curl -sSL "$DOWNLOAD_URL" -o "$DOWNLOAD_DESTINATION"

@@ -85,9 +85,6 @@ tasks:
             task docker:build:fat
           fi
         fi
-    preconditions:
-      - sh: test -f Dockerfile
-        msg: The `Dockerfile` must be present in order to build it
 
   login:
     deps:
@@ -97,9 +94,12 @@ tasks:
       start: Logging into DockerHub registry with `{{.DOCKERHUB_USER}}`
       success: Authenticated to DockerHub registry with `{{.DOCKERHUB_USER}}`
     cmds:
-      - echo "$DOCKERHUB_REGISTRY_PASSWORD" | docker login -u {{.DOCKERHUB_USER}} --password-stdin
-    preconditions:
-      - test -n "$DOCKERHUB_REGISTRY_PASSWORD"
+      - |
+        if [ -n "$DOCKERHUB_REGISTRY_PASSWORD" ]; then
+          echo "$DOCKERHUB_REGISTRY_PASSWORD" | docker login -u {{.DOCKERHUB_USER}} --password-stdin
+        else
+          .config/log warn 'The `DOCKERHUB_REGISTRY_PASSWORD` is not an environment variable. This is required to login to DockerHub.'
+        fi
 
   prepare:
     cmds:

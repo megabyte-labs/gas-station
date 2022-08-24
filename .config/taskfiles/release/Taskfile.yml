@@ -4,32 +4,32 @@ version: '3'
 env:
   RELEASE_ANSIBLE:
     sh: |
-      if [ '{{.REPOSITORY_TYPE}}' == 'ansible' ] && [ '{{.REPOSITORY_SUBTYPE}}' == 'role' ]; then
+      if [[ '{{.REPOSITORY_TYPE}}' == 'ansible' ]] && [[ '{{.REPOSITORY_SUBTYPE}}' == 'role' ]]; then
         echo 'release'
       fi
   RELEASE_DOCKER:
     sh: |
-      if [ -f Dockerfile ] && ([ '{{.REPOSITORY_TYPE}}' == 'docker' ] || [ "$(jq -r '.blueprint.dockerPublish' package.json)" == 'true' ]); then
+      if [ -f Dockerfile ] && ([[ '{{.REPOSITORY_TYPE}}' == 'docker' ]] || [[ "$(jq -r '.blueprint.dockerPublish' package.json)" == 'true' ]]); then
         echo 'release'
       fi
   RELEASE_GO:
     sh: |
-      if [ '{{.REPOSITORY_TYPE}}' == 'go' ] && [ '{{.REPOSITORY_SUBTYPE}}' == 'cli' ]; then
+      if [[ '{{.REPOSITORY_TYPE}}' == 'go' ]] && [[ '{{.REPOSITORY_SUBTYPE}}' == 'cli' ]]; then
         echo 'release'
       fi
   RELEASE_NPM:
     sh: |
-      if [ '{{.REPOSITORY_TYPE}}' == 'npm' ] || [ "$(jq -r '.blueprint.npmPublish' package.json)" == 'true' ]; then
+      if [[ '{{.REPOSITORY_TYPE}}' == 'npm' ]] || [[ "$(jq -r '.blueprint.npmPublish' package.json)" == 'true' ]]; then
         echo 'release'
       fi
   RELEASE_PACKER:
     sh: |
-      if [ '{{.REPOSITORY_TYPE}}' == 'packer' ]; then
+      if [[ '{{.REPOSITORY_TYPE}}' == 'packer' ]]; then
         echo 'release'
       fi
   RELEASE_PYTHON:
     sh: |
-      if [ '{{.REPOSITORY_TYPE}}' == 'python' ] || [ "$(jq -r '.blueprint.pythonPublish' package.json)" == 'true' ]; then
+      if [[ '{{.REPOSITORY_TYPE}}' == 'python' ]] || [[ "$(jq -r '.blueprint.pythonPublish' package.json)" == 'true' ]]; then
         echo 'release'
       fi
   SNAP_PACKAGE:
@@ -146,6 +146,7 @@ tasks:
     status:
       - '[ "$SNAP_PACKAGE" == "null" ]'
 
+  # eslint-disable max-len
   analyze:
     summary: |
       | Command property | Description                                                                                                                                                |
@@ -182,12 +183,16 @@ tasks:
       - '[ -z "$RELEASE_DOCKER" ]'
 
   build:go:
+    cmds:
+      - task: build:go:continue
+    status:
+      - '[ -z "$RELEASE_GO" ]'
+
+  build:go:continue:
     deps:
       - build:go:deps
     cmds:
       - task: :build
-    status:
-      - '[ -z "$RELEASE_GO" ]'
 
   build:go:deps:
     deps:

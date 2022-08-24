@@ -451,8 +451,8 @@ function ensureTaskfiles() {
     fi
     # shellcheck disable=SC2004
     TIME_DIFF="$(($(date +%s) - $TASK_UPDATE_TIME))"
-    # Only run if it has been at least 15 minutes since last attempt
-    if [ -n "$BOOTSTRAP_EXIT_CODE" ] || [ "$TIME_DIFF" -gt 900 ] || [ "$TIME_DIFF" -lt 5 ] || [ -n "$FORCE_TASKFILE_UPDATE" ]; then
+    # Only run if it has been at least 60 minutes since last attempt
+    if [ -n "$BOOTSTRAP_EXIT_CODE" ] || [ "$TIME_DIFF" -gt 3600 ] || [ "$TIME_DIFF" -lt 5 ] || [ -n "$FORCE_TASKFILE_UPDATE" ]; then
       logger info 'Grabbing latest Taskfiles by downloading shared-master.tar.gz'
       # shellcheck disable=SC2031
       date +%s > "$HOME/.cache/megabyte/start.sh/ensure-taskfiles"
@@ -477,8 +477,19 @@ function ensureTaskfiles() {
     fi
     if [ -n "$BOOTSTRAP_EXIT_CODE" ] && ! task donothing; then
       # task donothing still does not work so issue must be with main Taskfile.yml
-      logger warn 'The `Taskfile.yml` was reset to `HEAD~1` because it appears to be misconfigured'
+      logger warn 'Something is wrong with the `Taskfile.yml` - grabbing main `Taskfile.yml`'
       git checkout HEAD~1 -- Taskfile.yml
+      if ! task donothing; then
+        logger error 'Error appears to be with main Taskfile.yml'
+      else
+        logger warn 'Error appears to be with one of the included Taskfiles'
+        logger info 'Removing and cloning Taskfile library from upstream repository'
+        rm -rf .config/taskfiles
+        FORCE_TASKFILE_UPDATE=true ensureTaskfiles
+        if task donothing; then
+          logger warn 'The issue was remedied by cloning the latest Taskfile includes'
+        fi
+      fi
     fi
   fi
 }
@@ -613,8 +624,7 @@ if [ -d .git ] && type git &> /dev/null; then
       if [ -n "$FORCE_SYNC_ERR" ] && type task &> /dev/null; then
         NO_GITLAB_SYNCHRONIZE=true task ci:synchronize || CI_SYNC_TASK_ISSUE=$?
         if [ -n "$CI_SYNC_TASK_ISSUE" ]; then
-          logger warn 'Possible issue with `Taskfile.yml` -- attempting to fix by reverting `Taskfile.yml` to previous commit'
-          git checkout HEAD~1 -- Taskfile.yml
+          ensureTaskfiles
           NO_GITLAB_SYNCHRONIZE=true task ci:synchronize
         fi
       else

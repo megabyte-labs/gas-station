@@ -259,7 +259,7 @@ function RunPlaybookDocker {
   }
   PrepareForReboot
   Log "Provisioning environment with Docker using $HostIP as the IP address"
-  docker run -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --add-host='windows:'$HostIP --entrypoint /bin/bash megabytelabs/updater:latest-full ./quickstart.sh
+  docker run -it -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --add-host='windows:'$HostIP --entrypoint /bin/bash megabytelabs/updater:latest-full ./quickstart.sh
 }
 
 # @description Run the playbook with WSL

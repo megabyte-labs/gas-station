@@ -199,9 +199,10 @@ tasks:
         {{else}}
           exit 69
         {{end}}
+      - .config/log finish 'Success `environment:cli`'
 
   environment:prompt:
-    vars:
+    env:
       MARKDOWN: |
         # Symlink Environment
 
@@ -214,10 +215,9 @@ tasks:
         symlink all of the items in the environments folder to the root as long as there
         is not anything except a symlink to the target location (i.e. it will overwrite
         symlinks but not files).
+
     cmds:
-      - task: :log:markdown
-        vars:
-          MARKDOWN: '{{.MARKDOWN}}'
+      - TMP="$(mktemp)" && echo "$MARKDOWN" > "$TMP" && .config/log md "$TMP"
       - task: environment:prompt:continue
 
   environment:prompt:continue:
@@ -225,13 +225,12 @@ tasks:
     deps:
       - :install:software:gum
       - :install:software:jq
-    vars:
-      ENVIRONMENT_OPTIONS:
-        sh: find ./environments -maxdepth 1 -mindepth 1 | sed 's/\.\/environments\///' | jq -R '[.]' | jq -s -c 'add'
     cmds:
       - |
-        ENV_OPTION="$(gum choose "$ENVIRONMENT_OPTIONS")"
-        task ansible:environment:cli -- "$ENV_OPTION"
+        ENVIRONMENT_OPTIONS="$(find ./environments -maxdepth 1 -mindepth 1 | sed 's/\.\/environments\///' | jq -R '[.]' | jq -s -c -r 'add | join(" ")')"
+        .config/log prompt 'Select an environment from the `environments/` folder to symlink to'
+        ENV_OPTION="$(gum choose $(echo $ENVIRONMENT_OPTIONS))"
+        task ansible:playbook:environment:cli -- "$ENV_OPTION"
 
   find-missing:files:
     desc: Find roles that are missing files
@@ -355,10 +354,10 @@ tasks:
         PATH="$PATH:$HOME/.local/bin"
         if [ -z "$ANSIBLE_VAULT_PASSWORD" ]; then
           .config/log info 'The `ANSIBLE_VAULT_PASSWORD` environment variable is not set so you will be prompted for the password'
-          ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass "{{.PLAYBOOK_MAIN}}"
+          ansible-playbook -i {{.CLI_ARGS}} --ask-vault-pass "{{.PLAYBOOK_MAIN}}"
         else
           .config/log info 'Bypassing Ansible Vault password prompt since the `ANSIBLE_VAULT_PASSWORD` environment variable is set'
-          ansible-playbook -i inventories/{{.CLI_ARGS}} "{{.PLAYBOOK_MAIN}}"
+          ansible-playbook -i {{.CLI_ARGS}} "{{.PLAYBOOK_MAIN}}"
         fi
 
   run:prompt:
@@ -369,7 +368,7 @@ tasks:
 
         These set of prompts will run the `main.yml` playbook after you specify:
 
-        1. The "environment"
+        (1) The "environment"
 
         The environment is a collection of folders that should, at the very minimum,
         include "files", "group_vars", "host_vars", and "inventories". Each folder in
@@ -377,7 +376,7 @@ tasks:
         environments, you can seperate different sets of variables/files or even seperate
         your private variables out into a sub-module.
 
-        2. An inventory file
+        (2) An inventory file
 
         The Ansible inventory stored in the "inventories" folder. This will generally be
         a YML file with host connection information that also correlates the inventory with
@@ -396,24 +395,21 @@ tasks:
     interactive: true
     deps:
       - :install:software:jq
-    vars:
-      INVENTORY_OPTIONS:
-        sh: echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\""
-      INVENTORY_OPTIONS_LENGTH:
-        sh: find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | length'
-      PLAYBOOKS_OPTIONS:
-        sh: echo "\"playbooks"$(find ./playbooks/ -mindepth 1 -maxdepth 1 -name "*.yml" | sed 's/\.\/playbooks\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"playbooks")')"\""
     cmds:
       - task: environment
+      - echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\""
       - |
-        if [[ '{{.INVENTORY_OPTIONS_LENGTH}}' == '0' ]]; then
+        INVENTORY_OPTIONS_LENGTH="$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | length')"
+        if [[ "$INVENTORY_OPTIONS_LENGTH" == '0' ]]; then
           .config/log error 'There are no inventory files present in the `inventories/` folder' && exit 1
         else
+          INVENTORY_OPTIONS="$(echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\"")"
           .config/log prompt 'Which inventory would you like to use?'
-          CHOSEN_INVENTORY="$(.config/log choose {{.INVENTORY_OPTIONS}})"
+          CHOSEN_INVENTORY="$(.config/log choose $INVENTORY_OPTIONS)"
           export PLAYBOOK_MAIN="main.yml"
           if ! gum confirm "Would you like to use the main.yml playbook?"; then
-            export PLAYBOOK_MAIN="$(.config/log choose {{.PLAYBOOKS_OPTIONS}})"
+            PLAYBOOKS_OPTIONS="$(echo "\"playbooks"$(find ./playbooks/ -mindepth 1 -maxdepth 1 -name "*.yml" | sed 's/\.\/playbooks\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"playbooks")')"\"")"
+            export PLAYBOOK_MAIN="$(.config/log choose $PLAYBOOKS_OPTIONS)"
           fi
           task ansible:playbook:run:cli -- "$CHOSEN_INVENTORY"
         fi

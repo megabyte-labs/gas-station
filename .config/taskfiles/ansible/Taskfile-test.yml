@@ -218,6 +218,15 @@ tasks:
       **Save test results for use with auto-generating compatibility chart:**
       `task ansible:test:molecule:docker:matrix`
     cmds:
+      - |
+        if ! docker run --rm hello-world; then
+        .config/log warn 'The command `docker run --rm hello-world` failed'
+          if [ -f '/Applications/Docker.app' ]; then
+            .config/log info 'Attempting to open `Applications/Docker.app` (Docker Desktop for macOS)'
+            open /Applications/Docker.app
+            sleep 30
+          fi
+        fi
       - task: molecule:docker:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}
 
   molecule:docker:cli:
@@ -677,6 +686,7 @@ tasks:
     preconditions:
       - sh: test -f molecule/desktop/molecule.yml
         msg: The `molecule/desktop/molecule.yml` file must be present and in the proper format
+
 
   molecule:virtualbox:matrix:
     deps:

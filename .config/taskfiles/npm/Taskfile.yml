@@ -183,6 +183,7 @@ tasks:
 
   build:tsconfig:
     deps:
+      - :install:modules:local
       - :install:npm:typescript
     log:
       error: Error building with `tsconfig.json`
@@ -191,6 +192,17 @@ tasks:
     cmds:
       - rm -rf dist
       - tsc -p tsconfig.json
+
+  bump:
+    deps:
+      - :install:modules:local
+    cmds:
+      - npm run build
+      - |
+        .config/log info 'The current package.json version is `'"$(jq -r '.version' package.json)"'`'
+        BUMP_VERSION="$(npm version patch --no-scripts --no-commit-hooks --no-git-tag-version --force | sed 's/^v//')"
+        .config/log info 'Bumped the package.json version with a patch update to version `'"$BUMP_VERSION"'`'
+      - SKIP_PREPUB=true npm publish
 
   clean:
     deps:

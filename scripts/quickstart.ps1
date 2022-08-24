@@ -19,25 +19,65 @@ $QuickstartShellScript = "C:\Temp\quickstart.sh"
 # Change this to modify the password that the user account resets to
 $UserPassword = 'MegabyteLabs'
 
+# @description Used to log styled messages
+function Log($message) {
+  Write-Host ' POWERSHELL ' -ForegroundColor Black -BackgroundColor Cyan -NoNewline
+  Write-Host -ForegroundColor White ' ' -NoNewline
+  Write-Host $message
+}
+
+# @description Checks to make sure the PowerShell instance is an Administrator instance
+function CheckForAdminRights() {
+  $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+  $princ = New-Object System.Security.Principal.WindowsPrincipal($identity)
+  if(!$princ.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    $powershell = [System.Diagnostics.Process]::GetCurrentProcess()
+    $psi = New-Object System.Diagnostics.ProcessStartInfo $powerShell.Path
+    $psi.Arguments = '-file ' + $script:MyInvocation.MyCommand.Path
+    $psi.Verb = "runas"
+    [System.Diagnostics.Process]::Start($psi) | Out-Null
+    return $false
+  } else {
+    return $true
+  }
+}
+
+# @description Checks for admin privileges and if there are none then open a new instance with Administrator rights
+$AdminRights = CheckForAdminRights
+$AdminRights
+if($AdminRights){
+  Log "Current session is an Administrator session.. Good."
+} else {
+  Log "This script requires Administrator privileges. Press ENTER to escalate to Administrator privileges."
+  Read-Host
+  [Environment]::Exit(0)
+}
+
 New-Item -ItemType Directory -Force -Path C:\Temp
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # @description Prepares the machine to automatically continue installation after a reboot
 function PrepareForReboot {
   if (!(Test-Path $QuickstartScript)) {
-    Write-Host "Ensuring the recursive update script is downloaded" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Ensuring the recursive update script is downloaded"
     Start-BitsTransfer -Source "https://install.doctor/windows-quickstart" -Destination $QuickstartScript -Description "Downloading initialization script"
   }
-  Write-Host "Ensuring start-up script is present" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Ensuring start-up script is present"
   Set-Content -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Gas Station.bat" "PowerShell.exe -ExecutionPolicy RemoteSigned -Command `"Start-Process -FilePath powershell -ArgumentList '-File C:\Temp\quickstart.ps1 -Verbose' -verb runas`""
-  Write-Host "Changing $env:Username password to '$UserPassword' so we can automatically log back in" -ForegroundColor Black -BackgroundColor Cyan
-  $NewPassword = ConvertTo-SecureString "$UserPassword" -AsPlainText -Force
-  Set-LocalUser -Name $env:Username -Password $NewPassword
-  Write-Host "Turning on auto-logon" -ForegroundColor Black -BackgroundColor Cyan
-  $RegistryPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
-  Set-ItemProperty $RegistryPath 'AutoAdminLogon' -Value "1" -Type String
-  Set-ItemProperty $RegistryPath 'DefaultUsername' -Value "$env:Username" -type String
-  Set-ItemProperty $RegistryPath 'DefaultPassword' -Value "MegabyteLabs" -type String
+  $LocalUser = (whoami).Substring((whoami).LastIndexOf('\') + 1)
+  $AccountType = Get-LocalUser -Name $LocalUser | Select-Object -ExpandProperty PrincipalSource
+  if ($AccountType -eq 'Local') {
+    Log "Changing $env:Username password to '$UserPassword' so we can automatically log back in"
+    $NewPassword = ConvertTo-SecureString "$UserPassword" -AsPlainText -Force
+    Set-LocalUser -Name $env:Username -Password $NewPassword
+    Log "Turning on auto-logon"
+    $RegistryPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+    Set-ItemProperty $RegistryPath 'AutoAdminLogon' -Value "1" -Type String
+    Set-ItemProperty $RegistryPath 'DefaultUsername' -Value "$env:Username" -type String
+    Set-ItemProperty $RegistryPath 'DefaultPassword' -Value "MegabyteLabs" -type String
+  } else {
+    Log "Local user's account is a $AccountType account so auto-logging in after reboot is not supported"
+  }
 }
 
 # @description Reboot and continue script after reboot
@@ -49,7 +89,7 @@ function RebootAndContinue {
 # @description Reboot and continue script after reboot (if required)
 function RebootAndContinueIfRequired {
   if (!(Get-Module "PendingReboot")) {
-    Write-Host "Installing PendingReboot module" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Installing PendingReboot module"
     Install-Module -Name PendingReboot -Force
   }
   Import-Module PendingReboot -Force
@@ -61,13 +101,13 @@ function RebootAndContinueIfRequired {
 # @description Ensure all Windows updates have been applied and then starts the provisioning process
 function EnsureWindowsUpdated {
   if (!(Get-Module "PSWindowsUpdate")) {
-    Write-Host "Installing update module" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Installing update module"
     Install-Module -Name PSWindowsUpdate -Force
   }
-  Write-Host "Ensuring all the available Windows updates have been applied." -ForegroundColor Black -BackgroundColor Cyan
+  Log "Ensuring all the available Windows updates have been applied."
   Import-Module PSWindowsUpdate -Force
   Get-WUInstall -AcceptAll -IgnoreReboot
-  Write-Host "Checking if reboot is required." -ForegroundColor Black -BackgroundColor Cyan
+  Log "Checking if reboot is required."
   RebootAndContinueIfRequired
 }
 
@@ -75,7 +115,7 @@ function EnsureWindowsUpdated {
 function EnsureLinuxSubsystemEnabled {
   $wslenabled = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux | Select-Object -Property State
   if ($wslenabled.State -eq "Disabled") {
-    Write-Host "Enabling Microsoft-Windows-Subsystem-Linux" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Enabling Microsoft-Windows-Subsystem-Linux"
     Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
   }
 }
@@ -84,7 +124,7 @@ function EnsureLinuxSubsystemEnabled {
 function EnsureVirtualMachinePlatformEnabled {
   $vmenabled = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform | Select-Object -Property State
   if ($vmenabled.State -eq "Disabled") {
-    Write-Host "Enabling VirtualMachinePlatform" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Enabling VirtualMachinePlatform"
     Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
   }
 }
@@ -92,38 +132,38 @@ function EnsureVirtualMachinePlatformEnabled {
 # @description Ensures Ubuntu 22.04 is installed on the system from a .appx file
 function EnsureUbuntuAPPXInstalled {
   if(!(Test-Path "C:\Temp\UBUNTU2204.appx")) {
-    Write-Host "Downloading Ubuntu APPX" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Downloading Ubuntu APPX"
     Start-BitsTransfer -Source "https://aka.ms/wslubuntu2204" -Destination "C:\Temp\UBUNTU2204.appx" -Description "Downloading Ubuntu 22.04 WSL image"
   }
   # TODO: Ensure this is the appropriate AppxPackage name
   $Ubuntu2204APPXInstalled = Get-AppxPackage -Name CanonicalGroupLimited.Ubuntu22.04onWindows
   if (!$Ubuntu2204APPXInstalled) {
-    Write-Host "Adding Ubuntu APPX" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Adding Ubuntu APPX"
     Add-AppxPackage -Path "C:\Temp\UBUNTU2204.appx"
   }
 }
 
 # @description Automates the process of setting up the Ubuntu 22.04 WSL environment
 function SetupUbuntuWSL {
-  Write-Host "Setting up Ubuntu WSL" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Setting up Ubuntu WSL"
   Start-Process "ubuntu.exe" -ArgumentList "install --root" -Wait -NoNewWindow
   $UsernameLowercase = $env:Username.ToLower()
-  Write-Host "Adding a user" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Adding a user"
   Start-Process "ubuntu.exe" -ArgumentList "run adduser $UsernameLowercase --gecos 'First,Last,RoomNumber,WorkPhone,HomePhone' --disabled-password" -Wait -NoNewWindow
-  Write-Host "Adding user to sudo group" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Adding user to sudo group"
   Start-Process "ubuntu.exe" -ArgumentList "run usermod -aG sudo $UsernameLowercase" -Wait -NoNewWindow
-  Write-Host "Enabling passwordless sudo privileges" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Enabling passwordless sudo privileges"
   Start-Process "ubuntu.exe" -ArgumentList "run echo '$UsernameLowercase ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers" -Wait -NoNewWindow
-  Write-Host "Setting default user" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Setting default user"
   Start-Process "ubuntu.exe" -ArgumentList "config --default-user $UsernameLowercase" -Wait -NoNewWindow
 }
 
 # @description Ensures Docker Desktop is installed (which requires a reboot)
 function EnsureDockerDesktopInstalled {
   if (!(Test-Path "C:\Program Files\Docker\Docker\Docker Desktop.exe")) {
-    Write-Host "Installing Docker Desktop for Windows" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Installing Docker Desktop for Windows"
     choco install -y docker-desktop
-    Write-Host "Ensuring WSL version is set to 2 (required for Docker Desktop)" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Ensuring WSL version is set to 2 (required for Docker Desktop)"
     wsl --set-default-version 2
     RebootAndContinue
   }
@@ -131,31 +171,31 @@ function EnsureDockerDesktopInstalled {
 
 # @description Attempts to run a minimal Docker container and instructs the user what to do if it is not working
 function EnsureDockerFunctional {
-  Write-Host "Ensuring WSL version is set to 2 (required for Docker Desktop)" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Ensuring WSL version is set to 2 (required for Docker Desktop)"
   wsl --set-default-version 2
-  Write-Host "Running test command (i.e. docker run --rm hello-world)" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Running test command (i.e. docker run --rm hello-world)"
   docker run --rm hello-world
   if ($?) {
-    Write-Host "Docker Desktop is operational! Continuing.." -ForegroundColor Black -BackgroundColor Cyan
+    Log "Docker Desktop is operational! Continuing.."
   } else {
-    Write-Host "Updating WSL's kernel" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Updating WSL's kernel"
     wsl --update
-    Write-Host "Shutting down / rebooting WSL" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Shutting down / rebooting WSL"
     wsl --shutdown
     & 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    Write-Host "Waiting for Docker Desktop to come online" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Waiting for Docker Desktop to come online"
     Start-Sleep -s 30
     docker run --rm hello-world
     if ($?) {
-      Write-Host "Docker is now running and operational! Continuing.." -ForegroundColor Black -BackgroundColor Cyan
+      Log "Docker is now running and operational! Continuing.."
     } else {
-      Write-Host "**************"
-      Write-Host "Docker Desktop does not appear to be functional yet. If you used this script, Docker Desktop should load on boot. Follow these instructions:" -ForegroundColor Black -BackgroundColor Cyan
-      Write-Host "1. Open Docker Desktop if it did not open automatically and accept the agreement if one is presented." -ForegroundColor Black -BackgroundColor Cyan
-      Write-Host "2. If Docker Desktop opens a dialog that says WSL 2 installation is incomplete then click the Restart button." -ForegroundColor Black -BackgroundColor Cyan
-      Write-Host "3. Press ENTER here to attempt to proceed." -ForegroundColor Black -BackgroundColor Cyan
-      Write-Host "4. Optionally, configure Docker to start up on boot by going to Settings -> General." -ForegroundColor Black -BackgroundColor Cyan
-      Write-Host "**************"
+      Log "**************"
+      Log "Docker Desktop does not appear to be functional yet. If you used this script, Docker Desktop should load on boot. Follow these instructions:"
+      Log "1. Open Docker Desktop if it did not open automatically and accept the agreement if one is presented."
+      Log "2. If Docker Desktop opens a dialog that says WSL 2 installation is incomplete then click the Restart button."
+      Log "3. Press ENTER here to attempt to proceed."
+      Log "4. Optionally, configure Docker to start up on boot by going to Settings -> General."
+      Log "**************"
       Read-Host "Press ENTER to continue (after Docker Desktop stops displaying warning modals)"
       EnsureDockerFunctional
     }
@@ -165,13 +205,13 @@ function EnsureDockerFunctional {
 # @description Enables WinRM connectivity
 function EnableWinRM {
   # Download and run the Ansible WinRM script
-  Write-Host "Enabling WinRM.." -ForegroundColor Black -BackgroundColor Cyan
+  Log "Enabling WinRM.."
   $url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
   $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
   (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
   powershell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth -ForceNewSSLCert -SkipNetworkProfileCheck
   # Generate OpenSSL configuration and encryption keys
-  Write-Host "Ensuring OpenSSL is installed" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Ensuring OpenSSL is installed"
   choco install -y -r openssl
   $UsernameLowercase = $env:Username.ToLower()
   $OpenSSLConfig = "C:\Temp\openssl.conf"
@@ -184,20 +224,20 @@ subjectAltName = otherName:1.3.6.1.4.1.311.20.2.3;UTF8:$UsernameLowercase@localh
 "@
   $UserPEMPath = Join-Path "C:\Temp" user.pem
   $KeyPEMPath = Join-Path "C:\Temp" key.pem
-  Write-Host "Generating PEM files with OpenSSL" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Generating PEM files with OpenSSL"
   & "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" req -x509 -nodes -days 365 -newkey rsa:2048 -out $UserPEMPath -outform PEM -keyout $KeyPEMPath -subj "/CN=$UsernameLowercase" -extensions v3_req_client 2>&1
   #Remove-Item $OpenSSLConfig -Force
   # Configure WinRM to use the generated configurations / credentials
-  Write-Host "Importing PEM certificates" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Importing PEM certificates"
   Import-Certificate -FilePath $UserPEMPath -CertStoreLocation cert:\LocalMachine\root
   $WinRMCert = Import-Certificate -FilePath $UserPEMPath -CertStoreLocation cert:\LocalMachine\TrustedPeople
   $PasswordCred = ConvertTo-SecureString -AsPlainText -Force $UserPassword
   $WinRMCreds = New-Object System.Management.Automation.PSCredential($UsernameLowercase, $PasswordCred) -ea Stop
-  Write-Host "Configuring WinRM to use the certificates" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Configuring WinRM to use the certificates"
   New-Item -Path WSMan:\localhost\ClientCertificate -Subject "$UsernameLowercase@localhost" -URI * -Issuer $WinRMCert.Thumbprint -Credential $WinRMCreds -Force
   Set-Item -Path WSMan:\localhost\Service\Auth\Certificate -Value $true
   # Restart WinRM
-  Write-Host "Restarting WinRM" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Restarting WinRM"
   Restart-Service -Name WinRM -Force
 }
 
@@ -207,10 +247,10 @@ function RunPlaybookDocker {
   $CurrentLocation = Get-Location
   $WorkDirectory = Split-Path -leaf -path (Get-Location)
   if (!(Test-Path $QuickstartShellScript)) {
-    Write-Host "Ensuring the quickstart shell script is downloaded" -ForegroundColor Black -BackgroundColor Cyan
+    Log "Ensuring the quickstart shell script is downloaded"
     Start-BitsTransfer -Source "https://install.doctor/quickstart" -Destination $QuickstartShellScript -Description "Downloading initialization shell script"
   }
-  Write-Host "Acquiring LAN IP address" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Acquiring LAN IP address"
   $HostIPValue = (Get-NetIPConfiguration | Where-Object -Property IPv4DefaultGateway).IPv4Address.IPAddress
   if ($HostIPValue -is [array]) {
     $HostIP = $HostIPValue[0]
@@ -218,15 +258,15 @@ function RunPlaybookDocker {
     $HostIP = $HostIPValue
   }
   PrepareForReboot
-  Write-Host "Provisioning environment with Docker using $HostIP as the IP address" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Provisioning environment with Docker using $HostIP as the IP address"
   docker run -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) --add-host='windows:'$HostIP --entrypoint /bin/bash megabytelabs/updater:latest-full ./quickstart.sh
 }
 
 # @description Run the playbook with WSL
 function RunPlaybookWSL {
-  Write-Host "Running quickstart.sh in WSL environment" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Running quickstart.sh in WSL environment"
   Start-Process "ubuntu.exe" -ArgumentList "run curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/raw/master/scripts/quickstart.sh > quickstart.sh && bash quickstart.sh" -Wait -NoNewWindow
-  Write-Host "Running quickstart continue command in WSL environment" -ForegroundColor Black -BackgroundColor Cyan
+  Log "Running quickstart continue command in WSL environment"
   Start-Process "ubuntu.exe" -ArgumentList "run cd ~/Playbooks && source ~/.profile && task ansible:quickstart" -Wait -NoNewWindow
 }
 
@@ -238,9 +278,9 @@ function InstallChocolatey {
 # @description The main logic for the script - enable Windows features, set up Ubuntu WSL, and install Docker Desktop
 # while continuing script after a restart.
 function ProvisionWindowsAnsible {
-  Write-Host "Ensuring Windows is updated and that pre-requisites are installed.." -ForegroundColor Black -BackgroundColor Cyan
+  Log "Ensuring Windows is updated and that pre-requisites are installed.."
   if (!(Get-PackageProvider -Name "NuGet")) {
-    Write-Host "Installing NuGet since the system is missing the required version.." -ForegroundColor Black -BackgroundColor Cyan
+    Log "Installing NuGet since the system is missing the required version.."
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
   }
   EnsureWindowsUpdated
@@ -257,7 +297,7 @@ function ProvisionWindowsAnsible {
   } else {
     RunPlaybookDocker
   }
-  Write-Host "All done! Make sure you change your password. It was set to 'MegabyteLabs' for automation purposes." -ForegroundColor Black -BackgroundColor Cyan
+  Log "All done! Make sure you change your password. It was set to 'MegabyteLabs' for automation purposes."
   Read-Host "Press ENTER to exit, remove temporary files, and the start-up script"
   Remove-Item -path "C:\Temp" -Recurse -Force
   Remove-Item -path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Gas Station.bat" -Force

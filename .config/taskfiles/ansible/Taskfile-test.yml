@@ -268,7 +268,7 @@ tasks:
           RESULTS_FILE: '{{.MOLECULE_LOGS_PATH}}/{{.MOLECULE_DATE}}-$SCENARIO.txt'
 
   molecule:docker:prompt:
-    vars:
+    env:
       MARKDOWN: |
         # Ansible Molecule Test via Docker
 
@@ -280,9 +280,7 @@ tasks:
         resources. Granted, to fully test an Ansible play, a VirtualBox method should be used
         instead.
     cmds:
-      - task: :log:markdown
-        vars:
-          MARKDOWN: '{{.MARKDOWN}}'
+      - TMP="$(mktemp)" && echo "$MARKDOWN" > "$TMP" && .config/log md "$TMP"
       - task: molecule:docker:prompt:continue
 
   molecule:docker:prompt:continue:
@@ -291,18 +289,15 @@ tasks:
       - :install:software:gum
       - :install:software:jq
       - :install:software:yq
-    vars:
-      DOCKER_OPTIONS:
-        sh: yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys | join("\" \"")'
-      DOCKER_OPTIONS_LENGTH:
-        sh: yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys | length'
     cmds:
       - |
-        if [[ '{{.DOCKER_OPTIONS_LENGTH}}' == '0' ]]; then
+        DOCKER_OPTIONS="$(yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys | join(" ")')"
+        DOCKER_OPTIONS_LENGTH="$(yq eval -o=j '.groups' molecule/docker/molecule.yml | jq -r 'keys | length')"
+        if [[ "$DOCKER_OPTIONS_LENGTH" == '0' ]]; then
           .config/log error 'There are no Molecule groups defined in `molecule/desktop/molecule.yml`' && exit 1
         else
           .config/log prompt 'Which environment(s) would you like to run the test on?'
-          CHOSEN_OPTIONS="$(gum choose --no-limit {{.DOCKER_OPTIONS}})"
+          CHOSEN_OPTIONS="$(gum choose --no-limit $(echo "$DOCKER_OPTIONS"))"
           COMBINED_OPTIONS=""
           CHOSEN_COUNT="$(echo "$CHOSEN_OPTIONS" | wc -l)"
           if [[ "$CHOSEN_COUNT" == '0' ]]; then
@@ -682,6 +677,7 @@ tasks:
     preconditions:
       - sh: test -f molecule/desktop/molecule.yml
         msg: The `molecule/desktop/molecule.yml` file must be present and in the proper format
+
 
   molecule:virtualbox:matrix:
     deps:

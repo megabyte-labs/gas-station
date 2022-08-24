@@ -384,6 +384,23 @@ tasks:
         a YML file with host connection information that also correlates the inventory with
         the proper host_vars and group_vars. It is assumed that your sudo username and
         password are encrypted inside the inventory (via "ansible-vault").
+      PLAYBOOK_DESCRIPTIONS: |
+        # Playbook Descriptions
+
+        Playbooks are where you store your main logic in Ansible. The `main.yml` file in the
+        root of the repository is a generic one-size-fits-all approach. You could theoretically
+        store all your logic in one playbook for multiple scenarios with conditional logic but
+        it might be easier to create seperate playbooks in some cases. The `main.yml` should work
+        in most scenarios and is a great starting point.
+
+        ## Alternate Playbook Descriptions
+
+        Alternate playbooks are stored in the `playbooks/` directory. They are described below.
+
+        *If you want their description to show up in this message, you will have to edit the appropriate
+        field in `package.json`.*
+
+
     env:
       MARKDOWN: '{{.MARKDOWN}}'
     cmds:
@@ -411,6 +428,18 @@ tasks:
           export PLAYBOOK_MAIN="main.yml"
           if ! gum confirm "Would you like to use the main.yml playbook?"; then
             PLAYBOOKS_OPTIONS="$(echo "\"playbooks"$(find ./playbooks/ -mindepth 1 -maxdepth 1 -name "*.yml" | sed 's/\.\/playbooks\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"playbooks")')"\"")"
+            PLAYBOOK_DESCS_TMP="$(mktemp)" && echo "$PLAYBOOK_DESCRIPTIONS" > "$PLAYBOOK_DESCS_TMP"
+            TMP_LIST="$(mktemp)"
+            find ./playbooks/ -mindepth 1 -maxdepth 1 -name "*.yml" | sed 's/\.\/playbooks\///' | jq -R '[.]' | jq -s -c -r 'add' >> "$TMP_LIST"
+            echo "* **main.yml:** A generic playbook that attempts to install everything" >> "$PLAYBOOK_DESCS_TMP"
+            jq -c -r '.[]' "$TMP_LIST" | while read SLUG; do
+              PLAYBOOK_DESC="$(jq -r '.blueprint.fileDescriptions[$file]' package.json)"
+              if [ "$PLAYBOOK_DESC" != 'null' ]; then
+                echo "* **playbooks/${SLUG}.yml:** $PLAYBOOK_DESC" >> "$PLAYBOOK_DESCS_TMP"
+              fi
+            done
+            .config/log md "$PLAYBOOK_DESCS_TMP"
+            .config/log prompt 'Select the playbook you would like to provision with.'
             export PLAYBOOK_MAIN="$(.config/log choose $PLAYBOOKS_OPTIONS)"
           fi
           task ansible:playbook:run:cli -- "$CHOSEN_INVENTORY"

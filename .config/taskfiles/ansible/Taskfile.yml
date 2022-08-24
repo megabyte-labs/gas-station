@@ -315,6 +315,7 @@ tasks:
           {{.PYTHON_HANDLE}}ansible-playbook -i {{.INVENTORY}} {{.PLAY_PARAMS}}
         ignore_error: true
       - sleep 5
+      - .config/log info 'Ensuring the password (if provided) is forcibly removed'
       - rm -f ~/.VAULT_PASS_REMOVE_ME
       - rm -f ~/ANSIBLE_PLAYBOOK_CONTINUE.sh
 
@@ -345,6 +346,8 @@ tasks:
       saved, this task will guide the user through a series of prompts.
 
       {{.MAC_ADDRESS_EXPLANATION}}
+    env:
+      MAC_ADDRESS_EXPLANATION: '{{.MAC_ADDRESS_EXPLANATION}}'
     vars:
       INVENTORY_OPTIONS:
         sh: echo "\"inventories"$(find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c -r 'add | join("\" \"inventories")')"\""
@@ -384,8 +387,6 @@ tasks:
         This configuration would instruct the script to automatically use the `inventories/workstation.yml`
         inventory. If your MAC address is missing, the script will open an interactive prompt and include
         the ability to save your MAC address to the file for later use.
-    env:
-      MAC_ADDRESS_EXPLANATION: '{{.MAC_ADDRESS_EXPLANATION}}'
     cmds:
       - |
         # MAC_ADDRESS="$(cat /sys/class/net/$(ip route show default | awk '/default/ {print $5}')/address)" # Does not work on macOS

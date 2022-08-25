@@ -7,14 +7,13 @@ The easiest way to run the entire playbook, outlined in the `main.yml` file, is 
 To test it out with Vagrant, you can run the following commands which will open up an interactive dialog where you can pick which operating system and virtualization provider you wish to test the installation with:
 
 ```shell
-bash start.sh # Only required if you do not have the dependencies (i.e. Task) already installed
-task ansible:test:vagrant
+bash start.sh && task ansible:test:vagrant
 ```
 
 ### macOS/Linux
 
 ```shell
-curl -sSL https://install.doctor/quickstart | bash
+curl -sSL https://install.doctor/quickstart > ./setup.sh && bash ./setup.sh
 ```
 
 ### Windows
@@ -22,7 +21,7 @@ curl -sSL https://install.doctor/quickstart | bash
 In an administrative PowerShell session, run:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/windows-quickstart'))
+iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/windows-quickstart'))
 ```
 
 ### Qubes
@@ -32,5 +31,5 @@ Our playbooks include a specially crafted playbook for Qubes. It will load your 
 To setup Qubes, run the following on a fresh install in dom0:
 
 ```shell
-qvm --pass-io work "curl -sSL https://install.doctor/qubes" > ~/setup.sh && bash ~/setup.sh
+qvm --pass-io work "curl -sSL https://install.doctor/qubes" > ./setup.sh && bash ./setup.sh
 ```

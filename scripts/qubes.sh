@@ -13,22 +13,24 @@ if [ ! -d '/var/lib/qubes/vm-templates/debian-11-minimal' ]; then
 fi
 
 # Download Gas Station and transfer to dom0 via DispVM
-qvm-create "$ANSIBLE_DVM" --class DispVM --label=red --property=template=debian-11-minimal-dvm
-qvm-run "$ANSIBLE_DVM" curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz -o Playbooks.tar.gz
-qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > '/tmp/Playbooks.tar.gz'
-# TODO: Install Ansible collections/roles and transport to dom0
-qvm-run "$ANSIBLE_DVM" tar -xzvf '/tmp/Playbooks.tar.gz'
-tar -xzvf '/tmp/Playbooks.tar.gz'
+qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
+qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
+qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
+tar -xzf "$HOME/Playbooks.tar.gz"
 rm '/tmp/Playbooks.tar.gz'
+mv "$HOME/gas-station-master" "$HOME/Playbooks"
 
 # Delete DispVM
-qvm-remove --force "$ANSIBLE_DVM"
+qvm-kill "$ANSIBLE_DVM"
 
 # Move files to appropriate locations
 sudo rm -rf '/etc/ansible'
-sudo mv gas-station-master '/etc/ansible'
-ansible-galaxy install -r /etc/ansible/collections/requirements.yml
+sudo mv Playbooks '/etc/ansible'
+ansible-galaxy collection install -r /etc/ansible/collections/requirements.yml
 sudo mkdir -p '/usr/share/ansible/plugins/connection'
-sudo ln -s '/etc/ansible/scripts/connection/qubes.py' '/usr/share/ansible/plugins/connection'
+sudo ln -s '/etc/ansible/scripts/connection/qubes.py' '/usr/share/ansible/plugins/connection/qubes.py'
 sudo mkdir -p '/usr/share/ansible/library'
 sudo ln -s '/etc/ansible/scripts/library/qubesos.py' '/usr/share/ansible/library/qubesos.py'
+
+# Run the playbook
+ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml

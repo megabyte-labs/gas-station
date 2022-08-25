@@ -28,8 +28,10 @@ sudo rm -rf '/etc/ansible'
 sudo mv Playbooks '/etc/ansible'
 ansible-galaxy collection install -r /etc/ansible/collections/requirements.yml
 sudo mkdir -p '/usr/share/ansible/plugins/connection'
+sudo rm -rf '/usr/share/ansible/plugins/connection/qubes.py'
 sudo ln -s '/etc/ansible/scripts/connection/qubes.py' '/usr/share/ansible/plugins/connection/qubes.py'
 sudo mkdir -p '/usr/share/ansible/library'
+sudo rm -rf '/usr/share/ansible/library/qubesos.py'
 sudo ln -s '/etc/ansible/scripts/library/qubesos.py' '/usr/share/ansible/library/qubesos.py'
 
 # Run the playbook

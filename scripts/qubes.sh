@@ -19,7 +19,7 @@ qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
 qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
 qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
 tar -xzf "$HOME/Playbooks.tar.gz"
-rm '/tmp/Playbooks.tar.gz'
+rm -f "$HOME/Playbooks.tar.gz"
 mv "$HOME/gas-station-master" "$HOME/Playbooks"
 
 # Delete DispVM
@@ -28,6 +28,7 @@ qvm-kill "$ANSIBLE_DVM"
 # Move files to appropriate locations
 sudo rm -rf '/etc/ansible'
 sudo mv Playbooks '/etc/ansible'
+cd '/etc/ansible/collections'
 ansible-galaxy collection install -r /etc/ansible/collections/requirements.yml
 sudo mkdir -p '/usr/share/ansible/plugins/connection'
 sudo rm -rf '/usr/share/ansible/plugins/connection/qubes.py'

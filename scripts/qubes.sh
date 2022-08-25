@@ -2,6 +2,8 @@
 
 ANSIBLE_DVM="ansible-dvm"
 
+set -ex
+
 # Update dom0
 sudo qubesctl --show-output state.sls update.qubes-dom0
 sudo qubes-dom0-update --clean -y

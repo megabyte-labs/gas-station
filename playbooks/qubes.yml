@@ -8,8 +8,9 @@
       block:
         # Update dom0
         - name: Update dom0
+          become: true
           # TODO: Add proper changed_when (can be added by looking at "Changes:" in the Salt output)
-          command: sudo qubesctl --show-output state.sls update.qubes-dom0
+          command: qubesctl --show-output state.sls update.qubes-dom0
         - name: Complete dom0 update with alternate method
           command: sudo qubes-dom0-update --clean -y
           register: qubes_dom0_update_clean
@@ -236,23 +237,16 @@
 
 - name: Configure systems with common settings and applications
   connection: qubes
-  import_playbook: "qubes/{{ vm }}.yml"
-  loop:
-    - anonymous-dvm
-    - crypto
-    - development
-    - gpg
-    - media
-    - personal
-    - provision
-    - remote
-    - swarm
-    - vault
-    - vpn-dvm
-    - web-dvm
-    - work
-  loop_control:
-    loop_var: vm
+  hosts: anonymous-dvm:crypto:development:gpg:media:personal:provision:remote:swarm:vault:vpn-dvm:web-dvm:work
+  strategy: free
+  tasks:
+    - name: Provision the TemplateVM
+      include_role:
+        name: "{{ role }}"
+      loop: "{{ qubes_roles[inventory_hostname] }}"
+      loop_control:
+        label: '{{ inventory_hostname }}'
+        loop_var: role
 
 - name: Configure persistent Docker files in select VMs
   hosts: development:swarm

@@ -1,0 +1,17 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: volta
+    state: "{{ app_state | default('present') }}"
+
+- name: "Ensure {{ app_name }} is setup and NodeJS is installed" # noqa 301
+  become_user: "{{ user.username }}"
+  shell: |
+    $HOME/.volta/bin/volta setup
+    $HOME/.volta/bin/volta install node
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

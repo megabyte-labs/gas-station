@@ -6,6 +6,18 @@
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
+        - name: Update and configure dom0
+          vars:
+            dom0_features:
+              - split-gpg
+              - sudo-prompt
+              - sys-usb
+              - tor-updates
+              - u2f
+              - update
+              - yubikey
+          include_role:
+            name: roles/misc/qubes
 
         # Cache time so this block can be skipped on subsequent runs
         - name: Ensure directory for custom Ansible facts exists
@@ -99,62 +111,32 @@
         label: '{{ vm.name }}'
         loop_var: vm
 
-    # Enable hardened VM service in sys-net and sys-usb
-    - name: Check if sys-net has hardened-VM service enabled
-      command: qvm-service -l sys-net | grep vm-boot-protect-root
-      changed_when: false
-      register: sys_net_protect_service
-    - name: Ensure sys-net has hardened-VM service enabled
-      command: qvm-service sys-net vm-boot-protect-root on
-      when: sys_net_protect_service.rc == 1
-    - name: Check if sys-usb has hardened-VM service enabled
-      command: qvm-service -l sys-usb | grep vm-boot-protect-root
-      changed_when: false
-      register: sys_usb_protect_service
-    - name: Ensure sys-usb has hardened-VM service enabled
-      command: qvm-service sys-usb vm-boot-protect-root on
-      when: sys_usb_protect_service.rc == 1
+    - name: Ensure VMs not included in the qubes_vms list have the hardened-VM service enabled
+      include_tasks: qubes/harden-vm.yml
+      loop:
+        - sys-net
+        - sys-usb
+      loop_control:
+        loop_var: vm
 
-    # Attach sys-net PCI devices to opnsense-dvm
-    - name: Determine number of PCI devices attached to opnsense-dvm
-      command: qvm-device pci list opnsense | wc -l
-      changed_when: false
-      register: opnsense_pci_list
-    - name: Determine number of PCI devices attached to sys-net
-      command: qvm-device pci list sys-net | wc -l
-      changed_when: false
-      register: sys_net_pci_list
-    - name: Attach network PCI devices to opnsense-dvm
-      command: |
-        while read DEVID; do
-          qvm-device pci attach opnsense-dvm "$DEVID" --persistent
-        done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
-      when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
-    - name: Spin up disposable Qube to attach/transfer files from USB
-      qubesos:
-        guest: '{{ qubes_usb_transfer_vm }}'
-        label: red
-        state: running
-        template: debian-11-minimal-dvm
-    - name: Check if the USB storage device is already attached to the disposable USB Qube
-      command: test -n "$(qvm-device usb list | grep "{{ qubes_ventoy_usb_description }}" | sed 's/^[^ ]*[ ]*[^ ]*[ ]*\([^ ]*\)$/\1/')"
-      changed_when: false
-      register: usb_device_test
-    - name: Acquire the appropriate USB storage device ID
-      command: qvm-device usb list | grep "{{ qubes_ventoy_usb_description }}" | sed 's/^\([^ ]*\) .*/\1/'
-      changed_when: false
-      register: devid_usb_list
-      when: usb_device_test.rc == 1
-    - name: Attach the USB storage device to the disposable USB Qube
-      command: qvm-device usb attach {{ qubes_usb_transfer_vm }} "{{ devid_usb_list.stdout }}"
-      changed_when: true
-      when: usb_device_test.rc == 1
+    - name: Configure the OPNSense HVM's attached PCI devices to match sys-net's
+      include_tasks: qubes/opnsense-pci.yml
+      when: 'OPNSense' in (qubes_vms | map(attribute="name") | list)
+
+    # Builds fully-loaded Archlinux, Debian, Fedora, Ubuntu, macOS, and Windows HVM desktop environments from
+    # images stored on USB. The `qubes_ventoy_usb_description` variable must be defined and match the USB
+    # drive's label. See [JumpUSB](https://jumpusb.com) for additional information.
+    - name: Configure USB that contains Packer / HVM desktop images
+      include_tasks: qubes/packer-usb.yml
+      when: qubes_ventoy_usb_description is defined
+
     - name: Create LVM volumes for Packer-built desktop HVMs
-      include_tasks: packer-hvms.yml
+      include_tasks: qubes/packer-hvm.yml
       loop: '{{ qubes_vagrant_vms }}'
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm
+      when: qubes_ventoy_usb_description is defined
 
 - name: Configure systems with common settings and applications
   connection: qubes

@@ -43,7 +43,13 @@ tasks:
       - :install:npm:prettier
       - :install:npm:readme
     vars:
-      CONTRIB_TEMPLATE: .config/docs/blueprint-contributing.md
+      CONTRIB_TEMPLATE:
+        sh:
+          if [ -f '.config/docs/blueprint-contributing-{{.REPOSITORY_SUBTYPE}}.md' ]; then
+            echo '.config/docs/blueprint-contributing-{{.REPOSITORY_SUBTYPE}}.md'
+          else
+            echo '.config/docs/blueprint-contributing.md'
+          fi
     log:
       error: Encountered error while generating `docs/CONTRIBUTING.md`
       start: Generating `docs/CONTRIBUTING.md` using document partials
@@ -62,8 +68,6 @@ tasks:
       - .config/docs/**/*
       - .variables.json
     preconditions:
-      - sh: test -f .config/docs/blueprint-contributing.md
-        msg: The CONTRIBUTING.md template file is not present at `.config/docs/blueprint-contributing.md`
       - sh: test -f .variables.json
         msg: The `.variables.json` file is not present.
       - sh: type readme > /dev/null

@@ -8,7 +8,7 @@
       block:
         # Update dom0
         - name: Update dom0
-          # TODO: Add proper changed_when
+          # TODO: Add proper changed_when (can be added by looking at "Changes:" in the Salt output)
           command: sudo qubesctl --show-output state.sls update.qubes-dom0
         - name: Complete dom0 update with alternate method
           command: sudo qubes-dom0-update --clean -y
@@ -106,6 +106,22 @@
         - (ansible_local.qubes is not defined) or
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
 
+- name: Ensure VM-lockdown scripts are added to Debian and Fedora templates
+  hosts: debian-11:fedora-36
+  connection: qubes
+  tasks:
+    - name: Clone the VM-lockdown repository
+      ansible.builtin.git:
+        repo: https://github.com/tasket/Qubes-VM-hardening.git
+        dest: /usr/local/src/hardening
+    - name: Run the installer
+      command: |
+        sudo bash install
+        sudo bash configure-sudo-prompt --force
+      args:
+        chdir: /usr/local/src/hardening
+        creates: /lib/systemd/system/vm-boot-protect.service
+
 - name: Ensure additional Debian/Whonix TemplateVM packages are installed to non-minimal templates
   hosts: debian-11:whonix-ws-16
   connection: qubes
@@ -161,6 +177,22 @@
         label: '{{ vm.name }}'
         loop_var: vm
 
+    # Enable hardened VM service in sys-net and sys-usb
+    - name: Check if sys-net has hardened-VM service enabled
+      command: qvm-service -l sys-net | grep vm-boot-protect-root
+      changed_when: false
+      register: sys_net_protect_service
+    - name: Ensure sys-net has hardened-VM service enabled
+      command: qvm-service sys-net vm-boot-protect-root on
+      when: sys_net_protect_service.rc == 1
+    - name: Check if sys-usb has hardened-VM service enabled
+      command: qvm-service -l sys-usb | grep vm-boot-protect-root
+      changed_when: false
+      register: sys_usb_protect_service
+    - name: Ensure sys-usb has hardened-VM service enabled
+      command: qvm-service sys-usb vm-boot-protect-root on
+      when: sys_usb_protect_service.rc == 1
+
     # Attach sys-net PCI devices to opnsense-dvm
     - name: Determine number of PCI devices attached to opnsense-dvm
       command: qvm-device pci list opnsense | wc -l
@@ -208,6 +240,23 @@
   strategy: free
   roles: '{{ qubes_roles[ansible_hostname] }}'
 
+- name: Configure persistent Docker files in select VMs
+  hosts: development:swarm
+  connection: qubes
+  strategy: free
+  tasks:
+    - name: Ensure directory for custom Ansible facts exists
+      ansible.builtin.file:
+        state: directory
+        recurse: yes
+        path: /rw/config/qubes-bind-dirs.d
+    - name: Ensure Docker files are persistent
+      copy:
+        content: |
+          binds+=( '/var/lib/docker' )
+          binds+=( '/etc/docker' )
+        dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
+
 - name: Finish configuring dom0
   connection: local
   hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('localhost', true) }}"
@@ -244,3 +293,16 @@
     # Configure Qubes dom0 to download future updates over Tor
     - name: Enable updates over Tor
       command: sudo qubesctl state.sls qvm.updates-via-whonix dom0
+
+    # Enable AppVM sudo prompts
+    - name: Update dom0 for AppVM sudo prompts (/etc/qubes-rpc/qubes.VMAuth)
+      copy:
+        content: |
+          /usr/bin/echo 1
+        dest: /etc/qubes-rpc/qubes.VMAuth
+    - name: Update dom0 for AppVM sudo prompts (/etc/qubes-rpc/policy/qubes.VMAuth)
+      copy:
+        content: |
+          $anyvm dom0 ask,default_target=dom0
+        dest: /etc/qubes-rpc/policy/qubes.VMAuth
+

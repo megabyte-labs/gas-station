@@ -6,99 +6,16 @@
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
-        # Update dom0
-        - name: Update dom0
-          become: true
-          # TODO: Add proper changed_when (can be added by looking at "Changes:" in the Salt output)
-          command: qubesctl --show-output state.sls update.qubes-dom0
-        - name: Complete dom0 update with alternate method
-          command: sudo qubes-dom0-update --clean -y
-          register: qubes_dom0_update_clean
-          changed_when: "{{ not ('No updates available' in qubes_dom0_update_clean.stdout) }}"
-
-        # Update TemplateVMs
-        - name: Ensure the TemplateVMs are updated
-          # TODO: Add proper changed_when
-          command: sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm
-
-        # Set up sys-usb
-        - name: Ensure sys-usb is setup and that it is properly configured with the keyboard
-          # TODO: Add proper changed_when
-          command: sudo qubesctl state.sls qvm.usb-keyboard
-
-        # Ensure keyboard security settings are correct
-        - name: Block USB keyboards from connecting without prompt
-          copy:
-            content: |
-              sys-usb dom0 ask,default_target=dom0
-            dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
-          when: qubes_keyboard_ask_policy | default(false)
-        - name: Ensure USB keyboard can connect without prompt
-          copy:
-            content: |
-              sys-usb dom0 allow,user=root
-            dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
-          when: not (qubes_keyboard_ask_policy | default(false))
-
-        # Prompt after new mice are attached
-        - name: Ensure newly connected USB mouse devices are only allowed to connect after a prompt is accepted
-          copy:
-            content: |
-              sys-usb dom0 ask,default_target=dom0
-            dest: /etc/qubes-rpc/policy/qubes.InputMouse
-
-        # Ensure the debian-11-minimal template is installed
-        - name: Check if qubes-template-debian-11-minimal is already installed
-          stat:
-            path: /var/lib/qubes/vm-templates/debian-11-minimal
-          register: debian_11_minimal_path
-        - name: Install qubes-template-debian-11-minimal
-          command: sudo qubes-dom0-update qubes-template-debian-11-minimal
-          when: not debian_11_minimal_path.stat.exists
-
-        # Ensure the fedora-36 template is installed
-        - name: Check if qubes-template-fedora-36 is already installed
-          stat:
-            path: /var/lib/qubes/vm-templates/fedora-36
-          register: fedora_36_path
-        - name: Install qubes-template-fedora-36
-          command: sudo qubes-dom0-update qubes-template-fedora-36
-          when: not fedora_36_path.stat.exists
-
-        # Ensure the fedora-36-minimal template is installed
-        - name: Check if qubes-template-fedora-36-minimal is already installed
-          stat:
-            path: /var/lib/qubes/vm-templates/fedora-36-minimal
-          register: fedora_36_minimal_path
-        - name: Install qubes-template-fedora-36-minimal
-          command: sudo qubes-dom0-update qubes-template-fedora-36-minimal
-          when: not fedora_36_minimal_path.stat.exists
-
-        # Ensure qubes-u2f-dom0 is installed
-        - name: Determine if qubes-u2f-dom0 is already installed
-          command: sudo dnf search qubes-u2f-dom0
-          changed_when: false
-          register: qubes_u2f_dom0_dnf
-        - name: Ensure qubes-u2f-dom0 is installed
-          command: sudo qubes-dom0-update -y qubes-u2f-dom0
-          when: qubes_u2f_dom0_dnf.stdout == '0'
-
-        # Ensure qubes-gpg-split-dom0 is installed
-        - name: Determine if qubes-gpg-split-dom0 is already installed
-          command: sudo dnf search qubes-gpg-split-dom0
-          changed_when: false
-          register: qubes_gpg_split_dom0_dnf
-        - name: Ensure qubes-gpg-split-dom0 is installed
-          command: sudo qubes-dom0-update -y qubes-gpg-split-dom0
-          when: qubes_gpg_split_dom0_dnf.stdout == '0'
 
         # Cache time so this block can be skipped on subsequent runs
         - name: Ensure directory for custom Ansible facts exists
+          become: true
           ansible.builtin.file:
             state: directory
             recurse: yes
             path: /etc/ansible/facts.d
         - name: Write time to file for determining whether or not this block should run (on subsequent runs)
+          become: true
           copy:
             content: |
               dom0_provision_time={{ ansible_date_time.iso8601 }}
@@ -112,13 +29,15 @@
   connection: qubes
   tasks:
     - name: Clone the VM-lockdown repository
+      become: true
       ansible.builtin.git:
         repo: https://github.com/tasket/Qubes-VM-hardening.git
         dest: /usr/local/src/hardening
     - name: Run the installer
+      become: true
       command: |
-        sudo bash install
-        sudo bash configure-sudo-prompt --force
+        bash install
+        bash configure-sudo-prompt --force
       args:
         chdir: /usr/local/src/hardening
         creates: /lib/systemd/system/vm-boot-protect.service
@@ -128,6 +47,7 @@
   connection: qubes
   tasks:
     - name: Ensure qubes-gpg-split and qubes-u2f are installed
+      become: true
       ansible.builtin.apt:
         name:
           - qubes-gpg-split
@@ -140,6 +60,7 @@
   connection: qubes
   tasks:
     - name: Ensure qubes-gpg-split and qubes-u2f are installed
+      become: true
       ansible.builtin.dnf:
         name:
           - qubes-gpg-split
@@ -254,6 +175,7 @@
   strategy: free
   tasks:
     - name: Ensure directory for custom Ansible facts exists
+      become: true
       ansible.builtin.file:
         state: directory
         recurse: yes
@@ -297,20 +219,3 @@
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm
-
-    # Configure Qubes dom0 to download future updates over Tor
-    - name: Enable updates over Tor
-      command: sudo qubesctl state.sls qvm.updates-via-whonix dom0
-
-    # Enable AppVM sudo prompts
-    - name: Update dom0 for AppVM sudo prompts (/etc/qubes-rpc/qubes.VMAuth)
-      copy:
-        content: |
-          /usr/bin/echo 1
-        dest: /etc/qubes-rpc/qubes.VMAuth
-    - name: Update dom0 for AppVM sudo prompts (/etc/qubes-rpc/policy/qubes.VMAuth)
-      copy:
-        content: |
-          $anyvm dom0 ask,default_target=dom0
-        dest: /etc/qubes-rpc/policy/qubes.VMAuth
-

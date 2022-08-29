@@ -1,0 +1,55 @@
+---
+- name: Check if qubes-yubikey-dom0 is already installed
+  become: true
+  command: dnf search qubes-yubikey-dom0
+  changed_when: false
+  register: qubes_yubikey
+
+- name: Ensure qubes-yubikey-dom0 is installed
+  become: true
+  command: qubes-dom0-update -y qubes-yubikey-dom0
+  when: qubes_yubikey.stdout == 'No matches found.'
+
+- name: Add YubiKey AES key
+  become: true
+  copy:
+    content: |
+      {{ qubes_yubikey_secret_key }}
+    dest: /etc/qubes/yk-keys/yk-secret-key.hex
+  when:
+    - qubes_yubikey_secret_key is defined
+
+- name: Add YubiKey password file
+  become: true
+  copy:
+    content: |
+      {{ qubes_yubikey_password | hash('sha1') }}
+    dest: /etc/qubes/yk-keys/yk-login-pass-hashed.hex
+  when:
+    - qubes_yubikey_password is defined
+
+- name: Apply PAM configurations
+  include_tasks: yubikey-pam.yml
+  loop: "{{ qubes_pam_configs }}"
+  loop_control:
+    loop_var: pam_config
+  when:
+    - qubes_yubikey_secret_key is defined
+    - qubes_yubikey_password is defined
+
+- name: Check if /etc/pam.d/yubikey was already configured
+  command: grep 'auth [success=done] pam_exec.so expose_authtok quiet /usr/bin/yk-auth' < /etc/pam.d/yubikey
+  changed_when: false
+  register: qubes_yubi_mandatory_grep
+  when:
+    - qubes_yubikey_mandatory
+    - qubes_yubikey_secret_key is defined
+    - qubes_yubikey_password is defined
+
+- name: Make YubiKey login's mandatory
+  command: echo 'TODO auth [success=done] pam_exec.so expose_authtok quiet /usr/bin/yk-auth'
+  when:
+    - qubes_yubikey_mandatory
+    - qubes_yubikey_secret_key is defined
+    - qubes_yubikey_password is defined
+    - qubes_yubi_mandatory_grep.rc != 0

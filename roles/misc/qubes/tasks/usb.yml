@@ -1,0 +1,30 @@
+---
+- name: Ensure sys-usb is setup and that it is properly configured with the keyboard
+  become: true
+  command: qubesctl state.sls qvm.usb-keyboard
+  register: qubesctl_keyboard
+  changed_when: "{{ qubesctl_keyboard.stdout | regex_search('Succeeded: [0-9]* \(changed=[0-9]*\)') }}"
+  failed_when: "{{ qubesctl_keyboard.stdout | regex_search('Failed: *[1-9]+[0-9]*') }}"
+
+- name: Block USB keyboards from connecting without prompt
+  become: true
+  copy:
+    content: |
+      sys-usb dom0 ask,default_target=dom0
+    dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
+  when: qubes_keyboard_ask_policy | default(false)
+
+- name: Ensure USB keyboard can connect without prompt
+  become: true
+  copy:
+    content: |
+      sys-usb dom0 allow,user=root
+    dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
+  when: not (qubes_keyboard_ask_policy | default(false))
+
+- name: Ensure newly connected USB mouse devices are only allowed to connect after a prompt is accepted
+  become: true
+  copy:
+    content: |
+      sys-usb dom0 ask,default_target=dom0
+    dest: /etc/qubes-rpc/policy/qubes.InputMouse

@@ -1,42 +1,22 @@
 ---
-- name: Determine if plymouth-plugin-script is already installed
-  become: true
-  command: dnf search plymouth-plugin-script
-  changed_when: false
-  register: qubes_plymouth_dnf
+- name: Ensure dependencies are installed
+  include_tasks: dependency.yml
+  loop:
+    - plymouth-plugin-script
 
-- name: Ensure plymouth-plugin-script is installed
-  become: true
-  command: qubes-dom0-update -y plymouth-plugin-script
-  when: 'No matches found.' in qubes_plymouth_dnf.stdout
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: jumpusb-master.tar.gz
+  include_tasks: untrusted-download.yml
 
-- name: Check if the jumpusb.tar.gz file is present
-  stat:
-    path: ~/jumpusb.tar.gz
-  register: jumpusb_check
-
-- name: Download the JumpUSB repository (for GRUB theme)
-  command: |
-    qvm-remove --force jumpusb-downloader &> /dev/null || EXIT_CODE=$?
-    qvm-create --label red --template debian-11 jumpusb-downloader
-    qvm-run jumpusb-downloader "curl -sSL {{ jumpusb_repo }} > /home/user/jumpusb.tar.gz"
-    qvm-run --pass-io jumpusb-downloader 'cat /home/user/jumpusb.tar.gz' > "$HOME/jumpusb.tar.gz"
-    qvm-remove --force jumpusb-downloader-downloader &> /dev/null || EXIT_CODE=$?
-  when: not (jumpusb_check.stat.exists | default(false))
-
-- name: Unpack the jumpusb.tar.gz file to /usr/share/backgrounds/images
+- name: Unpack the jumpusb-master.tar.gz file to /usr/share/backgrounds/images
   become: true
   unarchive:
-    src: ~/jumpusb.tar.gz
+    src: /usr/local/src/qubes-dom0-binaries/jumpusb-master.tar.gz
     dest: /usr/local/src/jumpusb
     extra_opts:
       - --strip-components=1
     remote_src: true
-
-- name: Remove the ~/jumpusb.tar.gz file
-  file:
-    path: ~/jumpusb.tar.gz
-    state: absent
 
 - name: Ensure /boot/grub2/themes/jumpusb is a directory
   become: true

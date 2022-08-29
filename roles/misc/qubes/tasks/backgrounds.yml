@@ -1,17 +1,8 @@
 ---
-- name: Check if the wallpapers.tar.gz file is present
-  stat:
-    path: ~/wallpapers.tar.gz
-  register: wallpapers_check
-
-- name: Download the desktop wallpaper repository
-  command: |
-    qvm-remove --force wallpaper-downloader &> /dev/null || EXIT_CODE=$?
-    qvm-create --label red --template debian-11 wallpaper-downloader
-    qvm-run wallpaper-downloader "curl -sSL {{ qubes_wallpaper_repo }} > /home/user/wallpapers.tar.gz"
-    qvm-run --pass-io wallpaper-downloader 'cat /home/user/wallpapers.tar.gz' > "$HOME/wallpapers.tar.gz"
-    qvm-remove --force wallpaper-downloader-downloader &> /dev/null || EXIT_CODE=$?
-  when: not (wallpapers_check.stat.exists | default(false))
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: wallpapers-master.tar.gz
+  include_tasks: untrusted-download.yml
 
 - name: Remove the current /usr/share/backgrounds/images folder
   become: true
@@ -19,19 +10,14 @@
     path: /usr/share/backgrounds/images
     state: absent
 
-- name: Unpack the wallpapers.tar.gz file to /usr/share/backgrounds/images
+- name: Unpack the wallpapers-master.tar.gz file to /usr/share/backgrounds/images
   become: true
   unarchive:
-    src: ~/wallpapers.tar.gz
+    src: /usr/local/src/qubes-dom0-binaries/wallpapers-master.tar.gz
     dest: /usr/share/backgrounds/images
     extra_opts:
       - --strip-components=1
     remote_src: true
-
-- name: Remove the ~/wallpapers.tar.gz file
-  file:
-    path: ~/wallpapers.tar.gz
-    state: absent
 
 - name: Remove the README.md from /usr/share/backgrounds/images
   become: true

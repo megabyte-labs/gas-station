@@ -4,6 +4,10 @@
   command: timedatectl set-timezone {{ timezone }}
   when: timezone is defined
 
+- name: Configure Task
+  include_tasks: task.yml
+  when: 'task' in dom0_features
+
 - name: Configure TemplateVM / dom0 updates to use Tor
   include_tasks: tor-updates.yml
   when: 'tor-updates' in dom0_features
@@ -22,9 +26,25 @@
   loop_control:
     loop_var: template
 
+- name: Apply miscellaneous optional tweaks
+  include_tasks: tweaks.yml
+  when: 'tweaks' in dom0_features
+
 - name: Ensure the desktop backgrounds are synchronized with the wallpaper git repository
   include_tasks: backgrounds.yml
   when: 'backgrounds' in dom0_features
+
+- name: Ensure GRUB theme is updated
+  include_tasks: grub.yml
+  when: 'grub' in dom0_features
+
+- name: Ensure Plymouth theme is updated
+  include_tasks: plymouth.yml
+  when: 'plymouth' in dom0_features
+
+- name: Ensure Tabby is installed
+  include_tasks: tabby.yml
+  when: 'tabby' in dom0_features
 
 - name: Setup the split GPG feature (qubes-gpg-split-dom0)
   include_tasks: split-gpg.yml
@@ -38,10 +58,19 @@
   include_tasks: yubikey.yml
   when: 'yubikey' in dom0_features
 
-- name: Setup ZFS
-  include_tasks: zfs.yml
-  when: 'zfs' in dom0_features
-
 - name: Force prompt when using sudo in AppVMs
   include_tasks: sudo-prompt.yml
   when: 'sudo-prompt' in dom0_features
+
+- name: Ensure Visual Studio Code is installed
+  include_tasks: vscode.yml
+  when: 'vscode' in dom0_features
+
+- name: Add dom0-specific scripts
+  become: true
+  copy:
+    src: files/{{ item }}
+    dest: /usr/local/bin/{{ item }}
+    mode: 0755
+  loop:
+    - ramqube

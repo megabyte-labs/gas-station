@@ -34,3 +34,11 @@ hostctl_setup: false # Allows switching /etc/hosts profiles
 hostsfile_default_loopback: false
 install_switchhosts: false
 ```
+
+## Create Inventory with Qubes Ansible
+
+Run in dom0:
+
+```
+ansible localhost --ask-vault-pass -m qubesos -a "command=createinventory"
+```

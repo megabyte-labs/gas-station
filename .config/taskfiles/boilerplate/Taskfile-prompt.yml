@@ -3,6 +3,7 @@ version: '3'
 
 vars:
   COMMON_DOCS_URL: https://gitlab.com/megabyte-labs/documentation/shared/-/raw/master/common.json
+  COMMON_URL: 'https://gitlab.com/megabyte-labs/common/'
   PROJECT_SUBTYPE_VARS_URL: '{{.COMMON_URL}}{{.REPOSITORY_TYPE}}/-/raw/master/project-{{.REPOSITORY_SUBTYPE}}/.config/variables.json'
   PROJECT_VARS_URL: '{{.COMMON_URL}}{{.REPOSITORY_TYPE}}/-/raw/master/project/.config/variables.json'
 
@@ -30,28 +31,6 @@ tasks:
       For the default value, it looks at the corresponding common respoitory by first checking the
       `project-subtype` folder and then the `project` folder's value for `scriptsBuild` inside of the
       `.config/variables.json` file.
-    vars:
-      DEFAULT_VALUE:
-        sh: |
-          DATA_SUBTYPE="$(curl -sSL '{{.PROJECT_SUBTYPE_VARS_URL}}')" || EXIT_CODE=$?
-          if [ -n "$EXIT_CODE" ]; then
-            DATA_TYPE="$(curl -sSL '{{.PROJECT_VARS_URL}}')" || EXIT_CODE_2=$?
-            if [ -n "$EXIT_CODE_2" ]; then
-              echo ''
-            else
-              if [ "$(echo "$DATA_TYPE" | jq -r '.scriptsBuild')" != 'null' ]; then
-                echo "$DATA_TYPE" | jq -r '.scriptsBuild'
-              else
-                echo ''
-              fi
-            fi
-          else
-            if [ "$(echo "$DATA_SUBTYPE" | jq -r '.scriptsBuild')" != 'null' ]; then
-              echo "$DATA_SUBTYPE" | jq -r '.scriptsBuild'
-            else
-              echo ''
-            fi
-          fi
     cmds:
       - .config/log prompt 'Enter the build command placed in `scripts.build` inside of `package.json`'
       - |
@@ -180,28 +159,6 @@ tasks:
       For the default value, it looks at the corresponding common respoitory by first checking the
       `project-subtype` folder and then the `project` folder's value for `scriptsTest` inside of the
       `.config/variables.json` file.
-    vars:
-      DEFAULT_VALUE:
-        sh: |
-          DATA_SUBTYPE="$(curl -sSL '{{.PROJECT_SUBTYPE_VARS_URL}}')" || EXIT_CODE=$?
-          if [ -n "$EXIT_CODE" ]; then
-            DATA_TYPE="$(curl -sSL '{{.PROJECT_VARS_URL}}')" || EXIT_CODE_2=$?
-            if [ -n "$EXIT_CODE_2" ]; then
-              echo ''
-            else
-              if [ "$(echo "$DATA_TYPE" | jq -r '.scriptsTest')" != 'null' ]; then
-                echo "$DATA_TYPE" | jq -r '.scriptsTest'
-              else
-                echo ''
-              fi
-            fi
-          else
-            if [ "$(echo "$DATA_SUBTYPE" | jq -r '.scriptsTest')" != 'null' ]; then
-              echo "$DATA_SUBTYPE" | jq -r '.scriptsTest'
-            else
-              echo ''
-            fi
-          fi
     cmds:
       - .config/log prompt 'Enter the test command placed in `scripts.test` inside of `package.json`'
       - |

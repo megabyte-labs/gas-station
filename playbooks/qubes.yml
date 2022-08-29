@@ -6,6 +6,7 @@
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
+        # Run the Qubes dom0 role to enable features / update
         - name: Update and configure dom0
           vars:
             dom0_features:
@@ -69,7 +70,7 @@
       when: dhclient_host_name_grep.rc == 0
 
 - name: Ensure VM-lockdown scripts are added to Debian and Fedora templates
-  hosts: debian-11:fedora-36
+  hosts: debian-11:debian-11-dvm:fedora-36
   connection: qubes
   tasks:
     - name: Clone the VM-lockdown repository
@@ -110,6 +111,49 @@
           - qubes-gpg-split
           - qubes-u2f
         state: latest
+
+- name: Configure all Qubes to forward local traffic on certain ports to OPNSense (if installed)
+  hosts: debian-11
+  connection: qubes
+  vars:
+    systemd_services:
+      - name: opnsense-http-service
+        port: 80
+      - name: opnsense-https-service
+        port: 443
+  tasks:
+    - name: "Create {{ service.name }}.socket systemd file"
+      copy:
+        content: |
+          [Unit]
+          Description={{ service.name }}
+
+          [Socket]
+          ListenStream=127.0.0.1:{{ service.port }}
+          Accept=true
+
+          [Install]
+          WantedBy=sockets.target
+        dest: "/lib/systemd/system/{{ service.name }}.socket"
+      loop: "{{ systemd_services }}"
+      loop_control:
+        loop_var: service
+      when: 'OPNSense' in (qubes_vms | map(attribute="name") | list)
+    - name: "Create {{ service.name }}@.service systemd file"
+      copy:
+        content: |
+          [Unit]
+          Description={{ service.name }}
+
+          [Service]
+          ExecStart=qrexec-client-vm '' qubes.ConnectTCP+{{ service.port }}
+          StandardInput=socket
+          StandardOutput=inherit
+        dest: /lib/systemd/system/{{ service.name }}@.service
+      loop: "{{ systemd_services }}"
+      loop_control:
+        loop_var: service
+      when: 'OPNSense' in (qubes_vms | map(attribute="name") | list)
 
 - name: Provisioning TemplateVMs, configuring OPNSense PCI devices, and attaching USB with VirtualBox files for Packer HVMs
   hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('localhost', true) }}"
@@ -153,6 +197,13 @@
 
     - name: Configure the OPNSense HVM's attached PCI devices to match sys-net's
       include_tasks: qubes/opnsense-pci.yml
+      when: 'OPNSense' in (qubes_vms | map(attribute="name") | list)
+
+    - name: Bind all VMs localhost port 80 and 443 to OPNSense
+      copy:
+        content: |
+          $anyvm @default allow,target=OPNSense
+        dest: /etc/qubes-rpc/policy/qubes.ConnectTCP
       when: 'OPNSense' in (qubes_vms | map(attribute="name") | list)
 
     # Builds fully-loaded Archlinux, Debian, Fedora, Ubuntu, macOS, and Windows HVM desktop environments from

@@ -7,6 +7,7 @@
 * [Misc. scripts including VagrantUp HVMs](https://github.com/unman/stuff)
 * [Tails HVM](https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/tails.md)
 * [Block split](https://github.com/rustybird/qubes-split-dm-crypt)
+* [Docs and guides](https://www.qubes-os.org/doc/)
 
 ## Roles to Re-Visit
 

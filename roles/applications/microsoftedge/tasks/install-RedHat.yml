@@ -20,6 +20,14 @@
       name: microsoft-edge-dev
       state: "{{ app_state | default('present') }}"
       update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+  - name: Ensure Addons are installed
+      include_tasks: configure-Linux.yml
+      loop: "{{ user_configs }}"
+      loop_control:
+        label: "{{ user.username }}"
+        loop_var: user
+      when: (user.system is not defined) or ((user.system is defined) and (not user.system))
   rescue:
     - name: "Remove {{ app_name }}'s yum repository"
       yum_repository:

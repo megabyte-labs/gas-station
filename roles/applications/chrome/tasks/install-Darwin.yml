@@ -5,3 +5,16 @@
     name: google-chrome
     state: "{{ app_state | default('present') }}"
     accept_external_apps: "{{ allow_external_apps | default(true) }}"
+
+- name: Ensure folder '/Library/Application Support/Google/Chrome/External Extensions' exists
+  file:
+    path: '/Library/Application Support/Google/Chrome/External Extensions'
+    state: directory
+    mode: 0755
+
+- name: Ensure Extensions are installed
+  include_tasks: extensions/linux.yml
+  loop: "{{ chromium_extensions }}"
+  loop_control:
+    label: "{{ addon.name }}"
+    loop_var: addon

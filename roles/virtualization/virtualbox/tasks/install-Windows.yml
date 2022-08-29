@@ -1,38 +1,37 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   chocolatey.chocolatey.win_chocolatey:
     name: virtualbox
     state: present
   register: vbox_installation
 
 - name: "Setup {{ app_name }} Extension pack"
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   block:
-    - name: "Remove {{ app_name }} Extension pack if the source files have changed" # noqa 503
-      ansible.windows.win_file:
-        path: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
-        state: absent
     - name: "Find the installed version of {{ app_name }}"
       chocolatey.chocolatey.win_chocolatey_facts:
     - name: "Save the version of {{ app_name }} to a variable"
       set_fact:
-        vbox_version: "{{ ansible_chocolatey.packages.virtualbox.version }}"
-    - name: "Ensure {{ app_name }} Extension pack installer is downloaded and up-to-date"
+        vbox_version: "{{ ansible_chocolatey.packages | selectattr('package','equalto','virtualbox') | map(attribute='version') | join(' ') }}"
+    - name: "Ensure {{ app_name }} Extension pack installer is downloaded"
       ansible.windows.win_get_url:
         url: "{{ 'https://download.virtualbox.org/virtualbox/' + vbox_version + '/Oracle_VM_VirtualBox_Extension_Pack-' + vbox_version + '.vbox-extpack' }}"
-        dest: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.zip"
+        dest: "C:/Program Files/Oracle/VirtualBox/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
     - name: "Ensure {{ app_name }} Extension pack is installed"
-      community.windows.win_unzip:
-        src: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.zip"
-        dest: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+      ansible.windows.win_shell: |
+        echo y | VBoxManage extpack install --replace ./Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack
+      args:
+        chdir: "C:/Program Files/Oracle/VirtualBox/"
   when: vbox_installation.changed
   always:
     - name: "Remove {{ app_name }} Extension pack installer"
-      become_method: runas
-      become_user: "{{ ansible_user }}"
       ansible.windows.win_file:
-        path: "C:/Program Files/Oracle/VirtualBox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.zip"
+        path: "C:/Program Files/Oracle/VirtualBox/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
         state: absent
+
+- name: Run user configuration tasks
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

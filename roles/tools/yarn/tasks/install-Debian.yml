@@ -1,17 +1,38 @@
 ---
-- name: Add the Yarn repository GPG key
-  apt_key:
-    url: "{{ yarn_deb_gpg }}"
-    state: present
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        url: "{{ yarn_deb_gpg }}"
+        state: present
+        keyring: /usr/share/keyrings/yarn.gpg
 
-- name: Add the Yarn apt repository
-  apt_repository:
-    filename: yarn
-    repo: "{{ yarn_deb_repo }}"
-    state: present
-    update_cache: true
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: yarn
+        repo: "{{ yarn_deb_repo }}"
+        state: present
+        update_cache: true
 
-- name: Install Yarn
-  apt:
-    name: yarn
-    state: present
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: yarn
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/yarn.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ yarn_deb_repo }}"
+        state: absent
+
+    - name: "Ensure {{ app_name }} is installed"
+      become: false
+      community.general.homebrew:
+        name: yarn
+        state: "{{ app_state | default('present') }}"

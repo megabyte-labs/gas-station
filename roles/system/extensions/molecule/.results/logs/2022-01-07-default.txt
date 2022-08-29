@@ -1,0 +1,1208 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.extensions"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.extensions"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  09:14:22 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  09:14:32 -0500 (0:00:09.619)       0:00:09.633 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  09:14:32 -0500 (0:00:00.360)       0:00:09.994 ********
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  09:15:01 -0500 (0:00:29.004)       0:00:38.998 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  09:15:01 -0500 (0:00:00.178)       0:00:39.177 ********
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  09:15:02 -0500 (0:00:00.340)       0:00:39.518 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.00s
+Gathering Facts --------------------------------------------------------- 9.62s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Dump instance config ---------------------------------------------------- 0.34s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+
+playbook: /home/hawkwood/gas-station/roles/system/extensions/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  09:15:05 -0500 (0:00:00.013)       0:00:00.013 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  09:15:14 -0500 (0:00:09.536)       0:00:09.550 ********
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Friday 07 January 2022  09:15:15 -0500 (0:00:00.365)       0:00:09.916 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Friday 07 January 2022  09:25:36 -0500 (0:10:21.185)       0:10:31.102 ********
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/extensions/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/extensions/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Friday 07 January 2022  09:25:37 -0500 (0:00:01.294)       0:10:32.396 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  09:25:37 -0500 (0:00:00.167)       0:10:32.563 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  09:25:38 -0500 (0:00:01.055)       0:10:33.619 ********
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 621.19s
+Gathering Facts --------------------------------------------------------- 9.54s
+Populate instance config dict ------------------------------------------- 1.29s
+Dump instance config ---------------------------------------------------- 1.06s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.17s
+Playbook run took 0 days, 0 hours, 10 minutes, 33 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Friday 07 January 2022  09:25:41 -0500 (0:00:00.028)       0:00:00.028 ********
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  09:26:59 -0500 (0:01:18.292)       0:01:18.320 ********
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 78.29s
+Playbook run took 0 days, 0 hours, 1 minutes, 18 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  09:27:01 -0500 (0:00:00.025)       0:00:00.025 ********
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Fedora-33]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Friday 07 January 2022  09:27:04 -0500 (0:00:02.803)       0:00:02.829 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Friday 07 January 2022  09:27:04 -0500 (0:00:00.125)       0:00:02.954 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Friday 07 January 2022  09:27:04 -0500 (0:00:00.129)       0:00:03.083 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Friday 07 January 2022  09:27:04 -0500 (0:00:00.140)       0:00:03.224 ********
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Friday 07 January 2022  09:27:05 -0500 (0:00:00.145)       0:00:03.369 ********
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Friday 07 January 2022  09:27:05 -0500 (0:00:00.139)       0:00:03.508 ********
+
+TASK [professormanhattan.extensions : Include variables based on the operating system] ***
+Friday 07 January 2022  09:27:05 -0500 (0:00:00.197)       0:00:03.706 ********
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.extensions : Loop through the users in the configuration] ***
+Friday 07 January 2022  09:27:05 -0500 (0:00:00.170)       0:00:03.876 ********
+skipping: [Windows-10] => (item=vagrant)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/user.yml for ArchLinux-Latest, CentOS-7, CentOS-8, CentOS-Stream-8, Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Fedora-33, Fedora-34, Fedora-35, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri => (item=vagrant)
+
+TASK [professormanhattan.extensions : include_tasks] ***************************
+Friday 07 January 2022  09:27:05 -0500 (0:00:00.209)       0:00:04.085 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.extensions : Run generic Linux tasks] *****************
+Friday 07 January 2022  09:27:05 -0500 (0:00:00.186)       0:00:04.272 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/install-Linux.yml for ArchLinux-Latest
+
+TASK [professormanhattan.extensions : Ensure install-gnome-extensions dependencies are installed] ***
+Friday 07 January 2022  09:27:06 -0500 (0:00:00.079)       0:00:04.352 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Copy install-gnome-extensions executable] ***
+Friday 07 January 2022  09:27:06 -0500 (0:00:00.947)       0:00:05.300 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Ensure gnome-shell extensions folder exists] ***
+Friday 07 January 2022  09:27:07 -0500 (0:00:00.569)       0:00:05.869 ********
+changed: [ArchLinux-Latest] => (item=~/.local)
+changed: [ArchLinux-Latest] => (item=~/.local/share)
+changed: [ArchLinux-Latest] => (item=~/.local/share/gnome-shell)
+changed: [ArchLinux-Latest] => (item=~/.local/share/gnome-shell/extensions)
+
+TASK [professormanhattan.extensions : Determine which GNOME extensions are already installed (user)] ***
+Friday 07 January 2022  09:27:08 -0500 (0:00:00.854)       0:00:06.724 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Configure install list for the GNOME extension installer] ***
+Friday 07 January 2022  09:27:08 -0500 (0:00:00.297)       0:00:07.021 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/750/openweather/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/771/proxy-switcher/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/1085/simple-net-speed/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/906/sound-output-device-chooser/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/2983/ip-finder/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/6/applications-menu/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/3061/vlan-switcher/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/1762/lan-ip-address/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for ArchLinux-Latest => (item=https://extensions.gnome.org/extension/2224/easy-docker-containers/)
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:08 -0500 (0:00:00.086)       0:00:07.108 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:09 -0500 (0:00:00.316)       0:00:07.425 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:09 -0500 (0:00:00.205)       0:00:07.630 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:09 -0500 (0:00:00.232)       0:00:07.863 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:09 -0500 (0:00:00.200)       0:00:08.063 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:09 -0500 (0:00:00.210)       0:00:08.274 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:10 -0500 (0:00:00.210)       0:00:08.485 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:10 -0500 (0:00:00.203)       0:00:08.688 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:27:10 -0500 (0:00:00.210)       0:00:08.898 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Determine whether or not an install file was created] ***
+Friday 07 January 2022  09:27:10 -0500 (0:00:00.205)       0:00:09.104 ********
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Give vagrant passwordless sudo priviledges] ***
+Friday 07 January 2022  09:27:11 -0500 (0:00:00.334)       0:00:09.438 ********
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.extensions : Run the installer] ***********************
+Friday 07 January 2022  09:27:11 -0500 (0:00:00.206)       0:00:09.645 ********
+fatal: [ArchLinux-Latest]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.010825'
+  end: '2022-01-07 14:27:11.484532'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:27:11.473707'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.extensions : Run generic Linux tasks] *****************
+Friday 07 January 2022  09:27:11 -0500 (0:00:00.401)       0:00:10.047 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.extensions : Ensure install-gnome-extensions dependencies are installed] ***
+Friday 07 January 2022  09:27:11 -0500 (0:00:00.118)       0:00:10.165 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: No package matching 'jq' found available, installed or updated
+  rc: 126
+  results:
+  - curl-7.29.0-59.el7_9.1.x86_64 providing curl is already installed
+  - No package matching 'jq' found available, installed or updated
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Copy install-gnome-extensions executable] ***
+Friday 07 January 2022  09:28:20 -0500 (0:01:08.530)       0:01:18.695 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Ensure gnome-shell extensions folder exists] ***
+Friday 07 January 2022  09:28:21 -0500 (0:00:01.126)       0:01:19.822 ********
+changed: [CentOS-Stream-8] => (item=~/.local)
+changed: [CentOS-8] => (item=~/.local)
+changed: [Fedora-33] => (item=~/.local)
+changed: [Fedora-35] => (item=~/.local)
+changed: [CentOS-8] => (item=~/.local/share)
+changed: [CentOS-Stream-8] => (item=~/.local/share)
+changed: [Fedora-34] => (item=~/.local)
+changed: [Fedora-33] => (item=~/.local/share)
+changed: [Fedora-35] => (item=~/.local/share)
+changed: [CentOS-8] => (item=~/.local/share/gnome-shell)
+changed: [CentOS-Stream-8] => (item=~/.local/share/gnome-shell)
+changed: [Fedora-33] => (item=~/.local/share/gnome-shell)
+changed: [Fedora-34] => (item=~/.local/share)
+changed: [Fedora-35] => (item=~/.local/share/gnome-shell)
+changed: [CentOS-8] => (item=~/.local/share/gnome-shell/extensions)
+changed: [CentOS-Stream-8] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Fedora-33] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Fedora-35] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Fedora-34] => (item=~/.local/share/gnome-shell)
+changed: [Fedora-34] => (item=~/.local/share/gnome-shell/extensions)
+
+TASK [professormanhattan.extensions : Determine which GNOME extensions are already installed (user)] ***
+Friday 07 January 2022  09:28:23 -0500 (0:00:02.096)       0:01:21.919 ********
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.extensions : Configure install list for the GNOME extension installer] ***
+Friday 07 January 2022  09:28:24 -0500 (0:00:00.505)       0:01:22.425 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/750/openweather/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/771/proxy-switcher/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/1085/simple-net-speed/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/906/sound-output-device-chooser/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/2983/ip-finder/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/6/applications-menu/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/3061/vlan-switcher/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/1762/lan-ip-address/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=https://extensions.gnome.org/extension/2224/easy-docker-containers/)
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:24 -0500 (0:00:00.148)       0:01:22.574 ********
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:24 -0500 (0:00:00.609)       0:01:23.183 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:25 -0500 (0:00:00.642)       0:01:23.826 ********
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:26 -0500 (0:00:00.608)       0:01:24.434 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:26 -0500 (0:00:00.624)       0:01:25.059 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:27 -0500 (0:00:00.605)       0:01:25.664 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:27 -0500 (0:00:00.604)       0:01:26.268 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:28 -0500 (0:00:00.608)       0:01:26.877 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:29 -0500 (0:00:00.619)       0:01:27.497 ********
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Determine whether or not an install file was created] ***
+Friday 07 January 2022  09:28:29 -0500 (0:00:00.594)       0:01:28.092 ********
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.extensions : Give vagrant passwordless sudo priviledges] ***
+Friday 07 January 2022  09:28:30 -0500 (0:00:00.607)       0:01:28.700 ********
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.extensions : Run the installer] ***********************
+Friday 07 January 2022  09:28:30 -0500 (0:00:00.623)       0:01:29.323 ********
+fatal: [CentOS-8]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.006890'
+  end: '2022-01-07 14:28:31.195158'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:28:31.188268'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [CentOS-Stream-8]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.007361'
+  end: '2022-01-07 14:28:29.842719'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:28:29.835358'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Fedora-33]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.017162'
+  end: '2022-01-07 14:28:31.301105'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:28:31.283943'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Fedora-35]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.014201'
+  end: '2022-01-07 14:28:30.093741'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:28:30.079540'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Fedora-34]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.017481'
+  end: '2022-01-07 14:28:30.232626'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:28:30.215145'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.extensions : Run generic Linux tasks] *****************
+Friday 07 January 2022  09:28:31 -0500 (0:00:00.717)       0:01:30.040 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.extensions : Ensure install-gnome-extensions dependencies are installed] ***
+Friday 07 January 2022  09:28:31 -0500 (0:00:00.150)       0:01:30.191 ********
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  msg: No package matching 'jq' is available
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.extensions : Copy install-gnome-extensions executable] ***
+Friday 07 January 2022  09:28:57 -0500 (0:00:25.183)       0:01:55.375 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.extensions : Ensure gnome-shell extensions folder exists] ***
+Friday 07 January 2022  09:28:57 -0500 (0:00:00.547)       0:01:55.922 ********
+changed: [Debian-9-Stretch] => (item=~/.local)
+changed: [Debian-11-Bullseye] => (item=~/.local)
+changed: [Debian-10-Buster] => (item=~/.local)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.local)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.local)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.local)
+changed: [Debian-9-Stretch] => (item=~/.local/share)
+changed: [Debian-11-Bullseye] => (item=~/.local/share)
+changed: [Debian-10-Buster] => (item=~/.local/share)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.local/share)
+changed: [Debian-9-Stretch] => (item=~/.local/share/gnome-shell)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.local/share)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.local/share)
+changed: [Debian-10-Buster] => (item=~/.local/share/gnome-shell)
+changed: [Debian-11-Bullseye] => (item=~/.local/share/gnome-shell)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.local/share/gnome-shell)
+changed: [Debian-9-Stretch] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.local/share/gnome-shell)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.local/share/gnome-shell)
+changed: [Debian-10-Buster] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Debian-11-Bullseye] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.local/share/gnome-shell/extensions)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.local/share/gnome-shell/extensions)
+
+TASK [professormanhattan.extensions : Determine which GNOME extensions are already installed (user)] ***
+Friday 07 January 2022  09:28:58 -0500 (0:00:00.944)       0:01:56.867 ********
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Configure install list for the GNOME extension installer] ***
+Friday 07 January 2022  09:28:58 -0500 (0:00:00.315)       0:01:57.183 ********
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/750/openweather/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/771/proxy-switcher/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/1085/simple-net-speed/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/906/sound-output-device-chooser/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/2983/ip-finder/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/6/applications-menu/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/3061/vlan-switcher/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/1762/lan-ip-address/)
+included: /home/hawkwood/gas-station/roles/system/extensions/tasks/GNOME-list.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo => (item=https://extensions.gnome.org/extension/2224/easy-docker-containers/)
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:59 -0500 (0:00:00.168)       0:01:57.351 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:59 -0500 (0:00:00.295)       0:01:57.646 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:59 -0500 (0:00:00.290)       0:01:57.937 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:28:59 -0500 (0:00:00.297)       0:01:58.235 ********
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:29:00 -0500 (0:00:00.286)       0:01:58.521 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:29:00 -0500 (0:00:00.316)       0:01:58.837 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:29:00 -0500 (0:00:00.286)       0:01:59.123 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:29:01 -0500 (0:00:00.289)       0:01:59.413 ********
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Populate the list of extensions to be installed] ***
+Friday 07 January 2022  09:29:01 -0500 (0:00:00.290)       0:01:59.703 ********
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Determine whether or not an install file was created] ***
+Friday 07 January 2022  09:29:01 -0500 (0:00:00.309)       0:02:00.013 ********
+ok: [Debian-9-Stretch]
+ok: [Debian-11-Bullseye]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.extensions : Give vagrant passwordless sudo priviledges] ***
+Friday 07 January 2022  09:29:01 -0500 (0:00:00.299)       0:02:00.313 ********
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.extensions : Run the installer] ***********************
+Friday 07 January 2022  09:29:02 -0500 (0:00:00.284)       0:02:00.597 ********
+fatal: [Debian-9-Stretch]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.009069'
+  end: '2022-01-07 14:29:01.038987'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:29:01.029918'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Debian-10-Buster]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.008341'
+  end: '2022-01-07 14:29:00.612015'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:29:00.603674'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.009053'
+  end: '2022-01-07 14:29:00.572669'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:29:00.563616'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Debian-11-Bullseye]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.009850'
+  end: '2022-01-07 14:29:01.282659'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:29:01.272809'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.014433'
+  end: '2022-01-07 14:29:01.372369'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:29:01.357936'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=true
+  cmd:
+  - install-gnome-extensions
+  - --enable
+  - --overwrite
+  - --file
+  - /tmp/install-gnome-extensions.txt
+  delta: '0:00:00.015915'
+  end: '2022-01-07 14:29:01.197368'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 14:29:01.181453'
+  stderr: ''
+  stderr_lines: <omitted>
+  stdout: |-
+    [31m
+    [Error] Command not found: "gnome-shell"(B[m[31m
+
+    One or more dependencies is unavailable. Please make sure the above commands are available and re-run this script.
+
+    [33mFor Ubuntu and similar distros, try: sudo apt install -y wget curl jq unzip sed
+
+    For Fedora and similar distros, try: sudo dnf install -y wget curl jq unzip sed
+
+    (B[m
+  stdout_lines: <omitted>
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=5    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-8                   : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-Stream-8            : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-10-Buster           : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-9-Stretch           : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-33                  : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-34                  : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-35                  : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=29   changed=13   unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=5    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=1    changed=0    unreachable=0    failed=0    skipped=8    rescued=0    ignored=0
+
+Friday 07 January 2022  09:29:02 -0500 (0:00:00.383)       0:02:00.981 ********
+===============================================================================
+professormanhattan.extensions : Ensure install-gnome-extensions dependencies are installed -- 68.53s
+professormanhattan.extensions : Ensure install-gnome-extensions dependencies are installed -- 25.18s
+Gathering Facts --------------------------------------------------------- 2.80s
+professormanhattan.extensions : Ensure gnome-shell extensions folder exists --- 2.10s
+professormanhattan.extensions : Copy install-gnome-extensions executable --- 1.13s
+professormanhattan.extensions : Ensure install-gnome-extensions dependencies are installed --- 0.95s
+professormanhattan.extensions : Ensure gnome-shell extensions folder exists --- 0.94s
+professormanhattan.extensions : Ensure gnome-shell extensions folder exists --- 0.85s
+professormanhattan.extensions : Run the installer ----------------------- 0.72s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.64s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.62s
+professormanhattan.extensions : Give vagrant passwordless sudo priviledges --- 0.62s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.62s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.61s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.61s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.61s
+professormanhattan.extensions : Determine whether or not an install file was created --- 0.61s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.61s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.60s
+professormanhattan.extensions : Populate the list of extensions to be installed --- 0.59s
+Playbook run took 0 days, 0 hours, 2 minutes, 0 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  09:29:05 -0500 (0:00:00.015)       0:00:00.015 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  09:29:16 -0500 (0:00:11.245)       0:00:11.261 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  09:29:17 -0500 (0:00:00.404)       0:00:11.666 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  09:31:51 -0500 (0:02:34.458)       0:02:46.125 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  09:31:51 -0500 (0:00:00.131)       0:02:46.256 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  09:31:52 -0500 (0:00:00.953)       0:02:47.210 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 154.46s
+Gathering Facts -------------------------------------------------------- 11.25s
+Dump instance config ---------------------------------------------------- 0.95s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.41s
+Populate instance config ------------------------------------------------ 0.13s
+Playbook run took 0 days, 0 hours, 2 minutes, 47 seconds

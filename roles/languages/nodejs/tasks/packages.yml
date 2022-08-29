@@ -1,0 +1,19 @@
+---
+- name: "Check if the NPM package {{ item.name }} is already installed (checking for presence of {{ item.bin }} in the PATH)"
+  become_user: "{{ ansible_user }}"
+  command: which {{ item.bin }}
+  register: nodejs_package_result
+  failed_when: false
+  when: item.bin is defined
+
+- name: "Ensure the NPM package named {{ item.name }} is installed"
+  become_user: "{{ ansible_user }}"
+  community.general.npm:
+    name: '{{ item.name | default(item) }}'
+    version: "{{ item.version | default('latest') }}"
+    global: true
+    state: present
+  ignore_errors: true
+  when:
+    - (not nodejs_package_result is defined) or (nodejs_package_result.rc > 0)
+    - item.when | default(true)

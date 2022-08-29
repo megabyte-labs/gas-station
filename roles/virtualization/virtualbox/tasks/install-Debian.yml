@@ -1,23 +1,91 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ virtualbox_apt_key }}"
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: virtualbox
-    repo: "{{ virtualbox_apt_repository }}"
-    state: present
-    update_cache: true
-
-- name: "Modify debconf selection for unattended installation of the {{ app_name }} Extension Pack"
-  command: echo virtualbox-ext-pack virtualbox-ext-pack/license select true | debconf-set-selections
-  changed_when: false
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name:
-      - "{{ vbox_package_name }}"
-      - virtualbox-ext-pack
-    state: present
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ virtualbox_apt_key }}"
+        keyring: /usr/share/keyrings/virtualbox.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: virtualbox
+        repo: "{{ virtualbox_apt_repository }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: "{{ vbox_package_name }}"
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+      register: install_result
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/virtualbox.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: virtualbox
+        repo: "{{ virtualbox_apt_repository }}"
+        state: absent
+
+    - name: Find the available installers from the releases page
+      uri:
+        url: "https://download.virtualbox.org/virtualbox/{{ vbox_version }}/"
+        return_content: true
+      register: vbox_installers
+
+    - name: Fetch the alternate installer
+      get_url:
+        url: "https://download.virtualbox.org/virtualbox/{{ vbox_version }}/{{ vbox_installers.content | regex_search('>.*.run') | replace('>','') }}"
+        dest: /tmp/vbox_installer.run
+        mode: 0744
+
+    - name: "Ensure {{ app_name }} is installed" # noqa 301
+      become_user: root
+      command: >
+        /tmp/vbox_installer.run
+      args:
+        creates: /usr/bin/VBoxManage
+
+- name: "Ensure {{ app_name }} Extension pack is installed"
+  block:
+    - name: Ensure /usr/lib/virtualbox/ExtensionPacks directory exists
+      file:
+        path: /usr/lib/virtualbox/ExtensionPacks
+        state: directory
+        mode: 0755
+    - name: "Ensure {{ app_name }} Extension pack installer is downloaded and up-to-date"
+      get_url:
+        url: "{{ 'https://download.virtualbox.org/virtualbox/' + vbox_version + '/Oracle_VM_VirtualBox_Extension_Pack-' + vbox_version + '.vbox-extpack' }}"
+        dest: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
+      register: ext_pack_download_result
+    - name: "Ensure older version of {{ app_name }} Extension pack is removed"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+        state: absent
+      when: ext_pack_download_result.changed
+    - name: "Ensure {{ app_name }} Extension pack is installed" # noqa 303
+      shell: |
+        set -o pipefail
+        echo 'y' | VBoxManage extpack install --replace /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack
+      args:
+        creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
+        executable: /bin/bash
+  when: install_result is defined and install_result.changed
+  always:
+    - name: "Remove {{ app_name }} Extension pack installer"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack"
+        state: absent
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

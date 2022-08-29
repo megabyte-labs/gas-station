@@ -1,0 +1,53 @@
+---
+- name: 'Install the addon {{ addon.name }}'
+  block:
+    - name: 'Fetch the Addon page for {{ addon.name }}'
+      uri:
+        url: "{{ addon.link }}"
+        return_content: true
+      register: addon_page
+
+    - name: 'Create a temporary directory to extract the Addon {{ addon.name }}'
+      file:
+        path: '~/.tmp/{{ addon.name | lower }}'
+        state: directory
+        mode: 0755
+
+    - name: 'Download the Addon file {{ addon.name }}'
+      get_url:
+        url: "{{ addon_page.content | regex_search('https:\\/\\/addons.mozilla.org\\/firefox\\/downloads\\/file\\/\\d*\\/[\\w\\-\\_\\.]*.xpi') }}"
+        dest: '~/.tmp/{{ addon.name | lower }}/{{ addon.name | lower }}.zip'
+
+    - name: 'Extract the Addon file {{ addon.name }}'
+      unarchive:
+        src: '~/.tmp/{{ addon.name | lower }}/{{ addon.name | lower }}.zip'
+        dest: '~/.tmp/{{ addon.name | lower }}'
+        remote_src: true
+
+    - name: Read the Addon manifest file # noqa 301
+      command: cat "~/.tmp/{{ addon.name | lower }}/manifest.json"
+      register: manifest
+
+    - name: 'Find the ID of the Addon {{ addon.name }}'
+      set_fact:
+        addon_id: "{{ (manifest.stdout | from_json).browser_specific_settings.gecko.id | default((manifest.stdout | from_json).applications.gecko.id) }}"
+        addon_url: "{{ addon_page.content | regex_search('https:\\/\\/addons.mozilla.org\\/firefox\\/downloads\\/file\\/\\d*\\/[\\w\\-\\_\\.]*.xpi') }}"
+      register: id_result
+
+    - name: Construct the policy for the Addon
+      set_fact:
+        extension_settings: "{{ extension_settings | default({}) |
+          combine({addon_id : '{\"installation_mode\": \"normal_installed\",\"install_url\": \"' + addon_url + '\"}'}) }}"
+  rescue:
+    - name: User notification
+      debug:
+        msg: "The addon {{ addon.name }} does not have an ID and cannot be installed using the Playbook. Please install the addon using the browser"
+      when: "'has no attribute \\'applications\\'' in id_result.msg"
+  always:
+    - name: Reset the ID
+      set_fact:
+        addon_id: ""
+    - name: Delete the temporary directory created for the Addon
+      file:
+        path: '~/.tmp/{{ addon.name | lower }}'
+        state: absent

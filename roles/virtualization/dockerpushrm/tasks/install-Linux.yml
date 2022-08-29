@@ -1,0 +1,51 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/dockerpushrm"
+  stat:
+    path: ~/.config/megabytelabs/dockerpushrm
+  register: dockerpushrm_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat dockerpushrm
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_dockerpushrm_version
+  when: dockerpushrm_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/christian-korneck/docker-pushrm/releases/latest
+  register: dockerpushrm_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_dockerpushrm: "{{ (current_dockerpushrm_version.skipped | default(false)) or \
+      ((not current_dockerpushrm_version.skipped | default(false)) and \
+      (current_dockerpushrm_version.stdout != dockerpushrm_latest_release_tag.json.tag_name | replace('v', ''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "https://github.com/christian-korneck/docker-pushrm/releases/download/\
+      {{ dockerpushrm_latest_release_tag.json.tag_name }}/docker-pushrm_{{ ansible_system | lower }}_{{ dockerpushrm_arch_map[ansible_architecture] }}"
+    dest: "{{ '/usr/libexec/docker/cli-plugins/docker-pushrm' if ansible_system == 'Linux' else \
+      '/Applications/Docker.app/Contents/Resources/cli-plugins/docker-pushrm' }}"
+    mode: 0755
+    force: true
+  when: install_dockerpushrm
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/dockerpushrm
+    mode: 0600
+    content: |
+      {{ dockerpushrm_latest_release_tag.json.tag_name | replace('v', '') }}
+  when: install_dockerpushrm

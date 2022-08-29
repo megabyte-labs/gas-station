@@ -1,0 +1,117 @@
+---
+version: '3'
+
+tasks:
+  container-structure-test:
+    desc: Runs ContainerStructureTest for Dockerfile build
+    hide:
+      sh: '! find . -mindepth 1 -maxdepth 1 -name "Docker*.test.yml" | grep Docker'
+    cmds:
+      - task: container-structure-test:latest
+      - task: container-structure-test:slim
+
+  container-structure-test:latest:
+    deps:
+      - :install:software:container-structure-test
+      - :install:software:docker
+    log:
+      error: '`container-structure-test` reported error(s) when testing
+        `{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:latest`'
+      start: Testing the `{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:latest`
+        Docker image with `container-structure-test`
+      success: '`{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:latest` was
+        successfully validated by `container-structure-test`'
+    cmds:
+      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:latest
+        --config Docker{{if .CLI_ARGS}}.{{.CLI_ARGS}}{{end}}.test.yml
+    status:
+      - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:latest 2>/dev/null)" == "" ]]'
+
+  container-structure-test:slim:
+    deps:
+      - :install:software:container-structure-test
+      - :install:software:docker
+    log:
+      error: '`container-structure-test` reported error(s) when testing
+        `{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim`'
+      start: Testing the `{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim`
+        Docker image with `container-structure-test`
+      success: '`{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim` was
+        successfully validated by `container-structure-test`'
+    cmds:
+      - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim
+        --config Docker{{if .CLI_ARGS}}.{{.CLI_ARGS}}{{end}}.test.yml
+    status:
+      - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}:slim 2> /dev/null)" == "" ]]'
+
+  gitlab-runner:
+    deps:
+      - :install:software:docker
+      - :install:software:gitlab-runner
+      - :install:software:jq
+      - :install:software:yq
+    env:
+      CI_TESTS:
+        sh: yq e 'keys | .[] | select( . | test("integration"))' .gitlab-ci.yml
+    log:
+      error: Error encountered while validating with the integration tests in `.gitlab-ci.yml`
+      start: Running integration tests defined in `.gitlab-ci.yml`
+      success: Successfully passed the integration tests defined in `.gitlab-ci.yml`
+    cmds:
+      - |
+        for CI_TEST in $CI_TESTS; do
+          export CI_TEST
+          if [ "$(yq e '.[strenv(CI_TEST)].image' .gitlab-ci.yml)" != 'null' ]; then
+            .config/log info 'Simulating the `'"$CI_TEST"'` job in `.gitlab-ci.yml`'
+            gitlab-runner exec "$CI_TEST"
+            .config/log success 'Successfully ran the `'"$CI_TEST"'` job in `.gitlab-ci.yml`'
+          else
+            .config/log warn "$CI_TEST does not appear to be an option with an image in .gitlab-ci.yml"
+          fi
+        done
+    status:
+      - >
+        ! yq e 'keys | .[] | select( . | test("integration"))' .gitlab-ci.yml | grep 'integration:' > /dev/null
+
+  output:
+    deps:
+      - :install:software:docker
+    desc: For each project in the `test-output/` folder, ensure slim and latest output match with default command
+    summary: |
+      # Ensure Identical Output
+
+      This task ensures the output of the default command is identical for both the latest and slim images.
+      If both of the command's outputs match, then that is a good indicator that the slim image is
+      behaiving like the latest image. The test is performed on each project folder in the `test-output/` folder.
+    vars:
+      IMAGE_NAME: '{{.DOCKERHUB_PROFILE}}/{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.SLUG}}{{end}}'
+    hide:
+      sh: '[ ! -d test-output ]'
+    log:
+      error: There was an error while comparing `latest` and `slim` image outputs for `{{.IMAGE_NAME}}`
+      start: Comparing outputs of the `latest` and `slim` images for `{{.IMAGE_NAME}}`
+      success: The outputs of the `latest` and `slim` images match for `{{.IMAGE_NAME}}`!
+    cmds:
+      - |
+        if [[ "$(docker images -q {{.IMAGE_NAME}}:slim 2> /dev/null)" != "" ]] && \
+        [[ "$(docker images -q {{.IMAGE_NAME}}:latest 2>/dev/null)" != "" ]]; then
+          for TEST_SCENARIO in test-output/*/; do
+            if [ "$TEST_SCENARIO" != 'test-output/*/' ]; then
+              .config/log info 'Acquiring `latest` image output for `'"$TEST_SCENARIO"'`'
+              LATEST_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:latest .)
+              .config/log success 'Acquired `latest` image output for `'"$TEST_SCENARIO"'`'
+              .config/log info 'Acquiring `slim` image output for `'"$TEST_SCENARIO"'`'
+              SLIM_OUTPUT=$(docker run -v "${PWD}/${TEST_SCENARIO}:/work" -w /work {{.IMAGE_NAME}}:slim .)
+              .config/log success 'Acquired `slim` image output for `'"$TEST_SCENARIO"'`'
+              if [ "$LATEST_OUTPUT" != "$SLIM_OUTPUT" ]; then
+                .config/log error 'The `latest` image output did not match the `slim` image output'
+                echo "$LATEST_OUTPUT" > latest.log
+                .config/log info 'The `latest` image output has been written to `latest.log`'
+                echo "$SLIM_OUTPUT" > slim.log
+                .config/log info 'The `slim` image output has been written to `slim.log`'
+              fi
+            fi
+          done
+        else
+          .config/log warn 'Either the `slim` or `latest` image was not present so the output comparison was skipped'
+        fi

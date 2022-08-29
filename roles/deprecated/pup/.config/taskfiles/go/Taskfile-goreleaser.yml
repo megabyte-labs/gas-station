@@ -1,0 +1,62 @@
+---
+version: '3'
+
+vars:
+  GORELEASER_CONFIG:
+    sh: if [ -f .goreleaser.yml ]; then echo ".goreleaser.yml"; else echo ".config/goreleaser.yml"; fi
+
+tasks:
+  build:
+    deps:
+      - :install:go:goreleaser
+      - :install:go:nfpm
+      - :install:software:jq
+    vars:
+      CURRENT_TAG:
+        sh: jq -r '.blueprint.currentBuildTag' package.json
+    log:
+      error: GoReleaser encountered an error (config file -> `{{.GORELEASER_CONFIG}}`)
+      start: Building with project with GoReleaser
+      success: Completed building the project with GoReleaser
+    cmds:
+      - |
+        unset GITHUB_TOKEN
+        unset GITLAB_TOKEN
+        export GOVERSION="$(go version)"
+        if [ '{{.CURRENT_TAG}}' != 'null' ]; then
+          export GORELEASER_CURRENT_TAG={{.CURRENT_TAG}}
+        fi
+        goreleaser build --config {{.GORELEASER_CONFIG}} --rm-dist --skip-validate
+
+  check:
+    deps:
+      - :install:go:goreleaser
+    log:
+      error: GoReleaser configuration appears to be invalid (config file -> `{{.GORELEASER_CONFIG}})
+      start: Validating the configuration file
+      success: GoReleaser configuration is valid!
+    cmds:
+      - goreleaser check --config {{.GORELEASER_CONFIG}}
+
+  release:
+    deps:
+      - :install:go:goreleaser
+      - :install:go:nfpm
+      - :install:software:jq
+    vars:
+      CURRENT_TAG:
+        sh: jq -r '.blueprint.currentBuildTag' package.json
+    log:
+      error: Encountered error while releasing with GoReleaser (config file -> `{{.GORELEASER_CONFIG}})
+      start: Publishing compiled assets with GoReleaser
+      success: Successfully published assets with GoReleaser!
+    cmds:
+      - task: :publish:snap:register
+      - |
+        unset GITHUB_TOKEN
+        unset GITLAB_TOKEN
+        export GOVERSION="$(go version)"
+        if [ '{{.CURRENT_TAG}}' != 'null' ]; then
+          export GORELEASER_CURRENT_TAG={{.CURRENT_TAG}}
+        fi
+        goreleaser release --skip-publish --config {{.GORELEASER_CONFIG}} --rm-dist --skip-validate

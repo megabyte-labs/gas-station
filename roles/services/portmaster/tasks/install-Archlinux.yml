@@ -1,0 +1,38 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  community.general.pacman:
+    name: "{{ portmaster_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ portmaster_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ portmaster_src_dir }}"
+    repo: "{{ portmaster_repo }}"
+    version: master
+    force: true
+  register: portmaster_git
+
+- name: "Ensure {{ app_name }} is installed" # noqa 301
+  become: false
+  command: makepkg -sic --noconfirm
+  args:
+    chdir: "{{ portmaster_src_dir }}"
+    creates: /opt/safing/portmaster/portmaster-start
+  when: portmaster_git.after != portmaster_git.before
+
+- name: "Ensure {{ app_name }} serivce is enabled and started"
+  systemd:
+    name: portmaster
+    daemon_reload: true
+    state: started
+    enabled: true
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

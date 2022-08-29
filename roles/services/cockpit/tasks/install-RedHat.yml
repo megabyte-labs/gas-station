@@ -1,25 +1,53 @@
 ---
-- name: Install Cockpit
-  yum:
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
     name:
       - cockpit
       - cockpit-machines
       - libvirt-dbus
-      - cockpit-docker
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: Enable the Cockpit service
   systemd:
     enabled: true
     name: cockpit
     state: started
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+
+- name: Determine whether to install cockpit-docker or cockpit-podman
+  set_fact:
+    cockpit_package: |
+      {% set tmp_cockpit_package = [] %}
+      {% if (ansible_facts.packages | regex_search('docker*')) %}
+      {% if (ansible_distribution_major_version == '7') %}
+      {{ tmp_cockpit_package.append('cockpit-docker') }}
+      {% else %}
+      {{ tmp_cockpit_package.append('cockpit-podman') }}
+      {% endif %}
+      {% endif %}
+      {% if (ansible_facts.packages | regex_search('podman*')) %}
+      {{ tmp_cockpit_package.append('cockpit-podman') }}
+      {% endif %}
+      {{- tmp_cockpit_package | unique -}}
+
+- name: Install Cockpit Docker or Cockpit Podman
+  dnf:
+    name: "{{ cockpit_package | regex_replace('\\W*(cockpit-\\w*)\\W*','\\1') }}"
+    state: present
+  when: cockpit_package is defined
 
 - name: Install Cockpit 389 DS
-  apt:
+  dnf:
     name:
-      - 389-ds
+      - 389-ds-base
       - cockpit-389-ds
     state: present
+    enablerepo: epel
   when: cockpit_install_389_ds
 
 - name: Add Cockpit machine profiles

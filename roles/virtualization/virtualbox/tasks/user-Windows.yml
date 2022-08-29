@@ -1,0 +1,41 @@
+---
+- name: Ensure VirtualBox config folder exists
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: '%USERPROFILE%/.VirtualBox'
+    state: directory
+
+- name: "Ensure VirtualBox machine folder is location is configured"
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: VirtualBox.xml.j2
+    dest: '%USERPROFILE%/.VirtualBox/VirtualBox.xml'
+    backup: true
+  register: vbox_template
+
+- name: Ensure config backup directory exists
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs\backups'
+    state: directory
+  when: vbox_template.backup_file is defined and vbox_template.backup_file | length > 0
+
+- name: Copy the backup file
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_copy:
+    src: "{{ vbox_template.backup_file }}"
+    dest: '%USERPROFILE%\.config\megabytelabs\backups\'
+    remote_src: true
+  when: vbox_template.backup_file is defined and vbox_template.backup_file | length > 0
+
+- name: Delete the backup file
+  become_method: runas
+  become_user: "{{ user.username }}"
+  ansible.windows.win_file:
+    path: "{{ vbox_template.backup_file }}"
+    state: absent
+  when: vbox_template.backup_file is defined and vbox_template.backup_file | length > 0

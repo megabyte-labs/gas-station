@@ -1,0 +1,21 @@
+---
+- name: 'Ensure {{ app_name }} is installed'
+  gem:
+    name: cocoapods
+    state: "{{ app_state | default('present') }}"
+    user_install: false
+  environment:
+    PATH: '/usr/local/opt/ruby/bin:{{ ansible_env.PATH }}'
+    LDFLAGS: '-L/usr/local/opt/ruby/lib'
+    CPPFLAGS: '-I/usr/local/opt/ruby/include'
+    PKG_CONFIG_PATH: '/usr/local/opt/ruby/lib/pkgconfig'
+
+- name: Ensure configured gems are installed (user)
+  include_tasks: user-Config.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.cocoapods_specs | default(true)

@@ -1,0 +1,995 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Skipping install, no requirements found
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.rvm"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.rvm"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  21:37:51 -0500 (0:00:00.015)       0:00:00.015 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  21:38:00 -0500 (0:00:09.749)       0:00:09.765 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  21:38:01 -0500 (0:00:00.370)       0:00:10.136 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  21:38:30 -0500 (0:00:28.844)       0:00:38.980 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  21:38:30 -0500 (0:00:00.180)       0:00:39.160 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Thursday 06 January 2022  21:38:30 -0500 (0:00:00.330)       0:00:39.490 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.84s
+Gathering Facts --------------------------------------------------------- 9.75s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.33s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+
+playbook: /home/hawkwood/gas-station/roles/languages/rvm/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  21:38:33 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  21:38:43 -0500 (0:00:09.584)       0:00:09.598 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Thursday 06 January 2022  21:38:43 -0500 (0:00:00.364)       0:00:09.963 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Thursday 06 January 2022  21:48:11 -0500 (0:09:27.874)       0:09:37.838 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/rvm/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/rvm/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Thursday 06 January 2022  21:48:12 -0500 (0:00:01.020)       0:09:38.859 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  21:48:12 -0500 (0:00:00.161)       0:09:39.021 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  21:48:13 -0500 (0:00:01.011)       0:09:40.032 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 567.87s
+Gathering Facts --------------------------------------------------------- 9.58s
+Populate instance config dict ------------------------------------------- 1.02s
+Dump instance config ---------------------------------------------------- 1.01s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Convert instance config dict to a list ---------------------------------- 0.16s
+Playbook run took 0 days, 0 hours, 9 minutes, 40 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Thursday 06 January 2022  21:48:15 -0500 (0:00:00.027)       0:00:00.027 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-35]
+ok: [Fedora-33]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  21:48:31 -0500 (0:00:15.641)       0:00:15.668 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 15.64s
+Playbook run took 0 days, 0 hours, 0 minutes, 15 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  21:48:33 -0500 (0:00:00.043)       0:00:00.043 ******
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.rvm : include_tasks] **********************************
+Thursday 06 January 2022  21:48:36 -0500 (0:00:02.830)       0:00:02.873 ******
+skipping: [Windows-10]
+included: /home/hawkwood/gas-station/roles/languages/rvm/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/languages/rvm/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/languages/rvm/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.rvm : Run common Linux tasks] *************************
+Thursday 06 January 2022  21:48:36 -0500 (0:00:00.182)       0:00:03.055 ******
+included: /home/hawkwood/gas-station/roles/languages/rvm/tasks/install-Linux.yml for ArchLinux-Latest
+
+TASK [professormanhattan.rvm : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  21:48:37 -0500 (0:00:00.078)       0:00:03.134 ******
+changed: [ArchLinux-Latest] => (item=~/.config)
+changed: [ArchLinux-Latest] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.rvm : Check if rvm has configuration stored in /root/.config/megabytelabs/rvm] ***
+Thursday 06 January 2022  21:48:37 -0500 (0:00:00.527)       0:00:03.661 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Detect previously installed rvm version] ********
+Thursday 06 January 2022  21:48:37 -0500 (0:00:00.315)       0:00:03.977 ******
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Detect the latest rvm version] ******************
+Thursday 06 January 2022  21:48:37 -0500 (0:00:00.061)       0:00:04.039 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Determine whether or not the latest version of rvm is already installed] ***
+Thursday 06 January 2022  21:48:38 -0500 (0:00:00.509)       0:00:04.548 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Ensure rvm's source directory is present] *******
+Thursday 06 January 2022  21:48:38 -0500 (0:00:00.059)       0:00:04.608 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Ensure older version of rvm is uninstalled] *****
+Thursday 06 January 2022  21:48:38 -0500 (0:00:00.332)       0:00:04.940 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Ensure latest rvm installer is downloaded] ******
+Thursday 06 January 2022  21:48:39 -0500 (0:00:00.203)       0:00:05.144 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.rvm : Ensure rvm is installed] ************************
+Thursday 06 January 2022  21:48:39 -0500 (0:00:00.426)       0:00:05.571 ******
+fatal: [ArchLinux-Latest]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.015191'
+  end: '2022-01-07 02:48:39.762189'
+  msg: non-zero return code
+  rc: 1
+  start: '2022-01-07 02:48:39.746998'
+  stderr: |2-
+
+    ERROR: Could not find 'which' command, make sure it's available first before continuing installation.
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.rvm : Run common Linux tasks] *************************
+Thursday 06 January 2022  21:48:39 -0500 (0:00:00.422)       0:00:05.993 ******
+included: /home/hawkwood/gas-station/roles/languages/rvm/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.rvm : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  21:48:40 -0500 (0:00:00.109)       0:00:06.103 ******
+changed: [CentOS-7] => (item=~/.config)
+changed: [CentOS-8] => (item=~/.config)
+changed: [CentOS-Stream-8] => (item=~/.config)
+changed: [Fedora-34] => (item=~/.config)
+changed: [Fedora-33] => (item=~/.config)
+changed: [Fedora-35] => (item=~/.config)
+changed: [CentOS-7] => (item=~/.config/megabytelabs)
+changed: [CentOS-8] => (item=~/.config/megabytelabs)
+changed: [CentOS-Stream-8] => (item=~/.config/megabytelabs)
+changed: [Fedora-34] => (item=~/.config/megabytelabs)
+changed: [Fedora-33] => (item=~/.config/megabytelabs)
+changed: [Fedora-35] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.rvm : Check if rvm has configuration stored in /root/.config/megabytelabs/rvm] ***
+Thursday 06 January 2022  21:48:40 -0500 (0:00:00.741)       0:00:06.844 ******
+ok: [CentOS-7]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.rvm : Detect previously installed rvm version] ********
+Thursday 06 January 2022  21:48:41 -0500 (0:00:00.395)       0:00:07.240 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.rvm : Detect the latest rvm version] ******************
+Thursday 06 January 2022  21:48:41 -0500 (0:00:00.081)       0:00:07.321 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.rvm : Determine whether or not the latest version of rvm is already installed] ***
+Thursday 06 January 2022  21:48:41 -0500 (0:00:00.641)       0:00:07.963 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.rvm : Ensure rvm's source directory is present] *******
+Thursday 06 January 2022  21:48:41 -0500 (0:00:00.082)       0:00:08.045 ******
+changed: [CentOS-7]
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.rvm : Ensure older version of rvm is uninstalled] *****
+Thursday 06 January 2022  21:48:42 -0500 (0:00:00.441)       0:00:08.486 ******
+ok: [CentOS-7]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.rvm : Ensure latest rvm installer is downloaded] ******
+Thursday 06 January 2022  21:48:42 -0500 (0:00:00.425)       0:00:08.912 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+TASK [professormanhattan.rvm : Ensure rvm is installed] ************************
+Thursday 06 January 2022  21:48:43 -0500 (0:00:00.577)       0:00:09.489 ******
+fatal: [CentOS-8]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.730753'
+  end: '2022-01-07 02:48:42.964809'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:42.234056'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg2 --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg2 --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Fedora-35]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.627687'
+  end: '2022-01-07 02:48:43.349047'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:42.721360'
+  stderr: |-
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg2 --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg2 --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Fedora-34]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.697047'
+  end: '2022-01-07 02:48:43.403339'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:42.706292'
+  stderr: |-
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg2 --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg2 --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [CentOS-Stream-8]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.834641'
+  end: '2022-01-07 02:48:43.084519'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:42.249878'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg2 --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg2 --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Fedora-33]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.833129'
+  end: '2022-01-07 02:48:43.130468'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:42.297339'
+  stderr: |-
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg2 --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg2 --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [CentOS-7]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:01.555280'
+  end: '2022-01-07 02:48:44.431303'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:42.876023'
+  stderr: |-
+    gpg: directory `/root/.gnupg' created
+    gpg: new configuration file `/root/.gnupg/gpg.conf' created
+    gpg: WARNING: options in `/root/.gnupg/gpg.conf' are not yet active during this run
+    gpg: keyring `/root/.gnupg/pubring.gpg' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC using RSA key ID 39499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg2 --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg2 --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.rvm : Run common Linux tasks] *************************
+Thursday 06 January 2022  21:48:45 -0500 (0:00:01.834)       0:00:11.324 ******
+included: /home/hawkwood/gas-station/roles/languages/rvm/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.rvm : Ensure Megabyte Labs configuration directory exists] ***
+Thursday 06 January 2022  21:48:45 -0500 (0:00:00.111)       0:00:11.436 ******
+changed: [Debian-9-Stretch] => (item=~/.config)
+changed: [Debian-10-Buster] => (item=~/.config)
+changed: [Debian-11-Bullseye] => (item=~/.config)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.config)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.config)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.config)
+changed: [Ubuntu-21.10-Impish-Indri] => (item=~/.config)
+changed: [Debian-9-Stretch] => (item=~/.config/megabytelabs)
+changed: [Debian-10-Buster] => (item=~/.config/megabytelabs)
+changed: [Debian-11-Bullseye] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-18.04-Bionic-Beaver] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-21.04-Hirsute-Hippo] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-20.04-Focal-Fossa] => (item=~/.config/megabytelabs)
+changed: [Ubuntu-21.10-Impish-Indri] => (item=~/.config/megabytelabs)
+
+TASK [professormanhattan.rvm : Check if rvm has configuration stored in /root/.config/megabytelabs/rvm] ***
+Thursday 06 January 2022  21:48:45 -0500 (0:00:00.540)       0:00:11.976 ******
+ok: [Debian-10-Buster]
+ok: [Debian-9-Stretch]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.rvm : Detect previously installed rvm version] ********
+Thursday 06 January 2022  21:48:46 -0500 (0:00:00.316)       0:00:12.293 ******
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.rvm : Detect the latest rvm version] ******************
+Thursday 06 January 2022  21:48:46 -0500 (0:00:00.075)       0:00:12.368 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.rvm : Determine whether or not the latest version of rvm is already installed] ***
+Thursday 06 January 2022  21:48:46 -0500 (0:00:00.519)       0:00:12.887 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.rvm : Ensure rvm's source directory is present] *******
+Thursday 06 January 2022  21:48:46 -0500 (0:00:00.080)       0:00:12.968 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+changed: [Ubuntu-20.04-Focal-Fossa]
+
+TASK [professormanhattan.rvm : Ensure older version of rvm is uninstalled] *****
+Thursday 06 January 2022  21:48:47 -0500 (0:00:00.322)       0:00:13.291 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-11-Bullseye]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.rvm : Ensure latest rvm installer is downloaded] ******
+Thursday 06 January 2022  21:48:47 -0500 (0:00:00.312)       0:00:13.603 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.rvm : Ensure rvm is installed] ************************
+Thursday 06 January 2022  21:48:47 -0500 (0:00:00.433)       0:00:14.037 ******
+fatal: [Debian-11-Bullseye]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.453045'
+  end: '2022-01-07 02:48:47.395004'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:46.941959'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Ubuntu-18.04-Bionic-Beaver]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.576137'
+  end: '2022-01-07 02:48:47.293239'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:46.717102'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Debian-9-Stretch]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.732420'
+  end: '2022-01-07 02:48:47.390920'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:46.658500'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Ubuntu-20.04-Focal-Fossa]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.718062'
+  end: '2022-01-07 02:48:47.827721'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:47.109659'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:00.933557'
+  end: '2022-01-07 02:48:47.312381'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:46.378824'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Ubuntu-21.04-Hirsute-Hippo]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:01.049992'
+  end: '2022-01-07 02:48:48.406735'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:47.356743'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+fatal: [Debian-10-Buster]: FAILED! => changed=true
+  cmd:
+  - /usr/local/src/rvm/rvm-installer.sh
+  - stable
+  delta: '0:00:01.491643'
+  end: '2022-01-07 02:48:48.337804'
+  msg: non-zero return code
+  rc: 2
+  start: '2022-01-07 02:48:46.846161'
+  stderr: |-
+    gpg: directory '/root/.gnupg' created
+    gpg: keybox '/root/.gnupg/pubring.kbx' created
+    gpg: Signature made Fri 15 Jan 2021 06:46:22 PM UTC
+    gpg:                using RSA key 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+    gpg: Can't check signature: No public key
+  stderr_lines: <omitted>
+  stdout: |-
+    Downloading https://github.com/rvm/rvm/archive/1.29.12.tar.gz
+    Downloading https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc
+    GPG signature verification failed for '/usr/local/rvm/archives/rvm-1.29.12.tgz' - 'https://github.com/rvm/rvm/releases/download/1.29.12/1.29.12.tar.gz.asc'! Try to install GPG v2 and then fetch the public key:
+
+        sudo gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+
+    or if it fails:
+
+        command curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+        command curl -sSL https://rvm.io/pkuczynski.asc | sudo gpg --import -
+
+    In case of further problems with validation please refer to https://rvm.io/rvm/security
+  stdout_lines: <omitted>
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+CentOS-7                   : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+CentOS-8                   : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+CentOS-Stream-8            : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Debian-10-Buster           : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Debian-9-Stretch           : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Fedora-33                  : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Fedora-34                  : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Fedora-35                  : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=10   changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0
+Windows-10                 : ok=1    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  21:48:49 -0500 (0:00:01.765)       0:00:15.803 ******
+===============================================================================
+Gathering Facts --------------------------------------------------------- 2.83s
+professormanhattan.rvm : Ensure rvm is installed ------------------------ 1.83s
+professormanhattan.rvm : Ensure rvm is installed ------------------------ 1.77s
+professormanhattan.rvm : Ensure Megabyte Labs configuration directory exists --- 0.74s
+professormanhattan.rvm : Detect the latest rvm version ------------------ 0.64s
+professormanhattan.rvm : Ensure latest rvm installer is downloaded ------ 0.58s
+professormanhattan.rvm : Ensure Megabyte Labs configuration directory exists --- 0.54s
+professormanhattan.rvm : Ensure Megabyte Labs configuration directory exists --- 0.53s
+professormanhattan.rvm : Detect the latest rvm version ------------------ 0.52s
+professormanhattan.rvm : Detect the latest rvm version ------------------ 0.51s
+professormanhattan.rvm : Ensure rvm's source directory is present ------- 0.44s
+professormanhattan.rvm : Ensure latest rvm installer is downloaded ------ 0.43s
+professormanhattan.rvm : Ensure latest rvm installer is downloaded ------ 0.43s
+professormanhattan.rvm : Ensure older version of rvm is uninstalled ----- 0.43s
+professormanhattan.rvm : Ensure rvm is installed ------------------------ 0.42s
+professormanhattan.rvm : Check if rvm has configuration stored in /root/.config/megabytelabs/rvm --- 0.40s
+professormanhattan.rvm : Ensure rvm's source directory is present ------- 0.33s
+professormanhattan.rvm : Ensure rvm's source directory is present ------- 0.32s
+professormanhattan.rvm : Check if rvm has configuration stored in /root/.config/megabytelabs/rvm --- 0.32s
+professormanhattan.rvm : Check if rvm has configuration stored in /root/.config/megabytelabs/rvm --- 0.32s
+Playbook run took 0 days, 0 hours, 0 minutes, 15 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Thursday 06 January 2022  21:48:52 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Thursday 06 January 2022  21:49:03 -0500 (0:00:11.155)       0:00:11.170 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Thursday 06 January 2022  21:49:04 -0500 (0:00:00.416)       0:00:11.587 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Thursday 06 January 2022  21:51:38 -0500 (0:02:34.150)       0:02:45.737 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Thursday 06 January 2022  21:51:38 -0500 (0:00:00.251)       0:02:45.988 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Thursday 06 January 2022  21:51:39 -0500 (0:00:00.930)       0:02:46.918 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 154.15s
+Gathering Facts -------------------------------------------------------- 11.16s
+Dump instance config ---------------------------------------------------- 0.93s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.42s
+Populate instance config ------------------------------------------------ 0.25s
+Playbook run took 0 days, 0 hours, 2 minutes, 46 seconds

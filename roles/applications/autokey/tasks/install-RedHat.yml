@@ -1,15 +1,24 @@
 ---
 - name: "Ensure {{ app_name }}'s dependencies are installed"
-  ansible.builtin.yum:
+  dnf:
     name: "{{ autokey_dependencies }}"
     state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: "Ensure {{ app_name }}'s Python dependencies are installed"
-  ansible.builtin.pip:
+  pip:
     name: PyGObject
     state: present
 
 - name: "Ensure {{ app_name }} is installed"
-  ansible.builtin.pip:
+  pip:
     name: git+https://github.com/autokey/autokey
     state: "{{ app_state | default('present') }}"
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,0 +1,24 @@
+---
+- name: Find the list of GlusterFS nodes
+  set_fact:
+    gluster_nodes: "{{ (gluster_nodes | default([])) + [item.value.inventory_hostname | lower] }}"
+  when:
+    - item.key in ansible_play_batch
+    - item.value.glusterfs_node is defined and item.value.glusterfs_node | bool
+  loop: "{{ hostvars | dict2items }}"
+
+- name: Ensure GlusterFS cluster is created
+  gluster.gluster.gluster_peer:
+    nodes: "{{ gluster_nodes }}"
+    state: present
+
+- name: Ensure GlusterFS Volumes are created
+  gluster.gluster.gluster_volume:
+    name: "{{ item.name }}"
+    bricks: "{{ item.mountpoint }}"
+    state: present
+    start_on_create: true
+    force: true
+    cluster: "{{ inventory_hostname | lower }}"
+  loop: "{{ glusterfs_volumes }}"
+  when: glusterfs_volumes | length > 0

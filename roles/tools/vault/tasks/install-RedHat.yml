@@ -1,23 +1,25 @@
 ---
-- name: "Ensure {{ app_name }}'s yum repository is added"
-  yum_repository:
-    baseurl: "{{ vault_yum_repo }}"
-    description: HashiCorp repository
-    gpgcheck: true
-    gpgkey: "{{ vault_gpgkey_url }}"
-    name: HashiCorp
-  when: ansible_distribution != 'Fedora'
-
-- name: "Ensure {{ app_name }}'s yum repository is added (Fedora)"
-  yum_repository:
-    baseurl: "{{ vault_dnf_repo }}"
-    description: HashiCorp repository
-    gpgcheck: true
-    gpgkey: "{{ vault_gpgkey_url }}"
-    name: HashiCorp
-  when: ansible_distribution == 'Fedora'
-
 - name: "Ensure {{ app_name }} is installed"
-  package:
-    name: vault
-    state: present
+  block:
+    - name: "Ensure {{ app_name }}'s yum repository is added"
+      yum_repository:
+        baseurl: "{{ vault_yum_repo }}"
+        description: "{{ app_name }}'s repository"
+        gpgcheck: true
+        gpgkey: "{{ vault_gpgkey_url }}"
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        repo_gpgcheck: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: vault
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
+
+    - name: Run Linux installation tasks
+      include_tasks: install-Linux.yml

@@ -1,0 +1,21 @@
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_system == 'Linux'
+
+- name: Find the Filesystem of / partition # noqa
+  shell: set -o pipefail & mount | grep ' on / type '
+  register: root_fs_type
+  changed_when: false
+  when: ansible_system == 'Linux'
+
+# @action Ensures Timeshift is installed
+# Installs Timeshift on Linux Systems
+# @action Ensures Timeshift is configured
+# Configures Timeshift settings if BTRFS filesystem is used
+- name: Include tasks based on the operating system
+  become: true
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when:
+    - ansible_system == 'Linux'

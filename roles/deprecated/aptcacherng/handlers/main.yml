@@ -1,0 +1,26 @@
+---
+- name: restart apt-cacher-ng
+  systemd:
+    name: apt-cacher-ng
+    state: restarted
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+
+- name: clear apt cache
+  file:
+    state: "{{ item.state }}"
+    path: "{{ item.path }}"
+    owner: root
+    mode: 0755
+  loop:
+    - state: absent
+      path: /var/cache/apt
+    - state: directory
+      path: /var/cache/apt
+    - state: absent
+      path: /var/lib/apt/lists
+    - state: directory
+      path: /var/lib/apt/lists
+
+- name: apt update
+  apt:
+    update_cache: true

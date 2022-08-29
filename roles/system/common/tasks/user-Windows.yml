@@ -9,10 +9,21 @@
   when: user.groups is defined
 
 - name: Ensure user belongs to configured groups
-  become: true
-  become_user: root
   ansible.windows.win_user:
     name: "{{ user.username }}"
     groups: "{{ user.groups }}"
     groups_action: add
   when: user.groups is defined
+
+- name: Ensure tinypng-cil key is configured
+  ansible.windows.win_copy:
+    content: "{{ user.tinypngkey }}"
+    dest: '%USERPROFILE%\.tinypng'
+  when: user.tinypngkey is defined and user.tinypngkey | length > 0
+
+- name: Ensure .Net tools are installed # noqa 301
+  command: "dotnet tool install -g {{ package.name }}"
+  loop: "{{ dotnet_tools }}"
+  loop_control:
+    label: '{{ package.name }}'
+    loop_var: package

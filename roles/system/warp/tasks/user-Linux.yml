@@ -1,0 +1,28 @@
+---
+- name: "Collect {{ app_name }} registration status" # noqa 301
+  become_user: "{{ user.username }}"
+  command: warp-cli {{ '--accept-tos' if ansible_system == 'Linux' }} status
+  register: warp_status
+
+- name: "Ensure {{ app_name }} is registered"
+  become_user: "{{ user.username }}"
+  command: warp-cli {{ '--accept-tos' if ansible_system == 'Linux' }} register
+  when: "'Registration missing' in warp_status.stdout"
+
+- name: "Ensure {{ app_name }} is connected"
+  become_user: "{{ user.username }}"
+  command: warp-cli {{ '--accept-tos' if ansible_system == 'Linux' }} connect
+  when: "'Registration missing' in warp_status.stdout"
+
+- name: "Ensure {{ app_name }} Always-On mode is enabled"
+  become_user: "{{ user.username }}"
+  command: warp-cli {{ '--accept-tos' if ansible_system == 'Linux' }} enable-always-on
+  when: "'Registration missing' in warp_status.stdout"
+
+- name: "Ensure {{ app_name }} Team enrollement is completed"
+  become_user: "{{ user.username }}"
+  command: warp-cli teams-enroll {{ user.cloudflare_teams_client_id }} {{ user.cloudflare_teams_client_secret }}
+  when:
+    - user.cloudflare_teams_client_id is defined and user.cloudflare_teams_client_id | length > 0
+    - user.cloudflare_teams_client_secret is defined and user.cloudflare_teams_client_secret | length >0
+    - "'Registration missing' in warp_status.stdout"

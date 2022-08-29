@@ -1,0 +1,55 @@
+---
+- name: Ensure plugin is installed
+  become_user: "{{ user.username }}"
+  block:
+    - name: Find the name of the plugin from the URL
+      set_fact:
+        plugin_name: "{{ plugin_url | regex_search('\\d+-.*[^\\/]') | regex_replace('\\d*-(.*)','\\1') }}"
+
+    - name: Ensure Megabyte Labs configuration directory exists
+      file:
+        mode: 0700
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - ~/.config
+        - ~/.config/megabytelabs
+
+    - name: "Check if {{ plugin_name }} has configuration stored in ~/.config/megabytelabs/idea_plugin_{{ plugin_name }}"
+      stat:
+        path: ~/.config/megabytelabs/idea_plugin_{{ plugin_name }}
+      register: idea_plugin_config
+
+    - name: "Detect previously installed {{ plugin_name }} version"
+      command: cat idea_plugin_{{ plugin_name }}
+      args:
+        chdir: ~/.config/megabytelabs
+      changed_when: false
+      register: current_idea_plugin_version
+      when: idea_plugin_config.stat.exists
+
+    - name: "Detect the latest {{ plugin_name }} version"
+      uri:
+        url: "https://plugins.jetbrains.com/api/plugins/{{ plugin_url | regex_search('\\d+-') | replace('-','') }}/updates"
+      register: idea_plugin_latest_release_tag
+
+    - name: "Determine whether or not the latest version of {{ plugin_name }} plugin is already installed"
+      set_fact:
+        install_idea_plugin: "{{ (current_idea_plugin_version.skipped | default(false)) or \
+          ((not current_idea_plugin_version.skipped | default(false)) and \
+          (current_idea_plugin_version.stdout | int != idea_plugin_latest_release_tag.json[0].id)) }}"
+
+    - name: "Ensure the latest version of {{ plugin_name }} plugin is installed"
+      unarchive:
+        src: "https://plugins.jetbrains.com/files/{{ idea_plugin_latest_release_tag.json[0].file }}"
+        dest: "{{ plugins_folder }}"
+        remote_src: true
+      when: install_idea_plugin
+
+    - name: "Save meta information about the version of {{ plugin_name }} that was installed"
+      copy:
+        dest: ~/.config/megabytelabs/idea_plugin_{{ plugin_name }}
+        mode: 0600
+        content: |
+          {{ idea_plugin_latest_release_tag.json[0].id }}
+      when: install_idea_plugin

@@ -3,15 +3,17 @@
   community.general.pacman:
     name: "{{ msedge_dependencies }}"
     state: "{{ app_state | default('present') }}"
-    update_cache: true
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: "Ensure {{ app_name }}'s source directory is present"
   ansible.builtin.file:
     mode: 0755
     path: "{{ msedge_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
   ansible.builtin.git:
     dest: "{{ msedge_src_dir }}"
     repo: "{{ msedge_aur_git_repository }}"
@@ -19,12 +21,21 @@
 
 - name: "Remove /usr/bin/microsoft-edge-dev if the source files have changed" # noqa 503
   file:
-    path: /usr/bin/microsoft-edge-dev
+    path: /usr/bin/microsoft-edge-stable
     state: absent
   when: msedge_git.changed
 
 - name: "Ensure {{ app_name }} is installed"
+  become: false
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ msedge_src_dir }}"
-    creates: /usr/bin/microsoft-edge-dev
+    creates: /usr/bin/microsoft-edge-stable
+
+- name: Ensure Addons are installed
+  include_tasks: configure-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

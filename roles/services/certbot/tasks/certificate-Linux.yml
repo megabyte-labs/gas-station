@@ -6,6 +6,7 @@
 
 - name: Populate service facts
   service_facts:
+  when: ansible_system == 'Linux'
 
 - name: Stop services to allow certbot to generate a certificate
   service:
@@ -15,8 +16,11 @@
   when:
     - not letsencrypt_cert.stat.exists
     - "('{{ item }}' in services) or ('{{ item }}.service' in services)"
+    - ansible_system == 'Linux'
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
-- name: Generate new certificate if one doesn't exist.
+- name: Generate new certificate if one doesn't exist
+  become_user: root
   command: "{{ certbot_create_command }}"
   when: not letsencrypt_cert.stat.exists
 
@@ -28,3 +32,5 @@
   when:
     - not letsencrypt_cert.stat.exists
     - "('{{ item }}' in services) or ('{{ item }}.service' in services)"
+    - ansible_system == 'Linux'
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

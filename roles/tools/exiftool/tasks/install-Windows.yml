@@ -1,0 +1,53 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Ensure installation folder for {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: "{{ exiftool_src_dir }}"
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/exiftool'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\exiftool'
+  register: exiftool_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type exiftool
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_exiftool_version
+  when: exiftool_config.stat.exists
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_exiftool: "{{ (current_exiftool_version.skipped | default(false)) or \
+      ((not current_exiftool_version.skipped | default(false)) and (current_exiftool_version.stdout | trim != exiftool_latest_version)) }}"
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  ansible.windows.win_get_url:
+    url: "https://exiftool.org/exiftool-{{ exiftool_latest_version }}.zip"
+    dest: '%TEMP%\exiftool-{{ exiftool_latest_version }}.zip'
+  when: install_exiftool
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: '%TEMP%\exiftool-{{ exiftool_latest_version }}.zip'
+    dest: "{{ exiftool_src_dir }}"
+    delete_archive: true
+  when: install_exiftool
+
+- name: "Add {{ app_name }} to PATH"
+  ansible.windows.win_path:
+    elements: "{{ exiftool_src_dir }}"
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\exiftool'
+    content: |
+      {{ exiftool_latest_version }}
+  when: install_exiftool

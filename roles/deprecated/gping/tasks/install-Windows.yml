@@ -1,0 +1,63 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Ensure {{ gping_path }} directory exists"
+  ansible.windows.win_file:
+    path: "{{ gping_path }}"
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/gping'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\gping'
+  register: gping_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type gping
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_gping_version
+  when: gping_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/orf/gping/releases/latest
+    return_content: true
+  register: gping_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_gping: "{{ (current_gping_version.skipped | default(false)) or \
+      ((not current_gping_version.skipped | default(false)) and \
+      (current_gping_version.stdout | trim != gping_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is downloaded"
+  ansible.windows.win_get_url:
+    url: "https://github.com/orf/gping/releases/download/{{ gping_latest_release_tag.json.tag_name }}/gping-Windows-x86_64.zip"
+    dest: "{{ gping_path }}/gping-Windows-x86_64.zip"
+  when: install_gping
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: "{{ gping_path }}/gping-Windows-x86_64.zip"
+    dest: "{{ gping_path }}"
+    delete_archive: true
+  when: install_gping
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: "{{ gping_path }}"
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\gping'
+    content: |
+      {{ gping_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_gping

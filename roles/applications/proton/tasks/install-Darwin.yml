@@ -1,0 +1,45 @@
+---
+- name: Ensure ProtonVPN is installed
+  become: false
+  community.general.homebrew_cask:
+    name: protonvpn
+    state: "{{ app_state | default('present') }}"
+    accept_external_apps: "{{ allow_external_apps | default(true) }}"
+
+- name: Ensure ProtonMail Bridge is installed
+  become: false
+  community.general.homebrew_cask:
+    name: protonmail-bridge
+    state: "{{ app_state | default('present') }}"
+    accept_external_apps: "{{ allow_external_apps | default(true) }}"
+
+- name: Fetch the release information of ProtonMail Import-Export App
+  uri:
+    url: "{{ import_export_releases_darwin }}"
+    return_content: true
+  register: ie_releases
+
+- name: Determine whether or not the latest version of ProtonMail Import-Export App is already installed
+  set_fact:
+    install_protonmailie: "{{ (ansible_local.protonmailie is not defined) or \
+      ((ansible_local.protonmailie is defined) and \
+      (ansible_local['protonmailie']['settings']['version'] != ie_releases.json.Version)) }}"
+
+- name: Ensure ProtonMail Import-Export App is installed
+  include_role:
+    name: /home/aa/Desktop/Ans/gas-station/roles/helpers/dmginstall
+  vars:
+    dmgs:
+      - name: "Import-Export-app"
+        url: "{{ ie_releases.json.InstallerFile }}"
+  when: install_protonmailie
+
+- name: Save meta information about the version of ProtonMail Import-Export App that was installed
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/protonmailie.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ ie_releases.json.Version }}"
+    no_extra_spaces: true
+  when: install_protonmailie

@@ -1,0 +1,17 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: nextcloud-client
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure configuration is added
+  become_user: "{{ user.username }}"
+  ansible.windows.win_template:
+    src: nextcloud.cfg.j2
+    dest: '%APPDATA%\Nextcloud\nextcloud.cfg'
+    backup: true
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

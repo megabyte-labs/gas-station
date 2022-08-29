@@ -1,9 +1,17 @@
 ---
-- name: "Ensure {{ app_name }} is installed"
+- name: 'Ensure {{ app_name }} is installed'
   chocolatey.chocolatey.win_chocolatey:
     name: vscode
     state: "{{ app_state | default('present') }}"
 
-- name: "Ensure the {{ app_name }} shortcut is at the top level of the Start Menu"
+- name: 'Ensure the {{ app_name }} shortcut is at the top level of the Start Menu'
   include_role:
-    name: startmenu
+    name: professormanhattan.startmenu
+
+- name: 'Install missing {{ app_name }} extensions'
+  include_tasks: user-Windows.yml
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

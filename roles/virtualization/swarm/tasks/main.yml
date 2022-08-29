@@ -1,0 +1,19 @@
+---
+- name: Generate randomized passwords for Docker
+  delegate_to: localhost
+  block:
+    - include_tasks: randomized-passwords.yml
+  when:
+    - generate_random_docker_passwords
+
+- name: Reload variables by running gather_facts
+  ansible.builtin.gather_facts:
+  when:
+    - generate_random_docker_passwords
+
+- name: Configure Swarm
+  become: true
+  become_user: "{{ ansible_user }}"
+  block:
+    - include_tasks: "config-Linux.yml"
+  when: ansible_system == 'Linux'

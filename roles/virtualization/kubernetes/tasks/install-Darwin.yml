@@ -2,13 +2,14 @@
 - name: "Ensure {{ app_name }} tools are installed"
   become: false
   community.general.homebrew:
-    name: "{{ item }}"
+    name:
+      - helm
+      - hyperkit
+      - kompose
+      - kubectl
+      - kubectx
+      - kubeval
     state: present
-  loop:
-    - helm
-    - hyperkit
-    - kompose
-    - kubectl
 
 - name: "Ensure Minikube is installed"
   become: false
@@ -19,4 +20,6 @@
 
 - name: "Ensure Minikube driver is configured" # noqa 503
   command: "minikube config set driver {{ kubernetes_mac_driver }}"
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   when: minikube_install.changed

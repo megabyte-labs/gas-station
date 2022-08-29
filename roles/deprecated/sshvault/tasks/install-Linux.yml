@@ -1,0 +1,56 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/sshvault"
+  stat:
+    path: ~/.config/megabytelabs/sshvault
+  register: sshvault_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat sshvault
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_sshvault_version
+  when: sshvault_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/ssh-vault/ssh-vault/releases/latest
+  register: sshvault_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_sshvault: "{{ (current_sshvault_version.skipped | default(false)) or \
+      ((not current_sshvault_version.skipped | default(false)) and (current_sshvault_version.stdout != sshvault_latest_release_tag.json.tag_name)) }}"
+
+- name: "Ensure older version of {{ app_name }} is installed"
+  file:
+    path: /usr/local/bin/ssh-vault
+    state: absent
+  when: install_sshvault
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/ssh-vault/ssh-vault/releases/download/{{ sshvault_latest_release_tag.json.tag_name }}/\
+      ssh-vault-{{ sshvault_latest_release_tag.json.tag_name }}-linux-amd64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+  when: install_sshvault
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/sshvault
+    mode: 0600
+    content: |
+      {{ sshvault_latest_release_tag.json.tag_name }}
+  when: install_sshvault

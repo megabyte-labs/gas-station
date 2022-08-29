@@ -1,0 +1,54 @@
+---
+# @action Ensures Autorestic is installed
+# Installs Autorestic via Homebrew
+- name: Ensure Autorestic is installed
+  community.general.homebrew:
+    name: autorestic
+    state: present
+
+- name: Acquire Autorestic bin location
+  command: which autorestic
+  register: autorestic_which_output
+
+- name: Set autorestic_bin_path
+  set_fact:
+    autorestic_bin_path: "{{ autorestic_which_output.stdout }}"
+
+- name: Ensure /var/local/backups exists
+  file:
+    path: /var/local/backups
+    state: directory
+    mode: 0755
+    recurse: yes
+
+- name: Get pre-existing Healthcheck data
+  command: >
+    curl --header "X-Api-Key: {{ healthcheck_api_key }}" {{ healthcheck_endpoint }}/api/v1/checks/ | jq -r
+      '[. | (.checks[] | .uid = (.ping_url | split("/") | last) | .name as $a | .uid as $b | . = {} | .[$a] = $b)] as $filtered
+      | reduce $filtered[] as $o ({}; . + $o)'
+  delegate_to: localhost
+  register: existing_healthchecks
+  when:
+    - healthcheck_api_key is defined
+    - healthcheck_endpoint is defined
+
+- name: Register Healthcheck data
+  set_fact:
+    healthchecks_facts: "{{ existing_healthchecks.stdout | from_json }}"
+  when:
+    - existing_healthchecks is defined
+    - existing_healthchecks.stdout is defined
+    - existing_healthchecks.stdout != 'null'
+
+- name: Perform user-specific tasks
+  include_tasks: user.yml
+  loop: "{{ user_configs | default([]) }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - user.primary_s3_access_key_id is defined
+    - user.primary_s3_secret_access_key is defined
+    - user.restic_password is defined
+    - user.secondary_s3_access_key_id is defined
+    - user.secondary_s3_secret_access_key is defined

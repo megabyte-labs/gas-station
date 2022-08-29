@@ -1,6 +1,8 @@
 ---
+# @todo Improvement: Complete documentation
+# @todo Test: Complete
 - name: Include variables based on the operating system
-  include_vars: "{{ ansible_os_family }}.yml"
+  include_vars: '{{ ansible_os_family }}.yml'
 
 - name: Ensure old versions of Docker are not installed
   become: true
@@ -25,9 +27,22 @@
 # Ensures Docker is started on boot.
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
-    - include_tasks: "install-{{ ansible_os_family }}.yml"
-  when: not docker_snap_install
+    - include_tasks: 'install-{{ ansible_os_family }}.yml'
+  when:
+    - not docker_snap_install
+    - "'wsl' not in group_names"
+    - not (wsl_environment | default(false))
+
+- name: Ensure Docker plugins are installed if configured
+  become: true
+  block:
+    - include_tasks: plugins.yml
+  when:
+    - ansible_system == 'Linux'
+    - not docker_no_plugins
 
 # @action Ensures Docker is installed
 # If the target Docker host is a Linux machine and the `docker_snap_install` variable
@@ -48,8 +63,10 @@
 # docker-compose allows you to configure Docker containers in groups.
 - name: Install Docker Compose (based on OS)
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
-    - include_tasks: "compose-{{ ansible_os_family }}.yml"
+    - include_tasks: 'compose-{{ ansible_os_family }}.yml'
   when: docker_install_compose | bool
 
 # @action Adds specified users to docker group
@@ -57,8 +74,10 @@
 # will be added to the docker group which allows them access to Docker.
 - name: Add users to the "docker" group (based on OS)
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
-    - include_tasks: "users-{{ ansible_os_family }}.yml"
+    - include_tasks: 'users-{{ ansible_os_family }}.yml'
   when: docker_users | length > 0
 
 # @action Generates TLS certificates
@@ -72,7 +91,7 @@
 - name: Determine whether TLS certificates need to be generated (non-Windows)
   become: true
   stat:
-    path: /etc/ssl/private/docker-ca.pem
+    path: "{{ '/etc/ssl/private/docker-ca.pem' if ansible_system == 'Linux' else '/usr/local/share/.docker/certs.d/ca.pem' }}"
   register: docker_ca_pem
   when:
     - ansible_os_family != 'Windows'
@@ -82,8 +101,8 @@
 - name: Determine whether TLS certificates need to be generated (Windows)
   become_method: runas
   become_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
-  win_stat:
-    path: C:\DockerSSLCARoot\ca.pem
+  ansible.windows.win_stat:
+    path: '%PROGRAMDATA%\docker\certs.d\ca.pem'
   register: docker_ca_pem_win
   when:
     - ansible_os_family == 'Windows'
@@ -91,7 +110,7 @@
     - not docker_snap_install
 
 - name: Generate TLS certificates
-  include_tasks: "tls-{{ ansible_os_family }}.yml"
+  include_tasks: 'tls-{{ ansible_os_family }}.yml'
   when:
     - docker_tls | bool
     - ansible_os_family != 'Windows'
@@ -104,3 +123,31 @@
     - docker_tls | bool
     - ansible_os_family == 'Windows'
     - not docker_ca_pem_win.stat.exists
+
+# @action Login to Docker Hub if credentials are provided
+# Logs on to Docker Hub if the credentials are provided
+- name: Login to Docker Hub
+  command: docker login -u {{ user.dockerhub_username }} -p {{ user.dockerhub_password }}
+  environment:
+    PATH: "{{ ('/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:' if ansible_system == 'Darwin' else '') + ansible_env.PATH }}"
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when:
+    - ansible_os_family != 'Windows'
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.dockerhub_username is defined and user.dockerhub_username | length > 0
+    - user.dockerhub_password is defined and user.dockerhub_password | length > 0
+
+- name: Login to Docker Hub
+  ansible.windows.win_command: docker login -u {{ user.dockerhub_username }} -p {{ user.dockerhub_password }}
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when:
+    - ansible_os_family == 'Windows'
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.dockerhub_username is defined and user.dockerhub_username | length > 0
+    - user.dockerhub_password is defined and user.dockerhub_password | length > 0

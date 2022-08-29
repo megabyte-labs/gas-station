@@ -1,0 +1,57 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/filebrowser'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\filebrowser'
+  register: filebrowser_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type filebrowser
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_filebrowser_version
+  when: filebrowser_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/filebrowser/filebrowser/releases/latest
+    return_content: true
+  register: filebrowser_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_filebrowser: "{{ (current_filebrowser_version.skipped | default(false)) or \
+      ((not current_filebrowser_version.skipped | default(false)) and \
+      (current_filebrowser_version.stdout != filebrowser_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} archive is downloaded"
+  ansible.windows.win_get_url:
+    url: "{{ 'https://github.com/filebrowser/filebrowser/releases/download/' + filebrowser_latest_release_tag.json.tag_name + \
+      '/windows-amd64-filebrowser.zip' }}"
+    dest: '%TEMP%\windows-amd64-filebrowser.zip'
+    force: true
+  when: install_filebrowser
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: '%TEMP%\windows-amd64-filebrowser.zip'
+    dest: '%PROGRAMFILES%\filebrowser\'
+    delete_archive: true
+  when: install_filebrowser
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: '%PROGRAMFILES%\filebrowser\'
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\filebrowser'
+    content: |
+      {{ filebrowser_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_filebrowser

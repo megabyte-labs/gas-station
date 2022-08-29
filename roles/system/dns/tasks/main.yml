@@ -2,7 +2,17 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+# @action Performs DNS related configuration
+# Installs Stubby (on non-Linux systems) and hostctl
+# @action Performs DNS related configuration
+# Configures hostctl profiles with various category of hosts to block
+# @action Performs DNS related configuration
+# Creates SwitchHosts configuration files based on the hosts files
+# @action Performs DNS related configuration
+# Configures stubby and systemd-resolved
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"

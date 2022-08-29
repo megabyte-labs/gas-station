@@ -3,6 +3,12 @@
   apt:
     name: rclone
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
-- name: Run generic user tasks
+- name: Run Linux user tasks
   include_tasks: user-Debian.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,0 +1,16 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  chocolatey.chocolatey.win_chocolatey:
+    name: volta
+    state: "{{ app_state | default('present') }}"
+
+- name: "Ensure {{ app_name }} is setup and NodeJS is installed"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: |
+    $env:PROGRAMFILES/Volta/volta setup
+    $env:PROGRAMFILES/Volta/volta install node
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

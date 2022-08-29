@@ -1,17 +1,36 @@
 ---
-- name: "Ensure {{ app_name }}'s apt repository key is added"
-  apt_key:
-    url: "{{ vault_deb_gpg }}"
-    state: present
-
-- name: "Ensure {{ app_name }}'s apt repository is added"
-  apt_repository:
-    filename: HashiCorp
-    repo: "{{ vault_deb_repo }}"
-    state: present
-    update_cache: true
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: vault
-    state: present
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        url: "{{ vault_deb_gpg }}"
+        state: present
+        keyring: /usr/share/keyrings/hashicorp.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ vault_deb_repo }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: vault
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/hashicorp.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ vault_deb_repo }}"
+        state: absent
+
+    - name: Run Linux installation tasks
+      include_tasks: install-Linux.yml
+

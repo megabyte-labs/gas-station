@@ -1,0 +1,18 @@
+---
+- name: Ensure Bluetooth history and cache are cleared # noqa 303 503
+  become_user: root
+  shell: |
+    defaults delete /Library/Preferences/com.apple.Bluetooth.plist DeviceCache
+    defaults delete /Library/Preferences/com.apple.Bluetooth.plist IDSPairedDevices
+    defaults delete /Library/Preferences/com.apple.Bluetooth.plist PANDevices
+    defaults delete /Library/Preferences/com.apple.Bluetooth.plist PANInterfaces
+    defaults delete /Library/Preferences/com.apple.Bluetooth.plist SCOAudioDevices
+  when: clear_bluetooth_metadata
+
+- name: Run user-specific tasks
+  include_tasks: user-Darwin.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

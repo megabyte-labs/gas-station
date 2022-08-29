@@ -1,28 +1,81 @@
 ---
-- name: Include variables based on the operating system
-  include_vars: "{{ ansible_os_family }}.yml"
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
 
-- name: Find the latest version of Vagrant VMware Utility from the release page
-  uri:
-    url: https://releases.hashicorp.com/vagrant-vmware-utility/
-    return_content: true
-  register: vagrant_vmware_version
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/vagrant"
+  stat:
+    path: ~/.config/megabytelabs/vagrant
+  register: vagrant_config
 
-- name: Save the version of Vagrant VMware Utility to a variable
-  set_fact:
-    vagrant_vmware_version: "{{ vagrant_vmware_version.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat vagrant
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_vagrant_version
+  when: vagrant_config.stat.exists
 
 - name: Find the latest version of Vagrant from the release page
   uri:
     url: https://releases.hashicorp.com/vagrant/
     return_content: true
-  register: vagrant_version
+  register: vagrant_version_page
 
 - name: Save the version of Vagrant to a variable
   set_fact:
-    vagrant_version: "{{ vagrant_version.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+    vagrant_version: "{{ vagrant_version_page.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_vagrant: "{{ (current_vagrant_version.skipped | default(false)) or \
+      ((not current_vagrant_version.skipped | default(false)) and (current_vagrant_version.stdout != vagrant_version)) }}"
+
+- name: Fetch CHECKSUMS file of Vagrant from the release page
+  uri:
+    url: https://releases.hashicorp.com/vagrant/{{ vagrant_version }}/vagrant_{{ vagrant_version }}_SHA256SUMS
+    return_content: true
+  register: vagrant_checksum_file
+  when: install_vagrant
+
+- name: Find the latest version of Vagrant VMware Utility from the release page
+  uri:
+    url: https://releases.hashicorp.com/vagrant-vmware-utility/
+    return_content: true
+  register: vagrant_vmware_version_page
+  when: install_vagrant
+
+- name: Save the version of Vagrant VMware Utility to a variable
+  set_fact:
+    vagrant_vmware_version: "{{ vagrant_vmware_version_page.content | regex_search('_(((\\d)*\\.)*\\d*)') | replace ('_','') }}"
+  when: install_vagrant
+
+- name: Fetch CHECKSUMS file of Vagrant VMware Utility from the release page
+  uri:
+    url: https://releases.hashicorp.com/vagrant-vmware-utility/{{ vagrant_vmware_version }}/vagrant-vmware-utility_{{ vagrant_vmware_version }}_SHA256SUMS
+    return_content: true
+  register: vagrant_vmware_checksum_file
+  when: install_vagrant
+
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: install_vagrant
 
 - name: Include tasks based on the operating system
   become: true
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when: install_vagrant
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/vagrant
+    mode: 0600
+    content: |
+      {{ vagrant_version }}
+  when: install_vagrant

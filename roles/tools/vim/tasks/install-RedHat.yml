@@ -1,11 +1,17 @@
 ---
+- name: Ensure plugin dependencies are installed
+  dnf:
+    name: "{{ plugin_dependencies }}"
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
 - name: "Ensure {{ app_name }} is installed"
-  yum:
+  dnf:
     name: vim-enhanced
     state: "{{ app_state | default('present') }}"
 
-- name: Run generic Linux tasks
-  include_tasks: install-Linux.yml
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
   loop: "{{ user_configs }}"
   loop_control:
     label: "{{ user.username }}"

@@ -1,33 +1,39 @@
 ---
 - name: "Ensure git is installed"
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   chocolatey.chocolatey.win_chocolatey:
     name: git
     state: "{{ app_state | default('present') }}"
 
 - name: "Ensure {{ app_name }}'s source directory is present"
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   ansible.windows.win_file:
     path: "{{ gitextras_src_dir }}"
     state: directory
 
-- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
-  become_method: runas
-  become_user: "{{ ansible_user }}"
-  ansible.windows.win_command: >
+- name: "Check if {{ app_name }}'s source directory is present"
+  ansible.windows.win_stat:
+    path: "{{ gitextras_src_dir }}/git-extras"
+  register: git_extras_stat
+
+- name: "Ensure {{ app_name }}'s source is cloned"
+  ansible.windows.win_shell: >
     git clone https://github.com/tj/git-extras.git
-    git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
   args:
     chdir: "{{ gitextras_src_dir }}"
   register: gitextras_git
+  when: not git_extras_stat.stat.exists
+
+- name: "Ensure {{ app_name }}'s source is up-to-date"
+  ansible.windows.win_shell: >
+    git pull
+  args:
+    chdir: "{{ gitextras_src_dir }}/git-extras"
+  when: git_extras_stat.stat.exists
+  register: git_extras_pull
+  changed_when: not (git_extras_pull.rc == 0 and ('Already up to date' in git_extras_pull.stdout))
 
 - name: "Ensure {{ app_name }} is installed" # noqa 503
-  become_method: runas
-  become_user: "{{ ansible_user }}"
   ansible.windows.win_command: install.cmd
   args:
-    chdir: "{{ gitextras_src_dir }}"
+    chdir: "{{ gitextras_src_dir }}/git-extras"
     creates: "C:/Program Files/Git/mingw64/bin/git-extras"
-  when: gitextras_git.changed
+  when: gitextras_git.changed or git_extras_pull.changed

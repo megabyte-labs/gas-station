@@ -1,0 +1,24 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  community.general.homebrew:
+    name: gitlab-runner
+    state: "{{ app_state | default('present') }}"
+
+# @action Ensures gitlab-runner is configured
+# Starts gitlab-runner on MacOS Systems
+- name: "Ensure {{ app_name }}'s service is started" # noqa 301
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  command: brew services start gitlab-runner
+
+# @action Ensures gitlab-runner is configured
+# Removes Git credentials settings on MacOS Systems
+- name: Ensure git credential setting is cleared
+  lineinfile:
+    path: /usr/local/etc/gitconfig
+    regex: "^.*helper = osxkeychain"
+    state: absent
+
+- name: Run common Linux tasks
+  include_tasks: config-Linux.yml

@@ -1,0 +1,31 @@
+---
+- name: "Check if {{ app_name }}'s source is present"
+  ansible.windows.win_stat:
+    path: "{{ gvm_src_directory }}\\.git"
+  register: gvm_stat
+
+- name: "Ensure {{ app_name }}'s source is cloned"
+  ansible.windows.win_command: git clone {{ gvm_src_repo }}
+  args:
+    chdir: "{{ gvm_src_directory | win_dirname }}"
+  register: gvm_clone
+  when: not gvm_stat.stat.exists
+
+- name: "Ensure {{ app_name }}'s source is up-to-date"
+  ansible.windows.win_command: git pull
+  args:
+    chdir: "{{ gvm_src_directory }}"
+  when: gvm_stat.stat.exists
+  register: gvm_pull
+  changed_when: not (gvm_pull.rc == 0 and ('Already up to date' in gvm_pull.stdout))
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  ansible.windows.win_command: go install
+  args:
+    chdir: "{{ gvm_src_directory }}"
+  when: gvm_clone.changed or gvm_pull.changed
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: "{{ gvm_src_directory }}"
+    state: present

@@ -1,0 +1,37 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/Ulauncher/Ulauncher/releases/latest
+  register: ulauncher_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_ulauncher: "{{ (ansible_local.ulauncher is not defined) or \
+      ((ansible_local.ulauncher is defined) and \
+      (ansible_local['ulauncher']['settings']['version'] != ulauncher_latest_release_tag.json.tag_name)) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    deb: "https://github.com/Ulauncher/Ulauncher/releases/download/{{ ulauncher_latest_release_tag.json.tag_name }}/\
+      ulauncher_{{ ulauncher_latest_release_tag.json.tag_name }}_all.deb"
+    state: present
+  when: install_ulauncher
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/ulauncher.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ ulauncher_latest_release_tag.json.tag_name }}"
+    no_extra_spaces: true
+  when: install_ulauncher
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml

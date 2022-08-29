@@ -1,0 +1,31 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    # @action: DNF reports that the repository may not have the GPG information, errors with status
+    # code 403. Revisit to see if this is fixed at a later point, and set `repo_gpgcheck` to true if
+    # this is remedied
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        baseurl: "{{ teleport_rpm_repository }}"
+        description: "{{ app_name }}'s repository"
+        gpgcheck: true
+        gpgkey: "{{ teleport_key }}"
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        repo_gpgcheck: false
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: teleport
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
+
+    - name: "Ensure {{ app_name }} is installed"
+      become: false
+      community.general.homebrew:
+        name: teleport
+        state: "{{ app_state | default('present') }}"

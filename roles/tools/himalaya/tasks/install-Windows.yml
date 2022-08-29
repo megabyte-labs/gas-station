@@ -1,0 +1,72 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/himalaya'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\himalaya'
+  register: himalaya_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type himalaya
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_himalaya_version
+  when: himalaya_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/soywod/himalaya/releases/latest
+    return_content: true
+  register: himalaya_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_himalaya: "{{ (current_himalaya_version.skipped | default(false)) or \
+      ((not current_himalaya_version.skipped | default(false)) and \
+      (current_himalaya_version.stdout | trim != himalaya_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure older version of {{ app_name }} is removed"
+  ansible.windows.win_file:
+    path: "{{ himalaya_dest_dir }}"
+    state: absent
+  when: install_himalaya
+
+- name: "Ensure installation folder for {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: "{{ himalaya_dest_dir }}"
+    state: directory
+  when: install_himalaya
+
+- name: "Ensure {{ app_name }} is extracted (Controller)"
+  unarchive:
+    url: "https://github.com/soywod/himalaya/releases/download/{{ himalaya_latest_release_tag.json.tag_name }}/himalaya-windows.tar.gz"
+    dest: "/tmp"
+  when: install_himalaya
+  delegate_to: localhost
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_copy:
+    src: "/tmp/himalaya.exe"
+    dest: "{{ himalaya_dest_dir }}"
+  when: install_himalaya
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\himalaya'
+    content: |
+      {{ himalaya_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_himalaya
+
+- name: Run generic Windows tasks
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.himalaya_config is defined

@@ -1,0 +1,24 @@
+---
+- name: 'Ensure {{ app_name }} is built'
+  command: go install github.com/wailsapp/wails/cmd/wails@latest
+  args:
+    creates: '{{ wails_goroot }}/bin/wails'
+  environment:
+    GOPATH: '{{ wails_goroot }}'
+
+- name: 'Ensure {{ app_name }} is linked'
+  file:
+    src: '{{ wails_goroot }}/bin/wails'
+    dest: /usr/local/bin/wails
+    state: link
+
+- name: Run generic setup tasks
+  include_tasks: user-Linux.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.wails_name is defined
+    - user.wails_email is defined

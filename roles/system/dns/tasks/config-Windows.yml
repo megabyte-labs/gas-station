@@ -1,0 +1,77 @@
+---
+- name: "Ensure {{ hostsfile_dest_dir }} exists"
+  ansible.windows.win_file:
+    path: "{{ hostsfile_dest_dir }}"
+    state: directory
+  when:
+    - hostsfile_default_loopback
+
+- name: Ensure hosts files are downloaded
+  ansible.windows.win_get_url:
+    url: "{{ hostsfile.url }}"
+    dest: "{{ hostsfile_dest_dir }}/{{ hostsfile.filename }}"
+  loop: "{{ hostsfile_entries }}"
+  loop_control:
+    loop_var: hostsfile
+  register: download_result
+  when:
+    - hostsfile_default_loopback
+
+- name: Ensure a copy of hosts files are created
+  ansible.windows.win_copy:
+    src: "{{ hostsfile_dest_dir }}/{{ hostsfile.filename }}"
+    dest: "{{ hostsfile_dest_dir }}/{{ hostsfile.filename }}-clean"
+    remote_src: true
+  loop: "{{ hostsfile_entries }}"
+  loop_control:
+    loop_var: hostsfile
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - hostsfile_default_loopback
+
+- name: Ensure the hosts file are sanitized
+  community.windows.win_lineinfile:
+    path: "{{ hostsfile_dest_dir }}/{{ hostsfile.filename }}-clean"
+    regex: '(^ *#.*$)|^$'
+    state: absent
+  loop: "{{ hostsfile_entries }}"
+  loop_control:
+    loop_var: hostsfile
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - hostsfile_default_loopback
+
+- name: Backup the default hosts file
+  ansible.windows.win_command: hostctl backup --path "{{ hostsfile_dest_dir }}/"
+  when:
+    - hostsfile_default_loopback
+
+# @action `hostctl` versions after v1.0.15 check for unique domains in a profile which makes
+# it extremely slow to process large hosts files. Revisit after a future version provides a
+# switch like that in version v1.0.3
+# - name: Create hostctl profiles using the various hosts files
+#   command: "hostctl add {{ hostsfile.filename }} --from {{ hostsfile_dest_dir }}/{{ hostsfile.filename }}-clean -q"
+#   loop: "{{ hostsfile_entries }}"
+#  loop_control:
+#    loop_var: hostsfile
+
+- name: Read the content of the hosts files # noqa 301
+  ansible.windows.win_shell: type "{{ hostsfile_dest_dir }}/{{ hostsfile.filename }}-clean"
+  loop: "{{ hostsfile_entries }}"
+  loop_control:
+    loop_var: hostsfile
+  register: clean_files
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - hostsfile_default_loopback
+
+- name: Setup SwitchHosts
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - "download_result.results | map(attribute='changed') | join(',') | regex_search('True')"
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - install_switchhosts

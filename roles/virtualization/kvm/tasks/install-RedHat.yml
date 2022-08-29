@@ -1,11 +1,12 @@
 ---
 - name: Install KVM and its dependencies
-  yum:
+  dnf:
     name: "{{ kvm_packages }}"
     state: present
-    update_cache: true
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: Enable libvirtd service
   systemd:
     name: libvirtd
     enabled: true
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

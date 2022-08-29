@@ -1,0 +1,30 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  package:
+    name: "{{ motd_dependencies }}"
+    state: "{{ app_state | default('present') }}"
+  when: ansible_system == 'Linux'
+
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ motd_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ motd_src_dir }}"
+    repo: "{{ motd_git_repository }}"
+    version: master
+  register: motd_git
+
+- name: Ensure chosen motd files are copied to /etc/update-motd.d/ # noqa 503
+  copy:
+    src: "{{ motd_src_dir }}/{{ item }}"
+    dest: /etc/update-motd.d/
+    mode: 0755
+    remote_src: true
+  loop: "{{ motd_services }}"
+  when: motd_git.changed

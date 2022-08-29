@@ -2,11 +2,19 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+# @action Ensures Hyper is installed
+# Installs Hyper on Archlinux, CentOS, Debian, Fedora, macOS, Ubuntu, and Windows
+# @action Ensures Hyper is installed
+# Installs Fira Code Font
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
 
+# @action Ensures Hyper is installed
+# Configures Hyper
 - name: Configure HyperJS
   include_tasks: "config-{{ ansible_os_family }}.yml"
   loop: "{{ user_configs }}"

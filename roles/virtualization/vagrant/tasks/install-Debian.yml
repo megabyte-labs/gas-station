@@ -1,14 +1,55 @@
 ---
+- name: Find the Checksum of Vagrant VMware Utility installer
+  set_fact:
+    vagrant_vmware_checksum: "{{ vagrant_vmware_checksum_file.content | regex_search('.*64\\.deb') | regex_search('\\w* ') | trim }}"
+
+- name: Find the Checksum of Vagrant installer
+  set_fact:
+    vagrant_checksum: "{{ vagrant_checksum_file.content | regex_search('.*64\\.deb') | regex_search('\\w* ') | trim }}"
+
+- name: Ensure Vagrant Source Folder is created
+  file:
+    mode: 0700
+    path: "{{ vagrant_src_folder }}"
+    state: directory
+
+- name: Acquire the latest Vagrant Installer
+  get_url:
+    url: "{{ vagrant_deb_url }}"
+    dest: "{{ vagrant_src_folder }}/vagrant_{{ vagrant_version }}_x86_64.deb"
+
+- name: Find the checksum of the downloaded Vagrant Installer
+  stat:
+    path: "{{ vagrant_src_folder }}/vagrant_{{ vagrant_version }}_x86_64.deb"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: vagrant_stat
+
+- name: Acquire the latest Vagrant VMware Utility Installer
+  get_url:
+    url: "{{ vagrant_vmware_utility_deb_url }}"
+    dest: "{{ vagrant_src_folder }}/vagrant-vmware-utility_{{ vagrant_vmware_version }}_x86_64.deb"
+
+- name: Find the checksum of the downloaded Vagrant VMware Utility Installer
+  stat:
+    path: "{{ vagrant_src_folder }}/vagrant-vmware-utility_{{ vagrant_vmware_version }}_x86_64.deb"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: vagrant_vmware_utility_stat
+
 - name: "Ensure {{ app_name }} is installed"
   apt:
-    deb: "{{ vagrant_deb_url }}"
+    deb: "{{ vagrant_src_folder }}/vagrant_{{ vagrant_version }}_x86_64.deb"
     state: "{{ app_state | default('present') }}"
+  when: vagrant_stat.stat.checksum == vagrant_checksum
 
-- name: "Ensure {{ app_name }} VMWare desktop plugin's package is installed"
+- name: "Ensure {{ app_name }} VMware Utility is installed"
   apt:
-    deb: "{{ vagrant_vmware_utility_deb_url }}"
+    deb: "{{ vagrant_src_folder }}/vagrant-vmware-utility_{{ vagrant_vmware_version }}_x86_64.deb"
     state: "{{ app_state | default('present') }}"
-  when: vagrant_vmware_support
+  when:
+    - vagrant_vmware_support
+    - vagrant_vmware_utility_stat.stat.checksum == vagrant_vmware_checksum
 
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml

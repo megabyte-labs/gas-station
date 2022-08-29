@@ -1,0 +1,39 @@
+---
+- name: Ensure VirtualBox config folder exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ '~/.config/VirtualBox' if ansible_system == 'Linux' else '~/Library/VirtualBox' }}"
+    state: directory
+    mode: 0700
+
+- name: "Ensure VirtualBox machine folder is location is configured"
+  become_user: "{{ user.username }}"
+  template:
+    src: VirtualBox.xml.j2
+    dest: "{{ '~/.config/VirtualBox/VirtualBox.xml' if ansible_system == 'Linux' else '~/Library/VirtualBox/VirtualBox.xml' }}"
+    backup: true
+    mode: 0600
+  register: vbox_template
+
+- name: Ensure config backup directory exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "~/.config/megabytelabs/backups"
+    state: directory
+    mode: 0700
+  when: vbox_template.backup_file is defined and vbox_template.backup_file | length > 0
+
+- name: Copy the backup file
+  become_user: "{{ user.username }}"
+  copy:
+    src: "{{ vbox_template.backup_file }}"
+    dest: "~/.config/megabytelabs/backups/"
+    remote_src: true
+  when: vbox_template.backup_file is defined and vbox_template.backup_file | length > 0
+
+- name: Delete the backup file
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ vbox_template.backup_file }}"
+    state: absent
+  when: vbox_template.backup_file is defined and vbox_template.backup_file | length > 0

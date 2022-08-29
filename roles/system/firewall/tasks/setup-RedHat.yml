@@ -3,11 +3,17 @@
   rpm_key:
     key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
     state: present
+  when: ansible_distribution != 'Fedora'
 
 - name: Enable EPEL
   dnf:
     name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: ansible_distribution != 'Fedora'
 
 - name: Run UFW tasks
   include_tasks: ufw.yml
+  when:
+    - "'wsl' not in group_names"
+    - not (wsl_environment | default(false))

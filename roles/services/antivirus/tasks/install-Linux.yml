@@ -15,7 +15,7 @@
   command: freshclam
   when: clamav_packages_install.changed
   register: freshclam_result
-  notify: restart clamav
+  notify: Reload ClamAV
   failed_when:
     - freshclam_result is failed
     - freshclam_result.stderr.find('locked by another process') != -1
@@ -29,18 +29,30 @@
     mode: 0644
     state: "{{ item.state | default('present') }}"
   loop: "{{ clamav_daemon_configuration_changes }}"
-
-- name: Ensure ClamAV daemon is running (if configured)
-  service:
-    enabled: "{{ clamav_daemon_enabled }}"
-    name: "{{ clamav_daemon }}"
-    state: "{{ clamav_daemon_state }}"
+  when: ansible_os_family != 'Debian'
 
 - name: Ensure ClamAV freshclam daemon is running (if configured)
   service:
     enabled: "{{ clamav_freshclam_daemon_enabled }}"
     name: "{{ clamav_freshclam_daemon }}"
     state: "{{ clamav_freshclam_daemon_state }}"
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
-- name: Update rkhunter # noqa 301
-  command: rkhunter --update && rkhunter --propupd
+- name: Ensure configuration of rkhunter is updated
+  lineinfile:
+    path: /etc/rkhunter.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - regexp: "^MIRRORS_MODE"
+      line: MIRRORS_MODE=0
+    - regexp: "^WEB_CMD"
+      line: WEB_CMD=""
+  when: ansible_os_family == 'Debian'
+
+- name: Update rkhunter # noqa 301 303
+  shell: |
+    rkhunter --propupd
+    rkhunter --update
+  register: rkhunter_update
+  failed_when: (rkhunter_update.rc == 2 and rkhunter_update.stderr != "") # noqa 602

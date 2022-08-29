@@ -1,0 +1,56 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: Check if AriaNG has configuration stored in ~/.config/megabytelabs/ariang
+  stat:
+    path: ~/.config/megabytelabs/ariang
+  register: ariang_config
+
+- name: Detect previously installed AriaNG version
+  command: cat ariang
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_ariang_version
+  when: ariang_config.stat.exists
+
+- name: Detect the latest AriaNG version
+  uri:
+    url: https://api.github.com/repos/mayswind/AriaNg/releases/latest
+  register: ariang_latest_release_tag
+
+- name: Determine whether or not the latest version of AriaNG is already installed
+  set_fact:
+    install_ariang: "{{ (current_ariang_version.skipped | default(false)) or \
+      ((not current_ariang_version.skipped | default(false)) and (current_ariang_version.stdout != ariang_latest_release_tag.json.tag_name)) }}"
+
+- name: Ensure AriaNG is installed
+  become: true
+  become_user: "{{ user.username }}"
+  unarchive:
+    src: "https://github.com/mayswind/AriaNg/releases/download/{{ ariang_latest_release_tag.json.tag_name }}/\
+      AriaNg-{{ ariang_latest_release_tag.json.tag_name }}-AllInOne.zip"
+    dest: "~/"
+    remote_src: true
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_ariang
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+
+- name: Save meta information about the version of AriaNG that was installed
+  copy:
+    dest: ~/.config/megabytelabs/ariang
+    mode: 0600
+    content: |
+      {{ ariang_latest_release_tag.json.tag_name }}
+  when: install_ariang

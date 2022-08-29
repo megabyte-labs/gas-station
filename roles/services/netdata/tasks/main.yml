@@ -2,8 +2,24 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+# @action Ensures Netdata is installed
+# Installs Netdata on Archlinux, CentOS, Debian, Fedora, Ubuntu and MacOS
+# @action Ensures Netdata is installed
+# Installs Netdata using Docker on Archlinux, CentOS, Debian, Fedora, Ubuntu and MacOS if configured
+# @action Ensures Netdata is installed
+# Installs Prometheus windows-exporter on Windows Systems
+# @action Ensures Netdata is configured
+# Adds optimization for kernel memory de-duper on Linux Systems
+# @action Ensures Netdata is configured
+# Enables Jobs on Linux and MacOS Systems
+# @action Ensures Netdata is configured
+# Configures WMI setting on Linux and MacOS Systems to monitor Windows servers
+# @action Ensures Netdata is configured
+# Adds the Netdata instance to Netdata.cloud on Linux Systems
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "install-{{ ansible_os_family }}.yml"
   when: ansible_system != 'Windows'

@@ -7,13 +7,19 @@
 - name: Generate the security certificates
   block:
     - name: Generate the PowerShell script
-      win_template:
+      ansible.windows.win_template:
         src: docker-tls.ps1.j2
         dest: C:\docker-tls.ps1
     - name: Execute the script to generate security certificates
-      win_command: C:\docker-tls.ps1
+      become_user: '{{ user.username }}'
+      ansible.windows.win_shell: C:\docker-tls.ps1
+      loop: '{{ user_configs }}'
+      loop_control:
+        label: '{{ user.username }}'
+        loop_var: user
+      when: (user.system is not defined) or ((user.system is defined) and (not user.system))
   always:
     - name: Remove the script used to generate security certificates
-      win_file:
+      ansible.windows.win_file:
         path: C:\docker-tls.ps1
         state: absent

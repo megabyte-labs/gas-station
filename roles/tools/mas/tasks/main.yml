@@ -1,46 +1,71 @@
 ---
+# @action Ensures MAS is installed
+# Installs MAS on macOS
 - name: Ensure MAS is installed
   community.general.homebrew:
     name: mas
     state: present
+  when: ansible_os_family == 'Darwin'
 
 - name: Get MAS account status
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: mas account
   register: mas_account_result
   failed_when: mas_account_result.rc > 1
   check_mode: false
   changed_when: false
+  when: ansible_os_family == 'Darwin'
 
-- name: Sign in to MAS when email and password are provided
-  command: 'mas signin "{{ mas_email }}" "{{ mas_password }}"'
-  register: mas_signin_result
-  when:
-    - mas_account_result.rc == 1
-    - mas_email | bool
-    - mas_password | bool
-    - not mas_signin_dialog
+# Cannot signin using the CLI, sign in using App Store. See https://github.com/mas-cli/mas/issues/164
+# - name: Sign in to MAS when email and password are provided
+#   environment:
+#     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+#   command: 'mas signin "{{ mas_email }}" "{{ mas_password }}"'
+#   register: mas_signin_result
+#   when:
+#     - mas_account_result.rc == 1
+#     - mas_email | length > 0
+#     - mas_password | length > 0
+#     - not mas_signin_dialog
 
-- name: Sign in to MAS when email is provided, and complete password and 2FA using dialog
-  command: 'mas signin "{{ mas_email }}" "{{ mas_password }}" --dialog'
-  register: mas_signin_result
-  when:
-    - mas_signin_dialog
-    - mas_account_result.rc == 1
-    - mas_email | bool
+# - name: Sign in to MAS when email is provided, and complete password and 2FA using dialog
+#   environment:
+#     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+#   command: 'mas signin "{{ mas_email }}" "{{ mas_password }}" --dialog'
+#   register: mas_signin_result
+#   when:
+#     - mas_signin_dialog
+#     - mas_account_result.rc == 1
+#     - mas_email | bool
 
 - name: List installed MAS apps
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: mas list
   register: mas_list
   check_mode: false
   changed_when: false
+  when: ansible_os_family == 'Darwin'
 
+# @action Ensures MAS is installed
+# Installs apps if provided
 - name: Ensure configured MAS apps are installed
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: "mas install '{{ item.id | default(item) }}'"
   loop: "{{ mas_installed_apps }}"
   when:
     - (item.id | default(item) | string) not in mas_list.stdout
     - mas_installed_apps | length
+    - ansible_os_family == 'Darwin'
 
+# @action Ensures MAS is installed
+# Upgrades all apps if configured
 - name: Upgrade all apps (if configured)
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: mas upgrade
-  when: mas_upgrade_all_apps
+  when:
+    - mas_upgrade_all_apps
+    - ansible_os_family == 'Darwin'

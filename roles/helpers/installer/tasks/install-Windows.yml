@@ -1,0 +1,60 @@
+---
+- name: Ensure Task is installed
+  chocolatey.chocolatey.win_chocolatey:
+    name:
+      - go-task
+      - gh
+    state: present
+
+- name: Ensure Scoop is installed
+  ansible.windows.win_shell: iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
+  args:
+    creates: '%USERPROFILE%\scoop\shims\scoop.ps1'
+    scope: machine
+    state: present
+
+- name: Ensure Scoop apps and bin folders are added to PATH
+  ansible.windows.win_path:
+    elements:
+      - 'C:\ProgramData\scoop\shims'
+      - 'C:\ProgramData\bin'
+
+- name: Ensure software is installed
+  block:
+    - name: Download Taskfile configurations
+      ansible.windows.win_get_url:
+        url: https://gitlab.com/megabyte-labs/common/shared/-/archive/master/shared-master.tar.gz
+        dest: C:\Temp\shared-master.tar.gz
+
+    - name: 'Ensure C:\ProgramData\MegabyteLabs exists'
+      ansible.windows.win_file:
+        path: 'C:\ProgramData\MegabyteLabs'
+        state: directory
+
+    - name: Setup Taskfiles to install from GitHub Releases
+      community.windows.win_command: tar -xzf C:\Temp\shared-master.tar.gz -C C:\ProgramData\MegabyteLabs
+
+    - name: Configure Taskfile to call GitHub installation method
+      ansible.windows.win_copy:
+        dest: C:\ProgramData\MegabyteLabs\shared-master\Taskfile.yml
+        content: |
+          version: '3'
+          includes:
+            install:gh:
+              taskfile: ./common/.config/taskfiles/install/Taskfile-gh.yml
+              optional: true
+            install:software:
+              taskfile: ./common/.config/taskfiles/install/Taskfile-software.yml
+              optional: true
+
+    - name: Run generic tasks
+      include_tasks: continue.yml
+      loop: "{{ software }}"
+      loop_control:
+        label: "{{ software_item }}"
+        loop_var: software_item
+  always:
+    - name: Remove Taskfile setup
+      file:
+        path: /tmp/shared-master
+        state: absent

@@ -1,0 +1,68 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/teleport"
+  stat:
+    path: ~/.config/megabytelabs/teleport
+  register: teleport_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat teleport
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_teleport_version
+  when: teleport_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/gravitational/teleport/releases/latest
+  register: teleport_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_teleport: "{{ (current_teleport_version.skipped | default(false)) or \
+      ((not current_teleport_version.skipped | default(false)) and (current_teleport_version.stdout \
+      != teleport_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ teleport_src_path }} folder exists"
+  file:
+    path: "{{ teleport_src_path }}"
+    mode: 0760
+    state: directory
+
+- name: "Ensure {{ app_name }}'s older version is uninstalled"
+  file:
+    path: /usr/local/bin/teleport
+    state: absent
+  when: install_teleport
+
+- name: "Ensure {{ app_name }} is downloaded and up-to-date"
+  unarchive:
+    url: "https://get.gravitational.com/teleport-{{ teleport_latest_release_tag.json.tag_name }}-linux-arm64-bin.tar.gz"
+    dest: "{{ teleport_src_path }}"
+    extra_opts:
+      - --strip-components=1
+  when: install_teleport
+
+- name: "Ensure {{ app_name }} is installed"
+  command: ./install.sh
+  args:
+    chdir: "{{ teleport_src_path }}"
+    creates: /usr/local/bin/teleport
+  when: install_teleport
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/teleport
+    mode: 0600
+    content: |
+      {{ teleport_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_teleport

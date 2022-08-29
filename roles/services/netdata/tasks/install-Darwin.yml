@@ -23,7 +23,7 @@
 
 - name: Configure WMI to add Windows servers to monitoring
   blockinfile:
-    path: ./wmi.conf
+    path: /etc/netdata/go.d/wmi.conf
     insertafter: "^ [ JOBS ]"
     block: |
       jobs:
@@ -46,10 +46,19 @@
     - netdata_room is defined
     - netdata_token is defined
 
+- name: Ensure netdata service is started # noqa 301
+  command: brew services start netdata
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  when:
+    - not netdata_claim.stat.exists
+
+# Commenting this out due to https://github.com/netdata/netdata/issues/9061. Netdata Cloud claim does not work at this point.
+# This is working now, leaving this as a reference
 - name: "Add instance to netdata cloud"
-  command: "netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
+  command: "./netdata-claim.sh -token={{ netdata_token }} -rooms={{ netdata_room }} -url={{ netdata_claim_url }}"
   args:
-    chdir: /usr/local/netdata/usr/sbin
+    chdir: "/usr/local/opt/netdata/sbin/"
     creates: ~/.config/megabytelabs/netdata-claimed
   ignore_errors: true
   register: netdata_claimed_status

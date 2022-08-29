@@ -1,0 +1,20 @@
+---
+lint:hadolint:
+  stage: lint
+  image:
+    name: megabytelabs/hadolint:slim
+    entrypoint: ['']
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
+    - exists:
+        - '**/*Dockerfile*'
+  needs: []
+  variables:
+    GIT_DEPTH: 1
+  script:
+    - set -eo pipefail
+    - find . -type d \( -name .cache -o -name .git -o -name .modules  -o -name node_modules -o -name .husky -o -name test \)
+      -prune -o -type f \( -name Dockerfile -o -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 hadolint

@@ -1,15 +1,30 @@
 ---
-- name: "Add {{ app_name }}'s yum repository"
-  yum_repository:
-    baseurl: "{{ azurecli_yum_repo }}"
-    description: "{{ app_name }}'s repository"
-    gpgcheck: true
-    gpgkey: "{{ azurecli_yum_gpg }}"
-    name: "{{ app_name | lower | replace(' ', '-') }}"
-    repo_gpgcheck: true
-
 - name: "Ensure {{ app_name }} is installed"
-  yum:
-    name: azure-cli
-    state: "{{ app_state | default('present') }}"
-    update_cache: true
+  block:
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        baseurl: "{{ azurecli_yum_repo }}"
+        description: "{{ app_name }}'s repository"
+        gpgcheck: true
+        gpgkey: "{{ azurecli_yum_gpg }}"
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        repo_gpgcheck: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: azure-cli
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
+
+    - name: 'Ensure {{ app_name }} is installed'
+      become: false
+      community.general.homebrew:
+        name: azure-cli
+        state: present
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"

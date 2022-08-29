@@ -1,0 +1,678 @@
+---
+version: '3'
+
+output: interleaved
+
+vars:
+  DOCKERHUB_PROFILE: megabytelabs
+  DOCKERHUB_USER: professormanhattan
+  ESLINT_FIX_RECURSIVE: 'true'
+  ESLINT_FORMATTER: stylish
+  ESLINT_FORMATTER_OPTIONS: git-log gitlab pretty summary
+  GALAXY_AUTHOR: ProfessorManhattan
+  GALAXY_COMPANY: Megabyte Labs
+  GALAXY_NAMESPACE:
+    sh: "if [ -f meta/main.yml ]; then grep namespace < meta/main.yml | sed 's/.*namespace: \\(.*\\)$/\\1/g'; fi"
+  GALAXY_ROLE_NAME:
+    sh: "if [ -f meta/main.yml ]; then grep role_name < meta/main.yml | sed 's/.*role_name: \\(.*\\)$/\\1/g'; fi"
+  GITHUB_ORG: ProfessorManhattan
+  GITHUB_USER: ProfessorManhattan
+  GROUP_EXEC_ASYNC: 'false'
+  IGNORE_FOLDERS: -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*'
+    -o -path './.github/*' -o -path './.gitlab/*' -o -path './.husky/*' -o -path './.modules/*' -o -path './.npm/*'
+    -o -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*'
+    -o -path './build/*' -o -path './dist/*' -o -path './node_modules/*' -o -path './roles/*' -o -name pnpm-lock.yaml
+    -o -name package-lock.json -o -name poetry.lock -o -name '.variables.json'
+  INIT_SCRIPT: https://gitlab.com/megabyte-labs/gitlab-ci/-/raw/master/scripts/update-init.sh
+  LOG_FIX:
+    sh: chmod +x .config/log && echo "heyhey"
+  MODEL_TASKFILE: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/Taskfile.yml
+  NPM_KEEP_UPDATED: 'glob'
+  NPM_PROGRAM: npm
+  NPM_PROGRAM_LOCAL: pnpm
+  NPX_HANDLE: 'pnpx '
+  NPX_PACKAGE: pnpx
+  PROJECT_TYPE: project
+  PYTHON_HANDLE: 'poetry run '
+  PYTHON_VIRTUALENV: true
+  REPOSITORY_SUBTYPE: role
+  REPOSITORY_TYPE: ansible
+  SEMANTIC_CONFIG: semantic-release-config
+  TIMEZONE: America/New_York
+
+env:
+  OSTYPE:
+    sh: |
+      {{if (eq OS "linux")}}LINUX_FLAVOR='linux-gnu'
+      LIBC=$(ldd /bin/ls | grep 'musl' | head -1 | cut -d ' ' -f1)
+      if [ -n "$LIBC" ]; then LINUX_FLAVOR='linux-musl'; fi{{end}}
+      echo "{{if (eq OS "linux")}}$LINUX_FLAVOR{{else}}darwin{{end}}"
+  SENTRY_DSN: ''
+
+includes:
+  project:
+    taskfile: ./local/Taskfile-project.yml
+    optional: true
+  ansible: ./.config/taskfiles/ansible/Taskfile.yml
+  ansible:ansibler: ./.config/taskfiles/ansible/Taskfile-ansibler.yml
+  ansible:playbook: ./.config/taskfiles/ansible/Taskfile-playbook.yml
+  ansible:populate: ./.config/taskfiles/ansible/Taskfile-populate.yml
+  ansible:test: ./.config/taskfiles/ansible/Taskfile-test.yml
+  app: ./.config/taskfiles/app/Taskfile.yml
+  app:virtualbox: ./.config/taskfiles/app/Taskfile-virtualbox.yml
+  boilerplate: ./.config/taskfiles/boilerplate/Taskfile.yml
+  boilerplate:populate: ./.config/taskfiles/boilerplate/Taskfile-populate.yml
+  boilerplate:prompt: ./.config/taskfiles/boilerplate/Taskfile-prompt.yml
+  ci: ./.config/taskfiles/ci/Taskfile.yml
+  ci:github: ./.config/taskfiles/ci/Taskfile-github.yml
+  common: ./.config/taskfiles/common/Taskfile.yml
+  common:code: ./.config/taskfiles/common/Taskfile-code.yml
+  common:update: ./.config/taskfiles/common/Taskfile-update.yml
+  docker: ./.config/taskfiles/docker/Taskfile.yml
+  docker:build: ./.config/taskfiles/docker/Taskfile-build.yml
+  docker:test: ./.config/taskfiles/docker/Taskfile-test.yml
+  docker:update: ./.config/taskfiles/docker/Taskfile-update.yml
+  fix: ./.config/taskfiles/fix/Taskfile.yml
+  git: ./.config/taskfiles/git/Taskfile.yml
+  git:github: ./.config/taskfiles/git/Taskfile-github.yml
+  git:gitlab: ./.config/taskfiles/git/Taskfile-gitlab.yml
+  git:hook: ./.config/taskfiles/git/Taskfile-hook.yml
+  go: ./.config/taskfiles/go/Taskfile.yml
+  go:goreleaser: ./.config/taskfiles/go/Taskfile-goreleaser.yml
+  go:test: ./.config/taskfiles/go/Taskfile-test.yml
+  image: ./.config/taskfiles/image/Taskfile.yml
+  install: ./.config/taskfiles/install/Taskfile.yml
+  install:apt: ./.config/taskfiles/install/Taskfile-apt.yml
+  install:github: ./.config/taskfiles/install/Taskfile-github.yml
+  install:go: ./.config/taskfiles/install/Taskfile-go.yml
+  install:npm: ./.config/taskfiles/install/Taskfile-npm.yml
+  install:python: ./.config/taskfiles/install/Taskfile-python.yml
+  install:rust: ./.config/taskfiles/install/Taskfile-rust.yml
+  install:software: ./.config/taskfiles/install/Taskfile-software.yml
+  lint: ./.config/taskfiles/lint/Taskfile.yml
+  lint:codeclimate: ./.config/taskfiles/lint/Taskfile-codeclimate.yml
+  lint:esprint: ./.config/taskfiles/lint/Taskfile-esprint.yml
+  lint:markdown: ./.config/taskfiles/lint/Taskfile-markdown.yml
+  lint:prose: ./.config/taskfiles/lint/Taskfile-prose.yml
+  log: ./.config/taskfiles/log/Taskfile.yml
+  nest: ./.config/taskfiles/nest/Taskfile.yml
+  npm: ./.config/taskfiles/npm/Taskfile.yml
+  npm:cov: ./.config/taskfiles/npm/Taskfile-cov.yml
+  npm:doc: ./.config/taskfiles/npm/Taskfile-doc.yml
+  packer: ./.config/taskfiles/packer/Taskfile.yml
+  packer:build: ./.config/taskfiles/packer/Taskfile-build.yml
+  packer:update: ./.config/taskfiles/packer/Taskfile-update.yml
+  publish: ./.config/taskfiles/publish/Taskfile.yml
+  publish:android: ./.config/taskfiles/publish/Taskfile-android.yml
+  publish:brew: ./.config/taskfiles/publish/Taskfile-brew.yml
+  publish:chrome: ./.config/taskfiles/publish/Taskfile-chrome.yml
+  publish:firefox: ./.config/taskfiles/publish/Taskfile-firefox.yml
+  publish:ios: ./.config/taskfiles/publish/Taskfile-ios.yml
+  publish:menubar: ./.config/taskfiles/publish/Taskfile-menubar.yml
+  publish:opera: ./.config/taskfiles/publish/Taskfile-opera.yml
+  publish:snap: ./.config/taskfiles/publish/Taskfile-snap.yml
+  python: ./.config/taskfiles/python/Taskfile.yml
+  python:test: ./.config/taskfiles/python/Taskfile-test.yml
+  release: ./.config/taskfiles/release/Taskfile.yml
+  security: ./.config/taskfiles/security/Taskfile.yml
+  symlink: ./.config/taskfiles/symlink/Taskfile.yml
+  upstream: ./.config/taskfiles/upstream/Taskfile.yml
+  upstream:common: ./.config/taskfiles/upstream/Taskfile-common.yml
+  upstream:commondocs: ./.config/taskfiles/upstream/Taskfile-commondocs.yml
+  upstream:docs: ./.config/taskfiles/upstream/Taskfile-docs.yml
+  upstream:project: ./.config/taskfiles/upstream/Taskfile-project.yml
+  upstream:shared: ./.config/taskfiles/upstream/Taskfile-shared.yml
+  vagrant: ./.config/taskfiles/vagrant/Taskfile.yml
+  vscode: ./.config/taskfiles/vscode/Taskfile.yml
+  web: ./.config/taskfiles/web/Taskfile.yml
+  web:ionic: ./.config/taskfiles/web/Taskfile-ionic.yml
+  web:nx: ./.config/taskfiles/web/Taskfile-nx.yml
+  web:profile: ./.config/taskfiles/web/Taskfile-profile.yml
+
+profile: |
+  PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin"
+  if [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
+    if [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && ! type brew > /dev/null; then
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    fi
+  fi
+  if [[ "$OSTYPE" == 'darwin'* ]] && type brew > /dev/null; then
+    BREW_PREFIX="$(brew --prefix)"
+    PATH="$PATH:$BREW_PREFIX/opt/coreutils/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/findutils/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/gnu-sed/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/grep/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/gnu-tar/libexec/gnubin"
+    PATH="$PATH:$BREW_PREFIX/opt/gawk/libexec/gnubin"
+  fi
+  if [ -f .venv/bin/activate ]; then
+    . .venv/bin/activate
+  fi
+
+tasks:
+  build:
+    deps:
+      - install:software:jq
+      - install:software:node
+    desc: Build the project using the build script defined in `package.json`
+    vars:
+      NONINTERACTIVE_MISSING_BUILD_CMD: There must be a build command under `.scripts.build` in `package.json`!
+    summary: |
+      # Build the Project
+
+      Use this command to build the project. It executes the command defined
+      in `package.json` under the `.scripts.build` key.
+    log:
+      start: Running `npm run build`
+      success: Successfully ran `npm run build`
+      error: Encountered error while running `npm run build`
+    cmds:
+      - |
+        if [ "$(jq '.scripts.build' package.json)" != 'null' ]; then
+          npm run build
+        else
+          [[ $- == *i* ]] && task prepare || (.config/log error '{{.NONINTERACTIVE_MISSING_BUILD_CMD}}' && exit 1)
+        fi
+
+  clean:
+    desc: Removes optional folders that are cached during various tasks
+    summary: |
+      # Clean Project / Remove Optional Directories and Files
+
+      This task will remove all the unnecessary files that are downloaded, generated, and
+      cached during various build steps. This task is used by the `reset` task
+      which will re-generate the project from scratch. Ideally, this task and the reset task
+      should never be necessary. The `start` task should be used instead.
+    vars:
+      CLEAN_TARGETS: .autodoc .cache .task .venv node_modules tsconfig.tsbuildinfo venv
+        .variables.json
+    cmds:
+      - task: common:clean
+        vars:
+          CLEAN_TARGETS: '{{.CLEAN_TARGETS}}'
+
+  commit:
+    desc: Lint staged files, report spelling errors, and open a _required_ commit dialoge
+    summary: |
+      # Commit Code
+
+      This task will perform linting and auto-fixing on the files that have been staged in
+      git (i.e. the files that were added with `git add --all`). It will then report possible
+      spelling errors that you may choose to fix. Then, it opens a _required_ interactive commit
+      questionnaire that will help you make better commits that are compatible with software
+      that generates the CHANGELOG.md.
+
+      It is very important that you use this task to commit rather than the conventional approach
+      using `git commit -m`. However, if you really need to, you can add the flag `--no-verify`
+      to your regular `git commit -m` command to bypass the pre-commit hook.
+    cmds:
+      - task: common:commit
+
+  commit:all:
+    deps:
+      - install:software:git
+    desc: Add all the untracked changes and commit the code
+    summary: |
+      # Commit All Untracked Code
+
+      By default, this task is an alias for:
+
+      ```
+      git add --all
+      git commit
+      ```
+
+      If you pass a commit message as a CLI argument, then the pre-commit
+      logic will be bypassed. By bypassing the hooks, the commit message will be
+      excluded from the automatic CHANGELOG.md entry generated during commits.
+      Passing the commit message as a CLI argument can be done like so:
+
+      ```
+      task commit -- "Added new files that do not need to show up in CHANGELOG.md"
+      ```
+    log:
+      start: Adding all changes and committing
+      success: Successfully commit changes
+      error: Error while running commit logic
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+        git add --all
+        HUSKY=0 git commit -m "{{.CLI_ARGS}}" --no-verify
+        {{else}}
+        git add --all
+        git commit
+        {{end}}
+
+  commit:quick:
+    cmds:
+      - git add --all
+      - HUSKY=0 git commit -m '🔧 chore(tweak): quick minor update' --no-verify
+      - git push origin master
+
+  donothing: 'true'
+
+
+  fix:
+    desc: Run code auto-fixers / auto-formatters
+    summary: |
+      # Auto-Fix / Auto-Format Code
+
+      This task will automatically apply lint fixes across the whole project using
+      auto-fixers. Although unlikely, it is possible that auto-fixing can introduce
+      an error so the auto-fixes still have to be validated.
+    cmds:
+      - task: fix:all
+
+  get:links:
+    deps:
+      - install:software:jq
+    desc: Log useful links such as the current project's git repository link
+    vars:
+      GITHUB_URL:
+        sh: jq -r '.blueprint.repository.github' package.json
+      GITLAB_URL:
+        sh: jq -r '.blueprint.repository.gitlab' package.json
+    cmds:
+      - .config/log info 'GitHub -----> `{{.GITHUB_URL}}`'
+      - .config/log info 'GitLab -----> `{{.GITLAB_URL}}`'
+
+  group:exec:
+    desc: Execute group commands on any GitLab group (including repositories in sub-groups)
+    summary: |
+      # Run Commands on Multiple GitLab Repositories
+
+      This command requires that the `GITLAB_TOKEN` environment variable be set. With the
+      token defined, you can use this task to run scripts on repositories that fall under
+      any given group or sub-group. By default, it runs the script(s) on all the
+      repositories in the specified group and sub-groups.
+
+      You can use this task to perform adhoc bulk changes to large numbers of
+      repositories that are hosted on GitLab.
+
+      **Example usage:**
+      `task group:exec -- group/subgroup ---- 'bash <(curl https://myscript.com)'
+
+      In the example above, the bash command will be run in the root of each repository.
+      Be sure to wrap the command in quotes or you might observe some odd behavior.
+    cmds:
+      - task: git:gitlab:group:exec
+
+  init:
+    deps:
+      - install:software:jq
+      - install:software:yq
+    desc: Runs the initialization script
+    summary: |
+      # Initialize the Project and Run the Full Update Sequence
+
+      This command will mostly not be needed for pre-existing projects. This task begins
+      by calling a script that:
+
+      1. Migrates legacy projects
+      2. Fixes common errors
+      3. Ensures the project is initialized
+      4. Prompts for missing metadata
+      5. Runs the `start` task
+
+      If you are facing difficulties, you can try running this task to reset the project,
+      perform common fixes, and run the whole start up routine.
+
+      ## Using a Custom Initialization Script
+
+      You can control the initialization script that this task runs by specifying
+      `UPDATE_INIT_SCRIPT` as an environment variable. If it is not specified, then this
+      task runs the [default script]({{.INIT_SCRIPT}}).
+    log:
+      start: Initializing project by running initialization script
+      success: Successfully bootstrapped project by running initialization script
+      error: Failed to run initialization script
+    cmds:
+      - git init
+      - |
+        TMP="$(mktemp)" && curl -sSL {{.MODEL_TASKFILE}} > "$TMP"
+        .config/log info 'Ensuring new additions to the model `Taskfile.yml` are present in the project `Taskfile.yml`'
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' "$TMP" Taskfile.yml
+      - |
+        if [ -n "$UPDATE_INIT_SCRIPT" ]; then
+          bash <(curl -sSL "$UPDATE_INIT_SCRIPT")
+        else
+          bash <(curl -sSL {{.INIT_SCRIPT}})
+        fi
+      - git push origin master
+
+  lint:
+    desc: Lints the project using all linters
+    summary: |
+      # Lint the Project Using Most of the Linters
+
+      This task will do a project-wide linting using all of the linters that commonly
+      report errors. You can use this task to spot linting errors prior to running
+      the git pre-commit hooks.
+
+      **Example usage:**
+      `task lint`
+    cmds:
+      - task: lint:all
+
+  livereload:
+    deps:
+      - install:npm:nodemon
+    desc: Start the project with live-reloading (i.e. watch mode)
+    summary: |
+      # LiveReload the Project
+
+      Using LiveReload, you can automatically run the project any time you make
+      changes to the project. The LiveReload feature uses [nodemon](https://github.com/remy/nodemon)
+      with the configuration stored in `.config/nodemon.json`.
+
+      Whenever you make a change to the project, `task project:livereload` will run. You can
+      define the command that runs every time you make a change in the `Taskfile-project.yml`
+      `livereload` section. This file is kept intact even across upstream propagation updates,
+      unlike the regular `Taskfile.yml`.
+
+      **Example usage:**
+      `task livereload`
+
+      The default configuration (in `.config/nodemon.json`) is generic and makes assumptions
+      about the file types to watch based on what type project it is. If you would like to
+      use a different configuration, you can pass in the location of the configuration like so:
+
+      **Example with custom configuration:**
+      `task livereload -- nodemon.custom.json`
+
+      The task program also provides a `--watch` feature. However, it relies on the `sources` attribute
+      being defined so it might not work in all cases.
+
+      **Example using `task --watch`:**
+      `task --watch mytask`
+    log:
+      start: Starting `nodemon` live-reload session
+    cmds:
+      - |
+        if [ ! -f Taskfile-project.yml ]; then
+          .config/log error '`Taskfile-project.yml` must exist and have a `livereload` task to use with `nodemon`' && exit 1
+        fi
+      - nodemon --config {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.config/nodemon.json{{end}}
+
+  publish:
+    desc: Publish a semantic release via `semantic-release`
+    summary: |
+      # Publish the Project
+
+      Using this task, you can publish a project to all its targets. The targets
+      depend on the project type. Most projects will include:
+
+      1. Updating version numbers in `package.json`, `pyproject.toml`, etc.
+      2. Adding a new git tag at the version and publishing it with updated assets
+      3. Publishing repository-specific items like NPM packages, PyPi packages, etc.
+      4. Publishing artifacts to GitLab Releases and GitHub Releases
+      5. Updating the `docs/CHANGELOG.md`
+
+      ## Packages Used
+
+      This task runs `semantic-release` using the `semantic-release-config` package. The package
+      includes release instructions for:
+
+      1. Python packages
+      2. NPM packages
+      3. Dockerfile projects
+      4. Go projects
+      5. Ansible roles
+
+      ## Formats
+
+      It does its best to ship projects out in as many formats (that make sense) as possible.
+      For instance, an NPM CLI gets published as:
+
+      1. NPM package
+      2. Binaries (including deb and rpm) available on GitHub/GitLab releases
+      3. Brew formulae
+      4. Snapcraft
+      5. Probably more implemented after writing this
+
+      ## Python Package Notes
+
+      If `setup.cfg` is present, then the project is assumed to be a legacy Python
+      project that needs to run in environment with access to the `python-semantic`
+      extras defined in `pyproject.toml`.
+    log:
+      error: Error running `semantic-release` via `task publish`
+      start: Running `semantic-release` via `task publish`
+      success: Successfully ran `semantic-release` via `task publish`
+    cmds:
+      - task: publish:semantic-release
+
+  publish:force:
+    vars:
+      UPDATE_LEVEL: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}PATCH UPDATE{{end}}'
+    desc: Force a `semantic-release` even if there are no new eligible commits
+    summary: |
+      # Force a Release with Empty Commit
+
+      Trigger any kind of version bump / semantic release by passing
+      `PATCH UPDATE`, `MINOR UPDATE`, or `MAJOR UPDATE` in via CLI arguments.
+      This task will commit an empty commit message that will trigger the
+      corresponding version bump type.
+
+      **Example of patch update:**
+      `task publish:force -- 'PATCH UPDATE'`
+
+      **Example of minor update:**
+      `task publish:force -- 'MINOR UPDATE'`
+
+      **Example of major update:**
+      `task publish:force -- 'MAJOR UPDATE'`
+    log:
+      error: Error creating update via `task publish:force`
+      start: Publishing `semantic-release` update via `task publish:force`
+      success: Successfully published update via `task publish:force`
+    cmds:
+      - |
+        HUSKY=0 git commit -a --allow-empty -m '🔨 build(version bump): semantic-release {{.UPDATE_LEVEL}}' -n
+      - task: publish
+
+  preload:
+    desc: Set up your workstation in advance by installing commonly used programs
+    summary: |
+      # Speed Up Future Development by Preloading Common System Applications
+
+      Just about every development task requires some sort of globally installed
+      application. TypeScript requires Node.js to be installed. Ansible requires
+      a handful of CLIs (and Python). This task will check for missing applications
+      and install them globally. If you do not run this task, the routines will
+      assume you want to keep the footprint small and use disposable virtual
+      environments whenever possible (i.e. `{{.NPX_PACKAGE}}` in the case of Node.js,
+      `poetry` in the case of Python, etc.).
+
+      ## Reboot Requirements
+
+      Some software that is installed, like VirtualBox and Docker, require reboots so
+      it is recommended that you reboot after running this task.
+
+      ## Passwordless Installation
+
+      This installation method and all the methods we use will only prompt for a sudo
+      password when absolutely necessary. If you already have common development tools
+      it is possible that you will not even have to enter a sudo password. This is
+      accomplished by installing to `$HOME/.local/bin` whenever a traditionally system
+      level binary is installed. However, if you are missing something like git, then
+      chances are you will be asked for a sudo password. In this case, we recommend
+      you adopt the Megabyte Labs philosophy and inspect the code before running it.
+    log:
+      start: Preloading system with common dependencies
+      success: Successfully preloaded system with common dependencies (REBOOT RECOMMENDED)
+      error: Encountered error while preloading system with common dependencies (REBOOT RECOMMENDED)
+    cmds:
+      - task: install:brewfile
+      - task: install:go:bundle
+      - task: install:rust:bundle
+      - task: install:github:bundle
+      - task: install:npm:bundle
+      - task: install:pipx:bundle
+      - task: install:python:requirements
+      - task: install:modules:local
+
+  prepare:
+    desc: Prepares the project for the normal start command
+    summary: |
+      # Prepare the Project
+
+      This task ensures the project has all the required metadata. If a project
+      is missing required metadata then this task will interactively prompt the user
+      for the missing data. It also performs miscellaneous tasks that are sometimes
+      required by the `start` task.
+    log:
+      start: Preparing the project
+      success: Successfully prepared the project
+      error: Encountered error while preparing the project
+    cmds:
+      - task: boilerplate:check:package
+      - task: boilerplate:clean
+
+  reset:
+    desc: Resets the project by removing all caches and then re-generating templated files
+    summary: |
+      # Reset Project and Re-Generate Assets
+
+      This task is intended to be used when there appear to be cache related issues.
+      It will first clean the project by removing common local libraries like `node_modules/`
+      and the `.cache/` folder, to name a couple. Then, without acquiring any upstream
+      updates, it re-generates any templated files.
+    cmds:
+      - task: common:reset
+
+  reset:force:
+    desc: 'Aggressively reset the project (**WARNING** This will wipe uncommitted work)'
+    summary: |
+      # Aggressively Reset Project
+
+      This task will completely wipe the project by:
+
+      1. Resetting to the HEAD
+      2. Removing all files that are not included in source control (i.e. `node_modules/` etc.)
+      3. Pulling the latest changes from `master`
+
+      This task is essentially the equivalent of deleteing the project and re-cloning it.
+    prompt:
+      type: confirm
+      message: Are you sure you want to forcefully reset the project?
+      answer:
+        cmds:
+          - task: common:reset:force
+
+  scripts:
+    interactive: true
+    deps:
+      - install:npm:ntl
+    desc: Run and view descriptions for `npm scripts` via an interactive dialog
+    summary: |
+      # Interactively Select Scripts Defined in package.json
+
+      Our projects use `run` (a fork of task) to handle most of the task running.
+      However, in some projects there may be scripts defined in package.json. This
+      task is a convenience method that will present a list of scripts alongside
+      their descriptions that you can interactively launch.
+    log:
+      start: Running `NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl`
+      error: Error running `NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl`
+    cmds:
+      - NTL_RUNNER={{.NPM_PROGRAM}} {{.NPX_HANDLE}}ntl
+
+  services:
+    desc: Update elements of the repository that require API access
+    summary: |
+      # Update Elements of the Repository that Require API Access
+
+      This task will ensure that the git repositories and other services related to the
+      project are updated with the proper configurations. It requires that certain
+      API keys be set. Generally, only project owners will use this task.
+    cmds:
+      - task: common:update:services
+    status:
+      - '[ -n "$GITLAB_CI" ] && [ "$REPOSITORY_UPDATE" != "true" ]'
+
+  shell:
+    desc: Start a terminal session using Docker with any Linux operating system
+    compile: |
+      '.tasks.common.shell = $this' common/Taskfile.yml
+    summary: |
+      # Start a Docker Terminal Session
+
+      Use Docker to run commands on nearly any operating system. The operating
+      systems are all stock distros with systemd added.
+
+      The selected environment will mount the current working directory to the
+      Docker container.
+
+      **Example opening an interactive prompt:**
+      `task shell`
+
+      **Example of directly shelling into a container:**
+      `task shell -- ubuntu-21.04`
+
+      ## Available operating systems (that you can use with the example above):
+
+      * archlinux
+      * centos-7
+      * centos-8
+      * debian-9
+      * debian-10
+      * fedora-33
+      * fedora-34
+      * ubuntu-18.04
+      * ubuntu-20.04
+      * ubuntu-21.04
+    cmds:
+      - task: common:shell
+
+  start:
+    desc: Set up the project and refresh it with the latest changes
+    summary: |
+      # Start the Project
+
+      This task will scaffold the project with the latest upstream changes
+      and ensure your development environment has all the dependencies installed.
+
+      This command should be used whenever the files that are automatically generated
+      need to be updated. It also serves as an entry point for new developers who
+      are getting started with the project.
+
+      **Example usage:**
+      `task start`
+    log:
+      start: Synchronizing project with upstream file changes and bootstrapping
+      success: Successfully synchronized the project with upstream file changes and also bootstrapped the project
+      error: Error encountered while starting up the project
+    cmds:
+      - task: upstream:project
+
+  test:
+    deps:
+      - install:software:node
+    interactive: true
+    desc: Open an interactive dialog to select and run a Molecule test
+    vars:
+      NONINTERACTIVE_MISSING_TEST_CMD: There must be a `.scripts.test` definition in `package.json`!
+    summary: |
+      # Test the Project
+
+      This task calls `npm run test` which functions differently based on the
+      definition made in `package.json` under the `.scripts.test` key.
+      ## Ansible Project Functionality
+
+      For Ansible projects, this task wraps all the supported test methods for Ansible plays into a
+      convenient multi-question prompt system that supports:
+
+      1. Docker tests
+      2. Headless VirtualBox tests
+      3. VirtualBox Desktop tests which are not automatically destroyed
+      4. Running the play locally
+      5. Running the play over SSH on a remote target
+    cmds:
+      - |
+        if [ "$(jq '.scripts.test' package.json)" != 'null' ]; then
+          npm run test
+        else
+          [[ $- == *i* ]] && task prepare || (.config/log error '{{.NONINTERACTIVE_MISSING_TEST_CMD}}' && exit 1)
+        fi

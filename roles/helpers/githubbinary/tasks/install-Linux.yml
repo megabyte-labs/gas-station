@@ -1,0 +1,287 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Save GitHub Repository information as facts
+  set_fact:
+    binary_name: "{{ (gh_repo | replace('https://','')).split('/')[2] }}"
+    repo_user: "{{ (gh_repo | replace('https://','')).split('/')[1] }}"
+
+- name: "Ensure source directory for {{ binary_name }} exists"
+  file:
+    path: "/usr/local/src/{{ binary_name }}"
+    state: directory
+    mode: 0755
+
+- name: "Detect the latest version of {{ binary_name }}"
+  uri:
+    url: https://api.github.com/repos/{{ repo_user }}/{{ binary_name }}/releases/latest
+  register: gh_binary_latest_release_tag
+
+- name: Provide instructions if Releases are not published
+  debug:
+    msg: "{{ binary_name }} does not have releases published as GitHub Releases. Please check the repository for installation steps"
+  when:
+    - gh_binary_latest_release_tag.json is undefined or (gh_binary_latest_release_tag.json and (not gh_binary_latest_release_tag.json.assets))
+
+- name: "Ensure {{ binary_name }} is installed"
+  block:
+    - name: "Determine whether or not the latest version of {{ binary_name }} is already installed"
+      set_fact:
+        install_gh_binary: "{{ (ansible_local[binary_name] is not defined) or \
+          ((ansible_local[binary_name] is defined) and \
+          (ansible_local[binary_name]['settings']['version'] != gh_binary_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+    - name: Filter the release file names based on System Architecture
+      set_fact:
+        archive_names: "{{ (gh_binary_latest_release_tag.json.assets | \
+          selectattr('name','match',binary_name + '.*(?i)arm.*' if 'arm' in ansible_machine | lower else '((?!(?i)arm).)*$')) | map(attribute='name') }}"
+
+    - name: Find the list of extensions based on preferred_install_method provided
+      set_fact:
+        preferred_install_method_extn: >-
+          {%- if preferred_install_method | regex_search('^(deb|rpm)$') -%}
+            {%- if ansible_os_family == 'Debian' -%}
+              deb
+            {%- elif ansible_os_family == 'RedHat' -%}
+              rpm
+            {%- else -%}
+              tar tar.gz tar.bz2 zip
+            {%- endif -%}
+          {%- elif preferred_install_method == 'binary' -%}
+            tar tar.gz tar.bz2 zip
+          {%- else -%}
+            {{ preferred_install_method }}
+          {%- endif -%}
+
+    - name: "Find the name of the installer file for {{ binary_name }}"
+      shell: |
+        bash -c ". {{ role_path }}/files/release_info.sh; find_file_name \"{{ archive_names | join(' ') }}\" {{ ansible_system | lower }} \
+        {{ (binary_name.split('-'))[0] }} \"{{ preferred_install_method_extn }}\""
+      register: archive_name
+      delegate_to: localhost
+
+    - name: "Find Checksum URL(s) for {{ binary_name }} installer"
+      set_fact:
+        checksum_urls: "{{ (gh_binary_latest_release_tag.json.assets | selectattr('name','match','.*(?i)checksum.*')) \
+          | map(attribute='browser_download_url') }}"
+      when:
+        - archive_name.stdout | length > 0
+        - not (archive_name.stdout | regex_search('(?i)(dmg|AppImage)'))
+
+    - name: "Find the Checksum of {{ binary_name }} installer"
+      shell: |
+        bash -c ". {{ role_path }}/files/release_info.sh; find_checksum \"{{ checksum_urls | join(' ') }}\" {{ archive_name.stdout | replace('NO_EXTN','') }}"
+      register: archive_checksum
+      when: checksum_urls is defined and checksum_urls | length > 0
+      delegate_to: localhost
+
+    - name: "Find Checksum URL(s) for {{ binary_name }} installer (AppImage or DMG)"
+      set_fact:
+        checksum_urls_yml: "{{ (gh_binary_latest_release_tag.json.assets \
+          | selectattr('name','match','.*latest-' + ((ansible_system == 'Linux') | ternary('linux','mac')) + '+\\.yml')) \
+          | map(attribute='browser_download_url') | join('') }}"
+      when:
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(dmg|AppImage)')
+
+    - name: "Fetch the Checksum file for {{ binary_name }} installer (AppImage or DMG)"
+      uri:
+        url: "{{ checksum_urls_yml }}"
+        return_content: true
+      register: appimage_checksum_content
+      when: checksum_urls_yml is defined and checksum_urls_yml | length > 0
+
+    - name: "Find Checksum of {{ binary_name }} installer (AppImage or DMG)"
+      set_fact:
+        archive_checksum_appimage: "{{ (appimage_checksum_content.content | from_yaml).files | selectattr('url','equalto',archive_name.stdout) \
+          | map(attribute='sha512') }}"
+      register: appimage_checksum
+      when: checksum_urls_yml is defined and checksum_urls_yml | length > 0
+
+    - name: "Acquire {{ binary_name }}'s latest installer"
+      get_url:
+        url: "https://github.com/{{ repo_user }}/{{ binary_name }}/releases/download/{{ gh_binary_latest_release_tag.json.tag_name }}/\
+          {{ archive_name.stdout | replace('NO_EXTN','') }}"
+        dest: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        checksum: "{{ 'sha256:' + archive_checksum.stdout if (archive_checksum.stdout is defined and archive_checksum.stdout | length > 0) \
+          else ('sha512:' + appimage_checksum.stdout if (appimage_checksum.stdout is defined and appimage_checksum.stdout | length > 0) else omit) }}"
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - "'dmg' not in archive_name.stdout"
+        - not user_local_install or (user_local_install and not (archive_name.stdout | regex_search('(?i)(tar|zip|NO_EXTN)')))
+
+    # @action Ensures GitHub Releases are installed
+    # Installs releases packaged as .deb files on Debian based Systems
+    - name: "Ensure {{ binary_name }} is installed (DEB)"
+      apt:
+        deb: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        state: present
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - ansible_os_family == 'Debian'
+        - "'deb' in archive_name.stdout"
+
+    # @action Ensures GitHub Releases are installed
+    # Installs releases packaged as .rpm files on RedHat based Systems
+    - name: "Ensure {{ binary_name }} is installed (RPM)"
+      dnf:
+        name: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        state: present
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - ansible_os_family == 'RedHat'
+        - "'rpm' in archive_name.stdout"
+
+    # @action Ensures GitHub Releases are installed
+    # Installs releases packaged as AppImages on Linux Systems
+    - name: "Ensure {{ binary_name }} is installed (AppImage)"
+      include_tasks: user-Linux.yml
+      loop: "{{ user_configs }}"
+      loop_control:
+        label: "{{ user.username }}"
+        loop_var: user
+      when:
+        - install_gh_binary
+        - (user.system is not defined) or ((user.system is defined) and (not user.system))
+        - archive_name.stdout | length > 0
+        - "'AppImage' in archive_name.stdout"
+
+    # @action Ensures GitHub Releases are installed
+    # Installs releases to user folders (sudoless/user specific installation)
+    - name: "Ensure {{ binary_name }} is installed to user folder (sudoless)"
+      include_tasks: user-Linux.yml
+      loop: "{{ user_configs }}"
+      loop_control:
+        label: "{{ user.username }}"
+        loop_var: user
+      when:
+        - user_local_install
+        - (user.system is not defined) or ((user.system is defined) and (not user.system))
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip|NO_EXTN)')
+
+    - name: Find the files contained in the archive
+      unarchive:
+        src: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout }}"
+        dest: /tmp
+        remote_src: true
+        list_files: true
+      register: list_archive_files
+      when:
+        - not user_local_install
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip)')
+
+    - name: "Ensure {{ binary_name }} is installed (Archive)"
+      unarchive:
+        src: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout }}"
+        dest: "{{ '/usr/local/src/' + binary_name if ((list_archive_files.files | join(',') | regex_search('(?i)(pak|so|tpl|\\.1)')) or \
+          ('zip' in archive_name.stdout and list_archive_files.files | length > 1)) else '/usr/local/bin' }}"
+        remote_src: true
+        extra_opts: "{{ '--strip-components=1' if ('/' in list_archive_files.files | join(',') and 'tar' in archive_name.stdout) else omit }}"
+        exclude:
+          - README*
+          - LICENSE*
+          - CHANGELOG*
+      when:
+        - not user_local_install
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - archive_name.stdout | regex_search('(?i)(tar|zip)')
+
+    - name: "Find executable name for {{ binary_name }} to link (Archive installation)"
+      find:
+        paths: "/usr/local/src/{{ binary_name }}"
+        depth: 2
+        file_type: file
+        use_regex: true
+        patterns: "{{ '^(?i)' + (binary_name.split('-'))[0] + '$' }}"
+        recurse: true
+      register: executable_link
+      when:
+        - not user_local_install
+        - install_gh_binary
+        - list_archive_files.files is defined and ((list_archive_files.files | join(',') | regex_search('(?i)(pak|so|tpl|\\.1)')) or
+            ('zip' in archive_name.stdout and list_archive_files.files | length > 1))
+
+    - name: "Ensure {{ binary_name }} is linked (Archive installation)"
+      file:
+        src: "{{ executable_link.files[0].path }}"
+        dest: "/usr/local/bin/{{ (executable_link.files[0].path).split('/')[-1] }}"
+        state: link
+      when:
+        - not user_local_install
+        - install_gh_binary
+        - executable_link.files is defined and executable_link.files | length > 0
+
+    - name: "Ensure {{ binary_name }} is installed (Binary)"
+      copy:
+        src: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        dest: /usr/local/bin/{{ (binary_name.split('-'))[0] }}
+        remote_src: true
+        mode: 0755
+      when:
+        - not user_local_install
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - "'NO_EXTN' in archive_name.stdout"
+
+    # @action Ensures GitHub Releases are installed
+    # Installs releases packaged as .dmg files on MacOS Systems
+    - name: "Ensure {{ binary_name }} is installed (DMG)"
+      include_role:
+        name: dmginstall
+      vars:
+        dmgs:
+          - name: "{{ binary_name }}"
+            url: "https://github.com/{{ repo_user }}/{{ binary_name }}/releases/download/{{ gh_binary_latest_release_tag.json.tag_name }}/\
+              {{ archive_name.stdout | replace('NO_EXTN','') }}"
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+        - "'dmg' in archive_name.stdout"
+
+    - name: "Save meta information about the version of {{ binary_name }} that was installed"
+      community.general.ini_file:
+        path: /etc/ansible/facts.d/{{ binary_name }}.fact
+        mode: 0644
+        section: settings
+        option: version
+        value: "{{ gh_binary_latest_release_tag.json.tag_name | replace('v','') }}"
+        no_extra_spaces: true
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+
+    - name: "Ensure {{ binary_name }} installer is removed"
+      file:
+        path: "/usr/local/src/{{ binary_name }}/{{ archive_name.stdout | replace('NO_EXTN','') }}"
+        state: absent
+      when:
+        - install_gh_binary
+        - archive_name.stdout | length > 0
+  when: gh_binary_latest_release_tag.json.assets
+  always:
+    - name: Reset variables
+      set_fact:
+        binary_name: ""
+        repo_user: ""
+        gh_binary_config: ""
+        current_gh_binary_version: ""
+        gh_binary_latest_release_tag: ""
+        archive_names: ""
+        archive_name: ""
+        install_gh_binary: false
+        archive_checksum: ""
+        checksum_urls: ""
+        checksum_urls_yml: ""
+        appimage_checksum_content: ""
+        appimage_checksum: ""

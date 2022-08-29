@@ -2,15 +2,41 @@
 - name: Include variables based on the operating system
   include_vars: "{{ ansible_os_family }}.yml"
 
+# @action Ensures Local System is configured
+# Ensure correct repository setting is configured
+# @action Ensures Local System is configured
+# Removes vault_pass file and autostart .desktop file used for configuration of the master host
+# @action Ensures Local System is configured
+# Installs necessary Python packages on the master host
 - name: Include tasks based on the operating system
   include_tasks: "local-{{ ansible_os_family }}.yml"
   when: ansible_connection == 'local'
 
+# @action Ensures common configuration settings are applied
+# Installs common software packages
+# @action Ensures common configuration settings are applied
+# Install Git
+# @action Ensures common configuration settings are applied
+# Removes unnecessary bloatware
+# @action Ensures common configuration settings are applied
+# Sets the correct hostname
+# @action Ensures common configuration settings are applied
+# Installs OS updates and reboots Windows system if necessary
 - name: Include tasks based on the operating system
   become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: "setup-{{ ansible_os_family }}.yml"
 
+# @action Ensures user configurations are applied
+# Creates necessary Groups
+# @action Ensures user configurations are applied
+# Ensures Users belong to configured Groups
+# @action Ensures user configurations are applied
+# Configures tinypng-cil key
+# @action Ensures user configurations are applied
+# Installs the XFCE [Nord theme](https://github.com/arcticicestudio/nord-xfce-terminal) if XFCE4 is installed
 - name: Run the configuration setup for each user
   include_tasks: user-continue.yml
   loop: "{{ user_configs | default([]) }}"

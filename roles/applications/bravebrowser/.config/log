@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+# @file .config/log
+# @brief Logger that logs pretty console messages
+# @description
+#   This file contains several functions that log content in different formats. The available
+#   log functions include:
+#
+#   * `error` - Logs an error message
+#   * `info` - Logs a regular message
+#   * `star` - Logs a message with a star icon at the beginning
+#   * `success` - Logs a success message
+#   * `warn` - Logs a warning message
+#   * `md` - Log a stylized markdown string or file
+
+# @description Installs Stylog (a logging CLI) from GitHub releases
+# @example installStylog
+installStylog() {
+  true
+}
+
+# @description Configure the logger to use echo or stylog
+if [ "${container:=}" != 'docker' ]; then
+  if [ -f "$HOME/.local/bin/stylog" ]; then
+    chmod +x "$HOME/.local/bin/stylog"
+    STYLOG_PATH="$HOME/.local/bin/stylog"
+    ENHANCED_LOGGING=true
+  elif type stylog &> /dev/null; then
+    STYLOG_PATH="$(which stylog)"
+    ENHANCED_LOGGING=true
+  else
+    installStylog
+  fi
+fi
+
+# @description Logs using Node.js
+# @example logger info "An informative log"
+logger() {
+  $STYLOG_PATH "$1" "$2"
+}
+
+format() {
+  # shellcheck disable=SC2001,SC2016
+  ANSI_STR="$(echo "$1" | sed 's/^\([^`]*\)`\([^`]*\)`/\1\\e[100;1m \2 \\e[0;39m/')"
+  if [[ $ANSI_STR == *'`'*'`'* ]]; then
+    ANSI_STR="$(format "$ANSI_STR")"
+  fi
+  echo -e "$ANSI_STR"
+}
+
+# @description Logs an error message
+# @example .config/log error "Something happened!"
+error() {
+  if [ -n "$ENHANCED_LOGGING" ]; then
+    logger error "$1"
+  else
+    echo -e "\e[1;41m  ERROR   \e[0m $(format "$1")\e[0;39m"
+  fi
+}
+
+# @description Logs an info message
+# @example .config/log info "Here is some information"
+info() {
+  if [ -n "$ENHANCED_LOGGING" ]; then
+    logger info "$1"
+  else
+    echo -e "\e[1;46m   INFO   \e[0m $(format "$1")\e[0;39m"
+  fi
+}
+
+# @description Logs a message written in markdown
+# @example .config/log md "[styled_link](https://google.com)"
+# @example .config/log md mymarkdown/file.md
+md() {
+  if [ -n "$ENHANCED_LOGGING" ]; then
+    logger info "$1"
+  fi
+}
+
+# @description Logs a message that starts with a star emoji
+# @example .config/log star "Congratulations"
+star() {
+  if [ -n "$ENHANCED_LOGGING" ]; then
+    logger star "$1"
+  else
+    echo -e "\e[1;104m   STAR   \e[0m $(format "$1")\e[0;39m"
+  fi
+}
+
+# @description Logs a success message
+# @example .config/log success "Yay!"
+success() {
+  if [ -n "$ENHANCED_LOGGING" ]; then
+    logger success "$1"
+  else
+    echo -e "\e[1;42m SUCCESS  \e[0m $(format "$1")\e[0;39m"
+  fi
+}
+
+# @description Logs a warning message
+# @example .config/log warn "Just so you know.."
+warn() {
+  if [ -n "$ENHANCED_LOGGING" ]; then
+    logger warn "$1"
+  else
+    echo -e "\e[1;43m WARNING  \e[0m $(format "$1")\e[0;39m"
+  fi
+}
+
+if [ -n "$1" ] && [ -n "$2" ]; then
+  if [ "$1" == 'warn' ] || [ "$1" == 'success' ] || [ "$1" == 'star' ] || [ "$1" == 'info' ] \
+  || [ "$1" == 'error' ] || [ "$1" == 'md' ]; then
+    "$1" "$2"
+  fi
+fi

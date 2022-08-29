@@ -1,0 +1,965 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.slackterm"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.slackterm"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Saturday 08 January 2022  06:51:43 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Saturday 08 January 2022  06:51:52 -0500 (0:00:09.610)       0:00:09.624 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Saturday 08 January 2022  06:51:53 -0500 (0:00:00.394)       0:00:10.018 ******
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Saturday 08 January 2022  06:52:22 -0500 (0:00:29.045)       0:00:39.064 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Saturday 08 January 2022  06:52:22 -0500 (0:00:00.176)       0:00:39.241 ******
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Saturday 08 January 2022  06:52:22 -0500 (0:00:00.329)       0:00:39.571 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 29.05s
+Gathering Facts --------------------------------------------------------- 9.61s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Dump instance config ---------------------------------------------------- 0.33s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+playbook: /home/hawkwood/gas-station/roles/tools/slackterm/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Saturday 08 January 2022  06:52:25 -0500 (0:00:00.013)       0:00:00.013 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Saturday 08 January 2022  06:52:35 -0500 (0:00:09.521)       0:00:09.535 ******
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Saturday 08 January 2022  06:52:35 -0500 (0:00:00.354)       0:00:09.890 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Saturday 08 January 2022  07:02:13 -0500 (0:09:37.768)       0:09:47.659 ******
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/slackterm/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/slackterm/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Saturday 08 January 2022  07:02:14 -0500 (0:00:00.982)       0:09:48.641 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Saturday 08 January 2022  07:02:14 -0500 (0:00:00.166)       0:09:48.808 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Saturday 08 January 2022  07:02:15 -0500 (0:00:01.054)       0:09:49.863 ******
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 577.77s
+Gathering Facts --------------------------------------------------------- 9.52s
+Dump instance config ---------------------------------------------------- 1.05s
+Populate instance config dict ------------------------------------------- 0.98s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.35s
+Convert instance config dict to a list ---------------------------------- 0.17s
+Playbook run took 0 days, 0 hours, 9 minutes, 49 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Saturday 08 January 2022  07:02:17 -0500 (0:00:00.028)       0:00:00.028 ******
+skipping: [Windows-10]
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Saturday 08 January 2022  07:02:38 -0500 (0:00:20.821)       0:00:20.849 ******
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 20.82s
+Playbook run took 0 days, 0 hours, 0 minutes, 20 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Saturday 08 January 2022  07:02:40 -0500 (0:00:00.025)       0:00:00.025 ******
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [CentOS-8]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Fedora-33]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [CentOS-Stream-8]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Include variables based on the operating system] ***
+Saturday 08 January 2022  07:02:43 -0500 (0:00:02.730)       0:00:02.756 ******
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : include_tasks] ****************************
+Saturday 08 January 2022  07:02:43 -0500 (0:00:00.125)       0:00:02.882 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.slackterm : Run generic Linux tasks] ******************
+Saturday 08 January 2022  07:02:43 -0500 (0:00:00.198)       0:00:03.081 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Linux.yml for ArchLinux-Latest
+
+TASK [professormanhattan.slackterm : Ensure custom facts directory exists] *****
+Saturday 08 January 2022  07:02:44 -0500 (0:00:00.078)       0:00:03.159 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:02:44 -0500 (0:00:00.329)       0:00:03.488 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:02:44 -0500 (0:00:00.540)       0:00:04.029 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:02:45 -0500 (0:00:00.065)       0:00:04.094 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:02:46 -0500 (0:00:01.040)       0:00:05.135 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/user-Linux.yml for ArchLinux-Latest => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists] ***
+Saturday 08 January 2022  07:02:46 -0500 (0:00:00.071)       0:00:05.206 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's token is set] *********
+Saturday 08 January 2022  07:02:46 -0500 (0:00:00.205)       0:00:05.412 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:02:46 -0500 (0:00:00.578)       0:00:05.990 ******
+changed: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Run generic Linux tasks] ******************
+Saturday 08 January 2022  07:02:47 -0500 (0:00:00.324)       0:00:06.315 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.slackterm : Ensure custom facts directory exists] *****
+Saturday 08 January 2022  07:02:47 -0500 (0:00:00.110)       0:00:06.425 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:02:47 -0500 (0:00:00.456)       0:00:06.882 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:02:48 -0500 (0:00:00.704)       0:00:07.586 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:02:48 -0500 (0:00:00.091)       0:00:07.678 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [Fedora-35]
+changed: [CentOS-Stream-8]
+changed: [Fedora-34]
+changed: [Fedora-33]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:02:51 -0500 (0:00:02.525)       0:00:10.203 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/user-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists] ***
+Saturday 08 January 2022  07:02:51 -0500 (0:00:00.159)       0:00:10.363 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-34]
+changed: [Fedora-33]
+changed: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's token is set] *********
+Saturday 08 January 2022  07:02:51 -0500 (0:00:00.444)       0:00:10.807 ******
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:02:52 -0500 (0:00:00.739)       0:00:11.546 ******
+changed: [CentOS-7]
+changed: [CentOS-Stream-8]
+changed: [CentOS-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.slackterm : Run generic Linux tasks] ******************
+Saturday 08 January 2022  07:02:52 -0500 (0:00:00.466)       0:00:12.013 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.slackterm : Ensure custom facts directory exists] *****
+Saturday 08 January 2022  07:02:53 -0500 (0:00:00.136)       0:00:12.150 ******
+changed: [Debian-10-Buster]
+changed: [Debian-9-Stretch]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:02:53 -0500 (0:00:00.333)       0:00:12.484 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:02:53 -0500 (0:00:00.527)       0:00:13.011 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:02:54 -0500 (0:00:00.114)       0:00:13.125 ******
+changed: [Debian-9-Stretch]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:02:57 -0500 (0:00:03.285)       0:00:16.411 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/user-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists] ***
+Saturday 08 January 2022  07:02:57 -0500 (0:00:00.150)       0:00:16.561 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's token is set] *********
+Saturday 08 January 2022  07:02:57 -0500 (0:00:00.313)       0:00:16.875 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:02:58 -0500 (0:00:00.582)       0:00:17.457 ******
+changed: [Debian-9-Stretch]
+changed: [Debian-10-Buster]
+changed: [Debian-11-Bullseye]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Ensure Megabyte Labs configuration directory exists] ***
+Saturday 08 January 2022  07:02:58 -0500 (0:00:00.399)       0:00:17.857 ******
+ok: [Windows-10] => (item=%USERPROFILE%\.config)
+ok: [Windows-10] => (item=%USERPROFILE%\.config\megabytelabs)
+
+TASK [professormanhattan.slackterm : Ensure C:\Program Files\slackterm directory exists] ***
+Saturday 08 January 2022  07:03:02 -0500 (0:00:03.812)       0:00:21.669 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.slackterm : Check if slack-term has configuration stored in '%USERPROFILE%/.config/megabytelabs/slackterm'] ***
+Saturday 08 January 2022  07:03:04 -0500 (0:00:01.959)       0:00:23.629 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Detect previously installed slack-term version] ***
+Saturday 08 January 2022  07:03:06 -0500 (0:00:02.350)       0:00:25.980 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:03:06 -0500 (0:00:00.072)       0:00:26.052 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:03:09 -0500 (0:00:02.619)       0:00:28.672 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Check if slack-term's source is present] ***
+Saturday 08 January 2022  07:03:09 -0500 (0:00:00.078)       0:00:28.751 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's source is cloned] *****
+Saturday 08 January 2022  07:03:12 -0500 (0:00:02.369)       0:00:31.120 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's source is up-to-date] ***
+Saturday 08 January 2022  07:03:18 -0500 (0:00:06.117)       0:00:37.237 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:03:18 -0500 (0:00:00.067)       0:00:37.305 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term installation is added to PATH] ***
+Saturday 08 January 2022  07:03:37 -0500 (0:00:19.115)       0:00:56.420 ******
+changed: [Windows-10]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:03:39 -0500 (0:00:01.734)       0:00:58.154 ******
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:03:39 -0500 (0:00:00.073)       0:00:58.228 ******
+changed: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=12   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=13   changed=5    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
+
+Saturday 08 January 2022  07:03:43 -0500 (0:00:04.352)       0:01:02.580 ******
+===============================================================================
+professormanhattan.slackterm : Ensure slack-term is installed ---------- 19.12s
+professormanhattan.slackterm : Ensure slack-term's source is cloned ----- 6.12s
+professormanhattan.slackterm : Save meta information about the version of slack-term that was installed --- 4.35s
+professormanhattan.slackterm : Ensure Megabyte Labs configuration directory exists --- 3.81s
+professormanhattan.slackterm : Ensure slack-term is installed ----------- 3.29s
+Gathering Facts --------------------------------------------------------- 2.73s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 2.62s
+professormanhattan.slackterm : Ensure slack-term is installed ----------- 2.53s
+professormanhattan.slackterm : Check if slack-term's source is present --- 2.37s
+professormanhattan.slackterm : Check if slack-term has configuration stored in '%USERPROFILE%/.config/megabytelabs/slackterm' --- 2.35s
+professormanhattan.slackterm : Ensure C:\Program Files\slackterm directory exists --- 1.96s
+professormanhattan.slackterm : Ensure slack-term installation is added to PATH --- 1.73s
+professormanhattan.slackterm : Ensure slack-term is installed ----------- 1.04s
+professormanhattan.slackterm : Ensure slack-term's token is set --------- 0.74s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 0.70s
+professormanhattan.slackterm : Ensure slack-term's token is set --------- 0.58s
+professormanhattan.slackterm : Ensure slack-term's token is set --------- 0.58s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 0.54s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 0.53s
+professormanhattan.slackterm : Save meta information about the version of slack-term that was installed --- 0.47s
+Playbook run took 0 days, 0 hours, 1 minutes, 2 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Saturday 08 January 2022  07:03:45 -0500 (0:00:00.025)       0:00:00.025 ******
+ok: [Debian-9-Stretch]
+ok: [CentOS-7]
+ok: [Debian-10-Buster]
+ok: [ArchLinux-Latest]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [CentOS-8]
+ok: [Fedora-33]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Include variables based on the operating system] ***
+Saturday 08 January 2022  07:03:48 -0500 (0:00:02.589)       0:00:02.614 ******
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : include_tasks] ****************************
+Saturday 08 January 2022  07:03:48 -0500 (0:00:00.134)       0:00:02.749 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Windows.yml for Windows-10
+
+TASK [professormanhattan.slackterm : Run generic Linux tasks] ******************
+Saturday 08 January 2022  07:03:48 -0500 (0:00:00.212)       0:00:02.961 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Linux.yml for ArchLinux-Latest
+
+TASK [professormanhattan.slackterm : Ensure custom facts directory exists] *****
+Saturday 08 January 2022  07:03:48 -0500 (0:00:00.079)       0:00:03.041 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:03:49 -0500 (0:00:00.336)       0:00:03.377 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:03:49 -0500 (0:00:00.509)       0:00:03.887 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:03:49 -0500 (0:00:00.065)       0:00:03.953 ******
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:03:49 -0500 (0:00:00.061)       0:00:04.015 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/user-Linux.yml for ArchLinux-Latest => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists] ***
+Saturday 08 January 2022  07:03:49 -0500 (0:00:00.075)       0:00:04.090 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's token is set] *********
+Saturday 08 January 2022  07:03:50 -0500 (0:00:00.204)       0:00:04.295 ******
+ok: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:03:50 -0500 (0:00:00.565)       0:00:04.860 ******
+skipping: [ArchLinux-Latest]
+
+TASK [professormanhattan.slackterm : Run generic Linux tasks] ******************
+Saturday 08 January 2022  07:03:50 -0500 (0:00:00.065)       0:00:04.925 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+
+TASK [professormanhattan.slackterm : Ensure custom facts directory exists] *****
+Saturday 08 January 2022  07:03:50 -0500 (0:00:00.118)       0:00:05.044 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:03:51 -0500 (0:00:00.449)       0:00:05.494 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:03:51 -0500 (0:00:00.587)       0:00:06.082 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-34]
+ok: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:03:51 -0500 (0:00:00.092)       0:00:06.174 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:03:52 -0500 (0:00:00.090)       0:00:06.265 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/user-Linux.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35 => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists] ***
+Saturday 08 January 2022  07:03:52 -0500 (0:00:00.165)       0:00:06.430 ******
+ok: [CentOS-7]
+ok: [CentOS-Stream-8]
+ok: [CentOS-8]
+ok: [Fedora-34]
+ok: [Fedora-33]
+ok: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's token is set] *********
+Saturday 08 January 2022  07:03:52 -0500 (0:00:00.414)       0:00:06.845 ******
+ok: [CentOS-7]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:03:53 -0500 (0:00:00.662)       0:00:07.507 ******
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.slackterm : Run generic Linux tasks] ******************
+Saturday 08 January 2022  07:03:53 -0500 (0:00:00.132)       0:00:07.640 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/install-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.slackterm : Ensure custom facts directory exists] *****
+Saturday 08 January 2022  07:03:53 -0500 (0:00:00.127)       0:00:07.767 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:03:53 -0500 (0:00:00.317)       0:00:08.084 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:03:54 -0500 (0:00:00.467)       0:00:08.552 ******
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Debian-9-Stretch]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:03:54 -0500 (0:00:00.101)       0:00:08.654 ******
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:03:54 -0500 (0:00:00.130)       0:00:08.785 ******
+included: /home/hawkwood/gas-station/roles/tools/slackterm/tasks/user-Linux.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists] ***
+Saturday 08 January 2022  07:03:54 -0500 (0:00:00.148)       0:00:08.933 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's token is set] *********
+Saturday 08 January 2022  07:03:55 -0500 (0:00:00.338)       0:00:09.272 ******
+ok: [Debian-9-Stretch]
+ok: [Debian-11-Bullseye]
+ok: [Debian-10-Buster]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:03:55 -0500 (0:00:00.521)       0:00:09.793 ******
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+
+TASK [professormanhattan.slackterm : Ensure Megabyte Labs configuration directory exists] ***
+Saturday 08 January 2022  07:03:55 -0500 (0:00:00.127)       0:00:09.921 ******
+ok: [Windows-10] => (item=%USERPROFILE%\.config)
+ok: [Windows-10] => (item=%USERPROFILE%\.config\megabytelabs)
+
+TASK [professormanhattan.slackterm : Ensure C:\Program Files\slackterm directory exists] ***
+Saturday 08 January 2022  07:03:59 -0500 (0:00:03.547)       0:00:13.469 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Check if slack-term has configuration stored in '%USERPROFILE%/.config/megabytelabs/slackterm'] ***
+Saturday 08 January 2022  07:04:01 -0500 (0:00:01.893)       0:00:15.362 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Detect previously installed slack-term version] ***
+Saturday 08 January 2022  07:04:03 -0500 (0:00:02.374)       0:00:17.737 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Detect the latest slack-term version] *****
+Saturday 08 January 2022  07:04:05 -0500 (0:00:02.170)       0:00:19.907 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Determine whether or not the latest version of slack-term is already installed] ***
+Saturday 08 January 2022  07:04:08 -0500 (0:00:02.419)       0:00:22.326 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Check if slack-term's source is present] ***
+Saturday 08 January 2022  07:04:08 -0500 (0:00:00.072)       0:00:22.398 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's source is cloned] *****
+Saturday 08 January 2022  07:04:10 -0500 (0:00:02.365)       0:00:24.764 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term's source is up-to-date] ***
+Saturday 08 January 2022  07:04:10 -0500 (0:00:00.068)       0:00:24.833 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term is installed] ***********
+Saturday 08 January 2022  07:04:10 -0500 (0:00:00.102)       0:00:24.935 ******
+skipping: [Windows-10]
+
+TASK [professormanhattan.slackterm : Ensure slack-term installation is added to PATH] ***
+Saturday 08 January 2022  07:04:10 -0500 (0:00:00.067)       0:00:25.003 ******
+ok: [Windows-10]
+
+TASK [professormanhattan.slackterm : Run user configuration tasks] *************
+Saturday 08 January 2022  07:04:12 -0500 (0:00:01.740)       0:00:26.743 ******
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.slackterm : Save meta information about the version of slack-term that was installed] ***
+Saturday 08 January 2022  07:04:12 -0500 (0:00:00.082)       0:00:26.825 ******
+skipping: [Windows-10]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+CentOS-7                   : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+CentOS-8                   : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+CentOS-Stream-8            : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Debian-10-Buster           : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Debian-9-Stretch           : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Fedora-33                  : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Fedora-34                  : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Fedora-35                  : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=10   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+Windows-10                 : ok=11   changed=0    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0
+
+Saturday 08 January 2022  07:04:12 -0500 (0:00:00.132)       0:00:26.958 ******
+===============================================================================
+professormanhattan.slackterm : Ensure Megabyte Labs configuration directory exists --- 3.55s
+Gathering Facts --------------------------------------------------------- 2.59s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 2.42s
+professormanhattan.slackterm : Check if slack-term has configuration stored in '%USERPROFILE%/.config/megabytelabs/slackterm' --- 2.37s
+professormanhattan.slackterm : Check if slack-term's source is present --- 2.37s
+professormanhattan.slackterm : Detect previously installed slack-term version --- 2.17s
+professormanhattan.slackterm : Ensure C:\Program Files\slackterm directory exists --- 1.89s
+professormanhattan.slackterm : Ensure slack-term installation is added to PATH --- 1.74s
+professormanhattan.slackterm : Ensure slack-term's token is set --------- 0.66s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 0.59s
+professormanhattan.slackterm : Ensure slack-term's token is set --------- 0.57s
+professormanhattan.slackterm : Ensure slack-term's token is set --------- 0.52s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 0.51s
+professormanhattan.slackterm : Detect the latest slack-term version ----- 0.47s
+professormanhattan.slackterm : Ensure custom facts directory exists ----- 0.45s
+professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists --- 0.41s
+professormanhattan.slackterm : Ensure ~/.config/slack-term directory exists --- 0.34s
+professormanhattan.slackterm : Ensure custom facts directory exists ----- 0.34s
+professormanhattan.slackterm : Ensure custom facts directory exists ----- 0.32s
+professormanhattan.slackterm : include_tasks ---------------------------- 0.21s
+Playbook run took 0 days, 0 hours, 0 minutes, 26 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Saturday 08 January 2022  07:04:16 -0500 (0:00:00.014)       0:00:00.014 ******
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Saturday 08 January 2022  07:04:27 -0500 (0:00:10.899)       0:00:10.913 ******
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Saturday 08 January 2022  07:04:28 -0500 (0:00:00.393)       0:00:11.307 ******
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Saturday 08 January 2022  07:07:02 -0500 (0:02:34.355)       0:02:45.663 ******
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Saturday 08 January 2022  07:07:02 -0500 (0:00:00.193)       0:02:45.856 ******
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Saturday 08 January 2022  07:07:03 -0500 (0:00:00.912)       0:02:46.768 ******
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 154.36s
+Gathering Facts -------------------------------------------------------- 10.90s
+Dump instance config ---------------------------------------------------- 0.91s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.39s
+Populate instance config ------------------------------------------------ 0.19s
+Playbook run took 0 days, 0 hours, 2 minutes, 46 seconds

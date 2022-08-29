@@ -1,0 +1,58 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/hexyl'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\hexyl'
+  register: hexyl_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type hexyl
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_hexyl_version
+  when: hexyl_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/sharkdp/hexyl/releases/latest
+    return_content: true
+  register: hexyl_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_hexyl: "{{ (current_hexyl_version.skipped | default(false)) or \
+      ((not current_hexyl_version.skipped | default(false)) and \
+      (current_hexyl_version.stdout | trim != hexyl_latest_release_tag.json.tag_name | replace('v','') )) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  ansible.windows.win_file:
+    path: '%PROGRAMFILES%\hexyl\hexyl'
+    state: absent
+  when: install_hexyl
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_shell: |
+    cargo install hexyl --root "C:\Program Files\hexyl"
+  args:
+    creates: '%PROGRAMFILES%\hexyl\hexyl'
+  when: install_hexyl
+
+- name: "Add '%PROGRAMFILES%/hexyl' to PATH"
+  ansible.windows.win_path:
+    elements: '%PROGRAMFILES%\hexyl\bin'
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\hexyl'
+    content: |
+      {{ hexyl_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_hexyl

@@ -1,2 +1,16 @@
 ---
-[] # TODO
+- name: "Ensure {{ app_name }} is installed"
+  community.general.pacman:
+    name: samba
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: Perform generic Linux tasks
+  include_tasks: install-Linux.yml
+
+- name: Restart Samba and enable on start-up
+  systemd:
+    name: smbd
+    state: restarted
+    enabled: true
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

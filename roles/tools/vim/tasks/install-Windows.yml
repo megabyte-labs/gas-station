@@ -1,27 +1,19 @@
 ---
+- name: Ensure plugin dependencies are installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ plugin_dependencies }}"
+    state: present
+
 - name: "Ensure {{ app_name }} is installed"
   chocolatey.chocolatey.win_chocolatey:
     name: vim
     state: "{{ app_state | default('present') }}"
-    package_params:
-      - "/installLocation:{{ vim_install_path }}"
+    package_params: /InstallDir:{{ vim_install_path }}"
 
-- name: Ensure vim-plug is installed
-  become_user: "{{ user.username }}"
-  include_tasks: plugins/install-Windows.yml
-
-- name: Ensure vimrc is setup
-  become_user: "{{ user.username }}"
-  ansible.windows.win_template:
-    src: vimrc.j2
-    dest: '%USERPROFILE%\_vimrc'
-
-- name: Ensure plugins are installed # noqa 301
-  become_user: "{{ user.username }}"
-  ansible.windows.win_command: "vim +'PlugInstall --sync' +qa"
-
-- name: Ensure plugins are setup # noqa 503
-  become_user: "{{ user.username }}"
-  ansible.windows.win_command: "{{ item.command }}"
-  loop: "{{ vim_plugins }}"
-  when: item.command is defined
+- name: Run user configuration tasks
+  include_tasks: user-Windows.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

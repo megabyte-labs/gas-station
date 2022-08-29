@@ -1,0 +1,17 @@
+---
+- name: "Register MAS installed apps"
+  become: false
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  command: mas list
+  register: mas_list
+  changed_when: false
+
+- name: "Ensure {{ app_name }} is installed"
+  become: false
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  command: "mas install '{{ mstodo_mas_id }}'"
+  args:
+    creates: "{{ mstodo_build }}"
+  when: (mstodo_mas_id | string) not in mas_list.stdout

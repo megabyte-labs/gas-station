@@ -1,0 +1,78 @@
+---
+- name: Ensure users' extensions directory exists
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    mode: 0775
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.vscode
+    - ~/.vscode/extensions
+  when: user.vscode_extensions | default([]) | length
+
+- name: Install users' extensions
+  include_tasks: extension-Linux.yml
+  loop: "{{ user.vscode_extensions | default([]) }}"
+  loop_control:
+    loop_var: extension
+
+- name: Check if the settings.json file exists
+  become: true
+  become_user: "{{ user.username }}"
+  stat:
+    path: "{{ settings_path }}"
+  register: settings_stat
+
+- name: Fetch the Theme file
+  become: true
+  become_user: "{{ user.username }}"
+  uri:
+    url: https://github.com/mbadolato/iTerm2-Color-Schemes/raw/master/vscode/Solarized%20Dark%20-%20Patched.json
+    return_content: true
+  register: solarized_theme_vscode
+
+- name: "Ensure {{ settings_path | replace('settings.json','') }} exists"
+  become: true
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ settings_path | replace('settings.json','') }}"
+    state: directory
+    mode: 0700
+
+- name: Create the settings.json file
+  become: true
+  become_user: "{{ user.username }}"
+  copy:
+    dest: "{{ settings_path }}"
+    content: "{{ solarized_theme_vscode.content }}"
+    mode: 0600
+  when: not settings_stat.stat.exists
+
+- name: Ensure Theme is setup
+  become: true
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: "{{ settings_path }}"
+    block: ",{{ solarized_theme_vscode.content | trim('\n') | trim('{') | trim ('}') }}"
+    insertbefore: "^}$"
+
+- name: "Determine if iTerm2 theme sync plugin extension is already present"
+  become: true
+  become_user: "{{ user.username }}"
+  command: ls
+  args:
+    chdir: ~/.vscode/extensions
+  register: extension_ls
+  changed_when: false
+  when: user.vscode_extensions | default([]) | length
+
+- name: Install iTerm2 theme sync plugin for VS Code
+  become: true
+  become_user: "{{ user.username }}"
+  command: "{{ code_binary_path }} --install-extension tusaeff.vscode-iterm2-theme-sync"
+  when:
+    - ansible_os_family == 'Darwin'
+    - user.vscode_extensions | default([]) | length
+    - extension_ls is defined
+    - not ('tusaeff.vscode-iterm2-theme-sync' in extension_ls.stdout)

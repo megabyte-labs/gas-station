@@ -1,0 +1,43 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/evilsocket/opensnitch/releases/latest
+  register: snitch_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+  set_fact:
+    install_snitch: "{{ (ansible_local.snitch is not defined) or \
+      ((ansible_local.snitch is defined) and \
+      (ansible_local['snitch']['settings']['version'] != snitch_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  apt:
+    deb: "https://github.com/evilsocket/opensnitch/releases/download/{{ snitch_latest_release_tag.json.tag_name }}/{{ item }}"
+    state: present
+  when: install_snitch
+  loop:
+    - "opensnitch_{{ snitch_latest_release_tag.json.tag_name | replace('v','') }}-1_amd64.deb"
+    - "python3-opensnitch-ui_{{ snitch_latest_release_tag.json.tag_name | replace('v','') }}-1_all.deb"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/snitch.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ snitch_latest_release_tag.json.tag_name | replace('v','') }}"
+    no_extra_spaces: true
+  when: install_snitch
+
+- name: Ensure opensnitch service is enabled and started
+  systemd:
+    name: opensnitch
+    enabled: true
+    state: started
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

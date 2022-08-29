@@ -65,14 +65,10 @@
     name: "{{ vagrant_plugin_dependencies }}"
     state: present
 
-- name: Find installed plugins
-  ansible.windows.win_command: vagrant plugin list
-  register: vagrant_plugins_installed
-  changed_when: false
-
-- name: "Ensure user-specified {{ app_name }} plugins are installed"
-  ansible.windows.win_command: "vagrant plugin install {{ plugin }}"
-  loop: "{{ vagrant_plugins }}"
+- name: Run Plugin setup tasks
+  include_tasks: plugins-Windows.yml
+  loop: "{{ user_configs }}"
   loop_control:
-    loop_var: plugin
-  when: plugin not in vagrant_plugins_installed.stdout
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

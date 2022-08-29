@@ -1,0 +1,943 @@
+task: [install:software:common:linux:redhat] mkdir -p "$HOME/.config/mblabs"
+task: [install:software:common:linux:redhat] if [ ! -f "$HOME/.config/mblabs/yum-devtools-check-ran" ]; then
+  yum grouplist 'Development Tools' &> "$HOME/.config/mblabs/yum-devtools-check-ran"
+  DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/mblabs/yum-devtools-check-ran" > /dev/null)"
+  if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+    sudo yum groupinstall -y 'Development Tools'
+  fi
+  touch "$HOME/.config/mblabs/yum-devtools-check-ran"
+fi
+if ! rpm --quiet --query curl file git procps-ng; then
+  .config/log info 'Attempting to install Homebrew dependencies (sudo password required)'
+  sudo yum install -y curl file git procps-ng
+fi
+if [ -f '/etc/os-release' ]; then
+  source /etc/os-release
+  if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+    if ! rpm --quiet --query libxcrypt-compat; then
+      .config/log info 'Attempting to install Fedora-specific Homebrew dependency (sudo password required)'
+      sudo yum -y install libxcrypt-compat
+    fi
+  fi
+fi
+
+task: Task "install:software:brew:linux" is up to date
+task: Task "install:install-doctor" is up to date
+task: [install:python:requirements:poetry:prereqs] if ! which gcc-5 > /dev/null; then
+  if which gcc; then
+    if [ -w /usr/local/bin ]; then
+      ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    else
+      .config/log info 'It looks like your system is missing gcc-5 but gcc is available. You will be prompted for a password to run:'
+      .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+      sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+    fi
+  else
+    .config/log warn '`gcc` is missing.'
+  fi
+fi
+
+task: Task "install:software:poetry" is up to date
+task: Task "install:python:requirements:poetry" is up to date
+task: Task "ansible:galaxy:requirements" is up to date
+task: [ansible:test:molecule:dependencies] poetry run  ansible-galaxy install --ignore-errors -r requirements.yml
+Starting galaxy role install process
+[WARNING]: - professormanhattan.homebrew (master) is already installed - use
+--force to change version to unspecified
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+task: [symlink:role] mkdir -p "$HOME/.ansible/roles"
+task: [symlink:role] rm -rf "$HOME/.ansible/roles/professormanhattan.cups"
+task: [symlink:role] ln -sf "$PWD" "$HOME/.ansible/roles/professormanhattan.cups"
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  01:58:51 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  01:59:01 -0500 (0:00:09.518)       0:00:09.532 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  01:59:01 -0500 (0:00:00.368)       0:00:09.900 ********
+ok: [localhost] => (item=ArchLinux-Latest)
+ok: [localhost] => (item=CentOS-7)
+ok: [localhost] => (item=CentOS-8)
+ok: [localhost] => (item=CentOS-Stream-8)
+ok: [localhost] => (item=Debian-9-Stretch)
+ok: [localhost] => (item=Debian-10-Buster)
+ok: [localhost] => (item=Debian-11-Bullseye)
+ok: [localhost] => (item=Fedora-33)
+ok: [localhost] => (item=Fedora-34)
+ok: [localhost] => (item=Fedora-35)
+ok: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+ok: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+ok: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+ok: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+ok: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  01:59:30 -0500 (0:00:28.876)       0:00:38.777 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  01:59:30 -0500 (0:00:00.179)       0:00:38.956 ********
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+Friday 07 January 2022  01:59:30 -0500 (0:00:00.330)       0:00:39.286 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------- 28.88s
+Gathering Facts --------------------------------------------------------- 9.52s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.37s
+Dump instance config ---------------------------------------------------- 0.33s
+Populate instance config ------------------------------------------------ 0.18s
+Playbook run took 0 days, 0 hours, 0 minutes, 39 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-35
+
+playbook: /home/hawkwood/gas-station/roles/services/cups/molecule/converge.yml
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: CentOS-8
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  01:59:33 -0500 (0:00:00.013)       0:00:00.013 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  01:59:43 -0500 (0:00:09.510)       0:00:09.524 ********
+skipping: [localhost]
+
+PLAY [Create] ******************************************************************
+
+TASK [Create molecule instance(s)] *********************************************
+Friday 07 January 2022  01:59:43 -0500 (0:00:00.359)       0:00:09.884 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config dict] *******************************************
+Friday 07 January 2022  02:09:04 -0500 (0:09:21.103)       0:09:30.987 ********
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-ArchLinux-Latest.out', 'Host': 'ArchLinux-Latest', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2214', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/ArchLinux-Latest/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'ArchLinux-Latest', 'platform_box': 'archlinux/archlinux', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'archlinux/archlinux', 'cpus': 1, 'groups': ['ArchLinux', 'Linux'], 'memory': 512, 'name': 'ArchLinux-Latest', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-CentOS-7.out', 'Host': 'CentOS-7', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2215', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/CentOS-7/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-7', 'platform_box': 'bento/centos-7', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-7', 'cpus': 1, 'groups': ['CentOS', 'CentOS-7', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-7', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-CentOS-8.out', 'Host': 'CentOS-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2216', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/CentOS-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-8', 'platform_box': 'bento/centos-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-CentOS-Stream-8.out', 'Host': 'CentOS-Stream-8', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2217', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/CentOS-Stream-8/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'CentOS-Stream-8', 'platform_box': 'bento/centos-stream-8', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/centos-stream-8', 'cpus': 1, 'groups': ['CentOS', 'CentOS-Stream-8', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'CentOS-Stream-8', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Debian-9-Stretch.out', 'Host': 'Debian-9-Stretch', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2218', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Debian-9-Stretch/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-9-Stretch', 'platform_box': 'bento/debian-9', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-9', 'cpus': 1, 'groups': ['Debian', 'Debian-9', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-9-Stretch', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Debian-10-Buster.out', 'Host': 'Debian-10-Buster', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2219', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Debian-10-Buster/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-10-Buster', 'platform_box': 'bento/debian-10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-10', 'cpus': 1, 'groups': ['Debian', 'Debian-10', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-10-Buster', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Debian-11-Bullseye.out', 'Host': 'Debian-11-Bullseye', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2220', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Debian-11-Bullseye/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Debian-11-Bullseye', 'platform_box': 'bento/debian-11.1', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/debian-11.1', 'cpus': 1, 'groups': ['Debian', 'Debian-11', 'Debian-Flavor', 'Linux'], 'memory': 512, 'name': 'Debian-11-Bullseye', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Fedora-33.out', 'Host': 'Fedora-33', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2221', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Fedora-33/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-33', 'platform_box': 'alvistack/fedora-33', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-33', 'cpus': 1, 'groups': ['Fedora', 'Fedora-33', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-33', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Fedora-34.out', 'Host': 'Fedora-34', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2223', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Fedora-34/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-34', 'platform_box': 'alvistack/fedora-34', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-34', 'cpus': 1, 'groups': ['Fedora', 'Fedora-34', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-34', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Fedora-35.out', 'Host': 'Fedora-35', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2224', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Fedora-35/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Fedora-35', 'platform_box': 'alvistack/fedora-35', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/fedora-35', 'cpus': 1, 'groups': ['Fedora', 'Fedora-35', 'Linux', 'RedHat-Flavor'], 'memory': 512, 'name': 'Fedora-35', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Ubuntu-18.04-Bionic-Beaver.out', 'Host': 'Ubuntu-18.04-Bionic-Beaver', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2225', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Ubuntu-18.04-Bionic-Beaver/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-18.04-Bionic-Beaver', 'platform_box': 'bento/ubuntu-18.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-18.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-18.04'], 'memory': 512, 'name': 'Ubuntu-18.04-Bionic-Beaver', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Ubuntu-20.04-Focal-Fossa.out', 'Host': 'Ubuntu-20.04-Focal-Fossa', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2226', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Ubuntu-20.04-Focal-Fossa/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-20.04-Focal-Fossa', 'platform_box': 'bento/ubuntu-20.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-20.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-20.04'], 'memory': 512, 'name': 'Ubuntu-20.04-Focal-Fossa', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Ubuntu-21.04-Hirsute-Hippo.out', 'Host': 'Ubuntu-21.04-Hirsute-Hippo', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2227', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Ubuntu-21.04-Hirsute-Hippo/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.04-Hirsute-Hippo', 'platform_box': 'bento/ubuntu-21.04', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'bento/ubuntu-21.04', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.04'], 'memory': 512, 'name': 'Ubuntu-21.04-Hirsute-Hippo', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Ubuntu-21.10-Impish-Indri.out', 'Host': 'Ubuntu-21.10-Impish-Indri', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2228', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Ubuntu-21.10-Impish-Indri/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Ubuntu-21.10-Impish-Indri', 'platform_box': 'alvistack/ubuntu-21.10', 'provider_name': 'virtualbox', 'provider_memory': 512, 'provider_cpus': 1, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'alvistack/ubuntu-21.10', 'cpus': 1, 'groups': ['Debian-Flavor', 'Linux', 'Ubuntu', 'Ubuntu-21.10'], 'memory': 512, 'name': 'Ubuntu-21.10-Impish-Indri', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]"]}, 'ansible_loop_var': 'item'})
+ok: [localhost] => (item={'changed': True, 'log': '/home/hawkwood/.cache/molecule/cups/default/vagrant-Windows-10.out', 'Host': 'Windows-10', 'HostName': '127.0.0.1', 'User': 'vagrant', 'Port': '2229', 'UserKnownHostsFile': '/dev/null', 'StrictHostKeyChecking': 'no', 'PasswordAuthentication': 'no', 'IdentityFile': '/home/hawkwood/.cache/molecule/cups/default/.vagrant/machines/Windows-10/virtualbox/private_key', 'IdentitiesOnly': 'yes', 'LogLevel': 'FATAL', 'invocation': {'module_args': {'instance_name': 'Windows-10', 'platform_box': 'Megabyte/Windows-Desktop', 'provider_name': 'virtualbox', 'provider_memory': 4096, 'provider_cpus': 2, 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"], 'state': 'up', 'instance_interfaces': [], 'config_options': {}, 'provider_options': {}, 'provision': False, 'force_stop': False, 'instance_raw_config_args': None, 'platform_box_version': None, 'platform_box_url': None, 'provider_override_args': None, 'workdir': None}}, 'failed': False, 'item': {'box': 'Megabyte/Windows-Desktop', 'cpus': 2, 'groups': ['Windows'], 'memory': 4096, 'name': 'Windows-10', 'provider_raw_config_args': ["customize [ 'modifyvm', :id, '--natdnshostresolver1', 'on' ]", "customize [ 'modifyvm', :id, '--natpf1', 'winrm,tcp,127.0.0.1,55985,,5985' ]"]}, 'ansible_loop_var': 'item'})
+
+TASK [Convert instance config dict to a list] **********************************
+Friday 07 January 2022  02:09:05 -0500 (0:00:00.991)       0:09:31.978 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  02:09:06 -0500 (0:00:00.177)       0:09:32.156 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=5    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  02:09:07 -0500 (0:00:01.090)       0:09:33.247 ********
+===============================================================================
+Create molecule instance(s) ------------------------------------------- 561.10s
+Gathering Facts --------------------------------------------------------- 9.51s
+Dump instance config ---------------------------------------------------- 1.09s
+Populate instance config dict ------------------------------------------- 0.99s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.36s
+Convert instance config dict to a list ---------------------------------- 0.18s
+Playbook run took 0 days, 0 hours, 9 minutes, 33 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-33
+
+PLAY [Prepare] *****************************************************************
+
+TASK [Bootstrap Python for Ansible] ********************************************
+Friday 07 January 2022  02:09:09 -0500 (0:00:00.028)       0:00:00.028 ********
+ok: [Debian-9-Stretch]
+skipping: [Windows-10]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [ArchLinux-Latest]
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-7                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-8                   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CentOS-Stream-8            : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-10-Buster           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Debian-9-Stretch           : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-33                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-34                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Fedora-35                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Windows-10                 : ok=0    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  02:09:25 -0500 (0:00:15.883)       0:00:15.912 ********
+===============================================================================
+Bootstrap Python for Ansible ------------------------------------------- 15.88s
+Playbook run took 0 days, 0 hours, 0 minutes, 15 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Converge] ****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  02:09:27 -0500 (0:00:00.026)       0:00:00.026 ********
+ok: [CentOS-7]
+ok: [Debian-9-Stretch]
+ok: [ArchLinux-Latest]
+ok: [Debian-10-Buster]
+ok: [Debian-11-Bullseye]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+ok: [CentOS-8]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Fedora-33]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [CentOS-Stream-8]
+ok: [Ubuntu-21.10-Impish-Indri]
+ok: [Fedora-35]
+ok: [Fedora-34]
+ok: [Windows-10]
+
+TASK [professormanhattan.homebrew : Include variables based on the operating system] ***
+Friday 07 January 2022  02:09:30 -0500 (0:00:02.872)       0:00:02.898 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Register Homebrew bin path information] ****
+Friday 07 January 2022  02:09:30 -0500 (0:00:00.121)       0:00:03.020 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : include_tasks] *****************************
+Friday 07 January 2022  02:09:30 -0500 (0:00:00.126)       0:00:03.146 ********
+skipping: [ArchLinux-Latest]
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Debian-10-Buster]
+skipping: [Debian-11-Bullseye]
+skipping: [Debian-9-Stretch]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+skipping: [Ubuntu-21.10-Impish-Indri]
+skipping: [Windows-10]
+
+TASK [professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux)] ***
+Friday 07 January 2022  02:09:30 -0500 (0:00:00.131)       0:00:03.278 ********
+skipping: [ArchLinux-Latest] => (item=vagrant)
+skipping: [CentOS-7] => (item=vagrant)
+skipping: [CentOS-8] => (item=vagrant)
+skipping: [CentOS-Stream-8] => (item=vagrant)
+skipping: [Debian-10-Buster] => (item=vagrant)
+skipping: [Debian-11-Bullseye] => (item=vagrant)
+skipping: [Debian-9-Stretch] => (item=vagrant)
+skipping: [Fedora-33] => (item=vagrant)
+skipping: [Fedora-34] => (item=vagrant)
+skipping: [Fedora-35] => (item=vagrant)
+skipping: [Ubuntu-18.04-Bionic-Beaver] => (item=vagrant)
+skipping: [Ubuntu-20.04-Focal-Fossa] => (item=vagrant)
+skipping: [Ubuntu-21.04-Hirsute-Hippo] => (item=vagrant)
+skipping: [Ubuntu-21.10-Impish-Indri] => (item=vagrant)
+skipping: [Windows-10] => (item=vagrant)
+
+TASK [professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date] ***
+Friday 07 January 2022  02:09:31 -0500 (0:00:00.164)       0:00:03.442 ********
+
+TASK [professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date] ***
+Friday 07 January 2022  02:09:31 -0500 (0:00:00.133)       0:00:03.575 ********
+
+TASK [professormanhattan.cups : include_tasks] *********************************
+Friday 07 January 2022  02:09:31 -0500 (0:00:00.216)       0:00:03.792 ********
+skipping: [Windows-10]
+included: /home/hawkwood/gas-station/roles/services/cups/tasks/install-Archlinux.yml for ArchLinux-Latest
+included: /home/hawkwood/gas-station/roles/services/cups/tasks/install-RedHat.yml for CentOS-7, CentOS-8, CentOS-Stream-8, Fedora-33, Fedora-34, Fedora-35
+included: /home/hawkwood/gas-station/roles/services/cups/tasks/install-Debian.yml for Debian-10-Buster, Debian-11-Bullseye, Debian-9-Stretch, Ubuntu-18.04-Bionic-Beaver, Ubuntu-20.04-Focal-Fossa, Ubuntu-21.04-Hirsute-Hippo, Ubuntu-21.10-Impish-Indri
+
+TASK [professormanhattan.cups : Install CUPS and avahi-daemon] *****************
+Friday 07 January 2022  02:09:31 -0500 (0:00:00.192)       0:00:03.984 ********
+fatal: [ArchLinux-Latest]: FAILED! => changed=false
+  msg: |-
+    failed to install avahi-daemon cups: error: target not found: avahi-daemon
+  stderr: |-
+    error: target not found: avahi-daemon
+  stderr_lines: <omitted>
+  stdout: ''
+  stdout_lines: <omitted>
+
+TASK [professormanhattan.cups : Install CUPS and avahi-daemon] *****************
+Friday 07 January 2022  02:09:32 -0500 (0:00:00.777)       0:00:04.761 ********
+changed: [CentOS-Stream-8]
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [Fedora-35]
+changed: [Fedora-33]
+changed: [Fedora-34]
+
+TASK [professormanhattan.cups : Copy CUPS configuration] ***********************
+Friday 07 January 2022  02:11:00 -0500 (0:01:28.471)       0:01:33.232 ********
+changed: [CentOS-7]
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+TASK [professormanhattan.cups : Gather package facts] **************************
+Friday 07 January 2022  02:11:02 -0500 (0:00:01.187)       0:01:34.420 ********
+ok: [CentOS-7]
+ok: [Fedora-33]
+ok: [CentOS-8]
+ok: [CentOS-Stream-8]
+ok: [Fedora-35]
+ok: [Fedora-34]
+
+TASK [professormanhattan.cups : Restart Samba (if installed)] ******************
+Friday 07 January 2022  02:11:04 -0500 (0:00:01.947)       0:01:36.367 ********
+skipping: [CentOS-7]
+skipping: [CentOS-8]
+skipping: [CentOS-Stream-8]
+skipping: [Fedora-33]
+skipping: [Fedora-34]
+skipping: [Fedora-35]
+
+TASK [professormanhattan.cups : Install CUPS and avahi-daemon] *****************
+Friday 07 January 2022  02:11:04 -0500 (0:00:00.209)       0:01:36.576 ********
+fatal: [Ubuntu-21.10-Impish-Indri]: FAILED! => changed=false
+  msg: No package matching 'avahi-daemon' is available
+fatal: [Debian-9-Stretch]: FAILED! => changed=false
+  cache_update_time: 1635199175
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'avahi-daemon' 'cups'' failed: E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/n/nss/libnss3_3.26.2-1.1+deb9u2_amd64.deb  404  Not Found [IP: 151.101.130.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/n/nss/libnss3_3.26.2-1.1+deb9u2_amd64.deb  404  Not Found [IP: 151.101.130.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      acl bc colord colord-data cups-browsed cups-client cups-common
+      cups-core-drivers cups-daemon cups-filters cups-filters-core-drivers
+      cups-ppdc cups-server-common dconf-gsettings-backend dconf-service
+      fontconfig fontconfig-config fonts-dejavu-core fonts-droid-fallback
+      fonts-noto-mono ghostscript gsfonts hicolor-icon-theme imagemagick
+      imagemagick-6-common imagemagick-6.q16 libavahi-core7 libavahi-glib1
+      libcairo2 libcolord2 libcolorhug2 libcupscgi1 libcupsfilters1 libcupsimage2
+      libcupsmime1 libcupsppdc1 libdatrie1 libdconf1 libdjvulibre-text
+      libdjvulibre21 libexif12 libfftw3-double3 libfile-copy-recursive-perl
+      libfontconfig1 libfontembed1 libgd3 libgdk-pixbuf2.0-0
+      libgdk-pixbuf2.0-common libgomp1 libgphoto2-6 libgphoto2-l10n
+      libgphoto2-port12 libgraphite2-3 libgs9 libgs9-common libgudev-1.0-0
+      libgusb2 libgutenprint2 libharfbuzz0b libieee1284-3 libijs-0.35 libilmbase12
+      libjbig0 libjbig2dec0 libjpeg62-turbo libjxr-tools libjxr0 liblcms2-2
+      liblouis-data liblouis12 liblouisutdml-bin liblouisutdml-data liblouisutdml7
+      liblqr-1-0 libmagickcore-6.q16-3 libmagickcore-6.q16-3-extra
+      libmagickwand-6.q16-3 libnetpbm10 libnspr4 libnss-mdns libnss3 libopenexr22
+      libopenjp2-7 libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0
+      libpaper-utils libpaper1 libpixman-1-0 libpolkit-agent-1-0
+      libpolkit-backend-1-0 libpolkit-gobject-1-0 libpoppler64 libqpdf17 libsane
+      libsane-common libsane-extras libsane-extras-common libthai-data libthai0
+      libtiff5 libusb-1.0-0 libwebp6 libwmf0.2-7 libx11-6 libx11-data libxau6
+      libxcb-render0 libxcb-shm0 libxcb1 libxdmcp6 libxext6 libxpm4 libxrender1
+      libyaml-0-2 netpbm policykit-1 poppler-data poppler-utils
+      printer-driver-gutenprint qpdf sane-utils ssl-cert update-inetd
+    Suggested packages:
+      colord-sensor-argyll cups-bsd foomatic-db-compressed-ppds | foomatic-db
+      printer-driver-hpcups hplip cups-pdf smbclient xpp antiword docx2txt
+      fonts-noto ghostscript-x imagemagick-doc autotrace cups-bsd | lpr | lprng
+      enscript ffmpeg gimp gnuplot grads graphviz hp2xx html2ps libwmf-bin mplayer
+      povray radiance texlive-base-bin transfig ufraw-batch xdg-utils libfftw3-bin
+      libfftw3-dev libgd-tools gphoto2 gutenprint-locales liblcms2-utils ooo2dbk
+      rtf2xml inkscape fonts-japanese-mincho | fonts-ipafont-mincho
+      fonts-japanese-gothic | fonts-ipafont-gothic fonts-arphic-ukai
+      fonts-arphic-uming fonts-nanum gutenprint-doc unpaper openssl-blacklist
+    The following NEW packages will be installed:
+      acl avahi-daemon bc colord colord-data cups cups-browsed cups-client
+      cups-common cups-core-drivers cups-daemon cups-filters
+      cups-filters-core-drivers cups-ppdc cups-server-common
+      dconf-gsettings-backend dconf-service fontconfig fontconfig-config
+      fonts-dejavu-core fonts-droid-fallback fonts-noto-mono ghostscript gsfonts
+      hicolor-icon-theme imagemagick imagemagick-6-common imagemagick-6.q16
+      libavahi-core7 libavahi-glib1 libcairo2 libcolord2 libcolorhug2 libcupscgi1
+      libcupsfilters1 libcupsimage2 libcupsmime1 libcupsppdc1 libdatrie1 libdconf1
+      libdjvulibre-text libdjvulibre21 libexif12 libfftw3-double3
+      libfile-copy-recursive-perl libfontconfig1 libfontembed1 libgd3
+      libgdk-pixbuf2.0-0 libgdk-pixbuf2.0-common libgomp1 libgphoto2-6
+      libgphoto2-l10n libgphoto2-port12 libgraphite2-3 libgs9 libgs9-common
+      libgudev-1.0-0 libgusb2 libgutenprint2 libharfbuzz0b libieee1284-3
+      libijs-0.35 libilmbase12 libjbig0 libjbig2dec0 libjpeg62-turbo libjxr-tools
+      libjxr0 liblcms2-2 liblouis-data liblouis12 liblouisutdml-bin
+      liblouisutdml-data liblouisutdml7 liblqr-1-0 libmagickcore-6.q16-3
+      libmagickcore-6.q16-3-extra libmagickwand-6.q16-3 libnetpbm10 libnspr4
+      libnss-mdns libnss3 libopenexr22 libopenjp2-7 libpango-1.0-0
+      libpangocairo-1.0-0 libpangoft2-1.0-0 libpaper-utils libpaper1 libpixman-1-0
+      libpolkit-agent-1-0 libpolkit-backend-1-0 libpolkit-gobject-1-0 libpoppler64
+      libqpdf17 libsane libsane-common libsane-extras libsane-extras-common
+      libthai-data libthai0 libtiff5 libusb-1.0-0 libwebp6 libwmf0.2-7 libx11-6
+      libx11-data libxau6 libxcb-render0 libxcb-shm0 libxcb1 libxdmcp6 libxext6
+      libxpm4 libxrender1 libyaml-0-2 netpbm policykit-1 poppler-data
+      poppler-utils printer-driver-gutenprint qpdf sane-utils ssl-cert
+      update-inetd
+    0 upgraded, 126 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 47.1 MB of archives.
+    After this operation, 164 MB of additional disk space will be used.
+    Get:1 http://security.debian.org/debian-security stretch/updates/main amd64 libjpeg62-turbo amd64 1:1.5.1-2+deb9u1 [134 kB]
+    Get:2 http://security.debian.org/debian-security stretch/updates/main amd64 libopenjp2-7 amd64 2.1.2-1.1+deb9u6 [123 kB]
+    Get:3 http://security.debian.org/debian-security stretch/updates/main amd64 libtiff5 amd64 4.0.8-2+deb9u7 [239 kB]
+    Get:4 http://security.debian.org/debian-security stretch/updates/main amd64 libx11-data all 2:1.6.4-3+deb9u4 [291 kB]
+    Get:5 http://security.debian.org/debian-security stretch/updates/main amd64 libx11-6 amd64 2:1.6.4-3+deb9u4 [748 kB]
+    Get:6 http://security.debian.org/debian-security stretch/updates/main amd64 imagemagick-6-common all 8:6.9.7.4+dfsg-11+deb9u13 [186 kB]
+    Get:7 http://security.debian.org/debian-security stretch/updates/main amd64 libmagickcore-6.q16-3 amd64 8:6.9.7.4+dfsg-11+deb9u13 [1748 kB]
+    Get:8 http://security.debian.org/debian-security stretch/updates/main amd64 libmagickwand-6.q16-3 amd64 8:6.9.7.4+dfsg-11+deb9u13 [423 kB]
+    Get:9 http://security.debian.org/debian-security stretch/updates/main amd64 libsane-common all 1.0.25-4.1+deb9u2 [1013 kB]
+    Get:10 http://httpredir.debian.org/debian stretch/main amd64 libcupsmime1 amd64 2.2.1-8+deb9u6 [118 kB]
+    Get:11 http://security.debian.org/debian-security stretch/updates/main amd64 libexif12 amd64 0.6.21-2+deb9u5 [326 kB]
+    Get:12 http://security.debian.org/debian-security stretch/updates/main amd64 libwebp6 amd64 0.5.2-1+deb9u1 [235 kB]
+    Get:13 http://security.debian.org/debian-security stretch/updates/main amd64 libsane amd64 1.0.25-4.1+deb9u2 [2112 kB]
+    Get:14 http://httpredir.debian.org/debian stretch/main amd64 libpaper1 amd64 1.1.24+nmu5 [21.6 kB]
+    Get:15 http://httpredir.debian.org/debian stretch/main amd64 ssl-cert all 1.0.39 [20.8 kB]
+    Err:16 http://security.debian.org/debian-security stretch/updates/main amd64 libnss3 amd64 2:3.26.2-1.1+deb9u2
+      404  Not Found [IP: 151.101.130.132 80]
+    Get:17 http://security.debian.org/debian-security stretch/updates/main amd64 libpoppler64 amd64 0.48.0-2+deb9u4 [1288 kB]
+    Get:18 http://httpredir.debian.org/debian stretch/main amd64 bc amd64 1.06.95-9+b3 [105 kB]
+    Get:19 http://security.debian.org/debian-security stretch/updates/main amd64 libcairo2 amd64 1.14.8-1+deb9u1 [771 kB]
+    Get:20 http://security.debian.org/debian-security stretch/updates/main amd64 poppler-utils amd64 0.48.0-2+deb9u4 [154 kB]
+    Get:21 http://security.debian.org/debian-security stretch/updates/main amd64 libgs9-common all 9.26a~dfsg-0+deb9u7 [5142 kB]
+    Get:22 http://httpredir.debian.org/debian stretch/main amd64 cups-daemon amd64 2.2.1-8+deb9u6 [405 kB]
+    Get:23 http://security.debian.org/debian-security stretch/updates/main amd64 libgs9 amd64 9.26a~dfsg-0+deb9u7 [2211 kB]
+    Get:24 http://security.debian.org/debian-security stretch/updates/main amd64 ghostscript amd64 9.26a~dfsg-0+deb9u7 [100.0 kB]
+    Get:25 http://httpredir.debian.org/debian stretch/main amd64 fonts-dejavu-core all 2.37-1 [1068 kB]
+    Get:26 http://httpredir.debian.org/debian stretch/main amd64 fontconfig-config all 2.11.0-6.7 [271 kB]
+    Get:27 http://security.debian.org/debian-security stretch/updates/main amd64 imagemagick-6.q16 amd64 8:6.9.7.4+dfsg-11+deb9u13 [564 kB]
+    Get:28 http://httpredir.debian.org/debian stretch/main amd64 libfontconfig1 amd64 2.11.0-6.7+b1 [331 kB]
+    Get:29 http://httpredir.debian.org/debian stretch/main amd64 fontconfig amd64 2.11.0-6.7+b1 [404 kB]
+    Get:30 http://security.debian.org/debian-security stretch/updates/main amd64 imagemagick amd64 8:6.9.7.4+dfsg-11+deb9u13 [143 kB]
+    Get:31 http://security.debian.org/debian-security stretch/updates/main amd64 libdjvulibre-text all 3.5.27.1-7+deb9u2 [61.1 kB]
+    Get:32 http://security.debian.org/debian-security stretch/updates/main amd64 libdjvulibre21 amd64 3.5.27.1-7+deb9u2 [569 kB]
+    Get:33 http://security.debian.org/debian-security stretch/updates/main amd64 libopenexr22 amd64 2.2.0-11+deb9u4 [580 kB]
+    Get:34 http://security.debian.org/debian-security stretch/updates/main amd64 libmagickcore-6.q16-3-extra amd64 8:6.9.7.4+dfsg-11+deb9u13 [192 kB]
+    Get:35 http://security.debian.org/debian-security stretch/updates/main amd64 sane-utils amd64 1.0.25-4.1+deb9u2 [225 kB]
+    Get:36 http://httpredir.debian.org/debian stretch/main amd64 fonts-droid-fallback all 1:6.0.1r16-1.1 [1807 kB]
+    Get:37 http://httpredir.debian.org/debian stretch/main amd64 liblqr-1-0 amd64 0.4.2-2+b2 [24.8 kB]
+    Get:38 http://httpredir.debian.org/debian stretch/main amd64 libgomp1 amd64 6.3.0-18+deb9u1 [73.3 kB]
+    Get:39 http://httpredir.debian.org/debian stretch/main amd64 libfftw3-double3 amd64 3.3.5-3 [731 kB]
+    Get:40 http://httpredir.debian.org/debian stretch/main amd64 libjbig0 amd64 2.1-3.1+b2 [31.0 kB]
+    Get:41 http://httpredir.debian.org/debian stretch/main amd64 liblcms2-2 amd64 2.8-4+deb9u1 [143 kB]
+    Get:42 http://httpredir.debian.org/debian stretch/main amd64 libxau6 amd64 1:1.0.8-1 [20.7 kB]
+    Get:43 http://httpredir.debian.org/debian stretch/main amd64 libxdmcp6 amd64 1:1.1.2-3 [26.3 kB]
+    Get:44 http://httpredir.debian.org/debian stretch/main amd64 libxcb1 amd64 1.12-1 [133 kB]
+    Get:45 http://httpredir.debian.org/debian stretch/main amd64 libxext6 amd64 2:1.3.3-1+b2 [52.5 kB]
+    Get:46 http://httpredir.debian.org/debian stretch/main amd64 poppler-data all 0.4.7-8 [1451 kB]
+    Get:47 http://httpredir.debian.org/debian stretch/main amd64 acl amd64 2.2.52-3+b1 [59.5 kB]
+    Get:48 http://httpredir.debian.org/debian stretch/main amd64 libavahi-core7 amd64 0.6.32-2 [113 kB]
+    Get:49 http://httpredir.debian.org/debian stretch/main amd64 avahi-daemon amd64 0.6.32-2 [90.6 kB]
+    Get:50 http://httpredir.debian.org/debian stretch/main amd64 libcolord2 amd64 1.3.3-2 [252 kB]
+    Get:51 http://httpredir.debian.org/debian stretch/main amd64 libusb-1.0-0 amd64 2:1.0.21-1 [53.9 kB]
+    Get:52 http://httpredir.debian.org/debian stretch/main amd64 libgusb2 amd64 0.2.9-1+b1 [23.8 kB]
+    Get:53 http://httpredir.debian.org/debian stretch/main amd64 libcolorhug2 amd64 1.3.3-2 [183 kB]
+    Get:54 http://httpredir.debian.org/debian stretch/main amd64 libgudev-1.0-0 amd64 230-3 [12.9 kB]
+    Get:55 http://httpredir.debian.org/debian stretch/main amd64 libpolkit-gobject-1-0 amd64 0.105-18+deb9u1 [43.8 kB]
+    Get:56 http://httpredir.debian.org/debian stretch/main amd64 libxpm4 amd64 1:3.5.12-1 [49.1 kB]
+    Get:57 http://httpredir.debian.org/debian stretch/main amd64 libgd3 amd64 2.2.4-2+deb9u5 [132 kB]
+    Get:58 http://httpredir.debian.org/debian stretch/main amd64 libgphoto2-port12 amd64 2.5.12-1 [126 kB]
+    Get:59 http://httpredir.debian.org/debian stretch/main amd64 libgphoto2-6 amd64 2.5.12-1 [841 kB]
+    Get:60 http://httpredir.debian.org/debian stretch/main amd64 libieee1284-3 amd64 0.2.11-13 [28.9 kB]
+    Get:61 http://httpredir.debian.org/debian stretch/main amd64 libdconf1 amd64 0.26.0-2+b1 [37.6 kB]
+    Get:62 http://httpredir.debian.org/debian stretch/main amd64 dconf-service amd64 0.26.0-2+b1 [34.7 kB]
+    Get:63 http://httpredir.debian.org/debian stretch/main amd64 dconf-gsettings-backend amd64 0.26.0-2+b1 [26.4 kB]
+    Get:64 http://httpredir.debian.org/debian stretch/main amd64 libpolkit-agent-1-0 amd64 0.105-18+deb9u1 [24.4 kB]
+    Get:65 http://httpredir.debian.org/debian stretch/main amd64 libpolkit-backend-1-0 amd64 0.105-18+deb9u1 [45.7 kB]
+    Get:66 http://httpredir.debian.org/debian stretch/main amd64 policykit-1 amd64 0.105-18+deb9u1 [63.5 kB]
+    Get:67 http://httpredir.debian.org/debian stretch/main amd64 colord-data all 1.3.3-2 [1297 kB]
+    Get:68 http://httpredir.debian.org/debian stretch/main amd64 colord amd64 1.3.3-2 [338 kB]
+    Get:69 http://httpredir.debian.org/debian stretch/main amd64 libcupscgi1 amd64 2.2.1-8+deb9u6 [131 kB]
+    Get:70 http://httpredir.debian.org/debian stretch/main amd64 libcupsimage2 amd64 2.2.1-8+deb9u6 [122 kB]
+    Get:71 http://httpredir.debian.org/debian stretch/main amd64 libcupsppdc1 amd64 2.2.1-8+deb9u6 [149 kB]
+    Get:72 http://httpredir.debian.org/debian stretch/main amd64 libcupsfilters1 amd64 1.11.6-3+deb9u1 [129 kB]
+    Get:73 http://httpredir.debian.org/debian stretch/main amd64 libnspr4 amd64 2:4.12-6 [117 kB]
+    Get:74 http://httpredir.debian.org/debian stretch/main amd64 libqpdf17 amd64 6.0.0-2 [319 kB]
+    Get:75 http://httpredir.debian.org/debian stretch/main amd64 libpixman-1-0 amd64 0.34.0-1 [530 kB]
+    Get:76 http://httpredir.debian.org/debian stretch/main amd64 libxcb-render0 amd64 1.12-1 [105 kB]
+    Get:77 http://httpredir.debian.org/debian stretch/main amd64 libxcb-shm0 amd64 1.12-1 [95.9 kB]
+    Get:78 http://httpredir.debian.org/debian stretch/main amd64 libxrender1 amd64 1:0.9.10-1 [33.0 kB]
+    Get:79 http://httpredir.debian.org/debian stretch/main amd64 cups-filters-core-drivers amd64 1.11.6-3+deb9u1 [205 kB]
+    Get:80 http://httpredir.debian.org/debian stretch/main amd64 cups-core-drivers amd64 2.2.1-8+deb9u6 [131 kB]
+    Get:81 http://httpredir.debian.org/debian stretch/main amd64 libijs-0.35 amd64 0.35-12 [18.4 kB]
+    Get:82 http://httpredir.debian.org/debian stretch/main amd64 libjbig2dec0 amd64 0.13-4.1 [60.1 kB]
+    Get:83 http://httpredir.debian.org/debian stretch/main amd64 cups-common all 2.2.1-8+deb9u6 [262 kB]
+    Get:84 http://httpredir.debian.org/debian stretch/main amd64 cups-server-common all 2.2.1-8+deb9u6 [579 kB]
+    Get:85 http://httpredir.debian.org/debian stretch/main amd64 cups-client amd64 2.2.1-8+deb9u6 [239 kB]
+    Get:86 http://httpredir.debian.org/debian stretch/main amd64 cups-ppdc amd64 2.2.1-8+deb9u6 [131 kB]
+    Get:87 http://httpredir.debian.org/debian stretch/main amd64 libfontembed1 amd64 1.11.6-3+deb9u1 [96.3 kB]
+    Get:88 http://httpredir.debian.org/debian stretch/main amd64 hicolor-icon-theme all 0.15-1 [9550 B]
+    Get:89 http://httpredir.debian.org/debian stretch/main amd64 cups-filters amd64 1.11.6-3+deb9u1 [520 kB]
+    Get:90 http://httpredir.debian.org/debian stretch/main amd64 cups amd64 2.2.1-8+deb9u6 [293 kB]
+    Get:91 http://httpredir.debian.org/debian stretch/main amd64 libavahi-glib1 amd64 0.6.32-2 [37.7 kB]
+    Get:92 http://httpredir.debian.org/debian stretch/main amd64 cups-browsed amd64 1.11.6-3+deb9u1 [150 kB]
+    Get:93 http://httpredir.debian.org/debian stretch/main amd64 fonts-noto-mono all 20161116-1 [79.2 kB]
+    Get:94 http://httpredir.debian.org/debian stretch/main amd64 gsfonts all 1:8.11+urwcyr1.0.7~pre44-4.3 [3126 kB]
+    Get:95 http://httpredir.debian.org/debian stretch/main amd64 libdatrie1 amd64 0.2.10-4+b1 [36.4 kB]
+    Get:96 http://httpredir.debian.org/debian stretch/main amd64 libfile-copy-recursive-perl all 0.38-1 [20.6 kB]
+    Get:97 http://httpredir.debian.org/debian stretch/main amd64 libgdk-pixbuf2.0-common all 2.36.5-2+deb9u2 [311 kB]
+    Get:98 http://httpredir.debian.org/debian stretch/main amd64 libgdk-pixbuf2.0-0 amd64 2.36.5-2+deb9u2 [170 kB]
+    Get:99 http://httpredir.debian.org/debian stretch/main amd64 libgphoto2-l10n all 2.5.12-1 [430 kB]
+    Get:100 http://httpredir.debian.org/debian stretch/main amd64 libgraphite2-3 amd64 1.3.10-1 [84.2 kB]
+    Get:101 http://httpredir.debian.org/debian stretch/main amd64 libgutenprint2 amd64 5.2.11-1+b2 [1053 kB]
+    Get:102 http://httpredir.debian.org/debian stretch/main amd64 libharfbuzz0b amd64 1.4.2-1 [671 kB]
+    Get:103 http://httpredir.debian.org/debian stretch/main amd64 libilmbase12 amd64 2.2.0-12 [85.3 kB]
+    Get:104 http://httpredir.debian.org/debian stretch/main amd64 libjxr0 amd64 1.1-6+b1 [160 kB]
+    Get:105 http://httpredir.debian.org/debian stretch/main amd64 libjxr-tools amd64 1.1-6+b1 [17.0 kB]
+    Get:106 http://httpredir.debian.org/debian stretch/main amd64 libthai-data all 0.1.26-1 [166 kB]
+    Get:107 http://httpredir.debian.org/debian stretch/main amd64 libthai0 amd64 0.1.26-1 [52.1 kB]
+    Get:108 http://httpredir.debian.org/debian stretch/main amd64 libpango-1.0-0 amd64 1.40.5-1 [320 kB]
+    Get:109 http://httpredir.debian.org/debian stretch/main amd64 libpangoft2-1.0-0 amd64 1.40.5-1 [205 kB]
+    Get:110 http://httpredir.debian.org/debian stretch/main amd64 libpangocairo-1.0-0 amd64 1.40.5-1 [193 kB]
+    Get:111 http://httpredir.debian.org/debian stretch/main amd64 libwmf0.2-7 amd64 0.2.8.4-10.6 [167 kB]
+    Get:112 http://httpredir.debian.org/debian stretch/main amd64 libnetpbm10 amd64 2:10.0-15.3+b2 [86.7 kB]
+    Get:113 http://httpredir.debian.org/debian stretch/main amd64 libnss-mdns amd64 0.10-8 [24.4 kB]
+    Get:114 http://httpredir.debian.org/debian stretch/main amd64 libpaper-utils amd64 1.1.24+nmu5 [17.6 kB]
+    Get:115 http://httpredir.debian.org/debian stretch/main amd64 libsane-extras-common amd64 1.0.22.4 [12.4 kB]
+    Get:116 http://httpredir.debian.org/debian stretch/main amd64 libsane-extras amd64 1.0.22.4 [52.8 kB]
+    Get:117 http://httpredir.debian.org/debian stretch/main amd64 libyaml-0-2 amd64 0.1.7-2 [47.6 kB]
+    Get:118 http://httpredir.debian.org/debian stretch/main amd64 netpbm amd64 2:10.0-15.3+b2 [1029 kB]
+    Get:119 http://httpredir.debian.org/debian stretch/main amd64 printer-driver-gutenprint amd64 5.2.11-1+b2 [451 kB]
+    Get:120 http://httpredir.debian.org/debian stretch/main amd64 qpdf amd64 6.0.0-2 [240 kB]
+    Get:121 http://httpredir.debian.org/debian stretch/main amd64 update-inetd all 4.44 [20.8 kB]
+    Get:122 http://httpredir.debian.org/debian stretch/main amd64 liblouis-data all 3.0.0-3+deb9u4 [1136 kB]
+    Get:123 http://httpredir.debian.org/debian stretch/main amd64 liblouis12 amd64 3.0.0-3+deb9u4 [87.5 kB]
+    Get:124 http://httpredir.debian.org/debian stretch/main amd64 liblouisutdml-data all 2.6.0-3 [37.8 kB]
+    Get:125 http://httpredir.debian.org/debian stretch/main amd64 liblouisutdml7 amd64 2.6.0-3+b2 [86.0 kB]
+    Get:126 http://httpredir.debian.org/debian stretch/main amd64 liblouisutdml-bin amd64 2.6.0-3+b2 [13.8 kB]
+    Fetched 45.8 MB in 13s (3483 kB/s)
+  stdout_lines: <omitted>
+fatal: [Debian-11-Bullseye]: FAILED! => changed=false
+  cache_update_time: 1635193539
+  cache_updated: false
+  msg: |-
+    '/usr/bin/apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold"       install 'avahi-daemon' 'cups'' failed: E: Failed to fetch http://httpredir.debian.org/debian/pool/main/n/nss/libnss3_3.61-1_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  rc: 100
+  stderr: |-
+    E: Failed to fetch http://httpredir.debian.org/debian/pool/main/n/nss/libnss3_3.61-1_amd64.deb  404  Not Found [IP: 151.101.210.132 80]
+    E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+  stderr_lines: <omitted>
+  stdout: |-
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following additional packages will be installed:
+      acl bc colord colord-data cups-browsed cups-client cups-common
+      cups-core-drivers cups-daemon cups-filters cups-filters-core-drivers
+      cups-ipp-utils cups-ppdc cups-server-common dbus-user-session
+      dconf-gsettings-backend dconf-service fontconfig-config fonts-dejavu-core
+      fonts-droid-fallback fonts-noto-mono fonts-urw-base35 ghostscript ipp-usb
+      libavahi-client3 libavahi-common-data libavahi-common3 libavahi-core7
+      libavahi-glib1 libcairo2 libcolord2 libcolorhug2 libcups2 libcupsfilters1
+      libdconf1 libdeflate0 libexif12 libfontconfig1 libfontembed1 libgd3
+      libgphoto2-6 libgphoto2-l10n libgphoto2-port12 libgs9 libgs9-common
+      libgudev-1.0-0 libgusb2 libidn11 libieee1284-3 libijs-0.35 libjbig0
+      libjbig2dec0 libjpeg62-turbo liblcms2-2 liblouis-data liblouis20
+      liblouisutdml-bin liblouisutdml-data liblouisutdml9 libltdl7 libnspr4
+      libnss-mdns libnss3 libopenjp2-7 libpaper-utils libpaper1 libpixman-1-0
+      libpolkit-agent-1-0 libpolkit-gobject-1-0 libpoppler-cpp0v5 libpoppler-glib8
+      libpoppler102 libqpdf28 libsane-common libsane1 libsensors-config
+      libsensors5 libsnmp-base libsnmp40 libtiff5 libusb-1.0-0 libwebp6 libx11-6
+      libx11-data libxau6 libxcb-render0 libxcb-shm0 libxcb1 libxdmcp6 libxext6
+      libxpm4 libxrender1 policykit-1 poppler-data poppler-utils sane-utils
+      ssl-cert update-inetd usb.ids
+    Suggested packages:
+      cups-bsd cups-pdf foomatic-db-compressed-ppds | foomatic-db smbclient
+      antiword docx2txt imagemagick fonts-noto fonts-freefont-otf
+      | fonts-freefont-ttf fonts-texgyre ghostscript-x libgd-tools gphoto2
+      liblcms2-utils ooo2dbk rtf2xml hplip lm-sensors snmp-mibs-downloader
+      fonts-japanese-mincho | fonts-ipafont-mincho fonts-japanese-gothic
+      | fonts-ipafont-gothic fonts-arphic-ukai fonts-arphic-uming fonts-nanum
+      unpaper
+    The following NEW packages will be installed:
+      acl avahi-daemon bc colord colord-data cups cups-browsed cups-client
+      cups-common cups-core-drivers cups-daemon cups-filters
+      cups-filters-core-drivers cups-ipp-utils cups-ppdc cups-server-common
+      dbus-user-session dconf-gsettings-backend dconf-service fontconfig-config
+      fonts-dejavu-core fonts-droid-fallback fonts-noto-mono fonts-urw-base35
+      ghostscript ipp-usb libavahi-client3 libavahi-common-data libavahi-common3
+      libavahi-core7 libavahi-glib1 libcairo2 libcolord2 libcolorhug2 libcups2
+      libcupsfilters1 libdconf1 libdeflate0 libexif12 libfontconfig1 libfontembed1
+      libgd3 libgphoto2-6 libgphoto2-l10n libgphoto2-port12 libgs9 libgs9-common
+      libgudev-1.0-0 libgusb2 libidn11 libieee1284-3 libijs-0.35 libjbig0
+      libjbig2dec0 libjpeg62-turbo liblcms2-2 liblouis-data liblouis20
+      liblouisutdml-bin liblouisutdml-data liblouisutdml9 libltdl7 libnspr4
+      libnss-mdns libnss3 libopenjp2-7 libpaper-utils libpaper1 libpixman-1-0
+      libpolkit-agent-1-0 libpolkit-gobject-1-0 libpoppler-cpp0v5 libpoppler-glib8
+      libpoppler102 libqpdf28 libsane-common libsane1 libsensors-config
+      libsensors5 libsnmp-base libsnmp40 libtiff5 libusb-1.0-0 libwebp6 libx11-6
+      libx11-data libxau6 libxcb-render0 libxcb-shm0 libxcb1 libxdmcp6 libxext6
+      libxpm4 libxrender1 policykit-1 poppler-data poppler-utils sane-utils
+      ssl-cert update-inetd usb.ids
+    0 upgraded, 101 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 43.7 MB of archives.
+    After this operation, 157 MB of additional disk space will be used.
+    Get:1 http://httpredir.debian.org/debian bullseye/main amd64 libavahi-common-data amd64 0.8-5 [124 kB]
+    Get:2 http://httpredir.debian.org/debian bullseye/main amd64 libavahi-common3 amd64 0.8-5 [58.4 kB]
+    Get:3 http://httpredir.debian.org/debian bullseye/main amd64 libavahi-core7 amd64 0.8-5 [121 kB]
+    Get:4 http://httpredir.debian.org/debian bullseye/main amd64 avahi-daemon amd64 0.8-5 [100 kB]
+    Get:5 http://httpredir.debian.org/debian bullseye/main amd64 libavahi-client3 amd64 0.8-5 [62.1 kB]
+    Get:6 http://httpredir.debian.org/debian bullseye/main amd64 libavahi-glib1 amd64 0.8-5 [44.1 kB]
+    Get:7 http://httpredir.debian.org/debian bullseye/main amd64 libcups2 amd64 2.3.3op2-3+deb11u1 [350 kB]
+    Get:8 http://httpredir.debian.org/debian bullseye/main amd64 libjpeg62-turbo amd64 1:2.0.6-4 [151 kB]
+    Get:9 http://httpredir.debian.org/debian bullseye/main amd64 libdeflate0 amd64 1.7-1 [53.1 kB]
+    Get:10 http://httpredir.debian.org/debian bullseye/main amd64 libjbig0 amd64 2.1-3.1+b2 [31.0 kB]
+    Get:11 http://httpredir.debian.org/debian bullseye/main amd64 libwebp6 amd64 0.6.1-2.1 [258 kB]
+    Get:12 http://httpredir.debian.org/debian bullseye/main amd64 libtiff5 amd64 4.2.0-1 [289 kB]
+    Get:13 http://httpredir.debian.org/debian bullseye/main amd64 libcupsfilters1 amd64 1.28.7-1 [144 kB]
+    Get:14 http://httpredir.debian.org/debian bullseye/main amd64 bc amd64 1.07.1-2+b2 [109 kB]
+    Get:15 http://httpredir.debian.org/debian bullseye/main amd64 ssl-cert all 1.1.0+nmu1 [21.0 kB]
+    Get:16 http://httpredir.debian.org/debian bullseye/main amd64 libpaper1 amd64 1.1.28+b1 [21.6 kB]
+    Get:17 http://httpredir.debian.org/debian bullseye/main amd64 cups-daemon amd64 2.3.3op2-3+deb11u1 [428 kB]
+    Get:18 http://httpredir.debian.org/debian bullseye/main amd64 cups-browsed amd64 1.28.7-1 [160 kB]
+    Get:19 http://httpredir.debian.org/debian bullseye/main amd64 fonts-droid-fallback all 1:6.0.1r16-1.1 [1807 kB]
+    Get:20 http://httpredir.debian.org/debian bullseye/main amd64 libsane-common all 1.0.31-4.1 [1275 kB]
+    Get:21 http://httpredir.debian.org/debian bullseye/main amd64 poppler-data all 0.4.10-1 [1602 kB]
+    Get:22 http://httpredir.debian.org/debian bullseye/main amd64 update-inetd all 4.51 [28.3 kB]
+    Get:23 http://httpredir.debian.org/debian bullseye/main amd64 libieee1284-3 amd64 0.2.11-14 [29.2 kB]
+    Get:24 http://httpredir.debian.org/debian bullseye/main amd64 acl amd64 2.2.53-10 [60.6 kB]
+    Get:25 http://httpredir.debian.org/debian bullseye/main amd64 fonts-dejavu-core all 2.37-2 [1069 kB]
+    Get:26 http://httpredir.debian.org/debian bullseye/main amd64 fonts-urw-base35 all 20200910-1 [6367 kB]
+    Get:27 http://httpredir.debian.org/debian bullseye/main amd64 fontconfig-config all 2.13.1-4.2 [281 kB]
+    Get:28 http://httpredir.debian.org/debian bullseye/main amd64 libfontconfig1 amd64 2.13.1-4.2 [347 kB]
+    Get:29 http://httpredir.debian.org/debian bullseye/main amd64 libpixman-1-0 amd64 0.40.0-1 [543 kB]
+    Get:30 http://httpredir.debian.org/debian bullseye/main amd64 libxau6 amd64 1:1.0.9-1 [19.7 kB]
+    Get:31 http://httpredir.debian.org/debian bullseye/main amd64 libxdmcp6 amd64 1:1.1.2-3 [26.3 kB]
+    Get:32 http://httpredir.debian.org/debian bullseye/main amd64 libxcb1 amd64 1.14-3 [140 kB]
+    Get:33 http://httpredir.debian.org/debian bullseye/main amd64 libx11-data all 2:1.7.2-1 [311 kB]
+    Get:34 http://httpredir.debian.org/debian bullseye/main amd64 libx11-6 amd64 2:1.7.2-1 [772 kB]
+    Get:35 http://httpredir.debian.org/debian bullseye/main amd64 libxcb-render0 amd64 1.14-3 [111 kB]
+    Get:36 http://httpredir.debian.org/debian bullseye/main amd64 libxcb-shm0 amd64 1.14-3 [101 kB]
+    Get:37 http://httpredir.debian.org/debian bullseye/main amd64 libxext6 amd64 2:1.3.3-1.1 [52.7 kB]
+    Get:38 http://httpredir.debian.org/debian bullseye/main amd64 libxrender1 amd64 1:0.9.10-1 [33.0 kB]
+    Get:39 http://httpredir.debian.org/debian bullseye/main amd64 libcairo2 amd64 1.16.0-5 [694 kB]
+    Get:40 http://httpredir.debian.org/debian bullseye/main amd64 libexif12 amd64 0.6.22-3 [376 kB]
+    Get:41 http://httpredir.debian.org/debian bullseye/main amd64 libxpm4 amd64 1:3.5.12-1 [49.1 kB]
+    Get:42 http://httpredir.debian.org/debian bullseye/main amd64 libgd3 amd64 2.3.0-2 [137 kB]
+    Get:43 http://httpredir.debian.org/debian bullseye/main amd64 libltdl7 amd64 2.4.6-15 [391 kB]
+    Get:44 http://httpredir.debian.org/debian bullseye/main amd64 libusb-1.0-0 amd64 2:1.0.24-3 [60.2 kB]
+    Get:45 http://httpredir.debian.org/debian bullseye/main amd64 libgphoto2-port12 amd64 2.5.27-1 [150 kB]
+    Get:46 http://httpredir.debian.org/debian bullseye/main amd64 libgphoto2-6 amd64 2.5.27-1 [753 kB]
+    Get:47 http://httpredir.debian.org/debian bullseye/main amd64 liblcms2-2 amd64 2.12~rc1-2 [150 kB]
+    Get:48 http://httpredir.debian.org/debian bullseye/main amd64 libnspr4 amd64 2:4.29-1 [112 kB]
+    Err:49 http://httpredir.debian.org/debian bullseye/main amd64 libnss3 amd64 2:3.61-1
+      404  Not Found [IP: 151.101.210.132 80]
+    Get:50 http://httpredir.debian.org/debian bullseye/main amd64 libopenjp2-7 amd64 2.4.0-3 [172 kB]
+    Get:51 http://httpredir.debian.org/debian bullseye/main amd64 libpoppler102 amd64 20.09.0-3.1 [1675 kB]
+    Get:52 http://httpredir.debian.org/debian bullseye/main amd64 libpoppler-glib8 amd64 20.09.0-3.1 [133 kB]
+    Get:53 http://httpredir.debian.org/debian bullseye/main amd64 libsensors-config all 1:3.6.0-7 [32.3 kB]
+    Get:54 http://httpredir.debian.org/debian bullseye/main amd64 libsensors5 amd64 1:3.6.0-7 [52.3 kB]
+    Get:55 http://httpredir.debian.org/debian bullseye/main amd64 libsnmp-base all 5.9+dfsg-3 [1736 kB]
+    Get:56 http://httpredir.debian.org/debian bullseye/main amd64 libsnmp40 amd64 5.9+dfsg-3+b1 [2550 kB]
+    Get:57 http://httpredir.debian.org/debian bullseye/main amd64 libsane1 amd64 1.0.31-4.1 [2512 kB]
+    Get:58 http://httpredir.debian.org/debian bullseye/main amd64 sane-utils amd64 1.0.31-4.1 [237 kB]
+    Get:59 http://httpredir.debian.org/debian bullseye/main amd64 colord-data all 1.4.5-3 [281 kB]
+    Get:60 http://httpredir.debian.org/debian bullseye/main amd64 libpolkit-gobject-1-0 amd64 0.105-31 [48.5 kB]
+    Get:61 http://httpredir.debian.org/debian bullseye/main amd64 libpolkit-agent-1-0 amd64 0.105-31 [28.1 kB]
+    Get:62 http://httpredir.debian.org/debian bullseye/main amd64 policykit-1 amd64 0.105-31 [96.6 kB]
+    Get:63 http://httpredir.debian.org/debian bullseye/main amd64 dbus-user-session amd64 1.12.20-2 [96.2 kB]
+    Get:64 http://httpredir.debian.org/debian bullseye/main amd64 libdconf1 amd64 0.38.0-2 [43.5 kB]
+    Get:65 http://httpredir.debian.org/debian bullseye/main amd64 dconf-service amd64 0.38.0-2 [37.4 kB]
+    Get:66 http://httpredir.debian.org/debian bullseye/main amd64 dconf-gsettings-backend amd64 0.38.0-2 [30.6 kB]
+    Get:67 http://httpredir.debian.org/debian bullseye/main amd64 libcolord2 amd64 1.4.5-3 [144 kB]
+    Get:68 http://httpredir.debian.org/debian bullseye/main amd64 libgusb2 amd64 0.3.5-1 [27.3 kB]
+    Get:69 http://httpredir.debian.org/debian bullseye/main amd64 libcolorhug2 amd64 1.4.5-3 [46.4 kB]
+    Get:70 http://httpredir.debian.org/debian bullseye/main amd64 libgudev-1.0-0 amd64 234-1 [14.7 kB]
+    Get:71 http://httpredir.debian.org/debian bullseye/main amd64 colord amd64 1.4.5-3 [203 kB]
+    Get:72 http://httpredir.debian.org/debian bullseye/main amd64 cups-common all 2.3.3op2-3+deb11u1 [313 kB]
+    Get:73 http://httpredir.debian.org/debian bullseye/main amd64 cups-client amd64 2.3.3op2-3+deb11u1 [241 kB]
+    Get:74 http://httpredir.debian.org/debian bullseye/main amd64 libpoppler-cpp0v5 amd64 20.09.0-3.1 [58.5 kB]
+    Get:75 http://httpredir.debian.org/debian bullseye/main amd64 libqpdf28 amd64 10.1.0-1 [489 kB]
+    Get:76 http://httpredir.debian.org/debian bullseye/main amd64 poppler-utils amd64 20.09.0-3.1 [189 kB]
+    Get:77 http://httpredir.debian.org/debian bullseye/main amd64 cups-ipp-utils amd64 2.3.3op2-3+deb11u1 [292 kB]
+    Get:78 http://httpredir.debian.org/debian bullseye/main amd64 cups-filters-core-drivers amd64 1.28.7-1 [218 kB]
+    Get:79 http://httpredir.debian.org/debian bullseye/main amd64 cups-core-drivers amd64 2.3.3op2-3+deb11u1 [146 kB]
+    Get:80 http://httpredir.debian.org/debian bullseye/main amd64 libfontembed1 amd64 1.28.7-1 [75.0 kB]
+    Get:81 http://httpredir.debian.org/debian bullseye/main amd64 libgs9-common all 9.53.3~dfsg-7+deb11u1 [734 kB]
+    Get:82 http://httpredir.debian.org/debian bullseye/main amd64 libidn11 amd64 1.33-3 [116 kB]
+    Get:83 http://httpredir.debian.org/debian bullseye/main amd64 libijs-0.35 amd64 0.35-15 [16.4 kB]
+    Get:84 http://httpredir.debian.org/debian bullseye/main amd64 libjbig2dec0 amd64 0.19-2 [67.2 kB]
+    Get:85 http://httpredir.debian.org/debian bullseye/main amd64 libgs9 amd64 9.53.3~dfsg-7+deb11u1 [2248 kB]
+    Get:86 http://httpredir.debian.org/debian bullseye/main amd64 ghostscript amd64 9.53.3~dfsg-7+deb11u1 [97.9 kB]
+    Get:87 http://httpredir.debian.org/debian bullseye/main amd64 cups-filters amd64 1.28.7-1 [583 kB]
+    Get:88 http://httpredir.debian.org/debian bullseye/main amd64 cups-ppdc amd64 2.3.3op2-3+deb11u1 [208 kB]
+    Get:89 http://httpredir.debian.org/debian bullseye/main amd64 cups-server-common all 2.3.3op2-3+deb11u1 [519 kB]
+    Get:90 http://httpredir.debian.org/debian bullseye/main amd64 cups amd64 2.3.3op2-3+deb11u1 [378 kB]
+    Get:91 http://httpredir.debian.org/debian bullseye/main amd64 fonts-noto-mono all 20201225-1 [402 kB]
+    Get:92 http://httpredir.debian.org/debian bullseye/main amd64 ipp-usb amd64 0.9.17-3+b4 [1792 kB]
+    Get:93 http://httpredir.debian.org/debian bullseye/main amd64 libgphoto2-l10n all 2.5.27-1 [509 kB]
+    Get:94 http://httpredir.debian.org/debian bullseye/main amd64 liblouis-data all 3.16.0-1 [1681 kB]
+    Get:95 http://httpredir.debian.org/debian bullseye/main amd64 liblouis20 amd64 3.16.0-1 [97.7 kB]
+    Get:96 http://httpredir.debian.org/debian bullseye/main amd64 liblouisutdml-data all 2.9.0-1 [45.4 kB]
+    Get:97 http://httpredir.debian.org/debian bullseye/main amd64 liblouisutdml9 amd64 2.9.0-1 [88.3 kB]
+    Get:98 http://httpredir.debian.org/debian bullseye/main amd64 liblouisutdml-bin amd64 2.9.0-1 [15.2 kB]
+    Get:99 http://httpredir.debian.org/debian bullseye/main amd64 libnss-mdns amd64 0.14.1-2 [26.9 kB]
+    Get:100 http://httpredir.debian.org/debian bullseye/main amd64 libpaper-utils amd64 1.1.28+b1 [18.3 kB]
+    Get:101 http://httpredir.debian.org/debian bullseye/main amd64 usb.ids all 2021.06.06-1 [204 kB]
+    Fetched 42.4 MB in 18s (2354 kB/s)
+  stdout_lines: <omitted>
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.cups : Copy CUPS configuration] ***********************
+Friday 07 January 2022  02:12:09 -0500 (0:01:05.745)       0:02:42.322 ********
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.cups : Gather package facts] **************************
+Friday 07 January 2022  02:12:10 -0500 (0:00:00.617)       0:02:42.939 ********
+ok: [Debian-10-Buster]
+ok: [Ubuntu-21.04-Hirsute-Hippo]
+ok: [Ubuntu-20.04-Focal-Fossa]
+ok: [Ubuntu-18.04-Bionic-Beaver]
+
+TASK [professormanhattan.cups : Restart Samba (if installed)] ******************
+Friday 07 January 2022  02:12:12 -0500 (0:00:02.156)       0:02:45.096 ********
+skipping: [Debian-10-Buster]
+skipping: [Ubuntu-18.04-Bionic-Beaver]
+skipping: [Ubuntu-20.04-Focal-Fossa]
+skipping: [Ubuntu-21.04-Hirsute-Hippo]
+
+RUNNING HANDLER [professormanhattan.cups : enable and restart cups] ************
+Friday 07 January 2022  02:12:13 -0500 (0:00:00.374)       0:02:45.471 ********
+changed: [CentOS-7]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Debian-10-Buster]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [CentOS-8]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [CentOS-Stream-8]
+changed: [Fedora-33]
+changed: [Fedora-34]
+changed: [Fedora-35]
+
+RUNNING HANDLER [professormanhattan.cups : enable and restart avahi] ***********
+Friday 07 January 2022  02:12:14 -0500 (0:00:01.357)       0:02:46.828 ********
+fatal: [CentOS-7]: FAILED! => changed=false
+  msg: 'Could not find the requested service avahi-daemon: host'
+changed: [CentOS-8]
+changed: [CentOS-Stream-8]
+changed: [Ubuntu-21.04-Hirsute-Hippo]
+changed: [Debian-10-Buster]
+changed: [Fedora-33]
+changed: [Ubuntu-18.04-Bionic-Beaver]
+changed: [Ubuntu-20.04-Focal-Fossa]
+changed: [Fedora-35]
+changed: [Fedora-34]
+
+NO MORE HOSTS LEFT *************************************************************
+
+PLAY RECAP *********************************************************************
+ArchLinux-Latest           : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+CentOS-7                   : ok=6    changed=3    unreachable=0    failed=1    skipped=7    rescued=0    ignored=0
+CentOS-8                   : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+CentOS-Stream-8            : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Debian-10-Buster           : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Debian-11-Bullseye         : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Debian-9-Stretch           : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Fedora-33                  : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-34                  : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Fedora-35                  : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-18.04-Bionic-Beaver : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-20.04-Focal-Fossa   : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-21.04-Hirsute-Hippo : ok=7    changed=4    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+Ubuntu-21.10-Impish-Indri  : ok=2    changed=0    unreachable=0    failed=1    skipped=6    rescued=0    ignored=0
+Windows-10                 : ok=1    changed=0    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0
+
+Friday 07 January 2022  02:12:15 -0500 (0:00:01.104)       0:02:47.933 ********
+===============================================================================
+professormanhattan.cups : Install CUPS and avahi-daemon ---------------- 88.47s
+professormanhattan.cups : Install CUPS and avahi-daemon ---------------- 65.75s
+Gathering Facts --------------------------------------------------------- 2.87s
+professormanhattan.cups : Gather package facts -------------------------- 2.16s
+professormanhattan.cups : Gather package facts -------------------------- 1.95s
+professormanhattan.cups : enable and restart cups ----------------------- 1.36s
+professormanhattan.cups : Copy CUPS configuration ----------------------- 1.19s
+professormanhattan.cups : enable and restart avahi ---------------------- 1.10s
+professormanhattan.cups : Install CUPS and avahi-daemon ----------------- 0.78s
+professormanhattan.cups : Copy CUPS configuration ----------------------- 0.62s
+professormanhattan.cups : Restart Samba (if installed) ------------------ 0.37s
+professormanhattan.homebrew : Ensure Homebrew casks are installed and up-to-date --- 0.22s
+professormanhattan.cups : Restart Samba (if installed) ------------------ 0.21s
+professormanhattan.cups : include_tasks --------------------------------- 0.19s
+professormanhattan.homebrew : Ensure .bashrc includes Homebrew (Linux) --- 0.16s
+professormanhattan.homebrew : Ensure Homebrew packages are installed and up-to-date --- 0.13s
+professormanhattan.homebrew : include_tasks ----------------------------- 0.13s
+professormanhattan.homebrew : Register Homebrew bin path information ---- 0.13s
+professormanhattan.homebrew : Include variables based on the operating system --- 0.12s
+Playbook run took 0 days, 0 hours, 2 minutes, 47 seconds
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+[WARNING]: Found both group and host with same name: Fedora-33
+[WARNING]: Found both group and host with same name: Fedora-34
+[WARNING]: Found both group and host with same name: Fedora-35
+[WARNING]: Found both group and host with same name: CentOS-8
+[WARNING]: Found both group and host with same name: CentOS-Stream-8
+[WARNING]: Found both group and host with same name: CentOS-7
+
+PLAY [Update platforms] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+Friday 07 January 2022  02:12:18 -0500 (0:00:00.014)       0:00:00.014 ********
+ok: [localhost]
+
+TASK [Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable] ***
+Friday 07 January 2022  02:12:29 -0500 (0:00:10.997)       0:00:11.012 ********
+skipping: [localhost]
+
+PLAY [Destroy] *****************************************************************
+
+TASK [Destroy molecule instance(s)] ********************************************
+Friday 07 January 2022  02:12:29 -0500 (0:00:00.377)       0:00:11.389 ********
+changed: [localhost] => (item=ArchLinux-Latest)
+changed: [localhost] => (item=CentOS-7)
+changed: [localhost] => (item=CentOS-8)
+changed: [localhost] => (item=CentOS-Stream-8)
+changed: [localhost] => (item=Debian-9-Stretch)
+changed: [localhost] => (item=Debian-10-Buster)
+changed: [localhost] => (item=Debian-11-Bullseye)
+changed: [localhost] => (item=Fedora-33)
+changed: [localhost] => (item=Fedora-34)
+changed: [localhost] => (item=Fedora-35)
+changed: [localhost] => (item=Ubuntu-18.04-Bionic-Beaver)
+changed: [localhost] => (item=Ubuntu-20.04-Focal-Fossa)
+changed: [localhost] => (item=Ubuntu-21.04-Hirsute-Hippo)
+changed: [localhost] => (item=Ubuntu-21.10-Impish-Indri)
+changed: [localhost] => (item=Windows-10)
+
+TASK [Populate instance config] ************************************************
+Friday 07 January 2022  02:15:07 -0500 (0:02:37.945)       0:02:49.335 ********
+ok: [localhost]
+
+TASK [Dump instance config] ****************************************************
+Friday 07 January 2022  02:15:08 -0500 (0:00:00.256)       0:02:49.591 ********
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=4    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+Friday 07 January 2022  02:15:09 -0500 (0:00:00.915)       0:02:50.506 ********
+===============================================================================
+Destroy molecule instance(s) ------------------------------------------ 157.95s
+Gathering Facts -------------------------------------------------------- 11.00s
+Dump instance config ---------------------------------------------------- 0.92s
+Filtering platforms list using the group defined in the MOLECULE_GROUP environment variable --- 0.38s
+Populate instance config ------------------------------------------------ 0.26s
+Playbook run took 0 days, 0 hours, 2 minutes, 50 seconds

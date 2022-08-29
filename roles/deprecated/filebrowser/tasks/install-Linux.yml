@@ -1,0 +1,56 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/filebrowser"
+  stat:
+    path: "~/.config/megabytelabs/filebrowser"
+  register: filebrowser_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat filebrowser
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_filebrowser_version
+  when: filebrowser_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/filebrowser/filebrowser/releases/latest
+  register: filebrowser_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_filebrowser: "{{ (current_filebrowser_version.skipped | default(false)) or \
+      ((not current_filebrowser_version.skipped | default(false)) and \
+      (current_filebrowser_version.stdout != filebrowser_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/filebrowser
+    state: absent
+  when: install_filebrowser
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "{{ 'https://github.com/filebrowser/filebrowser/releases/download/' + filebrowser_latest_release_tag.json.tag_name + '/' + \
+      'linux-'+ filebrowser_arch_map[ansible_architecture]  + '-filebrowser.tar.gz' }}"
+    dest: /usr/local/bin
+    mode: 0755
+    remote_src: true
+  when: install_filebrowser
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/filebrowser
+    mode: 0600
+    content: |
+      {{ filebrowser_latest_release_tag.json.tag_name | replace('v','') }}
+  when: install_filebrowser

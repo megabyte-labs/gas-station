@@ -1,14 +1,24 @@
 ---
-- name: "Add {{ app_name }}'s yum repository"
-  yum_repository:
-    baseurl: "{{ packer_yum_repo }}"
-    description: HashiCorp repository
-    gpgcheck: true
-    gpgkey: "{{ packer_gpgkey_url }}"
-    name: "{{ app_name | lower | replace(' ', '-') }}"
-
 - name: "Ensure {{ app_name }} is installed"
-  yum:
-    name: packer
-    state: present
-    update_cache: true
+  block:
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        baseurl: "{{ packer_yum_repo }}"
+        description: HashiCorp repository
+        gpgcheck: true
+        gpgkey: "{{ packer_gpgkey_url }}"
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: packer
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: "{{ app_name | lower | replace(' ', '-') }}"
+        state: absent
+
+    - name: Run Linux installation tasks
+      include_tasks: install-Linux.yml

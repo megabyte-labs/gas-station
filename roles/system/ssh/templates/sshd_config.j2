@@ -4,6 +4,9 @@ Port {{ ssh_port }}
 AddressFamily inet
 #ListenAddress 0.0.0.0
 #ListenAddress ::
+{% for listen_addr in ssh_list_addresses %}
+ListenAddress {{ listen_addr }}
+{% endfor %}
 
 #HostKey /etc/ssh/ssh_host_rsa_key
 #HostKey /etc/ssh/ssh_host_ecdsa_key
@@ -20,17 +23,20 @@ AddressFamily inet
 LoginGraceTime 60
 {% if ansible_system != 'Windows' %}
 PermitRootLogin no
+{% else %}
+DenyGroups Administrators
 {% endif %}
-AllowUsers hawkwood ubuntu
+AllowUsers {% for user in user_configs %}{%- if user.ssh_access is defined and user.ssh_access -%}{{ user.username }}{%- endif -%}
+{% endfor %} {{ ansible_user | default(lookup('env', 'USER')) }}
 #StrictModes yes
 MaxAuthTries 3
 #MaxSessions 10
 
-PubkeyAuthentication yes
+AuthenticationMethods publickey
 
 # The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
 # but this is overridden so installations will only check .ssh/authorized_keys
-AuthorizedKeysFile  .ssh/authorized_keys
+AuthorizedKeysFile {{ (custom_ssh_key_path if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else '.ssh') + '/authorized_keys' }}
 
 #AuthorizedPrincipalsFile none
 
@@ -38,12 +44,12 @@ AuthorizedKeysFile  .ssh/authorized_keys
 #AuthorizedKeysCommandUser nobody
 
 # For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
-#HostbasedAuthentication no
+HostbasedAuthentication no
 # Change to yes if you don't trust ~/.ssh/known_hosts for
 # HostbasedAuthentication
 #IgnoreUserKnownHosts no
 # Don't read the user's ~/.rhosts and ~/.shosts files
-#IgnoreRhosts yes
+IgnoreRhosts yes
 
 # To disable tunneled clear text passwords, change to no here!
 PasswordAuthentication no
@@ -77,7 +83,8 @@ UsePAM yes
 
 {% if ansible_system != 'Windows' %}
 #AllowAgentForwarding yes
-#AllowTcpForwarding yes
+{% if allow_tcp_forwarding %}AllowTcpForwarding yes{% else %}AllowTcpForwarding no{% endif %}
+
 #GatewayPorts no
 X11Forwarding no
 #X11DisplayOffset 10
@@ -88,9 +95,10 @@ X11Forwarding no
 #TCPKeepAlive yes
 #PermitUserEnvironment no
 #Compression delayed
-ClientAliveInterval 240
-#ClientAliveCountMax 3
-UseDNS no # Experiment with this
+ClientAliveInterval 60
+ClientAliveCountMax 3
+UseDNS no
+# Experiment with this
 #PidFile /var/run/sshd.pid
 #MaxStartups 10:30:100
 #PermitTunnel no
@@ -101,10 +109,10 @@ UseDNS no # Experiment with this
 AcceptEnv LANG LC_*
 
 # no default banner path
-Banner /etc/motd
+Banner /etc/ssh/banner
 
 # override default of no subsystems
-Subsystem sftp  /usr/libexec/sftp-server
+Subsystem sftp {{ sftp_executable.files[0].path | default('internal-sftp') }}
 
 # Example of overriding settings on a per-user basis
 #Match User anoncvs

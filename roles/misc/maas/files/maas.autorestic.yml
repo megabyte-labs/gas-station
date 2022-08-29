@@ -1,0 +1,39 @@
+---
+version: 2
+
+extras:
+  hooks: &hooks
+    before:
+      - echo "Hello"
+    after:
+      - echo "kthxbye"
+  policies: &policies
+    keep-daily: 14
+    keep-weekly: 14
+
+locations:
+  config:
+    from:
+      - /snap/maas/current/etc/maas
+      - /var/snap/maas/common/maas
+      - /
+    to:
+      - primary
+      - secondary
+    cron: '0 4 * * *' # Everyday at 4AM
+    options:
+      backup:
+        tag:
+          - maas
+
+backends:
+  primary:
+    type: s3
+    path: s3.amazonaws.com/bucket_name
+    env:
+      AWS_ACCESS_KEY_ID: my_key
+      AWS_SECRET_ACCESS_KEY: my_secret
+
+  secondary:
+    type: local
+    path: /mnt/my_external_storage

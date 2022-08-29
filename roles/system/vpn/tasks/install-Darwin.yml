@@ -1,5 +1,8 @@
 ---
 - name: Register MAS installed apps
+  become_user: "{{ ansible_user }}"
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
   command: mas list
   register: mas_list
   changed_when: false
@@ -12,8 +15,13 @@
   when: remove_vpn_connections | bool
 
 - name: "Ensure {{ app_name }} is installed"
-  command: "mas install '{{ wireguard_mas_id }}'"
+  become_user: "{{ ansible_user }}"
+  environment:
+    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
+  shell: |
+    mas install {{ wireguard_mas_id }}
   args:
+    executable: /bin/bash
     creates: "/Applications/WireGuard.app"
   when: (wireguard_mas_id | string) not in mas_list.stdout
 
@@ -22,11 +30,15 @@
     path: "{{ wireguard_conf_dir }}"
     state: directory
     mode: 0600
-# TODO: Fix this and add it back in
-# - name: Copy WireGuard connection file
-#   copy:
-#     src: "files/vpn/{{ vpn_connection.file }}"
-#     dest: "{{ wireguard_conf_dir }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
-#     owner: root
-#     mode: 0600
-#   when: '"nmconnection" in vpn_connection.file'
+
+- name: Copy WireGuard connection file
+  copy:
+    src: "files/vpn/{{ vpn_connection.file }}"
+    dest: "{{ wireguard_conf_dir }}/{{ vpn_connection.file | regex_replace('.nmconnection$', '.conf')  }}"
+    owner: root
+    mode: 0600
+  loop: "{{ vpn_connections | default([]) }}"
+  loop_control:
+    label: "{{ vpn_connection.file }}"
+    loop_var: vpn_connection
+  when: '"nmconnection" in vpn_connection.file'

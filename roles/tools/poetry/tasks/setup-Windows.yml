@@ -1,0 +1,16 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: |
+    (Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python -
+  args:
+    creates: '%USERPROFILE%\.poetry\bin'
+
+- name: Populate the config file with repository information
+  become_user: "{{ user.username }}"
+  ansible.windows.win_shell: |
+    '%USERPROFILE%\.poetry\bin\poetry' config repositories.{{ poetry_repo_name }} {{ poetry_repo_url }}
+    '%USERPROFILE%\.poetry\bin\poetry'poetry config http-basic.{{ poetry_repo_name }} {{ poetry_repo_username }} {{ poetry_repo_password }}
+  when:
+    - poetry_repo_name and poetry_repo_url
+    - poetry_repo_username and poetry_repo_password

@@ -3,18 +3,21 @@
   community.general.pacman:
     name: "{{ autokey_dependencies }}"
     state: "{{ app_state | default('present') }}"
-    update_cache: true
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: "Ensure {{ app_name }}'s source directory is present"
-  ansible.builtin.file:
+  file:
     mode: 0755
     path: "{{ autokey_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
 
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
-  ansible.builtin.git:
+  become: false
+  git:
     dest: "{{ autokey_src_dir }}"
     repo: "{{ autokey_aur_git_repository }}"
+    version: master
   register: autokey_git
 
 - name: "Remove /usr/sbin/autokey-gtk if the source files have changed" # noqa 503
@@ -24,7 +27,16 @@
   when: autokey_git.changed
 
 - name: "Ensure {{ app_name }} is installed"
+  become: false
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ autokey_src_dir }}"
     creates: /usr/sbin/autokey-gtk
+
+- name: Run generic Linux tasks
+  include_tasks: setup-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,17 +1,29 @@
 ---
-- name: Install Cockpit
+- name: "Ensure {{ app_name }} is installed"
   community.general.pacman:
     name:
       - cockpit
       - cockpit-machines
       - libvirt-dbus
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: Enable the Cockpit service
   systemd:
     enabled: true
     name: cockpit.socket
     state: started
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+
+- name: Install Cockpit Podman
+  community.general.pacman:
+    name: cockpit-podman
+    state: present
+  when: (ansible_facts.packages | regex_search('docker*')) or (ansible_facts.packages | regex_search('podman*'))
 
 - name: Add Cockpit machine profiles
   template:

@@ -1,0 +1,92 @@
+---
+- name: Ensure dependencies are installed
+  pip:
+    name:
+      - jsondiff
+      - pyyaml
+      - docker
+    state: present
+  when: swarm_master is defined and swarm_master
+
+- name: Initialize Docker Swarm
+  community.docker.docker_swarm:
+    advertise_addr: "{{ warp_ip }}"
+    state: present
+  when: swarm_master is defined and swarm_master
+
+- name: Check if Docker Swarm Manager is configured
+  community.docker.docker_swarm_info:
+  ignore_errors: true
+  register: swarm_info
+  delegate_to: "{%- for host in hostvars -%}
+    {%- if hostvars[host].swarm_master is defined and hostvars[host].swarm_master -%}
+    {{host}}{%- endif -%}{%- endfor -%}"
+  when: swarm_node is defined and swarm_node
+
+- name: Add nodes to the Swarm cluster
+  community.docker.docker_swarm:
+    state: join
+    join_token: "{{ swarm_info.swarm_facts.JoinTokens.Worker }}"
+    remote_addrs: [ "{{ warp_ip }}" ]
+  when: swarm_node is defined and swarm_node
+
+- name: Ensure /srv/stacks directory exists
+  become_user: root
+  file:
+    path: /srv/stacks
+    mode: 0755
+    state: directory
+    owner: "{{ ansible_user }}"
+  when: swarm_master is defined and swarm_master
+
+- name: Ensure Stack files are copied
+  copy:
+    src: "templates/{{ stack.app_name }}.docker-stack.yml"
+    dest: /srv/stacks
+    mode: 0644
+  loop: "{{ docker_stacks }}"
+  loop_control:
+    label: "{{ stack.app_name }}"
+    loop_var: stack
+  when: swarm_master is defined and swarm_master
+
+- name: Ensure Secrets are updated
+  include_tasks: secrets.yml
+  loop: "{{ docker_stacks }}"
+  loop_control:
+    label: "{{ stack.app_name }}"
+    loop_var: stack
+  when:
+    - swarm_master is defined and swarm_master
+    - stack.secrets is defined
+
+- name: Ensure Docker configs (i.e. docker config) are updated
+  include_tasks: configs.yml
+  loop: "{{ docker_stacks }}"
+  loop_control:
+    label: "{{ stack.app_name }}"
+    loop_var: stack
+  when:
+    - swarm_master is defined and swarm_master
+    - stack.configs is defined
+
+- name: Ensure nginx_proxy network is initialized
+  community.docker.docker_network:
+    name: nginx_proxy
+    driver: overlay
+    internal: true
+    scope: swarm
+  when:
+    - swarm_master is defined and swarm_master
+
+- name: Ensure Stacks are deloyed
+  community.docker.docker_stack:
+    name: "{{ stack.app_name }}"
+    state: present
+    compose:
+      - "/srv/stacks/{{ stack.app_name }}.docker-stack.yml"
+  loop: "{{ docker_stacks }}"
+  loop_control:
+    label: "{{ stack.app_name }}"
+    loop_var: stack
+  when: swarm_master is defined and swarm_master

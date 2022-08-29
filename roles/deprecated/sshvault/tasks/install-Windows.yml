@@ -1,0 +1,67 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/sshvault'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\sshvault'
+  register: sshvault_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_command: type sshvault
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_sshvault_version
+  when: sshvault_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/ssh-vault/ssh-vault/releases/latest
+    return_content: true
+  register: sshvault_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_sshvault: "{{ (current_sshvault_version.skipped | default(false)) or \
+      ((not current_sshvault_version.skipped | default(false)) and (current_sshvault_version.stdout | trim != sshvault_latest_release_tag.json.tag_name)) }}"
+
+- name: "Ensure {{ sshvault_src_folder }} is created"
+  ansible.windows.win_file:
+    path: "{{ sshvault_src_folder }}"
+    state: directory
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  ansible.windows.win_file:
+    path: "{{ sshvault_src_folder }}/ssh-vault.exe"
+    state: absent
+  when: install_sshvault
+
+- name: "Ensure {{ app_name }}'s installer is downloaded"
+  ansible.windows.win_get_url:
+    url: "https://bintray.com/nbari/ssh-vault/download_file?file_path=ssh-vault_{{ sshvault_latest_release_tag.json.tag_name }}_windows_amd64.zip"
+    dest: '%TEMP%\ssh-vault.zip'
+  when: install_sshvault
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: '%TEMP%\ssh-vault.zip'
+    dest: "{{ sshvault_src_folder }}"
+    delete_archive: true
+  when: install_sshvault
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: "{{ sshvault_src_folder }}"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\sshvault'
+    content: |
+      {{ sshvault_latest_release_tag.json.tag_name }}
+  when: install_sshvault

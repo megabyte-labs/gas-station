@@ -3,3 +3,14 @@
   community.general.pacman:
     name: go
     state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - install_developer_dependencies
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -5,25 +5,42 @@
     name: stubby
     state: present
 
-- name: Clear the default DNS server settings
+- name: Ensure hostctl is installed
+  become: false
+  community.general.homebrew:
+    name: guumaster/tap/hostctl
+    state: present
+
+- name: Clear the default DNS server settings # noqa 301
+  become: false
   replace:
     path: "{{ stubby_config_path }}"
-    after: "[# ]*DEFAULT UPSTREAMS[ #]*"
-    before: "[# ]*OPTIONAL UPSTREAMS[ #]*"
+    backup: true
+    after: 'DEFAULT UPSTREAMS  ################################'
+    before: '############################ OPTIONAL UPSTREAMS'
+    regexp: '^(.*)$'
     replace: '\n'
-    regexp: '[\s\S]*'
 
 - name: Add custom DNS settings
+  become: false
   blockinfile:
     path: "{{ stubby_config_path }}"
-    insertafter: "[# ]*DEFAULT UPSTREAMS[ #]*"
+    insertafter: "^[# ]*DEFAULT UPSTREAMS[ #]*$"
     block: |
       {{ dns_setting | to_nice_yaml(indent=2) }}
 
-- name: Start Stubby service # noqa 301
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: brew services start stubby
+- name: Start Stubby service # noqa 301 # TODO --- only run this if the service is not already started -- causes an issue if run twice in a row
+  become: false
+  shell: brew services start stubby
+  ignore_errors: true
 
 - name: Update DNS setting # noqa 301
-  command: /usr/local/opt/stubby/sbin/stubby-setdns-macos.sh
+  become: true
+  become_user: root
+  shell: bash /usr/local/opt/stubby/sbin/stubby-setdns-macos.sh &
+
+- name: Run generic Configuration tasks
+  become: true
+  become_user: root
+  block:
+    - include_tasks: config-Linux.yml

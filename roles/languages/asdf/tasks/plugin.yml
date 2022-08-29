@@ -1,0 +1,91 @@
+---
+- name: "Find the version of {{ app_name }} installed"
+  command: asdf --version
+  environment:
+    PATH: /usr/local/bin:{{ ansible_env.PATH }}
+  register: asdf_version
+  changed_when: false
+  when: ansible_system == 'Darwin'
+
+- name: 'Check if {{ plugin.name }} is already installed' # noqa 301
+  shell: |
+    . "$ASDF_DIR/asdf.sh"
+    asdf list {{ plugin.name }}
+  environment:
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/Cellar/asdf/' + \
+      asdf_version.stdout | replace('v','') + '/libexec' }}"
+  args:
+    executable: /bin/bash
+  register: plugin_installed
+  environment:
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/Cellar/asdf/' + \
+      asdf_version.stdout | replace('v','') + '/libexec' }}"
+  failed_when: plugin_installed.rc != 0 and
+    not (plugin_installed.rc == 1 and 'No such plugin' in plugin_installed.stderr)
+  changed_when: plugin_installed.rc != 0 and
+    not (plugin_installed.rc == 1 and 'No such plugin' in plugin_installed.stderr)
+
+# @action Enables and configures ASDF plugins
+# Adds the plugin
+- name: "Ensure {{ plugin.name }} ASDF Plugin is installed"
+  shell: |
+    . "$ASDF_DIR/asdf.sh"
+    asdf plugin add {{ plugin.name }} {{ plugin.url }}
+  environment:
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/Cellar/asdf/' + \
+      asdf_version.stdout | replace('v','') + '/libexec' }}"
+  args:
+    executable: /bin/bash
+  register: asdf_plugin_install
+  failed_when: asdf_plugin_install.rc != 0 and
+    not (asdf_plugin_install.rc == 2 and ' already added' in asdf_plugin_install.stderr)
+  changed_when: asdf_plugin_install.rc != 0 and
+    not (asdf_plugin_install.rc == 2 and ' already added' in asdf_plugin_install.stderr)
+  when: "'No versions installed' in plugin_installed.stderr or 'No such plugin' in plugin_installed.stderr"
+
+# @action Enables and configures ASDF plugins
+# Configures the `~/.default-<tool>-packages` file
+- name: Configure the default global packages
+  template:
+    src: default-tool-packages.j2
+    dest: "~/.{{ plugin.default_packages_file_name }}"
+    mode: 0600
+  when:
+    - "'No versions installed' in plugin_installed.stderr or 'No such plugin' in plugin_installed.stderr"
+    - plugin.default_packages | default([]) | length
+
+# @action Enables and configures ASDF plugins
+# Updates the `~/.tool-versions` file
+- name: Ensure .tool-versions file is created
+  lineinfile:
+    path: ~/.tool-versions
+    regex: "{{ plugin.name }} {{ plugin.version }}"
+    line: "{{ plugin.name }} {{ plugin.version }}"
+    create: true
+    mode: 0600
+  when:
+    - "'No versions installed' in plugin_installed.stderr or 'No such plugin' in plugin_installed.stderr"
+    - plugin.version is defined and plugin.version | length > 0
+
+- name: "Ensure {{ plugin.name }} and default packages (if any) are installed"
+  shell: |
+    . "$ASDF_DIR/asdf.sh"
+    asdf install
+    asdf reshim {{ plugin.name }}
+  environment:
+    ASDF_DIR: "{{ '/home/' + user.username + '/.local/asdf' if ansible_system == 'Linux' else '/usr/local/Cellar/asdf/' + \
+      asdf_version.stdout | replace('v','') + '/libexec' }}"
+  args:
+    executable: /bin/bash
+  register: asdf_node_install
+  changed_when: not (asdf_node_install.rc == 0 and plugin.name + " " + plugin.version + " is already installed" in asdf_node_install.stdout)
+  when: "'No versions installed' in plugin_installed.stderr or 'No such plugin' in plugin_installed.stderr"
+
+- name: Ensure bashrc and zshrc files are updated (if needed)
+  blockinfile:
+    path: "{{ item }}"
+    block: "{{ plugin.rc_content }}"
+  loop:
+    - ~/.zshrc
+    - ~/.bashrc
+  when: plugin.rc_content is defined and plugin.rc_content | length > 0

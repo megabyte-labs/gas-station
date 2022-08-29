@@ -7,22 +7,24 @@
   ignore_errors: true
   register: ssh_check_test
   delegate_to: localhost
-  when: ansible_connection != 'local'
+  when:
+    - ansible_connection != 'local'
+    - ansible_connection != 'winrm'
 
 - name: Revert to standard port 22 for SSH if the "secure" port has not been configured yet
   set_fact:
     ansible_port: "22"
   when:
     - ansible_connection != 'local'
+    - ansible_connection != 'winrm'
+    - ssh_check_test.failed is defined
     - ssh_check_test.failed
 
-- name: Determine facts based on the host's ID
+- name: Set ansible_user to name of user running the playbook if ansible_user is undefined
   set_fact:
-    fqdn: "{{ hosts[host_id].hosts.split()[-1] }}"
-    hostname: "{{ hosts[host_id].hostname }}"
-    host_list: "{{ hosts | list }}"
-    ip_address: "{{ hosts[host_id].ip_address }}"
-    nginx_sites: "{{ apps }}"
+    ansible_user: "{{ lookup('env', 'USER') }}"
+  when:
+    - not ansible_user is defined
 
 - name: Ensure python-netaddr is installed on Ansible controller host
   become: false
@@ -30,14 +32,28 @@
     name: netaddr
   delegate_to: localhost
 
+- name: Determine facts based on the host's ID
+  set_fact:
+    fqdn: "{{ domains[inventory_hostname | lower].hosts.split()[-1] }}"
+    hostname: "{{ domains[inventory_hostname | lower].hostname }}"
+    ip_address: "{{ domains[inventory_hostname | lower].ip_address }}"
+  when:
+    - domains is defined
+    - domains[inventory_hostname | lower] is defined
+    - domains[inventory_hostname | lower].hosts is defined
+
+- name: Print the domains[inventory_hostname | lower]
+  debug:
+    var: domains[inventory_hostname | lower]
+
 - name: Determine the VLAN (set to cloud if none match)
   vars:
     netmask: "24"
   block:
     - name: Set value for the variable vlan_ip
       set_fact:
-        vlan_ip: "{{ hosts
-          | map('extract', hosts)
+        vlan_ip: "{{ domains
+          | map('extract', domains)
           | selectattr('hostname', 'defined')
           | selectattr('hostname', 'equalto', hostname)
           | map(attribute='ip_address')
@@ -57,17 +73,22 @@
     - name: Set value for the variable vlan
       set_fact:
         vlan: cloud
-      when: not vlan_ip
+      when: not (vlan_ip | default(false))
+  when:
+    - domains is defined
+    - domains[inventory_hostname | lower] is defined
+    - domains[inventory_hostname | lower].hosts is defined
 
 - name: Set miscellaneous facts
   set_fact:
-    authelia_on_localhost: "{{ 'authelia' in apps }}"
-    docker_tls_fqdn: "{{ fqdn }}"
+    docker_tls_fqdn: "{{ fqdn | default(omit) }}"
     #   kibana_enrollment_id: "{{ vlan }}"
+  when:
+    - fqdn is defined
 
 - name: Set the appropriate netdata room
   set_fact:
-    netdata_room: "{{ netdata_rooms[vlan] }}" # TODO: Improve this method so that we can segment different cloud providers
+    netdata_room: "{{ netdata_rooms[(vlan | default('cloud'))] }}"
   when:
     - netdata_rooms is defined
 
@@ -77,4 +98,75 @@
     dns_provider: 1.1.1.1#cloudflare-dns.com
     dns_fallback_provider: 1.0.0.1#cloudflare-dns.com
     https_repository_prefix: https://
-  when: vlan == 'cloud'
+  when:
+    - vlan is defined
+    - "vlan == 'cloud'"
+
+- name: Check if ubuntu user is present
+  block:
+    - name: Ensure pexpect is installed
+      connection: local
+      pip:
+        name: pexpect
+        state: present
+    - name: Check if connection is possible
+      expect:
+        command: "ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no ubuntu@{{ ansible_host }} -p {{ ansible_port | default('22') }}"
+        timeout: 2
+        responses:
+          (.*)password(.*):
+            - "{{ ansible_password }}"      # Fit the password
+            - "\x03"          # Ctrl-C
+          (.*)\$(.*): "exit"  # Fit the prompt
+      register: can_connect_as_ubuntu
+      connection: local
+      ignore_errors: true
+      changed_when: false
+    - name: Save the name of the user to be created
+      set_fact:
+        ansible_user_new: "{{ ansible_user }}"
+      when: not can_connect_as_ubuntu.failed
+    - name: Set the value of ansible_user
+      set_fact:
+        ansible_user: "{{ ansible_user_remove | default('ubuntu') if not can_connect_as_ubuntu.failed else ansible_user }}"
+  when:
+    - replace_ubuntu_user_with_ansible_user is defined and replace_ubuntu_user_with_ansible_user | bool
+    - ansible_password is defined
+    - ansible_user is defined
+
+- name: Ensure user 'ubuntu' is removed if present
+  become: true
+  block:
+    - name: "Create new user account for {{ ansible_user_new }}"
+      become_user: root
+      user:
+        name: "{{ ansible_user_new }}"
+        state: present
+        password: "{{ ansible_password | password_hash('sha512', password_salt) }}"
+    - name: "Add the user {{ ansible_user_new }} to passwordless sudoers"
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: "^{{ ansible_user_new }}"
+        line: "{{ ansible_user_new }} ALL=(ALL) NOPASSWD: ALL"
+        state: present
+        validate: "visudo -cf %s"
+        mode: 0644
+    - name: Set fact to use the newly created user for connections
+      set_fact:
+        ansible_user: "{{ ansible_user_new }}"
+    - wait_for_connection:
+        timeout: 10
+    - name: Kill processes owned by ubuntu user # noqa 301
+      command: "pkill -u ubuntu"
+      ignore_errors: true
+    - name: Remove old user
+      user:
+        name: ubuntu
+        state: absent
+        remove: true
+  when:
+    - ansible_password is defined
+    - replace_ubuntu_user_with_ansible_user is defined and replace_ubuntu_user_with_ansible_user | bool
+    - can_connect_as_ubuntu is defined
+    - can_connect_as_ubuntu.failed is defined
+    - not can_connect_as_ubuntu.failed

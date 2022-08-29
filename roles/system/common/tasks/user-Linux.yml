@@ -1,5 +1,6 @@
 ---
 - name: Ensure groups are present
+  become_user: root
   group:
     name: "{{ group }}"
     state: present
@@ -8,14 +9,33 @@
     loop_var: group
   when: user.groups is defined
 
+- name: Creates directory
+  file:
+    path: ~/.local/share/xfce4/terminal/colorschemes
+    state: directory
+    owner: "{{ user.username }}"
+    mode: 0775
+    recurse: yes
+  when: xfce_about.rc == 0
+
+- name: Install XFCE Nord theme if XFCE is installed
+  copy:
+    src: xfce-nord.theme
+    dest: ~/.local/share/xfce4/terminal/colorschemes/nord.theme
+    owner: "{{ user.username }}"
+    mode: 0644
+  when: xfce_about.rc == 0
+
+# @action Ensures user configurations are applied
+# Ensure default group is present
 - name: Ensure default group is present
+  become_user: root
   group:
     name: "{{ user.group }}"
     state: present
   when: user.group is defined
 
 - name: Ensure user belongs to configured groups
-  become: true
   become_user: root
   user:
     append: true
@@ -23,6 +43,8 @@
     name: "{{ user.username }}"
   when: user.groups is defined
 
+# @action Ensures user configurations are applied
+# Apply appropriate permissions to default folders
 - name: Apply permissions to default folders
   include_tasks: linux/permissions.yml
   loop: "{{ linux_base_folders }}"
@@ -30,10 +52,14 @@
     loop_var: folder
   when: not (user.system | default(false))
 
+# @action Ensures user configurations are applied
+# Adds symbolically linked folders if configured
 - name: Add symbolically linked folders
   include_tasks: linux/symlink-folder.yml
   loop: "{{ user.symlinks }}"
   loop_control:
     loop_var: folder
   tags: skip_on_init
-  when: user.symlinks is defined
+  when:
+    - user.symlinks is defined
+    - ansible_system == 'Linux'

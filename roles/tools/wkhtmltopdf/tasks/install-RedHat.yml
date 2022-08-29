@@ -1,0 +1,47 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: wkhtmltopdf
+    state: "{{ app_state | default('present') }}"
+    enablerepo: "{{ 'epel' if ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7' else omit }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: not (ansible_distribution == 'CentOS' and ansible_distribution_major_version == '8')
+
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: Ensure custom facts directory exists
+      file:
+        mode: 0755
+        path: /etc/ansible/facts.d
+        state: directory
+    - name: "Detect {{ app_name }} versions"
+      uri:
+        url: https://api.github.com/repos/wkhtmltopdf/packaging/releases
+      register: wkhtmltopdf_releases
+    - name: "Detect URL of the latest {{ app_name }} version"
+      set_fact:
+        wkhtmltopdf_latest_version_url: "{{ (wkhtmltopdf_releases.json | map(attribute='assets') | \
+          flatten | selectattr('browser_download_url','match','.*centos8.x86_64.rpm$'))[0].browser_download_url }}"
+    - name: "Detect the latest {{ app_name }} version"
+      set_fact:
+        wkhtmltopdf_latest_version: "{{ wkhtmltopdf_latest_version_url | regex_search('(((\\d+\\.)*\\d+)(-\\d)*)') }}"
+    - name: "Determine whether or not the latest version of {{ app_name }}'s AppImage is already installed"
+      set_fact:
+        install_wkhtmltopdf: "{{ (ansible_local.wkhtmltopdf is not defined) or \
+          ((ansible_local.wkhtmltopdf is defined) and (ansible_local['wkhtmltopdf']['settings']['version'] != wkhtmltopdf_latest_version)) }}"
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: "{{ wkhtmltopdf_latest_version_url }}"
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+      when: install_wkhtmltopdf
+    - name: "Save meta information about the version of {{ app_name }} that was installed"
+      community.general.ini_file:
+        path: /etc/ansible/facts.d/wkhtmltopdf.fact
+        mode: 0644
+        section: settings
+        option: version
+        value: "{{ wkhtmltopdf_latest_version }}"
+        no_extra_spaces: true
+      when: install_wkhtmltopdf
+  when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '8'

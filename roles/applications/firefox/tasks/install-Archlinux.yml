@@ -3,3 +3,24 @@
   pacman:
     name: firefox
     state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+- name: Ensure /usr/lib/firefox/distribution directory exists
+  file:
+    path: /usr/lib/firefox/distribution
+    state: directory
+    mode: 0755
+
+- name: Copy policies.json file
+  copy:
+    src: policies.json
+    dest: /usr/lib/firefox/distribution/policies.json
+    mode: 0644
+
+- name: Ensure Addons are installed
+  include_tasks: configure-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -8,6 +8,12 @@
     - ~/.config
     - ~/.config/megabytelabs
 
+- name: Ensure /usr/local/src/wp-cli directory exists
+  file:
+    path: /usr/local/src/wp-cli
+    mode: 0755
+    state: directory
+
 - name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/wpcli"
   stat:
     path: "~/.config/megabytelabs/wpcli"
@@ -28,8 +34,8 @@
 
 - name: "Determine whether or not the latest version of {{ app_name }} is already installed"
   set_fact:
-    install_wpcli: "{{ (current_wpcli_version.skipped) or \
-      ((not current_wpcli_version.skipped) and (current_wpcli_version.stdout != wpcli_latest_release_tag.json.tag_name | replace('v','')) }}"
+    install_wpcli: "{{ (current_wpcli_version.skipped | default(false)) or \
+      ((not current_wpcli_version.skipped | default(false)) and (current_wpcli_version.stdout != wpcli_latest_release_tag.json.tag_name | replace('v',''))) }}"
 
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:

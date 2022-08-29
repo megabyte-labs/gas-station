@@ -1,0 +1,22 @@
+---
+- name: Ensure LXD is installed
+  community.general.snap:
+    name: lxd
+    state: "{{ app_state | default('present') }}"
+
+- name: Ensure LXC is installed
+  package:
+    name: lxc
+    state: "{{ app_state | default('present') }}"
+
+# @action Installs LXC and LXD
+# Ensures LXD is started and enabled
+- name: Ensure lxd service is started and enabled
+  service:
+    name: lxc
+    state: started
+    enabled: true
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+
+- name: Run generic Linux tasks
+  include_tasks: config-Linux.yml

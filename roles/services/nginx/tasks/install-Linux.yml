@@ -32,6 +32,7 @@
 
 - name: Add styled status code response pages from Git repository
   include_tasks: linux/status-pages.yml
+  when: error_page_repository | bool
 
 - name: Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough
   lineinfile:
@@ -44,6 +45,8 @@
     - ansible_distribution is defined and ( nginx_service_path is defined or nginx_service_path[ansible_distribution] is defined )
     - ansible_os_family != 'Darwin'
 
+# @action Ensures Nginx is configured
+# Installs Brotli on Linux and MacOS Systems
 - name: Compile Brotli modules
   include_tasks: linux/brotli.yml
   when:
@@ -52,6 +55,8 @@
 - name: Ensure dhparam.pem exists
   include_tasks: linux/dhparam.yml
 
+# @action Ensures Nginx is configured
+# Installs Nginx Amplify Agent on Linux and MacOS Systems
 - name: Install NGINX Amplify
   include_tasks: linux/amplify.yml
   when:
@@ -64,6 +69,8 @@
     path: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
   register: modsec_config
 
+# @action Ensures Nginx is configured
+# Installs ModSecurity WAF on Linux and MacOS Systems
 - name: Compile ModSecurity WAF module
   include_tasks: linux/modsecurity.yml
   when:
@@ -95,7 +102,7 @@
     state: link
   loop: "{{ apps }}"
   tags: nginx_configuration
-  when: (item | default(item.name)) != host_id
+  when: (item | default(item.name)) != (inventory_hostname | lower)
 
 - name: Reload systemd and restart NGINX
   systemd:
@@ -103,4 +110,6 @@
     name: nginx
     state: restarted
   tags: nginx_configuration
-  when: ansible_os_family != 'Darwin'
+  when:
+    - ansible_os_family != 'Darwin'
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

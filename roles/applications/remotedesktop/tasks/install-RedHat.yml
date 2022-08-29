@@ -3,10 +3,10 @@
   include_tasks: install-Linux.yml
 
 - name: "Ensure {{ app_name }} is installed"
-  yum:
+  dnf:
     name: xrdp
     state: "{{ app_state | default('present') }}"
-    enable_repo: epel
+    enablerepo: "{{ 'epel' if ansible_distribution != 'Fedora' else omit }}"
   when: install_xrdp
 
 - name: "Ensure {{ app_name }} is started on boot"
@@ -14,7 +14,9 @@
     enabled: true
     name: xrdp
     state: started
-  when: install_xrdp
+  when:
+    - install_xrdp
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: "Determine whether or not GNOME is installed"
   stat:
@@ -22,7 +24,7 @@
   register: gnome_shell
 
 - name: "Ensure GNOME Boxes is installed"
-  yum:
+  dnf:
     name: gnome-boxes
     state: "{{ app_state | default('present') }}"
   when:

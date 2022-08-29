@@ -1,0 +1,95 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/monero'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\monero'
+  register: monero_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type monero
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_monero_version
+  when: monero_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/monero-project/monero-gui/releases/latest
+    return_content: true
+  register: monero_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_monero: "{{ (current_monero_version.skipped | default(false)) or \
+      ((not current_monero_version.skipped | default(false)) and \
+      (current_monero_version.stdout | trim != monero_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  ansible.windows.win_uri:
+    url: https://www.getmonero.org/downloads/hashes.txt
+    return_content: true
+  register: monero_checksum_file
+  when: install_monero
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    monero_checksum: "{{ monero_checksum_file.content | regex_search('.*monero-gui-win-x64-v(\\d*.)*zip') | \
+      regex_replace('  monero-gui-win-x64-v(\\d*\\.)*\\d*.zip','') }}"
+  when: install_monero
+
+- name: "Ensure older version of {{ app_name }} is removed"
+  ansible.windows.win_file:
+    path: "{{ monero_src_dir }}"
+    state: absent
+  when: install_monero
+
+- name: "Ensure installation folder for {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: "{{ monero_src_dir }}"
+    state: directory
+  when: install_monero
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  ansible.windows.win_get_url:
+    url: "https://github.com/monero-project/monero-gui/releases/download/{{ monero_latest_release_tag.json.tag_name }}/\
+      monero-gui-win-x64-{{ monero_latest_release_tag.json.tag_name }}.zip"
+    dest: "{{ monero_src_dir }}/monero-gui-win-x64-{{ monero_latest_release_tag.json.tag_name }}.zip"
+    checksum: "{{ monero_checksum }}"
+    checksum_algorithm: sha256
+  when: install_monero
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: "{{ monero_src_dir }}/monero-gui-win-x64-{{ monero_latest_release_tag.json.tag_name }}.zip"
+    dest: "{{ monero_src_dir }}"
+    delete_archive: true
+  when: install_monero
+
+- name: "Move {{ app_name }}'s files to the destination directory"
+  ansible.windows.win_command: cmd.exe /C move "{{ monero_src_dir }}\monero-gui-{{ monero_latest_release_tag.json.tag_name }}\*" "{{ monero_src_dir }}"
+  when: install_monero
+
+- name: "Move {{ app_name }}'s extras to the destination directory"
+  ansible.windows.win_command: cmd.exe /C move "{{ monero_src_dir }}\monero-gui-{{ monero_latest_release_tag.json.tag_name }}\extras" "{{ monero_src_dir }}"
+  when: install_monero
+
+- name: "Ensure empty extracted directory of {{ app_name }} is removed"
+  ansible.windows.win_file:
+    path: "{{ monero_src_dir }}/monero-gui-{{ monero_latest_release_tag.json.tag_name }}"
+    state: absent
+  when: install_monero
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\monero'
+    content: |
+      {{ monero_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_monero

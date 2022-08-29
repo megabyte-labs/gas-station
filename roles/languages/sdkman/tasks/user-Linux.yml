@@ -1,0 +1,59 @@
+---
+# @action Installs SDKMAN
+# Removes older version of SDKMAN if it is already present
+- name: 'Ensure older version of {{ app_name }} is uninstalled'
+  become_user: '{{ user.username }}'
+  file:
+    path: ~/.sdkman
+    state: absent
+  when: install_sdkman
+
+# @action Installs SDKMAN
+# Installs SDKMAN by running `curl -s "https://get.sdkman.io" | bash`
+- name: 'Ensure {{ app_name }} is installed' # noqa 303
+  become_user: '{{ user.username }}'
+  shell: |
+    set -o pipefail && curl -s "https://get.sdkman.io" | bash
+  args:
+    creates: ~/.sdkman/bin/sdkman-init.sh
+    executable: /bin/bash
+  when: install_sdkman
+
+# @action Configures SDKMAN
+# Sets `sdkman_auto_answer` to true in the SDKMAN configuration
+- name: Ensure sdkman is configured
+  become_user: '{{ user.username }}'
+  lineinfile:
+    path: ~/.sdkman/etc/config
+    regexp: ^sdkman_auto_answer
+    line: sdkman_auto_answer=true
+
+# @action Configures SDKMAN
+# Ensures user-specified SDKs are installed
+- name: Ensure SDKs are installed
+  become_user: '{{ user.username }}'
+  shell: |
+    source ~/.sdkman/bin/sdkman-init.sh
+    sdk install {{ sdk }}
+  args:
+    executable: /bin/bash
+  when: sdk_installs is defined or user.sdk_installs is defined
+  loop: '{{ user.sdk_installs | default(sdk_installs) }}'
+  loop_control:
+    loop_var: sdk
+
+- name: "Ensure {{ app_name }}'s PATH is added to .bashrc"
+  lineinfile:
+    path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
+    regex: source ~/.sdkman/bin/sdkman-init.sh
+    line: source ~/.sdkman/bin/sdkman-init.sh
+    create: true
+    mode: 0700
+
+- name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
+  lineinfile:
+    path: ~/.zshrc
+    regex: source ~/.sdkman/bin/sdkman-init.sh
+    line: source ~/.sdkman/bin/sdkman-init.sh
+    create: true
+    mode: 0700

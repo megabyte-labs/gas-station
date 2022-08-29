@@ -4,4 +4,22 @@
   community.general.homebrew_cask:
     name: firefox
     state: "{{ app_state | default('present') }}"
-    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+    accept_external_apps: "{{ allow_external_apps | default(true) }}"
+
+- name: Ensure /Applications/Firefox.app/Contents/Resources/distribution directory exists
+  file:
+    path: /Applications/Firefox.app/Contents/Resources/distribution
+    state: directory
+    mode: 0755
+
+- name: Ensure Addons are installed
+  include_tasks: addons/darwin.yml
+  loop: "{{ firefox_add_ons }}"
+  loop_control:
+    label: "{{ addon.name }}"
+    loop_var: addon
+
+- name: Ensure policy.json is created
+  template:
+    src: policies.json.j2
+    dest: /Applications/Firefox.app/Contents/Resources/distribution/policies.json

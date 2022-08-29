@@ -1,0 +1,45 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repositories/77213120/releases/latest
+  register: termius_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_termius: "{{ (ansible_local.termius is not defined) or \
+      ((ansible_local.termius is defined) and \
+      (ansible_local['termius']['settings']['version'] != termius_latest_version)) }}"
+
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        deb: https://autoupdate.termius.com/linux/Termius.deb
+        state: "{{ app_state | default('present') }}"
+      when: install_termius
+  rescue:
+    - name: "Ensure {{ app_name }} is installed (using snap)"
+      community.general.snap:
+        name: termius-app
+        state: "{{ app_state | default('present') }}"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/termius.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ termius_latest_version }}"
+    no_extra_spaces: true
+  when: install_termius
+
+- name: "Ensure {{ app_name }} CLI is installed"
+  pip:
+    name: termius
+    state: "{{ app_state | default('present') }}"

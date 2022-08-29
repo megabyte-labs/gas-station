@@ -31,14 +31,34 @@
     install_hyper: "{{ (current_hyper_version.skipped) or \
       ((not current_hyper_version.skipped) and (current_hyper_version.stdout != hyper_latest_release_tag.json.tag_name)) }}"
 
-- name: "Acquire the latest {{ app_name }} AppImage"
+- name: "Acquire {{ app_name }}'s latest AppImage"
   get_url:
     url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.json.tag_name }}/\
       hyper-{{ hyper_latest_release_tag.json.tag_name }}-x86_64.AppImage"
     dest: "{{ hyper_src_path }}"
   when: install_hyper
 
-- name: "Ensure the {{ app_name }} AppImage is available in all non-system user's Applications folders"
+- name: "Fetch CHECKSUMS file of {{ app_name }} from the release page"
+  uri:
+    url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.json.tag_name }}/latest-linux.yml"
+    return_content: true
+  register: hyper_checksum_file
+  when: install_hyper
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    hyper_checksum: "{{ hyper_checksum_file.content | regex_search('sha512. .*') | regex_replace('sha512. ','') }}"
+  when: install_hyper
+
+- name: "Find the checksum of the downloaded AppImage of {{ app_name }}"
+  stat:
+    path: "{{ hyper_src_path }}/hyper-{{ hyper_latest_release_tag.json.tag_name }}-x86_64.AppImage"
+    checksum_algorithm: sha512
+    get_checksum: true
+  register: hyper_stat
+  when: install_hyper
+
+- name: "Ensure {{ app_name }}'s AppImage is available in all non-system user's Applications folders"
   include_tasks: install-AppImage.yml
   loop: "{{ user_configs }}"
   loop_control:
@@ -46,6 +66,7 @@
     loop_var: user
   when:
     - install_hyper
+    - hyper_stat.stat.checksum == hyper_checksum
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
 
 - name: "Save meta information about the version of {{ app_name }} that was installed"
@@ -54,7 +75,9 @@
     mode: 0600
     content: |
       {{ hyper_latest_release_tag.json.tag_name }}
-  when: install_hyper
+  when:
+    - install_hyper
+    - hyper_stat.stat.checksum == hyper_checksum
 
 - name: Ensure Fira Code font is installed
   include_role:

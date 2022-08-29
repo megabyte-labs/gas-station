@@ -1,0 +1,41 @@
+---
+- name: "Ensure {{ app_name }} service is enabled and started"
+  become_user: "{{ user.username }}"
+  systemd:
+    name: ulauncher
+    state: started
+    scope: user
+    enabled: true
+  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+
+- name: "Ensure dependencies for {{ app_name }} Extensions are installed"
+  become_user: "{{ user.username }}"
+  pip:
+    name: "{{ extn.pip_deps }}"
+    extra_args: --user
+  loop: "{{ ulauncher_extensions }}"
+  loop_control:
+    label: "{{ extn.url.split('/')[-1] }}"
+    loop_var: extn
+  when: extn.pip_deps is defined and extn.pip_deps | length > 0
+
+- name: "Ensure {{ app_name }} Extensions are setup"
+  become_user: "{{ user.username }}"
+  template:
+    src: extensions.json.j2
+    dest: '~/.config/ulauncher/extensions.json'
+    mode: 0700
+
+- name: "Ensure {{ app_name }} Theme folder exists"
+  become_user: "{{ user.username }}"
+  file:
+    path: '~/.config/ulauncher/user-themes/'
+    state: directory
+    mode: 0700
+
+- name: "Ensure {{ app_name }} Theme is setup"
+  become_user: "{{ user.username }}"
+  git:
+    dest: "{{ '~/.config/ulauncher/user-themes/' + (ulauncher_theme_repo.split('/'))[-1] }}"
+    repo: "{{ ulauncher_theme_repo }}"
+    version: master

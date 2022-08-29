@@ -1,0 +1,37 @@
+---
+- name: "Ensure {{ app_name }}'s source directory is present"
+  file:
+    mode: 0755
+    path: "{{ wrk_src_dir }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+
+- name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
+  become: false
+  git:
+    dest: "{{ wrk_src_dir }}"
+    repo: "{{ wrk_git_repository }}"
+    version: master
+  register: wrk_git
+
+- name: Remove /usr/local/bin/wrk if the source files have changed # noqa 503
+  file:
+    path: /usr/local/bin/wrk
+    state: absent
+  when: wrk_git.changed
+
+- name: "Ensure {{ app_name }} is installed" # noqa 503
+  command: make
+  args:
+    chdir: "{{ wrk_src_dir }}"
+    creates: "{{ wrk_src_dir }}/wrk"
+  register: wrk_install
+  when: wrk_git.changed
+
+- name: "Ensure {{ app_name }} is copied to /usr/local/bin" # noqa 503
+  copy:
+    src: "{{ wrk_src_dir }}/wrk"
+    dest: /usr/local/bin
+    mode: preserve
+    remote_src: true
+  when: wrk_install.changed

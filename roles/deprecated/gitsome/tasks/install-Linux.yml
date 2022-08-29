@@ -1,0 +1,30 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  pip:
+    name:
+      - gitsome
+      - pillow
+    state: "{{ app_state | default('latest') }}"
+    executable: "{{ '/usr/local/bin/pip3' if ansible_system == 'Darwin' else '/usr/bin/pip3' }}"
+
+- name: "Ensure {{ gitsome_dir }} exists"
+  file:
+    path: "{{ gitsome_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Ensure gh_complete.sh is downloaded
+  get_url:
+    url: https://github.com/donnemartin/gitsome/raw/master/scripts/gh_complete.sh
+    dest: "{{ gitsome_dir }}/gh_complete.sh"
+    force: true
+    mode: 0755
+
+- name: Run generic User tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))

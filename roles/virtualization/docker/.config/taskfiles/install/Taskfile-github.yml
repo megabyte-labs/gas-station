@@ -1,0 +1,62 @@
+---
+version: '3'
+
+tasks:
+  bundle:
+    deps:
+      - docker-pushrm
+      - fusion
+      - sentry
+
+  docker-pushrm:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: docker-pushrm
+          GITHUB: github.com/christian-korneck/docker-pushrm
+      - mkdir -p "$HOME/.docker/cli-plugins"
+      - mv "$(which docker-pushrm)" "$HOME/.docker/cli-plugins/docker-pushrm"
+      - chmod +x "$HOME/.docker/cli-plugins/docker-pushrm"
+    status:
+      - type -f "$HOME/.docker/cli-plugins/docker-pushrm" ||
+        type -f /usr/local/lib/docker/cli-plugins/docker-pushrm ||
+        type -f /usr/local/libexec/docker/cli-plugins/docker-pushrm ||
+        type -f /usr/lib/docker/cli-plugins/docker-pushrm ||
+        type -f /usr/libexec/docker/cli-plugins/docker-pushrm
+
+  fusion:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: fusion
+          GITHUB: github.com/edgelaboratories/fusion
+    status:
+      - type fusion > /dev/null
+
+  install:
+    deps:
+      - :install:software:jq
+    run: when_changed
+    log:
+      error: Failed to acquire GitHub release from `{{.GITHUB}}`
+      start: Acquiring GitHub binary release from `{{.GITHUB}}`
+      success: Installed GitHub release from `{{.GITHUB}}`, available as `{{.BIN}}`
+    cmds:
+      - task: :install:go:bin
+      - mkdir -p "$HOME/.config/bin"
+      - jq '. | .default_path = "./.bin" | .bins = {}' <<< $(echo '{}') > "$HOME/.config/bin/config.json"
+      - bin install -f {{.GITHUB}} "$GOPATH/bin/{{.BIN}}"
+    status:
+      - type {{.BIN}} > /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
+
+  sentry:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: sentry-cli
+          GITHUB: github.com/getsentry/sentry-cli
+    status:
+      - type sentry-cli > /dev/null

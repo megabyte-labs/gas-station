@@ -2,28 +2,24 @@
 - name: "Download ngrok archive"
   ansible.windows.win_get_url:
     url: https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip
-    dest: '%PROGRAMFILES\ngrok\ngrok.zip'
+    dest: '%TEMP%\ngrok.zip'
     force: false
   register: ngrok_download
 
 - name: "Ensure {{ app_name }} is installed" # noqa 503
   community.windows.win_unzip:
-    src: '%PROGRAMFILES\ngrok\ngrok.zip'
-    dest: '%PROGRAMFILES\ngrok\'
+    src: '%TEMP%\ngrok.zip'
+    dest: '%PROGRAMFILES%\ngrok\'
+    delete_archive: true
   when: ngrok_download.changed
 
-- name: Ensure authtoken is added to the configuration file
-  become_user: "{{ user.username }}"
-  block:
-    - name: Ensure .ngrok2 folder exists
-      ansible.windows.win_file:
-        path: "C:/Users/{{ user.username }}/.ngrok2"
-        state: directory
-    - name: Ensure authtoken is added to the configuration file
-      community.windows.win_lineinfile:
-        path: "C:/Users/{{ user.username }}/.ngrok2/ngrok.yml"
-        regex: "^authtoken"
-        line: "authtoken: {{ user.ngrok_token }}"
+- name: "Ensure {{ app_name }} is added to PATH"
+  ansible.windows.win_path:
+    elements:
+      - '%ProgramFiles%\ngrok'
+
+- name: Setup user configuration
+  include_tasks: config-Windows.yml
   when:
     - ngrok_download.changed
     - user.ngrok_token is defined

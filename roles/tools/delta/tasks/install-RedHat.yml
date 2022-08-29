@@ -1,0 +1,27 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  dnf:
+    name: git-delta
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: ansible_distribution == 'Fedora'
+
+- name: "Ensure {{ app_name }} config is added to ~/.gitconfig"
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.gitconfig
+    marker: "# {mark} Ansible managed block for delta"
+    create: true
+    mode: 0700
+    block: "{{ lookup('file', 'gitconfig') }}"
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - ansible_distribution == 'Fedora'
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+  when: ansible_distribution != 'Fedora'

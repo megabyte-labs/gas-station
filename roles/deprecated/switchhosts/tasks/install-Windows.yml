@@ -1,0 +1,59 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: '%USERPROFILE%\.config\megabytelabs'
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/switchhosts'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\switchhosts'
+  register: switchhosts_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type switchhosts
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_switchhosts_version
+  when: switchhosts_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/oldj/SwitchHosts/releases/latest
+    return_content: true
+  register: switchhosts_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_switchhosts: "{{ (current_switchhosts_version.skipped | default(false)) or \
+      ((not current_switchhosts_version.skipped | default(false)) and \
+      (current_switchhosts_version.stdout | trim != switchhosts_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure {{ switchhosts_dir }} directory exists"
+  ansible.windows.win_file:
+    path: "{{ switchhosts_dir }}"
+    state: directory
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  ansible.windows.win_file:
+    path: "{{ switchhosts_dir }}/switchhosts.exe"
+    state: absent
+  when: install_switchhosts
+
+- name: "Ensure {{ app_name }} is installed"
+  ansible.windows.win_get_url:
+    url: "{{ (switchhosts_latest_release_tag.json.assets | selectattr('name','contains','portable'))[0].browser_download_url }}"
+    dest: "{{ switchhosts_dir }}/switchhosts.exe"
+  when: install_switchhosts
+
+- name: "Ensure {{ app_name }} installation is added to PATH"
+  ansible.windows.win_path:
+    elements: "{{ switchhosts_dir }}"
+    state: present
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\switchhosts'
+    content: |
+      {{ switchhosts_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_switchhosts

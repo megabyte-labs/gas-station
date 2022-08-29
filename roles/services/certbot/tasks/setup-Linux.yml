@@ -1,35 +1,17 @@
 ---
-- name: Clone Certbot into configured directory
-  git:
-    dest: "{{ certbot_dir }}"
-    force: true
-    repo: "{{ certbot_repo }}"
-    update: "{{ certbot_keep_updated | bool }}"
-    version: "{{ certbot_version }}"
-
-- name: Install certbot
-  command: python3 setup.py install
-  args:
-    chdir: "{{ certbot_dir }}/certbot"
-    creates: "{{ certbot_path }}"
+- name: Ensure Certbot and certbot-dns-cloudflare is installed
+  pip:
+    name:
+      - certbot
+      - certbot-dns-cloudflare
+    state: present
+    executable: "{{ '/usr/local/bin/pip3' if ansible_system == 'Darwin' else '/usr/bin/pip3' }}"
 
 - name: Ensure letsencrypt folder exists
   file:
     mode: 0700
     path: /etc/letsencrypt
     state: directory
-
-- name: Ensure cryptography pip is the latest version
-  pip:
-    name: cryptography
-    state: present
-    executable: pip3
-
-- name: Install certbot-dns-cloudflare
-  command: python3 setup.py install
-  args:
-    chdir: "{{ certbot_dir }}/certbot-dns-cloudflare"
-    creates: /etc/letsencrypt/dnscloudflare.ini
 
 - name: Ensure certbot templates are available
   template:
@@ -55,6 +37,8 @@
     - certbot_create_method == 'standalone'
     - cloudflare_api_token is defined
 
+# @action Ensures Certificates are renewed
+# Sets up Cron job to renew Let's Encrypt Certificates on Linux and MacOS Systems
 - name: Add cron job for certbot renewal (if configured)
   cron:
     name: Certbot automatic renewal

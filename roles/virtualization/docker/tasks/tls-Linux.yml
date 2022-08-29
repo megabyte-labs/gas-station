@@ -1,14 +1,30 @@
 ---
+- name: Install OpenSSL
+  become: true
+  package:
+    name: openssl
+    state: present
+
 - name: Run common Darwin/Linux tasks
-  include_tasks: tls-Darwin-Linux.yml
+  become: true
+  block:
+    - include_tasks: tls-Darwin-Linux.yml
+
+- name: Ensure directory /etc/ssl/private exists
+  become: true
+  file:
+    path: /etc/ssl/private
+    state: directory
+    mode: 0550
 
 - name: Move Docker server certificates to protected SSL folder
   become: true
   copy:
-    src: "/home/{{ ansible_user | default(lookup('env', 'USER')) }}/.docker/certs.d/{{ item.src | default(item) }}"
-    dest: "/etc/ssl/private/{{ item.dest | default(item) }}"
+    src: '/usr/local/share/.docker/certs.d/{{ item.src | default(item) }}'
+    dest: '/etc/ssl/private/{{ item.dest | default(item) }}'
     owner: root
-    mode: 0400
+    group: docker
+    mode: 0440
     remote_src: true
   loop:
     - docker-server-cert.pem
@@ -17,19 +33,11 @@
     - src: ca.pem
       dest: docker-ca.pem
 
-- name: Remove server keys from ~/.docker
-  file:
-    path: "~/.docker/certs.d/{{ item }}"
-    state: absent
-  loop:
-    - docker-server-cert.pem
-    - docker-server-key.pem
-    - docker-ca-key.pem
-
 - name: Copy certificates to the ~/.docker folder on the machine running Ansible
+  become: true
   fetch:
-    src: "~/.docker/certs.d/{{ item }}"
-    dest: "~/.docker/certs.d/{{ ansible_host | lower }}-{{ item }}"
+    src: '/usr/local/share/.docker/certs.d/{{ item }}'
+    dest: '~/.docker/certs.d/{{ ansible_host | lower }}-{{ item }}'
     mode: 0400
     flat: true
   loop:
@@ -39,11 +47,21 @@
   when:
     - ansible_host != 'local'
 
+- name: Remove server keys from /usr/local/share/.docker
+  become: true
+  file:
+    path: '/usr/local/share/.docker/certs.d/{{ item }}'
+    state: absent
+  loop:
+    - docker-server-cert.pem
+    - docker-server-key.pem
+    - docker-ca-key.pem
+
 - name: Allow TCP connections to Docker
   become: true
   lineinfile:
     path: /etc/systemd/system/multi-user.target.wants/docker.service
-    regex: "ExecStart="
+    regex: ExecStart=
     line: "ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --tlsverify \
       --tlscacert=/etc/ssl/private/docker-ca.pem --tlscert=/etc/ssl/private/docker-server-cert.pem \
       --tlskey=/etc/ssl/private/docker-server-key.pem -H=0.0.0.0:2424"

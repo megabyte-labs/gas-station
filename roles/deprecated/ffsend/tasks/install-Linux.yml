@@ -1,0 +1,61 @@
+---
+- name: "Ensure {{ app_name }}'s dependencies are installed"
+  package:
+    name: "{{ ffsend_linux_dependencies }}"
+    state: present
+    update_cache: true
+
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/ffsend"
+  register: ffsend_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat ffsend
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_ffsend_version
+  when: ffsend_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/timvisee/ffsend/releases/latest
+  register: ffsend_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_ffsend: "{{ (current_ffsend_version.skipped | default(false)) or \
+      ((not current_ffsend_version.skipped | default(false)) and \
+      (current_ffsend_version.stdout != ffsend_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/ffsend
+    state: absent
+  when: install_ffsend
+
+- name: "Ensure {{ app_name }} is installed"
+  get_url:
+    url: "{{ 'https://github.com/timvisee/ffsend/releases/download/' + ffsend_latest_release_tag.json.tag_name + \
+      '/ffsend-' + ffsend_latest_release_tag.json.tag_name + '-linux-x64-static' }}"
+    dest: /usr/local/bin/ffsend
+    mode: 0755
+  when: install_ffsend
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/ffsend
+    mode: 0600
+    content: |
+      {{ ffsend_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_ffsend

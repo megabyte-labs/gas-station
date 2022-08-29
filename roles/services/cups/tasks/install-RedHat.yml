@@ -1,9 +1,9 @@
 ---
 - name: Install CUPS and avahi-daemon
-  yum:
-    name:
-      - cups
+  dnf:
+    name: cups
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: Copy CUPS configuration
   copy:
@@ -23,4 +23,6 @@
   service:
     name: smbd
     state: restarted
-  when: ('smbd' in ansible_facts.packages)
+  when:
+    - "'smbd' in ansible_facts.packages"
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

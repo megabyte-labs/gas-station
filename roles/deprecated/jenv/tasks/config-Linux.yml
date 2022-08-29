@@ -1,0 +1,32 @@
+---
+# @action Configures jEnv
+# Ensures jEnv is in the `PATH` and properly sourced
+- name: Ensure Bash is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    create: true
+    line: "{{ item }}"
+    mode: 0600
+    path: ~/.bash_profile
+    regexp: "^{{ item }}"
+  loop:
+    - export PATH="$HOME/.jenv/bin:$PATH"
+    - eval "$(jenv init -)"
+
+- name: Ensure Zsh is configured
+  become_user: "{{ user.username }}"
+  lineinfile:
+    create: true
+    line: "{{ item }}"
+    mode: 0600
+    path: ~/.zshrc
+    regexp: "^{{ item }}"
+  loop:
+    - export PATH="$HOME/.jenv/bin:$PATH"
+    - eval "$(jenv init -)"
+
+# @action Configures jEnv
+# Applies custom configurations with the `jenv_config` variable
+- name: "Ensure {{ app_name }} is configured" # noqa 301
+  command: "jenv add {{ item }}"
+  loop: "{{ jenv_config }}"

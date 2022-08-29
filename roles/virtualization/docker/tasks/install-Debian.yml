@@ -1,30 +1,46 @@
 ---
 - name: Ensure dependencies are installed
   apt:
-    name: "{{ dependencies }}"
+    name: '{{ dependencies }}'
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
-- name: Add Docker apt key
-  apt_key:
-    id: "{{ docker_apt_key_id }}"
-    state: present
-    url: "{{ docker_apt_gpg_key }}"
-  register: add_repository_key
-  ignore_errors: "{{ docker_apt_ignore_key_error }}"
+- name: "Add {{ app_name }}'s apt key"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        id: '{{ docker_apt_key_id }}'
+        state: present
+        url: '{{ docker_apt_gpg_key }}'
+        keyring: /usr/share/keyrings/docker.gpg
+      register: add_repository_key
+      ignore_errors: '{{ docker_apt_ignore_key_error }}'
 
-- name: Add Docker apt key (alternative for older systems without SNI)
-  command: |
-    curl -sSL {{ docker_apt_gpg_key }} | sudo apt-key add -
-  args:
-    warn: false
-  when: add_repository_key is failed
+    - name: "Add {{ app_name }}'s apt key (alternative for older systems without SNI)"
+      command: |
+        curl -sSL {{ docker_apt_gpg_key }} | sudo apt-key add -
+      args:
+        warn: false
+      when: add_repository_key is failed
 
-- name: Add Docker repository
-  apt_repository:
-    filename: docker
-    repo: "{{ docker_apt_repository }}"
-    state: present
-    update_cache: true
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: docker
+        repo: '{{ docker_apt_repository }}'
+        state: present
+        update_cache: true
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/docker.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: docker
+        repo: "{{ docker_apt_repository }}"
+        state: absent
+
 
 - name: Run generic Linux tasks
   include_tasks: install-Linux.yml

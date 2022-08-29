@@ -1,0 +1,806 @@
+---
+version: '3'
+
+tasks:
+  act:
+    summary: |
+      ## Act
+
+      A program that allows you to simulate GitHub Actions locally.
+
+      [GitHub](https://github.com/nektos/act)
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: act
+    status:
+      - type act > /dev/null
+
+  allure:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: allure
+    status:
+      - type allure > /dev/null
+
+  ansifilter:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: ansifilter
+    status:
+      - type ansifilter > /dev/null
+
+  brew:
+    run: once
+    log:
+      error: Failed to install or load Homebrew
+      start: Ensuring Homebrew is installed and available
+      success: Successfully ensured Homebrew is installed
+    cmds:
+      - task: common
+      - task: brew:{{OS}}
+    status:
+      - type brew > /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
+
+  brew:cask:
+    run: when_changed
+    log:
+      error: Failed to install `{{.CASK}}`
+      start: Ensuring the `{{.CASK}}` Homebrew cask is installed
+      success: Successfully installed `{{.CASK}}`
+    cmds:
+      - task: brew
+      - brew install --cask {{.CASK}}
+    status:
+      - type {{.CASK}} &> /dev/null
+
+  brew:darwin:
+    cmds:
+      - |
+        if ! type brew &> /dev/null; then
+          if type sudo &> /dev/null && sudo -n true; then
+            echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          if [ '{{.BODEGA}}' != 'true' ]; then
+            task install:software:exit:notice:reload
+          fi
+        fi
+      - task: brew:utils
+    status:
+      - type brew &> /dev/null
+
+  brew:formulae:
+    run: when_changed
+    log:
+      error: Failed to install `{{.FORMULAE}}`
+      start: Ensuring the `{{.FORMULAE}}` Homebrew formulae is installed
+      success: Successfully installed `{{.FORMULAE}}`
+    cmds:
+      - task: brew
+      - brew install {{.FORMULAE}}
+    status:
+      - type {{.FORMULAE}} &> /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
+
+  brew:linux:
+    run: once
+    cmds:
+      - |
+        function ensureSource() {
+          if ! (grep "/bin/brew shellenv" < "$1" &> /dev/null); then
+            echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$1"
+          fi
+        }
+        if ! type brew &> /dev/null; then
+          if type sudo &> /dev/null && sudo -n bash; then
+            echo | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          else
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ensureSource "$HOME/.profile"
+          if [ '{{.BODEGA}}' != 'true' ]; then
+            task install:software:exit:notice:reload
+          fi
+        fi
+    status:
+      - type brew &> /dev/null
+
+  brew:utils:
+    run: once
+    log:
+      error: Failed to setup GNU-compatibility tools
+      start: Installing GNU-compatibility tools for macOS via Homebrew
+      success: Successfully installed GNU-compatibility tools
+    cmds:
+      - task: compatibility:coreutils
+      - task: compatibility:findutils
+      - task: compatibility:gnu-sed
+      - task: compatibility:grep
+      - task: compatibility:gnu-tar
+      - task: compatibility:gawk
+    status:
+      - '[ "{{OS}}" != "darwin" ]'
+
+  brew:windows:
+    cmds:
+      - task: common:windows
+
+  codeclimate:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: codeclimate/formulae/codeclimate
+    status:
+      - type codeclimate > /dev/null
+
+  common:
+    run: once
+    log:
+      error: There was an error ensuring common system tools are present
+      start: Ensuring common system tools are present
+      success: Ensured common system tools are present
+    cmds:
+      - task: common:{{OS}}
+
+  common:darwin:
+    cmds:
+      - task: common:darwin:xcode
+
+  common:darwin:xcode:
+    vars:
+      CLT_STATUS:
+        sh: brew config | grep CLT
+    log:
+      error: Failed to run `sudo xcode-select --install`
+      start: Running `sudo xcode-select --install` to install macOS developer tools
+      success: Successfully ran `sudo xcode-select --install`
+    cmds:
+      - sudo xcode-select --install
+    status:
+      - '[ "{{.CLT_STATUS}}" != "CLT: N/A" ]'
+
+  common:linux:
+    vars:
+      LINUX_FAMILY:
+        sh: |
+          if [ -f "/etc/debian_version" ]; then
+            echo "debian"
+          elif [ -f "/etc/redhat-release" ]; then
+            echo "redhat"
+          elif [ -f "/etc/arch-release" ]; then
+            echo "archlinux"
+          else
+            echo "unknown"
+          fi
+    log:
+      error: Failed to ensure basic system dependencies are installed
+      start: Ensuring basic system dependencies are installed
+      success: Basic system dependencies are installed!
+    cmds:
+      - task: common:linux:{{.LINUX_FAMILY}}
+
+  common:linux:archlinux:
+    interactive: true
+    cmds:
+      - .config/log warn "Archlinux support for Homebrew is not very well documented.. if this does not work and you can get it working, please open a PR :)"
+      - |
+        .config/log info 'Attempting to run `sudo pacman update` (for Homebrew dependencies)'
+        sudo pacman update
+        .config/log info 'Attempting to run `sudo pacman -S base-devel curl file git gzip procps-ng` (for Homebrew dependencies)'
+        sudo pacman -S base-devel curl file git gzip procps-ng
+    status:
+      - type curl &> /dev/null
+      - type git &> /dev/null
+      - type gzip &> /dev/null
+      - ldconfig -p | grep base-devel
+      - ldconfig -p | grep file
+      - ldconfig -p | grep procps-ng
+
+  common:linux:debian:
+    interactive: true
+    cmds:
+      - |
+        .config/log info 'Attempting to run `sudo apt-get -y update` (for Homebrew dependencies)'
+        sudo apt-get -y update
+        .config/log info 'Attempting to run `sudo apt-get install -y build-essential curl file git procps` (Homebrew dependencies)'
+        sudo apt-get install -y build-essential curl file git gzip procps
+    status:
+      - type curl &> /dev/null
+      - type git &> /dev/null
+      - type gzip &> /dev/null
+      - dpkg-query -l build-essential &> /dev/null
+      - dpkg-query -l file &> /dev/null
+      - dpkg-query -l procps &> /dev/null
+
+  common:linux:redhat:
+    interactive: true
+    cmds:
+      - mkdir -p "$HOME/.config/bodega"
+      - |
+        if [ ! -f "$HOME/.config/bodega/yum-devtools-check-ran" ]; then
+          yum grouplist 'Development Tools' &> "$HOME/.config/bodega/yum-devtools-check-ran"
+          DEV_TOOLS_NOT_INSTALLED="$(grep 'No groups match' < "$HOME/.config/bodega/yum-devtools-check-ran" > /dev/null)"
+          if [[ "$DEV_TOOLS_NOT_INSTALLED" == '0' ]]; then
+            .config/log info 'Attempting to run `sudo yum groupinstall -y "Development Tools"`'
+            sudo yum groupinstall -y 'Development Tools'
+          fi
+          touch "$HOME/.config/bodega/yum-devtools-check-ran"
+        fi
+        if ! rpm --quiet --query curl file git gzip procps-ng; then
+          .config/log info 'Attempting to run `sudo yum install -y curl file git procps-ng`'
+          sudo yum install -y curl file git gzip procps-ng
+        fi
+        if [ -f '/etc/os-release' ]; then
+          source /etc/os-release
+          if [[ "$ID" == 'fedora' ]] && [ "$VERSION_ID" -gt "29" ]; then
+            if ! rpm --quiet --query libxcrypt-compat; then
+              .config/log info 'Attempting to run `sudo yum -y install libxcrypt-compat` (Homebrew dependencies)'
+              sudo yum -y install libxcrypt-compat
+            fi
+          fi
+        fi
+
+  common:linux:unknown:
+    log:
+      start: You are using an operating system that we do not directly support. Please make sure
+        the equivalent of `build-essential`, `curl`, `file`, `git`, and `procps` are installed.
+    cmds:
+      - .config/log warn "*** Unknown OS -> $OSTYPE ***"
+
+  common:windows:
+    log:
+      error: Windows is not supported. Try using a Windows WSL environment.
+    cmds:
+      - exit 1
+
+  compatibility:findutils:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: findutils
+    status:
+      - type gfind > /dev/null
+
+  compatibility:gawk:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gawk
+    status:
+      - type gawk > /dev/null
+
+  compatibility:gnu-sed:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gnu-sed
+    status:
+      - type gsed > /dev/null
+
+  compatibility:gnu-tar:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gnu-tar
+    status:
+      - type gtar > /dev/null
+
+  compatibility:grep:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: grep
+    status:
+      - type ggrep > /dev/null
+
+  container-structure-test:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: container-structure-test
+
+  coreutils:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: coreutils
+    status:
+      - type gcp > /dev/null || [ "{{OS}}" != "darwin" ]
+
+  dasel:
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: dasel
+    status:
+      - type dasel > /dev/null
+
+  docker:
+    run: once
+    cmds:
+      - task: docker:{{OS}}
+    status:
+      - type docker > /dev/null
+
+  docker-slim:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: docker-slim
+    status:
+      - type docker-slim > /dev/null
+
+  docker:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: docker
+      - task: exit:notice:restart
+    status:
+      - type docker > /dev/null
+
+  docker:linux:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: docker
+      - task: exit:notice:restart
+    status:
+      - type docker > /dev/null
+
+  docker:windows:
+    cmds:
+      - task: common:windows
+
+  dockle:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: goodwithtech/r/dockle
+    status:
+      - type dockle > /dev/null
+
+  exiftool:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: exiftool
+    status:
+      - type exiftool > /dev/null
+
+  exit:notice:reload:
+    cmds:
+      - .config/log warn 'Software was installed that requires a terminal session reload'
+      - .config/log info 'Please close and re-open the terminal. Then, re-run the same command to continue.'
+      - exit 1
+
+  exit:notice:restart:
+    cmds:
+      - .config/log warn 'Software was installed that requires a system reboot'
+      - .config/log info 'Please reboot the system and re-run the same command after rebooting'
+      - exit 1
+
+  expect:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: expect
+    status:
+      - type expect > /dev/null
+
+  gcloud:
+    run: once
+    cmds:
+      - task: gcloud:{{OS}}
+    status:
+      - type gcloud > /dev/null
+
+  gcloud:darwin:
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: google-cloud-sdk
+    status:
+      - type gcloud > /dev/null
+
+  gcloud:linux:
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: googlecloudsdk
+
+  gcloud:windows:
+    cmds:
+      - task: common:windows
+
+  gh:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gh
+    status:
+      - type gh > /dev/null
+
+  git:
+    run: once
+    cmds:
+      - task: common
+    status:
+      - type git > /dev/null
+
+  gitlab-runner:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gitlab-runner
+    status:
+      - type gitlab-runner > /dev/null
+
+  gitleaks:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gitleaks
+    status:
+      - type gitleaks > /dev/null
+
+  glab:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: glab
+    status:
+      - type glab > /dev/null
+
+  go:
+    run: once
+    cmds:
+      - task: go:gopath
+      - task: go:goroot
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
+      - task: go:install
+
+  go:gopath:
+    run: once
+    cmds:
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export GOPATH="${HOME}/.local/go"
+    status:
+      - '[ -n "$GOPATH" ]'
+
+  go:goroot:
+    run: once
+    cmds:
+      - task: :install:profile:add
+        vars:
+          PROFILE_STRING: export GOROOT="$(brew --prefix golang)/libexec"
+    status:
+      - '[ -n "$GOROOT" ]'
+
+  go:install:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: go
+    status:
+      - type go > /dev/null
+
+  grype:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: anchore/grype/grype
+    status:
+      - type grype > /dev/null
+
+  gzip:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: gzip
+    status:
+      - type gzip > /dev/null
+
+  jq:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: jq
+    status:
+      - type jq > /dev/null
+
+  kvm:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: kvm
+      - task: exit:notice:restart
+    status:
+      - type qemu-system-x86_64 > /dev/null
+
+  node:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: node
+    status:
+      - type node > /dev/null
+
+  packer:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: packer
+
+  parallels:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: parallels
+    status:
+      - '[ "{{OS}}" != "darwin" ] || ! mdfind -name "Parallels Desktop.app" &> /dev/null'
+
+  pipx:
+    run: once
+    log:
+      error: Failed to ensure `pipx` is installed
+      start: Ensuring `pipx` is installed
+      success: Successfully ensured `pipx` is installed
+    cmds:
+      - task: python
+      - task: pipx:{{OS}}
+    status:
+      - type pipx > /dev/null
+
+  pipx:darwin:
+    cmds:
+      - task: brew
+      - brew install pipx
+      - pipx ensurepath
+
+  pipx:linux:
+    cmds:
+      - python3 -m pip install --user pipx
+      - python3 -m pipx ensurepath
+
+  pipx:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
+    cmds:
+      - exit 1
+
+  poetry:
+    run: once
+    cmds:
+      - task: poetry:{{OS}}
+      - task: exit:notice:reload
+    status:
+      - type poetry > /dev/null
+
+  poetry:darwin:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: poetry
+
+  poetry:linux:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: poetry
+
+  poetry:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
+    cmds:
+      - exit 1
+
+  python:
+    run: once
+    cmds:
+      - task: brew
+      - task: python:{{OS}}
+    status:
+      - type python3 > /dev/null
+
+  python:darwin:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: python@3.10
+    status:
+      - type python3 > /dev/null
+
+  python:linux:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: python@3.10
+    status:
+      - type python3 > /dev/null
+
+  python:windows:
+    log:
+      error: These scripts are not currently compatible with Windows. Try using WSL.
+    cmds:
+      - exit 1
+
+  rsync:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: rsync
+    status:
+      - type rsync &> /dev/null
+
+  rust:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: rust
+    status:
+      - type rust &> /dev/null
+
+  sentry:
+    cmds:
+      - task: :install:github:sentry
+
+  snapcraft:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: snapcraft
+    status:
+      - type snapcraft > /dev/null
+
+  sshpass:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: hudochenkov/sshpass/sshpass
+    status:
+      - type sshpass > /dev/null
+
+  subrepo:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: git-subrepo
+    status:
+      - git subrepo --version > /dev/null || [[ "${container:=}" == "docker" ]]
+
+  tokei:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: tokei
+    status:
+      - type tokei > /dev/null
+
+  trivy:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: aquasecurity/trivy/trivy
+    status:
+      - type trivy > /dev/null
+
+  vagrant:
+    cmds:
+      - task: vagrant:{{OS}}
+    status:
+      - type vagrant > /dev/null
+
+  vagrant:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: vagrant
+
+  vagrant:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: vagrant
+
+  virtualbox:
+    cmds:
+      - task: virtualbox:{{OS}}
+      - task: exit:notice:restart
+    status:
+      - type vboxmanage > /dev/null
+
+  virtualbox:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: virtualbox
+
+  virtualbox:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: virtualbox
+
+  vmware:
+    cmds:
+      - task: vmware:{{OS}}
+      - task: exit:notice:restart
+    status:
+      - type vmware > /dev/null
+
+  vmware:darwin:
+    run: once
+    cmds:
+      - task: brew:cask
+        vars:
+          CASK: vmware-fusion
+
+  vmware:linux:
+    run: once
+    cmds:
+      - task: :install:install-doctor
+        vars:
+          SOFTWARE: vmware
+
+  yarn:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: yarn
+    status:
+      - type yarn > /dev/null
+
+  yq:
+    run: once
+    cmds:
+      - task: brew:formulae
+        vars:
+          FORMULAE: yq
+    status:
+      - type yq > /dev/null

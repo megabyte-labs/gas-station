@@ -6,37 +6,45 @@
     - workstation_extra_packages is undefined
     - os_workstation_extra_packages is defined
 
+- name: Ensure curl is installed
+  package:
+    name: curl
+    state: present
+
 - name: Create temporary directory
   file:
     path: "{{ workstation_tempdir }}"
     state: directory
     mode: 0755
 
-- name: Check for pre-downloaded binary
+- name: Check for existing installation
   stat:
-    path: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
+    path: "/usr/bin/vmware"
   register: file_stats
 
-- name: Download workstation
-  get_url:
-    url: "{{ workstation_download_url }}"
-    dest: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
+- name: Download workstation # noqa 303
+  command: |
+    curl -LA "Mozilla/5.0 (X11; Linux x86_64; rv:82.0) Gecko/20210101 Firefox/82.0" "{{ workstation_download_url }}" \
+      -o "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
+  args:
+    creates: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
   when: not file_stats.stat.exists
 
-- name: Mark script executable
+- name: Ensure Workstation installer is executable
   file:
     path: "{{ workstation_tempdir }}/tryworkstation-linux-64.sh"
-    state: file
     mode: 0755
+  when: not file_stats.stat.exists
 
 - name: Run installer
-  become: true
+  become_user: root
   command: >
     {{ workstation_tempdir }}/tryworkstation-linux-64.sh --eulas-agreed --console
-    --required {{'--set-setting vmware-workstation serialNumber '+ workstation_license
+    --required {{ '--set-setting vmware-workstation serialNumber ' + workstation_license
     if workstation_license is defined else '' }}
   args:
     creates: /usr/bin/vmware
+  when: not file_stats.stat.exists
   tags:
     - skip_ansible_lint
 
@@ -52,6 +60,38 @@
   stat:
     path: /etc/systemd/system
   register: systemd_dir
+
+- name: Ensure all compoments are setup
+  become_user: root
+  block:
+    - name: Ensure all components are setup # noqa 301
+      command: vmware-modconfig --console --install-all
+      args:
+        creates: "/lib/modules/{{ ansible_kernel }}/misc/vmmon.ko"
+  rescue:
+    - name: Find the version of VMware Workstation installed # noqa 301
+      command: vmware --version
+      register: workstation_version
+      changed_when: false
+
+    - name: Fetch the host modules
+      unarchive:
+        src: "https://github.com/mkubecek/vmware-host-modules/archive/workstation-\
+          {{ workstation_version.stdout | regex_search('(VMware Workstation )\\d*(\\.\\d*)*') | replace('VMware Workstation ','') }}.tar.gz"
+        dest: "{{ workstation_tempdir }}"
+        remote_src: yes
+
+    - name: Run make
+      community.general.make:
+        chdir: "{{ workstation_tempdir }}/vmware-host-modules-workstation-\
+          {{ workstation_version.stdout | regex_search('(VMware Workstation )\\d*(\\.\\d*)*') | replace('VMware Workstation ','') }}"
+
+    - name: Install the modules
+      become: yes
+      community.general.make:
+        chdir: "{{ workstation_tempdir }}/vmware-host-modules-workstation-\
+          {{ workstation_version.stdout | regex_search('(VMware Workstation )\\d*(\\.\\d*)*') | replace('VMware Workstation ','') }}"
+        target: install
 
 - name: Install systemd services
   copy:
@@ -90,3 +130,19 @@
   file:
     path: "{{ unlocker_temp_dir }}"
     state: absent
+
+- name: Check if EFI files are present
+  stat:
+    path: /sys/firmware/efi
+  register: efi_stat
+
+- name: Sign VMware modules # noqa 301 503
+  become: true
+  shell: |
+    openssl req -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -nodes -days 36500 -subj "/CN=VMware/"
+    /usr/src/linux-headers-`uname -r`/scripts/sign-file sha256 ./MOK.priv ./MOK.der $(modinfo -n vmmon)
+    /usr/src/linux-headers-`uname -r`/scripts/sign-file sha256 ./MOK.priv ./MOK.der $(modinfo -n vmnet)
+    echo '' | mokutil --import MOK.der
+  args:
+    chdir: "{{ workstation_tempdir }}"
+  when: efi_stat.stat.exists

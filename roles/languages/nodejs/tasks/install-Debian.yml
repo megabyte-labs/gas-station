@@ -1,30 +1,70 @@
 ---
-- name: "Ensure {{ app_name }}'s dependencies are present"
-  apt:
-    name: "{{ dependencies }}"
-    state: present
+- name: 'Ensure {{ app_name }} and npm are installed'
+  block:
+    - name: "Ensure {{ app_name }}'s dependencies are present"
+      apt:
+        name: '{{ dependencies }}'
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
-- name: "Ensure {{ app_name }}'s apt key is imported"
-  apt_key:
-    url: "{{ apt_key_url }}"
-    id: "{{ apt_key_id }}"
-    state: present
+    - name: "Ensure {{ app_name }}'s apt key is imported"
+      apt_key:
+        url: '{{ apt_key_url }}'
+        id: '{{ apt_key_id }}'
+        state: present
+        keyring: /usr/share/keyrings/nodejs.gpg
 
-- name: "Ensure {{ app_name }}'s repository is added"
-  apt_repository:
-    repo: "{{ item }}"
-    filename: nodejs
-    state: present
-    update_cache: true
-  loop:
-    - "deb {{ https_repository_prefix }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main"
-    - "deb-src {{ https_repository_prefix }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main"
-  register: node_repo
+    - name: "Ensure {{ app_name }}'s apt repository is added"
+      apt_repository:
+        repo: '{{ item }}'
+        filename: nodejs
+        state: present
+        update_cache: true
+      loop:
+        - 'deb {{ https_repository_prefix }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main'
+        - 'deb-src {{ https_repository_prefix }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main'
+      register: node_repo
 
-- name: "Ensure {{ app_name }} and npm are installed"
-  apt:
-    name: "nodejs={{ nodejs_version | regex_replace('.x', '') }}*"
-    state: present
+    - name: 'Ensure {{ app_name }} and npm are installed'
+      apt:
+        name: "nodejs={{ nodejs_version | regex_replace('.x', '') }}*"
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/nodejs.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        repo: '{{ item }}'
+        filename: nodejs
+        state: absent
+      loop:
+        - 'deb {{ https_repository_prefix }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main'
+        - 'deb-src {{ https_repository_prefix }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main'
+
+    - name: 'Ensure {{ app_name }} and npm are installed'
+      become: false
+      community.general.homebrew:
+        name: "node@{{ nodejs_version | regex_replace('.x', '') }}"
+        state: present
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
+
+    - name: 'Ensure {{ app_name }} and npm are linked'
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      loop:
+        - src: /home/linuxbrew/.linuxbrew/opt/node@{{ nodejs_version | regex_replace('.x', '') }}/bin/node
+          dest: /usr/bin/node
+        - src: /home/linuxbrew/.linuxbrew/opt/node@{{ nodejs_version | regex_replace('.x', '') }}/bin/npm
+          dest: /usr/bin/npm
+        - src: /home/linuxbrew/.linuxbrew/opt/node@{{ nodejs_version | regex_replace('.x', '') }}/bin/npx
+          dest: /usr/bin/npx
 
 - name: Run common Linux tasks
   include_tasks: install-Linux.yml

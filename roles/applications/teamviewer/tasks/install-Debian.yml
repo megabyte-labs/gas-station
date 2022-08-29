@@ -1,17 +1,36 @@
 ---
-- name: "Add {{ app_name }}'s apt key"
-  apt_key:
-    state: present
-    url: "{{ teamviewer_apt_key_url }}"
-
-- name: "Add {{ app_name }}'s apt repository"
-  apt_repository:
-    filename: "{{ app_name | lower | replace(' ', '-') }}"
-    repo: "{{ teamviewer_apt_repository }}"
-    state: present
-    update_cache: true
-
 - name: "Ensure {{ app_name }} is installed"
-  apt:
-    name: teamviewer
-    state: "{{ app_state | default('present') }}"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        state: present
+        url: "{{ teamviewer_apt_key_url }}"
+        keyring: /usr/share/keyrings/teamviewer.gpg
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ teamviewer_apt_repository }}"
+        state: present
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: teamviewer
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/teamviewer.gpg
+        state: absent
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ packer_deb_repo }}"
+        state: absent
+
+    - name: Message to the user
+      debug:
+        msg: "There is no official support for the OS/Distribution/Release. Please check back later..."

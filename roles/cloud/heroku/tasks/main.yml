@@ -1,0 +1,22 @@
+---
+- name: Include variables based on the operating system
+  include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_os_family != 'Windows'
+
+# @action Ensures Heroku CLI is installed and configured
+# Installs heroku on Archlinux, CentOS, Debian, Fedora, macOS, Ubuntu, and Windows
+# @action Ensures Heroku CLI is installed and configured
+# Configures the user account with the given Heroku Auth Token
+# @action Ensures Heroku CLI is installed and configured
+# Installs the given list of Heroku Plugins
+# @action Ensures applications are deployed to Heroku
+# Deploys the given list of applications to Heroku
+# @action Ensures DNS is setup
+# Configures Custom domains for the Dynos and CNAME in Cloudflare, if desired
+- name: Include tasks based on the operating system
+  become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user if ansible_os_family == 'Windows' else omit }}"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when: ansible_os_family != 'Windows'

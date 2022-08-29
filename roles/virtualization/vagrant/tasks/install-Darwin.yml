@@ -5,7 +5,7 @@
     name: vagrant
     state: "{{ app_state | default('present') }}"
     sudo_password: "{{ ansible_password }}"
-    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+    accept_external_apps: "{{ allow_external_apps | default(true) }}"
 
 - name: "Ensure {{ app_name }} VMWare Utility is installed"
   become: false
@@ -13,7 +13,7 @@
     name: vagrant-vmware-utility
     state: "{{ app_state | default('present') }}"
     sudo_password: "{{ ansible_password }}"
-    accept_external_apps: "{{ allow_external_apps | default(false) }}"
+    accept_external_apps: "{{ allow_external_apps | default(true) }}"
   when: vagrant_vmware_support
 
 - name: "Check if the license file for {{ app_name }} VMWare desktop plugin is available on the controller"
@@ -50,20 +50,10 @@
     name: "{{ vagrant_plugin_dependencies }}"
     state: present
 
-- name: Find installed plugins
-  become: false
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: vagrant plugin list
-  register: vagrant_plugins_installed
-  changed_when: false
-
-- name: "Ensure user-specified {{ app_name }} plugins are installed" # noqa 301
-  become: false
-  environment:
-    PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ ansible_env.PATH }}
-  command: "vagrant plugin install {{ plugin }}"
-  loop: "{{ vagrant_plugins }}"
+- name: Run Plugin setup tasks
+  include_tasks: plugins-Linux.yml
+  loop: "{{ user_configs }}"
   loop_control:
-    loop_var: plugin
-  when: plugin not in vagrant_plugins_installed.stdout
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

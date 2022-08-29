@@ -1,0 +1,28 @@
+---
+test:python:
+  stage: test
+  image:
+    name: megabytelabs/pytest:slim
+    entrypoint: ['']
+  allow_failure: true
+  rules:
+    - if: $DO_CI == 'false'
+      when: never
+    - if: $CI_COMMIT_BRANCH == 'synchronize'
+      when: never
+    - exists:
+        - 'test/**/*.py'
+  needs: []
+  variables:
+    GIT_DEPTH: 1
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/
+  script:
+    - task python:test:ci
+  artifacts:
+    reports:
+      cobertura: coverage.xml
+      junit: report.xml
+    when: always

@@ -1,14 +1,27 @@
 ---
-- name: Add Yarn's repository
-  yum_repository:
-    name: Yarn
-    description: Repository for Yarn, a NodeJS package manager
-    baseurl: "{{ yarn_yum_repo }}"
-    gpgkey: "{{ yarn_gpgkey_url }}"
-    gpgcheck: true
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: "Add {{ app_name }}'s yum repository"
+      yum_repository:
+        name: Yarn
+        description: Repository for Yarn, a NodeJS package manager
+        baseurl: "{{ yarn_yum_repo }}"
+        gpgkey: "{{ yarn_gpgkey_url }}"
+        gpgcheck: true
 
-- name: Install Yarn
-  yum:
-    name: packer
-    state: present
-    update_cache: true
+    - name: "Ensure {{ app_name }} is installed"
+      dnf:
+        name: yarn
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  rescue:
+    - name: "Remove {{ app_name }}'s yum repository"
+      yum_repository:
+        name: Yarn
+        state: absent
+
+    - name: "Ensure {{ app_name }} is installed"
+      become: false
+      community.general.homebrew:
+        name: yarn
+        state: "{{ app_state | default('present') }}"

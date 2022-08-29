@@ -1,0 +1,56 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  file:
+    mode: 0700
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - ~/.config
+    - ~/.config/megabytelabs
+
+- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/{{ app_name }}"
+  stat:
+    path: "~/.config/megabytelabs/{{ app_name }}"
+  register: bandwhich_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  command: cat bandwhich
+  args:
+    chdir: ~/.config/megabytelabs
+  changed_when: false
+  register: current_bandwhich_version
+  when: bandwhich_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/imsnif/bandwhich/releases/latest
+  register: bandwhich_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_bandwhich: "{{ (current_bandwhich_version.skipped | default(false)) or \
+      ((not current_bandwhich_version.skipped | default(false)) and (current_bandwhich_version.stdout != bandwhich_latest_release_tag.json.tag_name)) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: /usr/local/bin/bandwhich
+    state: absent
+  when: install_bandwhich
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/imsnif/bandwhich/releases/download/{{ bandwhich_latest_release_tag.json.tag_name }}/\
+      bandwhich-v{{ bandwhich_latest_release_tag.json.tag_name }}-x86_64-unknown-linux-musl.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+  args:
+    creates: /usr/local/bin/bandwhich
+  when: install_bandwhich
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  copy:
+    dest: ~/.config/megabytelabs/bandwhich
+    mode: 0600
+    content: |
+      {{ bandwhich_latest_release_tag.json.tag_name }}
+  when: install_bandwhich

@@ -1,0 +1,53 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: "Detect the latest {{ app_name }} version"
+  uri:
+    url: https://api.github.com/repos/soywod/himalaya/releases/latest
+  register: himalaya_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_himalaya: "{{ (ansible_local.himalaya is not defined) or \
+      ((ansible_local.himalaya is defined) and \
+      (ansible_local['himalaya']['settings']['version'] != himalaya_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Ensure older version of {{ app_name }} is uninstalled"
+  file:
+    path: "/usr/local/bin/himlalaya"
+    state: absent
+  when: install_himalaya
+
+- name: "Ensure {{ app_name }} is installed"
+  unarchive:
+    src: "https://github.com/soywod/himalaya/releases/download/{{ himalaya_latest_release_tag.json.tag_name }}/himalaya-linux.tar.gz"
+    dest: "/usr/local/bin"
+    remote_src: true
+    mode: 0755
+    owner: root
+    group: root
+  when: install_himalaya
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/himalaya.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ himalaya_latest_release_tag.json.tag_name | replace('v','') }}"
+    no_extra_spaces: true
+  when: install_himalaya
+
+- name: Run generic Linux tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when:
+    - (user.system is not defined) or ((user.system is defined) and (not user.system))
+    - user.himalaya_config is defined

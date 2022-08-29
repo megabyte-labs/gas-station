@@ -5,7 +5,7 @@
   register: mas_list
   changed_when: false
 
-- name: Ensure configured MAS apps are installed
+- name: "Ensure {{ item.name }} is installed via MAS"
   become: false
   command: "mas install '{{ item.id | default(item) }}'"
   loop: "{{ mas_desktop_software }}"
@@ -15,3 +15,16 @@
   become: false
   command: mas upgrade
   when: mas_upgrade_all_apps
+
+- name: Ensure Terminal app is not running # noqa 301 303
+  shell: pgrep Terminal && killall Terminal || echo 'Terminal is not running'
+  register: kill_terminal
+  changed_when: "'Terminal is not running' not in kill_terminal.stdout"
+
+- name: Run user-specific tasks
+  include_tasks: user-Darwin.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

@@ -1,12 +1,12 @@
 ---
 - name: "Ensure {{ app_name }} tools are installed"
   chocolatey.chocolatey.win_chocolatey:
-    name: "{{ item }}"
+    name:
+      - kubernetes-cli
+      - kubernetes-helm
+      - kubernetes-kompose
+      - kubectx
     state: present
-  loop:
-    - kubernetes-cli
-    - kubernetes-helm
-    - kubernetes-kompose
 
 - name: "Ensure Minikube is installed"
   chocolatey.chocolatey.win_chocolatey:
@@ -17,3 +17,8 @@
 - name: "Ensure Minikube driver is configured" # noqa 503
   ansible.windows.win_command: "minikube config set driver {{ kubernetes_mac_driver }}"
   when: minikube_install.changed
+
+- name: Ensure kubeval is installed
+  community.windows.win_scoop:
+    name: kubeval
+    state: "{{ app_state | default('present') }}"

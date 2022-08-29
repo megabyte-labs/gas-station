@@ -1,0 +1,25 @@
+---
+- name: Ensure configuration settings are applied
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: ~/.config/kitty/kitty.conf
+    create: true
+    regex: "*{{ config }}*"
+    line: "{{ config }}"
+    mode: 0700
+  loop: "{{ kitty_config }}"
+  loop_control:
+    loop_var: config
+
+- name: Fetch the Theme file
+  uri:
+    url: https://github.com/mbadolato/iTerm2-Color-Schemes/raw/master/kitty/Solarized%20Dark%20-%20Patched.conf
+    return_content: true
+  register: solarized_theme_kitty
+
+- name: Ensure Theme is applied
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: ~/.config/kitty/kitty.conf
+    create: true
+    block: "{{ solarized_theme_kitty.content | trim('\n') | trim('{') | trim ('}') }}"

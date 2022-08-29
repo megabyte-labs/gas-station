@@ -1,0 +1,79 @@
+---
+- name: Ensure Megabyte Labs configuration directory exists
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%USERPROFILE%\.config'
+    - '%USERPROFILE%\.config\megabytelabs'
+
+- name: "Ensure installation folder for {{ app_name }} exists"
+  ansible.windows.win_file:
+    path: "{{ s5cmd_src_dir }}"
+    state: directory
+
+- name: "Check if {{ app_name }} has configuration stored in '%USERPROFILE%/.config/megabytelabs/s5cmd'"
+  ansible.windows.win_stat:
+    path: '%USERPROFILE%\.config\megabytelabs\s5cmd'
+  register: s5cmd_config
+
+- name: "Detect previously installed {{ app_name }} version"
+  ansible.windows.win_shell: type s5cmd
+  args:
+    chdir: '%USERPROFILE%\.config\megabytelabs'
+  changed_when: false
+  register: current_s5cmd_version
+  when: s5cmd_config.stat.exists
+
+- name: "Detect the latest {{ app_name }} version"
+  ansible.windows.win_uri:
+    url: https://api.github.com/repos/peak/s5cmd/releases/latest
+    return_content: true
+  register: s5cmd_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_s5cmd: "{{ (current_s5cmd_version.skipped | default(false)) or \
+      ((not current_s5cmd_version.skipped | default(false)) and \
+      (current_s5cmd_version.stdout | trim != s5cmd_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: "Fetch CHECKSUMS file of {{ app_name }} installer"
+  ansible.windows.win_uri:
+    url: "https://github.com/peak/s5cmd/releases/download/{{ s5cmd_latest_release_tag.json.tag_name }}/s5cmd_checksums.txt"
+    return_content: true
+  register: s5cmd_checksum_file
+  when: install_s5cmd
+
+- name: "Find the Checksum of {{ app_name }} installer"
+  set_fact:
+    s5cmd_checksum: "{{ s5cmd_checksum_file.content | regex_search('.*s5cmd_(\\d*\\.)*\\d*_Windows-64bit.zip') | \
+      regex_replace('  s5cmd_(\\d*\\.)*\\d*_Windows-64bit.zip','') }}"
+  when: install_s5cmd
+
+- name: "Acquire {{ app_name }}'s latest installer"
+  ansible.windows.win_get_url:
+    url: "https://github.com/peak/s5cmd/releases/download/{{ s5cmd_latest_release_tag.json.tag_name }}/\
+      s5cmd_{{ s5cmd_latest_release_tag.json.tag_name | replace('v','') }}_Windows-64bit.zip"
+    dest: "{{ s5cmd_src_dir }}/s5cmd_{{ s5cmd_latest_release_tag.json.tag_name | replace('v','') }}_Windows-64bit.zip"
+    checksum: "{{ s5cmd_checksum }}"
+    checksum_algorithm: sha256
+  when: install_s5cmd
+
+- name: "Ensure {{ app_name }} is installed"
+  community.windows.win_unzip:
+    src: "{{ s5cmd_src_dir }}\\s5cmd_{{ s5cmd_latest_release_tag.json.tag_name | replace('v','') }}_Windows-64bit.zip"
+    dest: "{{ s5cmd_src_dir }}"
+    delete_archive: true
+  when: install_s5cmd
+
+- name: "Ensure {{ app_name }} is added to PATH"
+  ansible.windows.win_path:
+    elements:
+      - "{{ s5cmd_src_dir }}"
+
+- name: "Save meta information about the version of {{ app_name }} that was installed"
+  ansible.windows.win_copy:
+    dest: '%USERPROFILE%\.config\megabytelabs\s5cmd'
+    content: |
+      {{ s5cmd_latest_release_tag.json.tag_name  | replace('v','') }}
+  when: install_s5cmd

@@ -2,8 +2,8 @@
 - name: "Ensure {{ app_name }}'s dependencies are installed"
   community.general.pacman:
     name: "{{ pkg_dependencies }}"
-    update_cache: true
     state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
 
 - name: "Ensure {{ app_name }} is installed"
   community.general.pacman:
@@ -13,16 +13,25 @@
 
 - name: "Ensure {{ app_name }} Extension pack is installed"
   block:
-    - name: "Remove {{ app_name }} Extension pack if the source files have changed" # noqa 503
+    - name: "Ensure {{ app_name }}'s Extension pack directory exists"
       file:
-        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
-        state: absent
+        path: "/usr/lib/virtualbox/ExtensionPacks/"
+        state: directory
+        mode: 0744
+        owner: root
+        group: root
     - name: "Ensure {{ app_name }} Extension pack source is cloned and up-to-date" # noqa 401
       become: false
       git:
         repo: "{{ vbox_ext_pack_aur_repo_url }}"
         dest: "{{ temp_directory }}"
         clone: true
+      register: ext_pack_download_result
+    - name: "Remove {{ app_name }} Extension pack if the source files have changed"
+      file:
+        path: "/usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/"
+        state: absent
+      when: ext_pack_download_result.changed
     - name: "Ensure {{ app_name }} Extension pack is installed"
       become: false
       command: makepkg -sic --noconfirm
@@ -30,3 +39,11 @@
         chdir: "{{ temp_directory }}"
         creates: /usr/lib/virtualbox/ExtensionPacks/Oracle_VM_VirtualBox_Extension_Pack/
   when: install_result.changed
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

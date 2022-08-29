@@ -1,0 +1,77 @@
+---
+- name: Determine if plymouth-plugin-script is already installed
+  become: true
+  command: dnf search plymouth-plugin-script
+  changed_when: false
+  register: qubes_plymouth_dnf
+
+- name: Ensure plymouth-plugin-script is installed
+  become: true
+  command: qubes-dom0-update -y plymouth-plugin-script
+  when: 'No matches found.' in qubes_plymouth_dnf.stdout
+
+- name: Check if the jumpusb.tar.gz file is present
+  stat:
+    path: ~/jumpusb.tar.gz
+  register: jumpusb_check
+
+- name: Download the JumpUSB repository (for GRUB theme)
+  command: |
+    qvm-remove --force jumpusb-downloader &> /dev/null || EXIT_CODE=$?
+    qvm-create --label red --template debian-11 jumpusb-downloader
+    qvm-run jumpusb-downloader "curl -sSL {{ jumpusb_repo }} > /home/user/jumpusb.tar.gz"
+    qvm-run --pass-io jumpusb-downloader 'cat /home/user/jumpusb.tar.gz' > "$HOME/jumpusb.tar.gz"
+    qvm-remove --force jumpusb-downloader-downloader &> /dev/null || EXIT_CODE=$?
+  when: not (jumpusb_check.stat.exists | default(false))
+
+- name: Unpack the jumpusb.tar.gz file to /usr/share/backgrounds/images
+  become: true
+  unarchive:
+    src: ~/jumpusb.tar.gz
+    dest: /usr/local/src/jumpusb
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
+- name: Remove the ~/jumpusb.tar.gz file
+  file:
+    path: ~/jumpusb.tar.gz
+    state: absent
+
+- name: Ensure /boot/grub2/themes/jumpusb is a directory
+  become: true
+  file:
+    path: /boot/grub2/themes/jumpusb
+    state: directory
+
+- name: Copy the JumpUSB theme to the GRUB theme location
+  become: true
+  copy:
+    src: "{{ src_dir }}"
+    dest: /boot/grub2/themes/jumpusb/
+  loop:
+    - /usr/local/src/jumpusb/ventoy/fonts/
+    - /usr/local/src/jumpusb/ventoy/themes/default/
+  loop_control:
+    loop_var: src_dir
+
+- name: Optimize the GRUB resolution
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_GFXMODE="
+    line: "GRUB_GFXMODE={{ qubes_grub_gfxmode }},auto"
+  notify: update grub
+
+- name: Ensure GRUB_GFXPAYLOAD_LINUX is set
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_GFXPAYLOAD_LINUX="
+    line: 'GRUB_GFXPAYLOAD_LINUX="keep"'
+  notify: update grub
+
+- name: Ensure GRUB is using the JumpUSB theme
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_THEME="
+    line: 'GRUB_THEME="/boot/grub2/themes/jumpusb/theme.txt"'
+  notify: update grub

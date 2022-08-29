@@ -1,0 +1,23 @@
+---
+- name: Ensure Plymouth theme directory exists
+  file:
+    path: /usr/share/plymouth/themes
+    state: directory
+    mode: 0755
+
+- name: Copy and unarchive the Plymouth theme
+  unarchive:
+    src: files/polaroid.tar.gz
+    dest: /usr/share/plymouth/themes
+  when: install_plymouth_theme
+
+- name: Register the Plymouth theme
+  alternatives:
+    name: default.plymouth
+    link: /usr/share/plymouth/themes/default.plymouth
+    path: /usr/share/plymouth/themes/polaroid/polaroid.plymouth"
+    priority: 100
+
+- name: Set the Plymouth theme
+  shell: plymouth-set-default-theme polaroid
+  notify: update initramfs

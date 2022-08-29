@@ -5,6 +5,8 @@
 * [Setting up network printer](https://github.com/Qubes-Community/Contents/blob/master/docs/configuration/network-printer.md#steps-to-configure-a-network-printer-in-a-template-vm)
 * [VM hardening](https://github.com/tasket/Qubes-VM-hardening/)
 * [Misc. scripts including VagrantUp HVMs](https://github.com/unman/stuff)
+* [Tails HVM](https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/tails.md)
+* [Block split](https://github.com/rustybird/qubes-split-dm-crypt)
 
 ## Roles to Re-Visit
 

@@ -36,6 +36,38 @@
         - (ansible_local.qubes is not defined) or
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
 
+- name: Make MAC addresses random (randomized every reboot)
+  hosts: debian-11-dvm
+  connection: qubes
+  tasks:
+    # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
+    - name: Add MAC address randomization configuration
+      copy:
+        content: |
+          [device]
+          wifi.scan-rand-mac-address=yes
+
+          [connection]
+          wifi.cloned-mac-address=stable
+          ethernet.cloned-mac-address=stable
+          connection.stable-id=${CONNECTION}/${BOOT}
+          # Use random IPv6 addresses per session / don't leak MAC via IPv6 (cf. RFC 4941)
+          ipv6.ip6-privacy=2
+        dest: /etc/NetworkManager/conf.d/00-randomize.conf
+    - name: Configure NetworkManager to use dhclient (to prevent hostname leaks)
+      copy:
+        content: |
+          [main]
+          dhcp=dhclient
+        dest: /etc/NetworkManager/conf.d/dhclient.conf
+    - name: Determine if /etc/dhcp/dhclient.conf is sending host-name
+      command: grep 'send host-name' < /etc/dhcp/dhclient.conf
+      changed_when: false
+      register: dhclient_host_name_grep
+    - name: Remove "send host-name" from /etc/dhcp/dhclient.conf
+      command: sed -i '/send host-name/d' /etc/dhcp/dhclient.conf
+      when: dhclient_host_name_grep.rc == 0
+
 - name: Ensure VM-lockdown scripts are added to Debian and Fedora templates
   hosts: debian-11:fedora-36
   connection: qubes

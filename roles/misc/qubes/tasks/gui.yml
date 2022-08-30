@@ -1,0 +1,90 @@
+---
+- name: Ensure dependencies are installed
+  include_tasks: dependency.yml
+  loop:
+    - kernel-latest
+
+- name: Check if sys-gui-gpu is necessary
+  command: qvm-pci | grep 'VGA compatible controller' | grep 'Intel'
+  register: intel_gui_grep
+
+- name: Check if sys-gui-gpu is necessary
+  command: qvm-pci | grep 'VGA compatible controller' | grep 'NVIDIA'
+  register: nvidia_gui_grep
+
+- name: Check if sys-gui-gpu was already installed
+  command: qvm-check sys-gui-gpu
+  register: qvm_check_gui
+
+- name: Enable the sys-gui-gpu Salt
+  become: true
+  command: |
+    qubesctl top.enable qvm.sys-gui-gpu
+    qubesctl top.enable qvm.sys-gui-gpu pillar=True
+    qubesctl --all state.highstate
+    qubesctl top.disable qvm.sys-gui-gpu
+  failed_when: false
+  when:
+    - (nvidia_gui_grep.rc == 0) or (intel_gui_grep.rc == 0)
+    - qvm_check_gui.rc != 0
+
+- name: Attach Intel PCI devices to the sys-gui-gpu VM using the provided Salt
+  become: true
+  command: qubesctl state.sls qvm.sys-gui-gpu-attach-gpu
+  when:
+    - intel_gui_grep.rc == 0
+    - qvm_check_gui.rc != 0
+
+- name: Attach NVIDIA PCI devices to the sys-gui-gpu VM
+  command: |
+    for PCI_DEVICE in $(qvm-pci | grep NVIDIA | sed 's/^\([^ ]*\).*/\1/'); do
+      qvm-pci attach sys-gui-gpu "$PCI_DEVICE" --persistent -o permissive=true
+    done
+  when:
+    - nvidia_gui_grep.rc == 0
+    - qvm_check_gui.rc != 0
+
+- name: Backup /etc/lightdm/lightdm.conf
+  copy:
+    src: /etc/lightdm/lightdm.conf
+    dest: /etc/lightdm/lightdm.conf.bak
+    remote_src: yes
+
+- name: Configure /etc/lightdm/lightdm.conf to auto-login (autologin-user)
+  lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    regex: "#autologin-user="
+    line: "autologin-user = user"
+
+- name: Configure /etc/lightdm/lightdm.conf to auto-login (autologin-user-timeout)
+  lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    regex: "#autologin-user-timeout="
+    line: "autologin-user-timeout = 0"
+
+- name: Configure /etc/lightdm/lightdm.conf to auto-login (autologin-session)
+  lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    regex: "#autologin-session="
+    line: "autologin-session = xfce"
+
+- name: Create ~/.config/autostart/first-boot.desktop file to auto-launch script again
+  copy:
+    content: |
+      [Desktop Entry]
+      Version=1.0
+      Encoding=UTF-8
+      Name=Script
+      Type=Application
+      Exec=/usr/bin/quickstart
+      Icon=
+      Terminal=true
+      StartupNotify=false
+      Hidden=false
+      GenericName=
+      GenericName[en_US]=
+    path: ~/.config/autostart/first-boot.desktop
+
+- name: Force a reboot
+  become: true
+  command: reboot -f

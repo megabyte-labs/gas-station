@@ -48,4 +48,4 @@ while read ROLE_PATH; do
 done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 
 # Run the playbook
-ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml
+ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml

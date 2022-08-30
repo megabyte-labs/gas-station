@@ -13,7 +13,9 @@
 
 # @description Configuration variables
 $AdminUsername = 'Gas'
-$AdminPassword = 'CrownNebula'
+$AdminPassword = 'CrownNebulaSpaceButterfly888()'
+$LocalUserText = 'C:\Temp\local-user.txt'
+$OEMUsername = 'Starflake'
 # Uncomment this to provision with WSL instead of Docker
 # $ProvisionWithWSL = 'True'
 $QuickstartScript = "C:\Temp\quickstart.ps1"
@@ -21,6 +23,7 @@ $QuickstartShellScript = "C:\Temp\quickstart.sh"
 
 # @description Shared common variables
 $LocalUser = (whoami).Substring((whoami).LastIndexOf('\') + 1)
+$NetProfile = Get-NetConnectionProfile
 
 # @description Used to log styled messages
 function Log($message) {
@@ -34,14 +37,37 @@ function CheckForAdminRights() {
   $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
   $princ = New-Object System.Security.Principal.WindowsPrincipal($identity)
   if(!$princ.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $powershell = [System.Diagnostics.Process]::GetCurrentProcess()
-    $psi = New-Object System.Diagnostics.ProcessStartInfo $powerShell.Path
-    $psi.Arguments = '-file ' + $script:MyInvocation.MyCommand.Path
-    $psi.Verb = "runas"
-    [System.Diagnostics.Process]::Start($psi) | Out-Null
+    # $powershell = [System.Diagnostics.Process]::GetCurrentProcess()
+    # $psi = New-Object System.Diagnostics.ProcessStartInfo $powerShell.Path
+    # $psi.Arguments = '-file ' + $script:MyInvocation.MyCommand.Path
+    # $psi.Verb = "runas"
+    # [System.Diagnostics.Process]::Start($psi) | Out-Null
     return $false
   } else {
     return $true
+  }
+}
+
+# @description Changes all networks to private which is a requirement of WinRM. This could probably
+#   be improved from a security standpoint but this is just for Windows which will probably only be
+#.  getting provisioned in VMs. Perhaps when there is better support for Ansible SSH on Windows
+#.  we can get rid of WinRM entirely. Until then, this method is just going to do it like all the
+#.  tutorials on Google / StackOverflow. Ansible does provide some good documentation on using
+#.  shared keys - for now this will be on the backlog. Pull requests welcome from anyone who needs
+#.  Windows WinRM locked down.
+function EnsureNetworksPrivate() {
+  Log 'Ensuring all networks are in private mode (a requirement for WinRM connections)'
+  $NetProfile = Get-NetConnectionProfile
+  foreach ($InterfaceIndex in $NetProfile.InterfaceIndex) {
+    Set-NetConnectionProfile -InterfaceIndex $InterfaceIndex -NetworkCategory Private
+  }
+}
+
+# @description Ensures the network states are restored to their original privacy level after the play is finished.
+function EnsureNetworksReset() {
+  Log 'Resetting network connection privacy states to their original levels'
+  foreach($Profile in $NetProfile) {
+    Set-NetConnectionProfile -InterfaceIndex $Profile.InterfaceIndex -NetworkCategory $Profile.NetworkCategory
   }
 }
 
@@ -53,10 +79,6 @@ function PrepareForReboot {
   }
   Log "Ensuring start-up script is present"
   Set-Content -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Gas Station.bat" "PowerShell.exe -ExecutionPolicy RemoteSigned -Command `"Start-Process -FilePath powershell -ArgumentList '-File $QuickstartScript -Verbose' -verb runas`""
-  # Logic below from method where local type accounts had their passwords changed
-  # New method involves creating temporary local admin account
-  # $AccountType = Get-LocalUser -Name $LocalUser | Select-Object -ExpandProperty PrincipalSource
-  # if ($AccountType -eq 'Local') { }
   Log "Creating temporary local administrator named $AdminUsername"
   net user $AdminUsername /add
   net localgroup administrators $AdminUsername /add
@@ -81,25 +103,27 @@ function RebootAndContinue {
 
 # @description Reboot and continue script after reboot (if required)
 function RebootAndContinueIfRequired {
-  if (!(Get-Module "PendingReboot")) {
+  if (!(Get-Module -ListAvailable -Name 'PendingReboot')) {
     Log "Installing PendingReboot module"
-    Install-Module -Name PendingReboot -Force
+    Install-Module -Name 'PendingReboot' -Force
   }
-  Import-Module PendingReboot -Force
-  if ((Test-PendingReboot).IsRebootPending) {
+  # Status method used by the update installer
+  if (((Test-PendingReboot).IsRebootPending) -or (Get-WURebootStatus -Silent)) {
     RebootAndContinue
   }
 }
 
 # @description Ensure all Windows updates have been applied and then starts the provisioning process
 function EnsureWindowsUpdated {
-  if (!(Get-Module "PSWindowsUpdate")) {
+  if (!(Get-Module -ListAvailable -Name 'PSWindowsUpdate')) {
     Log "Installing update module"
-    Install-Module -Name PSWindowsUpdate -Force
+    Install-Module -Name 'PSWindowsUpdate' -Force
   }
+  Log 'Ensuring updates are enabled for other Microsoft products besides Windows'
+  Add-WUServiceManager -MicrosoftUpdate -Confirm:$false
   Log "Ensuring all the available Windows updates have been applied."
-  Import-Module PSWindowsUpdate -Force
-  Get-WUInstall -AcceptAll -IgnoreReboot | Out-Null
+  PrepareForReboot
+  Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -AutoReboot
   Log "Checking if reboot is required."
   RebootAndContinueIfRequired
 }
@@ -110,6 +134,7 @@ function EnsureLinuxSubsystemEnabled {
   if ($wslenabled.State -eq "Disabled") {
     Log "Enabling Microsoft-Windows-Subsystem-Linux"
     Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+    RebootAndContinue
   }
 }
 
@@ -119,25 +144,38 @@ function EnsureVirtualMachinePlatformEnabled {
   if ($vmenabled.State -eq "Disabled") {
     Log "Enabling VirtualMachinePlatform"
     Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
+    RebootAndContinue
   }
 }
 
 # @description Ensures Ubuntu 22.04 is installed on the system from a .appx file
 function EnsureUbuntuAPPXInstalled {
-  if(!(Test-Path "C:\Temp\UBUNTU2204.appx")) {
-    Log "Downloading Ubuntu APPX"
-    Start-BitsTransfer -Source "https://aka.ms/wslubuntu2204" -Destination "C:\Temp\UBUNTU2204.appx" -Description "Downloading Ubuntu 22.04 WSL image"
-  }
-  # TODO: Ensure this is the appropriate AppxPackage name
-  $Ubuntu2204APPXInstalled = Get-AppxPackage -Name CanonicalGroupLimited.Ubuntu22.04onWindows
+  Log 'Ensuring Ubuntu 22.04 WSL environment is installed'
+  $Ubuntu2204APPXInstalled = Get-AppxPackage -Name 'CanonicalGroupLimited.Ubuntu22.04LTS'
   if (!$Ubuntu2204APPXInstalled) {
+    Log "Ensuring WSL version is set to 2 (required for Docker Desktop)"
+    wsl --set-default-version 2
+    Log "Updating WSL's kernel"
+    wsl --update
+    if(!(Test-Path "C:\Temp\UBUNTU2204.appx")) {
+      Log "Downloading Ubuntu APPX"
+      Start-BitsTransfer -Source "https://aka.ms/wslubuntu2204" -Destination "C:\Temp\UBUNTU2204.appx" -Description "Downloading Ubuntu 22.04 WSL image"
+    }
     Log "Adding Ubuntu APPX"
     Add-AppxPackage -Path "C:\Temp\UBUNTU2204.appx"
+    UpgradeLinuxWSLKernel
+    SetupUbuntuWSL
   }
 }
 
 # @description Automates the process of setting up the Ubuntu 22.04 WSL environment
 function SetupUbuntuWSL {
+  Log "Ensuring WSL version is set to 2 (required for Docker Desktop)"
+  wsl --set-default-version 2
+  Log "Updating WSL's kernel"
+  wsl --update
+  Log "Shutting down / rebooting WSL"
+  wsl --shutdown
   Log "Setting up Ubuntu WSL"
   Start-Process "ubuntu.exe" -ArgumentList "install --root" -Wait -NoNewWindow
   $UsernameLowercase = $env:Username.ToLower()
@@ -151,47 +189,57 @@ function SetupUbuntuWSL {
   Start-Process "ubuntu.exe" -ArgumentList "config --default-user $UsernameLowercase" -Wait -NoNewWindow
 }
 
+# @description Update to WSL2 Linux kernel required by Docker Desktop
+function UpgradeLinuxWSLKernel {
+  if(!(Test-Path "C:\Temp\wsl-update.msi")) {
+    Log "Downloading WSL2 Linux kernel package"
+    Start-BitsTransfer -Source "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi" -Destination "C:\Temp\wsl-update.msi" -Description "Downloading WSL2 Linux kernel"
+    Start-Process "C:\Temp\wsl-update.msi" -ArgumentList "/quiet /passive"
+  }
+}
+
 # @description Ensures Docker Desktop is installed (which requires a reboot)
 function EnsureDockerDesktopInstalled {
   if (!(Test-Path "C:\Program Files\Docker\Docker\Docker Desktop.exe")) {
     Log "Installing Docker Desktop for Windows"
-    choco install -y docker-desktop
-    Log "Ensuring WSL version is set to 2 (required for Docker Desktop)"
-    wsl --set-default-version 2
+    if (!(Test-Path 'C:\Temp\Docker Desktop Installer.exe')) {
+      $DockerSource = 'https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe'
+      Start-BitsTransfer -Source $DockerSource -Destination 'C:\Temp\Docker Desktop Installer.exe' -Description 'Downloading Docker Desktop for Windows'
+    }
+    Log "Running Docker Desktop installation using the CLI"
+    Start-Process 'C:\Temp\Docker Desktop Installer.exe' -Wait 'install --accept-license --backend=wsl-2 --quiet'
+    if (Test-Path("$LocalUserText")) {
+      $InitialUser = cat "$LocalUserText"
+    } else {
+      Log 'C:\Temp\local-user.txt is not present so we will assume it is an OEM build'
+      $InitialUser = $OEMUsername
+    }
+    Log "Adding $InitialUser to the docker-users group"
+    net localgroup docker-users "$InitialUser" /add
+    Log 'Pausing script to give Docker time before forced reboot'
+    Start-Sleep -s 14
     RebootAndContinue
   }
 }
 
 # @description Attempts to run a minimal Docker container and instructs the user what to do if it is not working
 function EnsureDockerFunctional {
-  Log "Ensuring WSL version is set to 2 (required for Docker Desktop)"
-  wsl --set-default-version 2
   Log "Running test command (i.e. docker run --rm hello-world)"
   docker run --rm hello-world | Out-Null
   if ($?) {
     Log "Docker Desktop is operational! Continuing.."
   } else {
-    Log "Updating WSL's kernel"
-    wsl --update
-    Log "Shutting down / rebooting WSL"
-    wsl --shutdown
-    & 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    Log "Waiting for Docker Desktop to come online"
-    Start-Sleep -s 30
-    docker run --rm hello-world | Out-Null
-    if ($?) {
-      Log "Docker is now running and operational! Continuing.."
-    } else {
-      Log "**************"
-      Log "Docker Desktop does not appear to be functional yet. If you used this script, Docker Desktop should load on boot. Follow these instructions:"
-      Log "1. Open Docker Desktop if it did not open automatically and accept the agreement if one is presented."
-      Log "2. If Docker Desktop opens a dialog that says WSL 2 installation is incomplete then click the Restart button."
-      Log "3. Press ENTER here to attempt to proceed."
-      Log "4. Optionally, configure Docker to start up on boot by going to Settings -> General."
-      Log "**************"
-      Read-Host "Press ENTER to continue (after Docker Desktop stops displaying warning modals)"
-      EnsureDockerFunctional
-    }
+    Start-Sleep -s 14
+    EnsureDockerFunctional
+  }
+}
+
+# @description Ensures NuGet is available
+function EnsureNuGet {
+  $Packages = Get-PackageProvider -ListAvailable | Select-Object -Property Name
+  if (!($Packages.Name -contains 'NuGet')) {
+    Log "Installing NuGet since the system is missing the required version.."
+    Install-PackageProvider -Name 'NuGet' -MinimumVersion 2.8.5.201 -Force
   }
 }
 
@@ -240,9 +288,21 @@ function EnableWinRM {
 #   Restart-Service -Name WinRM -Force
 # }
 
+# @description Force script to run when provisioning user first logs in
+function RunOnce() {
+  Log 'Configuring RunOnce script'
+  $KeyName = 'RunGasStationProvisioner'
+  $Command = '%systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File C:\Temp\quickstart.ps1'
+  if (-not ((Get-Item -Path HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce).$KeyName )) {
+    New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name $KeyName -Value $Command -PropertyType ExpandString
+  } else {
+    Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name $KeyName -Value $Command -PropertyType ExpandString
+  }
+}
+
 # @description Run the playbook with Docker
 function RunPlaybookDocker {
-  Set-Location -Path "C:\Temp"
+  Set-Location -Path "C:\Temp" | Out-Null
   $CurrentLocation = Get-Location
   $WorkDirectory = Split-Path -leaf -path (Get-Location)
   if (!(Test-Path $QuickstartShellScript)) {
@@ -259,6 +319,8 @@ function RunPlaybookDocker {
   PrepareForReboot
   Log "Provisioning environment with Docker using $HostIP as the IP address"
   docker run -it -v $("$($CurrentLocation)"+':/'+$WorkDirectory) -w $('/'+$WorkDirectory) -e MOLECULE_GROUP="windows" -e ANSIBLE_PASSWORD="$AdminPassword" -e ANSIBLE_USER="$AdminUsername" --add-host='standard:'$HostIP --entrypoint /bin/bash megabytelabs/updater:latest-full ./quickstart.sh
+  echo $?
+  Log 'Status code of docker command above'
 }
 
 # @description Run the playbook with WSL
@@ -271,50 +333,72 @@ function RunPlaybookWSL {
 
 # @description Install Chocolatey
 function InstallChocolatey {
-  Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+  choco --help | Out-Null
+  if (!$?) {
+    Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+  }
 }
 
 # @description The main logic for the script - enable Windows features, set up Ubuntu WSL, and install Docker Desktop
 # while continuing script after a restart.
 function ProvisionWindowsAnsible {
-  Log "Ensuring Windows is updated and that pre-requisites are installed.."
-  if (!(Get-PackageProvider -Name "NuGet")) {
-    Log "Installing NuGet since the system is missing the required version.."
-    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-  }
+  EnsureNuGet
   EnsureWindowsUpdated
-  InstallChocolatey
+  EnsureNetworksPrivate
   EnableWinRM
   EnsureLinuxSubsystemEnabled
   EnsureVirtualMachinePlatformEnabled
+  EnsureUbuntuAPPXInstalled
+  EnsureWindowsUpdated
   EnsureDockerDesktopInstalled
   EnsureDockerFunctional
   if ($ProvisionWithWSL -eq 'true') {
-    EnsureUbuntuAPPXInstalled
-    SetupUbuntuWSL
     RunPlaybookWSL
   } else {
     RunPlaybookDocker
   }
-  Read-Host "Removing temporary files (assuming you are not currently in the C:\Temp directory."
+  Log "Encounter an error? Running 'Enable-PSRemoting -SkipNetworkProfileCheck' in an Administrator PowerShell might help.."
+  Log "If that does not work, this article might help: http://www.dhruvsahni.com/verifying-winrm-connectivity"
+  Log "Removing temporary files"
+  Set-Location -Path "$HOME" | Out-Null
   Remove-Item -path "C:\Temp" -Recurse -Force | Out-Null
   Remove-Item -path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Gas Station.bat" -Force | Out-Null
-  Log "Removing temporary local administrator account named Byte"
+  Log "Removing temporary local administrator account named $AdminUsername"
   Remove-LocalUser -Name "$AdminUsername"
+  EnsureNetworksReset
+  Log 'Re-enabling UAC'
+  Set-ItemProperty -Path REGISTRY::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System -Name ConsentPromptBehaviorAdmin -Value 1
+  Log 'Re-restricting the ExecutionPolicy'
+  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Restricted -Force
+  Read-Host "Finished! Press ENTER to close the process.."
+}
+
+# @description Ensure the user can run scripts
+Log 'Ensure ExecutionPolicy is Unrestricted'
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted -Force
+Log 'Ensuring C:\Temp exists'
+if (!(Test-Path 'C:\Temp')) {
+  New-Item 'C:\Temp' -ItemType Directory
 }
 
 # @description Checks for admin privileges and if there are none then open a new instance with Administrator rights
 $AdminAccess = CheckForAdminRights
-if($AdminAccess){
+if ($AdminAccess) {
   Log "Current session is an Administrator session.. Good."
+  Log 'Ensuring UAC is disabled system-wide'
+  Set-ItemProperty -Path REGISTRY::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System -Name ConsentPromptBehaviorAdmin -Value 0
+  if ($LocalUser -ne $AdminUsername) {
+    Log "Writing LocalUser name to $LocalUserText so provisioning user can add them to the Docker group"
+    echo "$LocalUser" > "$LocalUserText"
+    RunOnce
+    RebootAndContinue
+  }
   ProvisionWindowsAnsible
 } else {
   if (!(Test-Path $QuickstartScript)) {
     Log "Ensuring the recursive update script is downloaded"
     Start-BitsTransfer -Source "https://install.doctor/windows-quickstart" -Destination $QuickstartScript -Description "Downloading initialization script"
   }
-  Log "This script requires Administrator privileges. Press ENTER to escalate to Administrator privileges."
-  Read-Host
-  Start-Process PowerShell -verb runas -ArgumentList "-file $QuickstartScript"
-  Log "NOTE: In case there was an error or if you cancelled half-way through, make sure the administrator named Byte is removed."
+  Log "This script requires Administrator privileges. Respawning instance with necessary privileges."
+  Start-Process PowerShell -verb RunAs -ArgumentList "-NoExit -File $QuickstartScript"
 }

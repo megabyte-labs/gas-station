@@ -31,5 +31,5 @@ Our playbooks include a specially crafted playbook for Qubes. It will load your 
 To setup Qubes, run the following on a fresh install in dom0:
 
 ```shell
-qvm --pass-io work "curl -sSL https://install.doctor/qubes" > ./setup.sh && bash ./setup.sh
+qvm-run --pass-io work "curl -sSL https://install.doctor/qubes" > ./setup.sh && bash ./setup.sh
 ```

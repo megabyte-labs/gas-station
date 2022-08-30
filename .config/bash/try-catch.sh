@@ -52,7 +52,8 @@
 # ```
 # Source: https://stackoverflow.com/a/25180186`
 
-Logger="${BASH_SOURCE}../log"
+# shellcheck disable=SC2034
+Logger="${BASH_SOURCE[0]}../log"
 
 # @description Turn on fail on errors mode
 function try() {
@@ -62,12 +63,13 @@ function try() {
 
 # @description Turn on fail on errors mode
 function throw() {
-    exit $1
+    exit "$1"
 }
 
 # @description Turn on fail on errors mode
 function catch() {
     export ex_code=$?
+    # shellcheck disable=SC2004
     (( $SAVED_OPT_E )) && set +e
     return $ex_code
 }

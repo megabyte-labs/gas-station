@@ -370,17 +370,9 @@ vars:
   MODEL_TASKFILE: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/Taskfile.yml
   NPM_KEEP_UPDATED: ''
   NPM_PROGRAM: pnpm
-  NPM_PROGRAM_LOCAL: pnpm
-  NPX_HANDLE:
-    sh: |
-      if type pnpx &> /dev/null; then
-        echo 'pnpx '
-      elif type pnpm &> /dev/null; then
-        echo 'pnpm '
-      fi
   PROJECT_TYPE:
     sh: |
-      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.group' package.json)"; if [ "$VER" == 'null' ]; then echo TYPE="$GROUP_TYPE"; else TYPE="$VER"; fi; else TYPE="$GROUP_TYPE"; fi
+      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.group' package.json)"; if [ "$VER" == 'null' ]; then TYPE="$GROUP_TYPE"; else TYPE="$VER"; fi; else TYPE="$GROUP_TYPE"; fi
       if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.subgroup' package.json)"; if [ "$VER" == 'null' ]; then SUBTYPE="$REPOSITORY_TYPE"; else SUBTYPE="$VER"; fi; else SUBTYPE="$REPOSITORY_TYPE"; fi
       if [ "$TYPE" == 'common' ] && [ "$SUBTYPE" == 'shared' ]; then
         echo 'shared'
@@ -430,6 +422,7 @@ env:
       PATH="$PATH:$HOME/.local/go/bin:$HOME/go/bin"
       PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
       PATH="$PATH:$PWD/bin"
+      PATH="$PATH:$HOME/.volta/bin"
       echo "$PATH"
   RECORD_INSTALL:
     sh: if [ -n "$CI" ]; then echo 'true'; fi
@@ -439,6 +432,8 @@ env:
         DSN="$(jq -r '.blueprint.sentryDSN' package.json)"
         if [ "$DSN" != 'null' ]; then echo "$DSN"; fi
       fi
+  VOLTA_HOME:
+    sh: echo "$HOME/.volta"
 profile: |
   if [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
     if [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && ! type brew > /dev/null; then

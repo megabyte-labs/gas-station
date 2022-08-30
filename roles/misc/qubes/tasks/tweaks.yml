@@ -49,6 +49,20 @@
       - --strip-components=1
     remote_src: true
 
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: miui-sound-theme.tar.gz
+  include_tasks: untrusted-download.yml
+
+- name: Unpack the miui-sound-theme.tar.gz file to /usr/share/icons/tokyo-night-cursor-theme
+  become: true
+  unarchive:
+    src: /usr/src/qubes-dom0-binaries/miui-sound-theme.tar.gz
+    dest: /usr/share/sounds/MIUI
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
 - name: Ensure dependencies are installed
   include_tasks: dependency.yml
   loop:
@@ -58,6 +72,7 @@
     - gnome-shell
     - ImageMagick
     - qt5ct
+    - sddm
     - xfce4-clipman-plugin
     - xfce4-embed-plugin
     - xfce4-whiskermenu-plugin
@@ -276,20 +291,40 @@
       value: 1
       value_type: int
 
+# TODO: Verify
 - name: Ensure SDDM configuration is in place
-  copy:
-    content: |
-      [XDisplay]
-      ServerArguments=-nolisten tcp -background none
+  lineinfile:
     path: /etc/sddm.conf
+    regex: "#ServerArguments"
+    line: "ServerArguments=-nolisten tcp -background none"
 
-- name: Stop the lightdm service
+- name: Ensure SDDM configuration is in place
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: "Current="
+    line: "Current=sugar-light"
+
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: sugar-light-sddm.tar.gz
+  include_tasks: untrusted-download.yml
+
+- name: Unpack the sugar-light-sddm.tar.gz file to /usr/share/sddm/themes/sugar-light
+  become: true
+  unarchive:
+    src: /usr/src/qubes-dom0-binaries/sugar-light-sddm.tar.gz
+    dest: /usr/share/sddm/themes/sugar-light
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
+- name: Stop / disable the lightdm service
   ansible.builtin.systemd:
     name: lightdm
     enabled: false
     state: stopped
 
-- name: Enable the SDDM service
+- name: Start / enable the SDDM service
   ansible.builtin.systemd:
     state: started
     name: sddm

@@ -4,9 +4,16 @@
   command: timedatectl set-timezone {{ timezone }}
   when: timezone is defined
 
-- name: Configure Task
-  include_tasks: task.yml
-  when: 'task' in dom0_features
+- name: Add dom0-specific scripts
+  become: true
+  copy:
+    src: files/{{ item }}
+    dest: /usr/local/bin/{{ item }}
+    mode: 0755
+  loop:
+    - install-dotfiles
+    - install-terminal-theme
+    - ramqube
 
 - name: Configure TemplateVM / dom0 updates to use Tor
   include_tasks: tor-updates.yml
@@ -25,6 +32,14 @@
   loop: qubes_templates
   loop_control:
     loop_var: template
+
+- name: Update the dotfiles
+  include_tasks: dotfiles.yml
+  when: 'dotfiles' in dom0_features
+
+- name: Run the dotfile installer
+  command: install-dotfiles
+  when: 'dotfiles' in dom0_features
 
 - name: Apply miscellaneous optional tweaks
   include_tasks: tweaks.yml
@@ -65,12 +80,3 @@
 - name: Ensure Visual Studio Code is installed
   include_tasks: vscode.yml
   when: 'vscode' in dom0_features
-
-- name: Add dom0-specific scripts
-  become: true
-  copy:
-    src: files/{{ item }}
-    dest: /usr/local/bin/{{ item }}
-    mode: 0755
-  loop:
-    - ramqube

@@ -1,4 +1,69 @@
 ---
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: firacode.tar.gz
+  include_tasks: untrusted-download.yml
+
+- name: Unpack the firacode.tar.gz file to /usr/share/backgrounds/images
+  become: true
+  unarchive:
+    src: /usr/local/src/qubes-dom0-binaries/firacode.tar.gz
+    dest: /usr/share/fonts/firacode
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: flat-remix-gtk-master.tar.gz
+  include_tasks: untrusted-download.yml
+
+- name: Unpack the flat-remix-gtk-master.tar.gz file to /usr/local/src/flat-remix-gtk
+  become: true
+  unarchive:
+    src: /usr/local/src/qubes-dom0-binaries/flat-remix-gtk-master.tar.gz
+    dest: /usr/local/src/flat-remix-gtk
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
+- name: Copy themes from /usr/local/src/flat-remix-gtk
+  copy:
+    src: /usr/local/src/flat-remix-gtk/themes/{{ item }}
+    dest: /usr/share/themes/{{ item }}
+  loop:
+    - Flat-Remix-Light-XFWM
+    - Flat-Remix-GTK-Blue-Light-Solid
+
+- name: Ensure dependencies are installed
+  include_tasks: dependency.yml
+  loop:
+    - flat-remix-icon-theme
+    - glib2-devel
+    - gnome-shell
+    - ImageMagick
+    - qt5ct
+
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: flat-remix-gnome-20210118.tar.gz
+  include_tasks: untrusted-download.yml
+
+- name: Unpack the flat-remix-gnome-20210118.tar.gz file to /usr/local/src/flat-remix-gnome
+  become: true
+  unarchive:
+    src: /usr/local/src/qubes-dom0-binaries/flat-remix-gnome-20210118.tar.gz
+    dest: /usr/local/src/flat-remix-gnome
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
+- name: Run make && sudo make install in the flat-remix-gnome src folder
+  command: make && sudo make install
+  args:
+    chdir: /usr/local/src/flat-remix-gnome
+    creates: /usr/local/src/flat-remix-gnome/build
+
 - name: Clean up unnecessary System Tools links
   become: true
   file:
@@ -28,22 +93,22 @@
   loop:
     - channel: xfwm4
       property: /general/theme
-      value: Arc-Dark-solid
+      value: Flat-Remix-Light-XFWM
     - channel: xfwm4
       property: /general/title_font
-      value: Montserrat Ultra-Bold 11
+      value: Montserrat Ultra-Bold 10
     - channel: xfwm4
       property: /general/title_alignment
       value: left
     - channel: xsettings
       property: /Net/ThemeName
-      value: Arc
+      value: Flat-Remix-GTK-Blue-Light-Solid
     - channel: xsettings
       property: /Gtk/MonospaceFontName
       value: Nimbus Mono PS 11
     - channel: xsettings
       property: /Gtk/FontName
-      value: System-ui 11
+      value: System-ui 10
     - channel: xsettings
       property: /Xfce/LastCustomDPI
       value: 100
@@ -112,3 +177,49 @@
       property: /security/EnableTcp
       value: true
       value_type: boolean
+    - channel: xfce4-panel
+      property: /panels/panel-1/icon-size
+      value: 28
+      value_type: int
+    - channel: xfce4-panel
+      property: /panels/panel-1/leave-opacity
+      value: 92
+      value_type: int
+    - channel: xfce4-panel
+      property: /panels/panel-1/enter-opacity
+      value: 100
+      value_type: int
+    - channel: xfce4-panel
+      property: /panels/panel-1/size
+      value: 37
+      value_type: int
+    - channel: xfce4-panel
+      property: /plugins/plugin-5/mode
+      value: 5
+      value_type: int
+    - channel: xfce4-panel
+      property: /plugins/plugin-5/show-military
+      value: true
+      value_type: boolean
+    - channel: xfce4-panel
+      property: /plugins/plugin-5/show-seconds
+      value: true
+      value_type: boolean
+    - channel: xfce4-panel
+      property: /plugins/plugin-5/timezone
+      value: America/New_York
+    - channel: xfce4-panel
+      property: /panels/panel-2/size
+      value: 67
+      value_type: int
+    - channel: xfce4-panel
+      property: /panels/panel-2/position-locked
+      value: true
+      value_type: boolean
+    - channel: xfce4-panel
+      property: /panels/panel-2/position
+      value: p=12;x=1783;y=1406
+    - channel: xfce4-panel
+      property: /panels/panel-2/autohide-behavior
+      value: 2
+      value_type: int

@@ -5,41 +5,55 @@
     - kernel-latest
 
 - name: Check if sys-gui-gpu is necessary
-  command: qvm-pci list | grep 'VGA compatible controller' | grep 'Intel'
+  shell: qvm-pci list | grep 'VGA compatible controller' | grep 'Intel'
   register: intel_gui_grep
+  failed_when: false
+  changed_when: false
 
 - name: Check if sys-gui-gpu is necessary
-  command: qvm-pci list | grep 'VGA compatible controller' | grep 'NVIDIA'
+  shell: qvm-pci list | grep 'VGA compatible controller' | grep 'NVIDIA'
   register: nvidia_gui_grep
+  failed_when: false
+  changed_when: false
 
 - name: Check if sys-gui-gpu was already installed
-  command: qvm-check sys-gui-gpu
+  shell: qvm-check sys-gui-gpu
   register: qvm_check_gui
+  failed_when: false
+  changed_when: false
 
 - name: Enable the sys-gui-gpu Salt
   become: true
-  command: |
-    qubesctl top.enable qvm.sys-gui-gpu
-    qubesctl top.enable qvm.sys-gui-gpu pillar=True
-    qubesctl --all state.highstate
-    qubesctl top.disable qvm.sys-gui-gpu
-  failed_when: false
+  shell: "{{ item }}"
+  loop:
+    - qubesctl top.enable qvm.sys-gui-gpu
+    - qubesctl top.enable qvm.sys-gui-gpu pillar=True
+    - qubesctl --all state.highstate
+    - qubesctl top.disable qvm.sys-gui-gpu
   when:
     - (nvidia_gui_grep.rc == 0) or (intel_gui_grep.rc == 0)
     - qvm_check_gui.rc != 0
 
 - name: Attach Intel PCI devices to the sys-gui-gpu VM using the provided Salt
   become: true
-  command: qubesctl state.sls qvm.sys-gui-gpu-attach-gpu
+  shell: qubesctl state.sls qvm.sys-gui-gpu-attach-gpu
   when:
     - intel_gui_grep.rc == 0
     - qvm_check_gui.rc != 0
 
+- name: Gather the qvm-pci list IDs from the NVIDIA graphics card
+  command: qvm-pci list | grep 'NVIDIA' | sed 's/^\([^ ]*\).*/\1/'
+  register: qvm_pci_list_nvidia
+  changed_when: false
+
 - name: Attach NVIDIA PCI devices to the sys-gui-gpu VM
-  command: |
-    for PCI_DEVICE in $(qvm-pci | grep NVIDIA | sed 's/^\([^ ]*\).*/\1/'); do
-      qvm-pci attach sys-gui-gpu "$PCI_DEVICE" --persistent -o permissive=true
-    done
+  command: qvm-pci attach sys-gui-gpu {{ item }} --persistent -o permissive=true
+  loop: "{{ qvm_pci_list_nvidia.stdout.split('\n') }}"
+  register: qvm_pci_attach_nvidia
+  changed_when: qvm_pci_attach_nvidia.rc == 0
+  failed_when:
+    - qvm_pci_attach_nvidia.rc != 0
+    - '"class pci already attached to" not in qvm_pci_attach_nvidia.stdout'
   when:
     - nvidia_gui_grep.rc == 0
     - qvm_check_gui.rc != 0

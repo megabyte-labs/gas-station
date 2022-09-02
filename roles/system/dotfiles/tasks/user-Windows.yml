@@ -1,18 +1,5 @@
 ---
-- name: Add static dotfiles
-  ansible.windows.win_copy:
-    src: "{{ item }}"
-    dest: "{{ user_profile }}\\{{ item }}"
-  loop:
-    - .localrc
-    - .zshrc
-
-- name: Ensure VAGRANT_CLOUD_TOKEN is included in .localrc, if set
-  community.windows.win_lineinfile:
-    path: "{{ user_profile }}\\.localrc"
-    regex: "export VAGRANT_CLOUD_TOKEN"
-    line: "export VAGRANT_CLOUD_TOKEN={{ user.vagrant_cloud_token }}"
-  when: user.vagrant_cloud_token is defined
+# TODO Clone and add dotfiles repo
 
 - name: Add dynamic dotfiles
   ansible.windows.win_template:
@@ -22,21 +9,3 @@
     - .gitconfig
     - .netrc
     - .npmrc
-
-- name: Determine whether the user's .bashrc file is present in the home directory
-  ansible.windows.win_stat:
-    path: ~/.bashrc
-  register: bashrc
-
-- name: Ensure .bashrc exists in user's home directory
-  ansible.windows.win_file:
-    path: "{{ user_profile }}\\.bashrc"
-    state: touch
-  ignore_errors: true
-  when: not bashrc.stat.exists
-
-- name: Ensure .localrc is sourced in .bashrc
-  community.windows.win_lineinfile:
-    path: "{{ user_profile }}\\.bashrc"
-    regex: "^source ~\/.localrc$"
-    line: source ~/.localrc

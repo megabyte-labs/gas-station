@@ -15,19 +15,8 @@
 - name: Ensure dependencies are installed
   include_tasks: dependency.yml
   loop:
-    - '@kde-desktop-qubes'
+    - kde-settings-qubes
     - qubes-repo-contrib
-    - gnome-shell
-    - package: sddm
-      exclude: sddm-kcm, sddm-breeze
-    # - xfce4-clipman-plugin
-    - xfce4-embed-plugin
-    - xfce4-whiskermenu-plugin
-    - xfce4-mpc-plugin
-    - xfce4-netload-plugin
-    - xfce4-notes-plugin
-    - xfce4-statusnotifier-plugin
-    - xfce4-weather-plugin
 
 - name: Ensure qubes-repo-contrib packages are installed
   include_tasks: dependency.yml
@@ -51,6 +40,7 @@
     property: "{{ item.property }}"
     value_type: "{{ item.value_type | default('string') }}"
     value: "{{ item.value }}"
+  failed_when: false
   loop:
     - channel: xfwm4
       property: /general/theme
@@ -234,7 +224,7 @@
   lineinfile:
     path: /etc/sddm.conf
     regex: "Current="
-    line: "Current=sugar-light"
+    line: "Current=Sweet"
 
 - name: Stop / disable the lightdm service
   become: true
@@ -251,5 +241,7 @@
     enabled: true
 
 - name: Enable debug mode for GTK
-  command: |
-    gsettings set org.gtk.Settings.Debug enable-inspector-keybinding true
+  community.general.dconf:
+    key: /org/gtk/Settings/Debug
+    value: "['enable-inspector-keybinding', 'false']"
+    state: present

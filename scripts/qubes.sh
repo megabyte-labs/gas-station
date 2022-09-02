@@ -5,13 +5,15 @@ ANSIBLE_DVM="ansible-dvm"
 set -ex
 
 # Update dom0
-sudo qubesctl --show-output state.sls update.qubes-dom0
-sudo qubes-dom0-update --clean -y
-sudo qubes-dom0-update -y ansible-python3 # Add if statement
+if [ ! -f /tmp/dom0_updated ]; then
+  sudo qubesctl --show-output state.sls update.qubes-dom0
+  sudo qubes-dom0-update --clean -y
+  touch /tmp/dom0_updated
+fi
 
-# Ensure qubes-template-debian-11-minimal is installed
-if [ ! -d '/var/lib/qubes/vm-templates/debian-11-minimal' ]; then
-  sudo qubes-dom0-update qubes-template-debian-11-minimal
+if [ ! -f /tmp/qubes_ansible_python_installed ]; then
+  sudo qubes-dom0-update -y ansible-python3 # TODO: Add better check
+  touch /tmp/qubes_ansible_python_installed
 fi
 
 # Ensure sys-whonix is configured

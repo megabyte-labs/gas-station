@@ -69,7 +69,7 @@ qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
 qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
 qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
-tar -xzf "$HOME/Playbooks.tar.gz"
+tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
 rm -f "$HOME/Playbooks.tar.gz"
 mv "$HOME/gas-station-master" "$HOME/Playbooks"
 

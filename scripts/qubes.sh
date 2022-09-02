@@ -15,6 +15,7 @@ if [ ! -d '/var/lib/qubes/vm-templates/debian-11-minimal' ]; then
 fi
 
 # Download Gas Station and transfer to dom0 via DispVM
+qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
 qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
 qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
@@ -37,5 +38,14 @@ sudo mkdir -p '/usr/share/ansible/library'
 sudo rm -rf '/usr/share/ansible/library/qubesos.py'
 sudo ln -s '/etc/ansible/scripts/library/qubesos.py' '/usr/share/ansible/library/qubesos.py'
 
+# Symlink the roles to their Galaxy alias
+while read ROLE_PATH; do
+  ROLE_FOLDER="professormanhattan.$(basename "$ROLE_PATH")"
+  if [ ! -d "/etc/ansible/roles/$ROLE_FOLDER" ]; then
+    rm -rf "/etc/ansible/roles/$ROLE_FOLDER"
+    ln -sf "$ROLE_PATH" "/etc/ansible/roles/$ROLE_FOLDER"
+  fi
+done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
+
 # Run the playbook
-ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml
+ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml

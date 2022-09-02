@@ -1,0 +1,20 @@
+---
+- name: Update dom0
+  become: true
+  shell: qubesctl --show-output state.sls update.qubes-dom0
+  register: qubesctl_update_dom0
+  changed_when: qubesctl_update_dom0.stdout | regex_search('Succeeded. [0-9]* \(changed=[0-9]*\)') is not none
+  failed_when: qubesctl_update_dom0.stdout | regex_search('Failed. *[1-9]+[0-9]*') is not none
+
+- name: Complete dom0 update with alternate method
+  become: true
+  shell: qubes-dom0-update --clean -y
+  register: qubes_dom0_update_clean
+  changed_when: not ('No updates available' in qubes_dom0_update_clean.stdout)
+
+- name: Ensure the TemplateVMs are updated
+  become: true
+  shell: qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm
+  register: qubesctl_template_update
+  changed_when: qubesctl_template_update.stdout | regex_search('Succeeded. [0-9]* \(changed=[0-9]*\)') is not none
+  failed_when: qubesctl_template_update.stdout | regex_search('Failed. *[1-9]+[0-9]*') is not none

@@ -6,98 +6,38 @@
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
-        # Update dom0
-        - name: Update dom0
-          # TODO: Add proper changed_when
-          command: sudo qubesctl --show-output state.sls update.qubes-dom0
-        - name: Complete dom0 update with alternate method
-          command: sudo qubes-dom0-update --clean -y
-          register: qubes_dom0_update_clean
-          changed_when: "{{ not ('No updates available' in qubes_dom0_update_clean.stdout) }}"
-
-        # Update TemplateVMs
-        - name: Ensure the TemplateVMs are updated
-          # TODO: Add proper changed_when
-          command: sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm
-
-        # Set up sys-usb
-        - name: Ensure sys-usb is setup and that it is properly configured with the keyboard
-          # TODO: Add proper changed_when
-          command: sudo qubesctl state.sls qvm.usb-keyboard
-
-        # Ensure keyboard security settings are correct
-        - name: Block USB keyboards from connecting without prompt
-          copy:
-            content: |
-              sys-usb dom0 ask,default_target=dom0
-            dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
-          when: qubes_keyboard_ask_policy | default(false)
-        - name: Ensure USB keyboard can connect without prompt
-          copy:
-            content: |
-              sys-usb dom0 allow,user=root
-            dest: /etc/qubes-rpc/policy/qubes.InputKeyboard
-          when: not (qubes_keyboard_ask_policy | default(false))
-
-        # Prompt after new mice are attached
-        - name: Ensure newly connected USB mouse devices are only allowed to connect after a prompt is accepted
-          copy:
-            content: |
-              sys-usb dom0 ask,default_target=dom0
-            dest: /etc/qubes-rpc/policy/qubes.InputMouse
-
-        # Ensure the debian-11-minimal template is installed
-        - name: Check if qubes-template-debian-11-minimal is already installed
-          stat:
-            path: /var/lib/qubes/vm-templates/debian-11-minimal
-          register: debian_11_minimal_path
-        - name: Install qubes-template-debian-11-minimal
-          command: sudo qubes-dom0-update qubes-template-debian-11-minimal
-          when: not debian_11_minimal_path.stat.exists
-
-        # Ensure the fedora-36 template is installed
-        - name: Check if qubes-template-fedora-36 is already installed
-          stat:
-            path: /var/lib/qubes/vm-templates/fedora-36
-          register: fedora_36_path
-        - name: Install qubes-template-fedora-36
-          command: sudo qubes-dom0-update qubes-template-fedora-36
-          when: not fedora_36_path.stat.exists
-
-        # Ensure the fedora-36-minimal template is installed
-        - name: Check if qubes-template-fedora-36-minimal is already installed
-          stat:
-            path: /var/lib/qubes/vm-templates/fedora-36-minimal
-          register: fedora_36_minimal_path
-        - name: Install qubes-template-fedora-36-minimal
-          command: sudo qubes-dom0-update qubes-template-fedora-36-minimal
-          when: not fedora_36_minimal_path.stat.exists
-
-        # Ensure qubes-u2f-dom0 is installed
-        - name: Determine if qubes-u2f-dom0 is already installed
-          command: sudo dnf search qubes-u2f-dom0
-          changed_when: false
-          register: qubes_u2f_dom0_dnf
-        - name: Ensure qubes-u2f-dom0 is installed
-          command: sudo qubes-dom0-update -y qubes-u2f-dom0
-          when: qubes_u2f_dom0_dnf.stdout == '0'
-
-        # Ensure qubes-gpg-split-dom0 is installed
-        - name: Determine if qubes-gpg-split-dom0 is already installed
-          command: sudo dnf search qubes-gpg-split-dom0
-          changed_when: false
-          register: qubes_gpg_split_dom0_dnf
-        - name: Ensure qubes-gpg-split-dom0 is installed
-          command: sudo qubes-dom0-update -y qubes-gpg-split-dom0
-          when: qubes_gpg_split_dom0_dnf.stdout == '0'
+        # Run the Qubes dom0 role to enable features / update
+        - name: Update and configure dom0
+          vars:
+            dom0_features:
+              - backgrounds
+              - dotfiles
+              - grub
+              - new-menu
+              - plymouth
+              - split-gpg
+              - sudo-prompt
+              - sys-gui
+              - sys-usb
+              - tabby
+              - tweaks
+              - tor-updates
+              - u2f
+              - update
+              - vscode
+              - yubikey
+          include_role:
+            name: professormanhattan.qubes
 
         # Cache time so this block can be skipped on subsequent runs
         - name: Ensure directory for custom Ansible facts exists
+          become: true
           ansible.builtin.file:
             state: directory
             recurse: yes
             path: /etc/ansible/facts.d
         - name: Write time to file for determining whether or not this block should run (on subsequent runs)
+          become: true
           copy:
             content: |
               dom0_provision_time={{ ansible_date_time.iso8601 }}
@@ -106,11 +46,62 @@
         - (ansible_local.qubes is not defined) or
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
 
+- name: Make MAC addresses random (randomized every reboot)
+  hosts: debian-11-dvm
+  connection: qubes
+  tasks:
+    # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
+    - name: Add MAC address randomization configuration
+      copy:
+        content: |
+          [device]
+          wifi.scan-rand-mac-address=yes
+
+          [connection]
+          wifi.cloned-mac-address=stable
+          ethernet.cloned-mac-address=stable
+          connection.stable-id=${CONNECTION}/${BOOT}
+          # Use random IPv6 addresses per session / don't leak MAC via IPv6 (cf. RFC 4941)
+          ipv6.ip6-privacy=2
+        dest: /etc/NetworkManager/conf.d/00-randomize.conf
+    - name: Configure NetworkManager to use dhclient (to prevent hostname leaks)
+      copy:
+        content: |
+          [main]
+          dhcp=dhclient
+        dest: /etc/NetworkManager/conf.d/dhclient.conf
+    - name: Determine if /etc/dhcp/dhclient.conf is sending host-name
+      command: grep 'send host-name' < /etc/dhcp/dhclient.conf
+      changed_when: false
+      register: dhclient_host_name_grep
+    - name: Remove "send host-name" from /etc/dhcp/dhclient.conf
+      command: sed -i '/send host-name/d' /etc/dhcp/dhclient.conf
+      when: dhclient_host_name_grep.rc == 0
+
+- name: Ensure VM-lockdown scripts are added to Debian and Fedora templates
+  hosts: debian-11:debian-11-dvm:fedora-36
+  connection: qubes
+  tasks:
+    - name: Clone the VM-lockdown repository
+      become: true
+      ansible.builtin.git:
+        repo: https://github.com/tasket/Qubes-VM-hardening.git
+        dest: /usr/src/hardening
+    - name: Run the installer
+      become: true
+      command: |
+        bash install
+        bash configure-sudo-prompt --force
+      args:
+        chdir: /usr/src/hardening
+        creates: /lib/systemd/system/vm-boot-protect.service
+
 - name: Ensure additional Debian/Whonix TemplateVM packages are installed to non-minimal templates
   hosts: debian-11:whonix-ws-16
   connection: qubes
   tasks:
     - name: Ensure qubes-gpg-split and qubes-u2f are installed
+      become: true
       ansible.builtin.apt:
         name:
           - qubes-gpg-split
@@ -119,15 +110,61 @@
         update_cache: yes
 
 - name: Ensure additional Fedora TemplateVM packages are installed to non-minimal templates
-  hosts: fedora-36
+  hosts: fedora-36:fedora-36-xfce
   connection: qubes
   tasks:
     - name: Ensure qubes-gpg-split and qubes-u2f are installed
+      become: true
       ansible.builtin.dnf:
         name:
           - qubes-gpg-split
           - qubes-u2f
         state: latest
+
+- name: Ensure the Fedora 36 XFCE4 TemplateVM gets injected with all the theme files
+
+- name: Configure all Qubes to forward local traffic on certain ports to OPNSense (if installed)
+  hosts: debian-11
+  connection: qubes
+  vars:
+    systemd_services:
+      - name: opnsense-http-service
+        port: 80
+      - name: opnsense-https-service
+        port: 443
+  tasks:
+    - name: "Create {{ service.name }}.socket systemd file"
+      copy:
+        content: |
+          [Unit]
+          Description={{ service.name }}
+
+          [Socket]
+          ListenStream=127.0.0.1:{{ service.port }}
+          Accept=true
+
+          [Install]
+          WantedBy=sockets.target
+        dest: "/lib/systemd/system/{{ service.name }}.socket"
+      loop: "{{ systemd_services }}"
+      loop_control:
+        loop_var: service
+      when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
+    - name: "Create {{ service.name }}@.service systemd file"
+      copy:
+        content: |
+          [Unit]
+          Description={{ service.name }}
+
+          [Service]
+          ExecStart=qrexec-client-vm '' qubes.ConnectTCP+{{ service.port }}
+          StandardInput=socket
+          StandardOutput=inherit
+        dest: /lib/systemd/system/{{ service.name }}@.service
+      loop: "{{ systemd_services }}"
+      loop_control:
+        loop_var: service
+      when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
 
 - name: Provisioning TemplateVMs, configuring OPNSense PCI devices, and attaching USB with VirtualBox files for Packer HVMs
   hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('localhost', true) }}"
@@ -161,52 +198,70 @@
         label: '{{ vm.name }}'
         loop_var: vm
 
-    # Attach sys-net PCI devices to opnsense-dvm
-    - name: Determine number of PCI devices attached to opnsense-dvm
-      command: qvm-device pci list opnsense | wc -l
-      changed_when: false
-      register: opnsense_pci_list
-    - name: Determine number of PCI devices attached to sys-net
-      command: qvm-device pci list sys-net | wc -l
-      changed_when: false
-      register: sys_net_pci_list
-    - name: Attach network PCI devices to opnsense-dvm
-      command: |
-        while read DEVID; do
-          qvm-device pci attach opnsense-dvm "$DEVID" --persistent
-        done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
-      when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
-    - name: Spin up disposable Qube to attach/transfer files from USB
-      qubesos:
-        guest: '{{ qubes_usb_transfer_vm }}'
-        label: red
-        state: running
-        template: debian-11-minimal-dvm
-    - name: Check if the USB storage device is already attached to the disposable USB Qube
-      command: test -n "$(qvm-device usb list | grep "{{ qubes_ventoy_usb_description }}" | sed 's/^[^ ]*[ ]*[^ ]*[ ]*\([^ ]*\)$/\1/')"
-      changed_when: false
-      register: usb_device_test
-    - name: Acquire the appropriate USB storage device ID
-      command: qvm-device usb list | grep "{{ qubes_ventoy_usb_description }}" | sed 's/^\([^ ]*\) .*/\1/'
-      changed_when: false
-      register: devid_usb_list
-      when: usb_device_test.rc == 1
-    - name: Attach the USB storage device to the disposable USB Qube
-      command: qvm-device usb attach {{ qubes_usb_transfer_vm }} "{{ devid_usb_list.stdout }}"
-      changed_when: true
-      when: usb_device_test.rc == 1
+    - name: Ensure VMs not included in the qubes_vms list have the hardened-VM service enabled
+      include_tasks: qubes/harden-vm.yml
+      loop:
+        - sys-net
+        - sys-usb
+      loop_control:
+        loop_var: vm
+
+    - name: Configure the OPNSense HVM's attached PCI devices to match sys-net's
+      include_tasks: qubes/opnsense-pci.yml
+      when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
+
+    - name: Bind all VMs localhost port 80 and 443 to OPNSense
+      copy:
+        content: |
+          $anyvm @default allow,target=OPNSense
+        dest: /etc/qubes-rpc/policy/qubes.ConnectTCP
+      when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
+
+    # Builds fully-loaded Archlinux, Debian, Fedora, Ubuntu, macOS, and Windows HVM desktop environments from
+    # images stored on USB. The `qubes_ventoy_usb_description` variable must be defined and match the USB
+    # drive's label. See [JumpUSB](https://jumpusb.com) for additional information.
+    - name: Configure USB that contains Packer / HVM desktop images
+      include_tasks: qubes/packer-usb.yml
+      when: qubes_ventoy_usb_description is defined
+
     - name: Create LVM volumes for Packer-built desktop HVMs
-      include_tasks: packer-hvms.yml
+      include_tasks: qubes/packer-hvm.yml
       loop: '{{ qubes_vagrant_vms }}'
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm
+      when: qubes_ventoy_usb_description is defined
 
 - name: Configure systems with common settings and applications
-  hosts: anonymous-dvm:crypto:development:gpg:media:personal:provision:remote:swarm:vpn-dvm:vault:web-dvm:work
+  connection: qubes
+  hosts: anonymous-dvm:crypto:development:gpg:media:personal:provision:remote:swarm:vault:vpn-dvm:web-dvm:work
+  strategy: free
+  tasks:
+    - name: Provision the TemplateVM
+      include_role:
+        name: "{{ role }}"
+      loop: "{{ qubes_roles[inventory_hostname] }}"
+      loop_control:
+        label: '{{ inventory_hostname }}'
+        loop_var: role
+
+- name: Configure persistent Docker files in select VMs
+  hosts: development:swarm
   connection: qubes
   strategy: free
-  roles: '{{ qubes_roles[ansible_hostname] }}'
+  tasks:
+    - name: Ensure directory for custom Ansible facts exists
+      become: true
+      ansible.builtin.file:
+        state: directory
+        recurse: yes
+        path: /rw/config/qubes-bind-dirs.d
+    - name: Ensure Docker files are persistent
+      copy:
+        content: |
+          binds+=( '/var/lib/docker' )
+          binds+=( '/etc/docker' )
+        dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
 
 - name: Finish configuring dom0
   connection: local
@@ -240,7 +295,3 @@
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm
-
-    # Configure Qubes dom0 to download future updates over Tor
-    - name: Enable updates over Tor
-      command: sudo qubesctl state.sls qvm.updates-via-whonix dom0

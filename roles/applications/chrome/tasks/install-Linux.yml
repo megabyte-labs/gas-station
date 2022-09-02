@@ -14,3 +14,28 @@
     name: chrome-gnome-shell
     state: "{{ app_state | default('present') }}"
   when: gnome_session.stat.exists
+
+- name: Ensure /opt/google/chrome/extensions directory exists
+  file:
+    path: /opt/google/chrome/extensions
+    state: directory
+    mode: 0755
+
+- name: Ensure /etc/opt/chrome/policies/managed directory exists
+  file:
+    path: /etc/opt/chrome/policies/managed
+    state: directory
+    mode: 0755
+
+- name: Copy policies.json file
+  copy:
+    src: policies.json
+    dest: /etc/opt/chrome/policies/managed/policies.json
+    mode: 0644
+
+- name: Ensure Extensions are installed
+  include_tasks: extensions/linux.yml
+  loop: "{{ chromium_extensions }}"
+  loop_control:
+    label: "{{ addon.name }}"
+    loop_var: addon

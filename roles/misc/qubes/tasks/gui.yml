@@ -1,0 +1,114 @@
+---
+- name: Ensure dependencies are installed
+  include_tasks: dependency.yml
+  loop:
+    - kernel-latest
+
+- name: Check if sys-gui-gpu is necessary
+  shell: qvm-pci list | grep 'VGA compatible controller' | grep 'Intel'
+  register: intel_gui_grep
+  failed_when: false
+  changed_when: false
+
+- name: Check if sys-gui-gpu is necessary
+  shell: qvm-pci list | grep 'VGA compatible controller' | grep 'NVIDIA'
+  register: nvidia_gui_grep
+  failed_when: false
+  changed_when: false
+
+- name: Check if sys-gui-gpu was already installed
+  command: qvm-check sys-gui-gpu
+  register: qvm_check_gui
+  failed_when: false
+  changed_when: false
+
+- name: Enable the sys-gui-gpu Salt
+  become: true
+  shell: "{{ item }}"
+  loop:
+    - qubesctl top.enable qvm.sys-gui-gpu
+    - qubesctl top.enable qvm.sys-gui-gpu pillar=True
+    - qubesctl --all state.highstate
+    - qubesctl top.disable qvm.sys-gui-gpu
+  when:
+    - (nvidia_gui_grep.rc == 0) or (intel_gui_grep.rc == 0)
+    - qvm_check_gui.rc != 0
+
+- name: Attach Intel PCI devices to the sys-gui-gpu VM using the provided Salt
+  become: true
+  shell: qubesctl state.sls qvm.sys-gui-gpu-attach-gpu
+  when:
+    - intel_gui_grep.rc == 0
+    - qvm_check_gui.rc != 0
+
+- name: Gather the qvm-pci list IDs from the NVIDIA graphics card
+  shell: qvm-pci list | grep 'NVIDIA' | sed 's/^\([^ ]*\).*/\1/'
+  register: qvm_pci_list_nvidia
+  changed_when: false
+
+- name: Attach NVIDIA PCI devices to the sys-gui-gpu VM
+  command: qvm-pci attach sys-gui-gpu {{ item }} --persistent -o permissive=true
+  loop: "{{ qvm_pci_list_nvidia.stdout.split('\n') }}"
+  register: qvm_pci_attach_nvidia
+  changed_when: qvm_pci_attach_nvidia.rc == 0
+  failed_when:
+    - qvm_pci_attach_nvidia.rc != 0
+    - '"class pci already attached to" not in qvm_pci_attach_nvidia.stdout'
+  when:
+    - nvidia_gui_grep.rc == 0
+    - qvm_check_gui.rc != 0
+
+- name: Backup /etc/lightdm/lightdm.conf
+  become: true
+  copy:
+    src: /etc/lightdm/lightdm.conf
+    dest: /etc/lightdm/lightdm.conf.bak
+    remote_src: yes
+
+- name: Configure /etc/lightdm/lightdm.conf to auto-login (autologin-user)
+  become: true
+  lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    regex: "#autologin-user="
+    line: "autologin-user = user"
+
+- name: Configure /etc/lightdm/lightdm.conf to auto-login (autologin-user-timeout)
+  become: true
+  lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    regex: "#autologin-user-timeout="
+    line: "autologin-user-timeout = 0"
+
+- name: Configure /etc/lightdm/lightdm.conf to auto-login (autologin-session)
+  become: true
+  lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    regex: "#autologin-session="
+    line: "autologin-session = xfce"
+
+- name: Ensure ~/.config/autostart exists
+  file:
+    path: ~/.config/autostart
+    state: directory
+    recurse: true
+
+- name: Create ~/.config/autostart/first-boot.desktop file to auto-launch script again
+  copy:
+    content: |
+      [Desktop Entry]
+      Version=1.0
+      Encoding=UTF-8
+      Name=Script
+      Type=Application
+      Exec=/usr/bin/quickstart
+      Icon=
+      Terminal=true
+      StartupNotify=false
+      Hidden=false
+      GenericName=
+      GenericName[en_US]=
+    dest: ~/.config/autostart/first-boot.desktop
+
+- name: Force a reboot
+  become: true
+  command: reboot -f

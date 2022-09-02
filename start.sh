@@ -212,7 +212,7 @@ function ensureLocalPath() {
     # shellcheck disable=SC2016
     PATH_STRING='export PATH="$HOME/.local/bin:$PATH"'
     mkdir -p "$HOME/.local/bin"
-    if ! cat "$HOME/.profile" | grep "$PATH_STRING" > /dev/null; then
+    if ! grep "$PATH_STRING" < "$HOME/.profile" > /dev/null; then
       echo -e "${PATH_STRING}\n" >> "$HOME/.profile"
       logger info "Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
     fi
@@ -482,6 +482,7 @@ function ensureTaskfiles() {
     fi
     if [ -n "$BOOTSTRAP_EXIT_CODE" ] && ! task donothing; then
       # task donothing still does not work so issue must be with main Taskfile.yml
+      # shellcheck disable=SC2016
       logger warn 'Something is wrong with the `Taskfile.yml` - grabbing main `Taskfile.yml`'
       git checkout HEAD~1 -- Taskfile.yml
       if ! task donothing; then
@@ -562,7 +563,9 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
         fi
       fi
       if ! (grep "/bin/brew shellenv" < "$HOME/.profile" &> /dev/null) && [[ "$OSTYPE" != 'darwin'* ]]; then
+        # shellcheck disable=SC2016
         logger info 'Adding linuxbrew source command to `~/.profile`'
+        # shellcheck disable=SC2016
         echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$HOME/.profile"
       fi
       if [ -f "$HOME/.profile" ]; then
@@ -584,6 +587,7 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
       if ! type volta &> /dev/null || ! type node &> /dev/null; then
         # shellcheck disable=SC2016
         curl https://get.volta.sh | bash
+        # shellcheck disable=SC1091
         . "$HOME/.profile" &> /dev/null || true
         volta setup
         volta install node
@@ -675,8 +679,8 @@ if [ -z "$CI" ] && [ -z "$START" ] && [ -z "$INIT_CWD" ]; then
   if ! type pipx &> /dev/null; then
     task install:software:pipx
   fi
-  # shellcheck disable=SC1091
   logger info "Sourcing profile located in $HOME/.profile"
+  # shellcheck disable=SC1091
   . "$HOME/.profile" &> /dev/null || true
   ensureProjectBootstrapped
   if task donothing &> /dev/null; then

@@ -4,3 +4,20 @@
     name: firefox
     state: "{{ app_state | default('present') }}"
     params: /NoDesktopIcon /RemoveDistributionDir
+
+- name: Ensure C:/Program Files/Firefox/distribution directory exists
+  ansible.windows.win_file:
+    path: '%PROGRAMFILES%\Mozilla Firefox\distribution'
+    state: directory
+
+- name: Ensure Addons are installed
+  include_tasks: addons/windows.yml
+  loop: "{{ firefox_add_ons }}"
+  loop_control:
+    label: "{{ addon.name }}"
+    loop_var: addon
+
+- name: Ensure policy.json is created
+  ansible.windows.win_template:
+    src: policies.json.j2
+    dest: '%PROGRAMFILES%\Mozilla Firefox\distribution\policies.json'

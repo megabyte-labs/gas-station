@@ -1,0 +1,57 @@
+---
+- name: Ensure dependencies are installed
+  include_tasks: dependency.yml
+  loop:
+    - plymouth-plugin-script
+
+- name: Ensure "untrusted" binary assets are available
+  vars:
+    file_name: jumpusb-master.tar.gz
+  include_tasks: untrusted-download.yml
+
+- name: Unpack the jumpusb-master.tar.gz file to /usr/share/backgrounds/images
+  become: true
+  unarchive:
+    src: /usr/src/qubes-dom0-binaries/jumpusb-master.tar.gz
+    dest: /usr/src/jumpusb
+    extra_opts:
+      - --strip-components=1
+    remote_src: true
+
+- name: Ensure /boot/grub2/themes/jumpusb is a directory
+  become: true
+  file:
+    path: /boot/grub2/themes/jumpusb
+    state: directory
+
+- name: Copy the JumpUSB theme to the GRUB theme location
+  become: true
+  copy:
+    src: "{{ src_dir }}"
+    dest: /boot/grub2/themes/jumpusb/
+  loop:
+    - /usr/src/jumpusb/ventoy/fonts/
+    - /usr/src/jumpusb/ventoy/themes/default/
+  loop_control:
+    loop_var: src_dir
+
+- name: Optimize the GRUB resolution
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_GFXMODE="
+    line: "GRUB_GFXMODE={{ qubes_grub_gfxmode }},auto"
+  notify: update grub
+
+- name: Ensure GRUB_GFXPAYLOAD_LINUX is set
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_GFXPAYLOAD_LINUX="
+    line: 'GRUB_GFXPAYLOAD_LINUX="keep"'
+  notify: update grub
+
+- name: Ensure GRUB is using the JumpUSB theme
+  lineinfile:
+    path: /etc/default/grub
+    regex: "GRUB_THEME="
+    line: 'GRUB_THEME="/boot/grub2/themes/jumpusb/theme.txt"'
+  notify: update grub

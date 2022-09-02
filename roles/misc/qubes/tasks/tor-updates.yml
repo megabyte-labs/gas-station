@@ -1,0 +1,15 @@
+---
+- name: Enable updates over Tor for TemplateVMs
+  become: true
+  command: qubesctl state.sls qvm.updates-via-whonix
+  register: qubesctl_updates_whonix
+  changed_when: qubesctl_updates_whonix.stdout | regex_search('Succeeded. [0-9]* \(changed=[0-9]*\)') is not none
+  failed_when: qubesctl_updates_whonix.stdout | regex_search('Failed. *[1-9]+[0-9]*') is not none
+
+- name: Determine the current UpdateVM
+  command: qubes-prefs updatevm
+  register: qubes_prefs_updatevm
+
+- name: Enable updates over Tor in dom0 by modifying the value of the UpdateVM preference
+  command: qubes-prefs updatevm sys-whonix
+  when: qubes_prefs_updatevm.stdout != 'sys-whonix'

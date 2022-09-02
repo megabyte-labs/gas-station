@@ -1,0 +1,10 @@
+---
+- name: "Check {{ pam_config }} for references to the YubiKey module
+  command: grep 'auth include yubikey' < {{ pam_config }}
+  changed_when: false
+  register: yubi_pam_grep
+
+- name: "Ensure {{ pam_config }} includes YubiKey module"
+  become: true
+  command: "sed -i '2i auth include yubikey' {{ pam_config }}"
+  when: yubi_pam_grep.rc != 0

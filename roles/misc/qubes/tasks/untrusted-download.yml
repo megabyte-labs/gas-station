@@ -5,14 +5,14 @@
   register: file_name_src_check
 
 - name: Download the qubes-dom0-binaries folder assets
-  command: |
-    qvm-remove --force download-vm &> /dev/null || EXIT_CODE=$?
-    qvm-create --label red --template debian-11 download-vm
-    qvm-run download-vm "curl -sSL {{ allow_untrusted_dom0_binaries_repo }} > /home/user/untrusted.tar.gz"
-    qvm-run --pass-io download-vm 'cat /home/user/untrusted.tar.gz' > "$HOME/untrusted.tar.gz"
-    qvm-remove --force download-vm &> /dev/null || EXIT_CODE=$?
-  when:
-    - not (file_name_src_check.stat.exists | default(false))
+  command:
+    cmd: |
+      qvm-remove --force download-vm &> /dev/null || EXIT_CODE=$?
+      qvm-create --label red --template debian-11 download-vm
+      qvm-run download-vm "curl -sSL {{ allow_untrusted_dom0_binaries_repo }} > /home/user/untrusted.tar.gz"
+      qvm-run --pass-io download-vm 'cat /home/user/untrusted.tar.gz' > "$HOME/untrusted.tar.gz"
+      qvm-remove --force download-vm &> /dev/null || EXIT_CODE=$?
+  when: not file_name_src_check.stat.exists
 
 - name: Unpack the untrusted binaries .tar.gz file to /usr/src/qubes-dom0-binaries
   become: true
@@ -22,13 +22,10 @@
     extra_opts:
       - --strip-components=1
     remote_src: true
-  when:
-    - not (file_name_src_check.stat.exists | default(false))
+  when: not file_name_src_check.stat.exists
 
 - name: Remove the temporary ~/untrusted.tar.gz file
   file:
     path: ~/untrusted.tar.gz
     state: absent
-  when:
-    - not (file_name_src_check.stat.exists | default(false))
-
+  when: not file_name_src_check.stat.exists

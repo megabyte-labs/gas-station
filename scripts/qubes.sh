@@ -66,7 +66,6 @@ fi
 echo "Downloading Gas Station into dom0 via temporary VM"
 if qvm-check "$ANSIBLE_DVM"; then
   qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-  sleep 3
   qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 fi
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"

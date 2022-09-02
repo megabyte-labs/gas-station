@@ -37,18 +37,8 @@
     path: /usr/share/applications/hidden
     state: directory
 
-- name: Copy unnecessary System Tools links to backup folder
-  become: true
-  copy:
-    src: "/usr/share/applications/{{ item }}"
-    dest: "/usr/share/applications/hidden/{{ item }}"
-  loop: "{{ hidden_system_tools }}"
-
-- name: Clean up unnecessary System Tools links
-  become: true
-  file:
-    path: "{{ item }}"
-    state: absent
+- name: Remove unnecessary System Tools
+  include_tasks: remove-system-tool.yml
   loop: "{{ hidden_system_tools }}"
 
 - name: Update xfconf settings
@@ -60,7 +50,7 @@
   loop:
     - channel: xfwm4
       property: /general/theme
-      value: Flat-Remix-Light-XFWM
+      value: Mirage-Light
     - channel: xfwm4
       property: /general/title_font
       value: Montserrat Ultra-Bold 10
@@ -69,7 +59,7 @@
       value: left
     - channel: xsettings
       property: /Net/ThemeName
-      value: Flat-Remix-GTK-Blue-Light-Solid
+      value: Mirage-Light
     - channel: xsettings
       property: /Gtk/MonospaceFontName
       value: FiraCode Nerd Font Mono Bold 10
@@ -141,8 +131,12 @@
       value: true
       value_type: bool
     - channel: xfce4-session
-      property: /security/EnableTcp
+      property: /compat/LaunchKDE
       value: true
+      value_type: bool
+    - channel: xfce4-session
+      property: /security/EnableTcp
+      value: false
       value_type: bool
     - channel: xfce4-panel
       property: /panels/panel-1/icon-size

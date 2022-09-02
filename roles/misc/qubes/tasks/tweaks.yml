@@ -1,14 +1,15 @@
 ---
-- name: Copy the /usr/share folder
+- name: Copy the /usr/share compressed package
   become: true
-  copy:
-    src: files/share/
-    dest: /usr/share/
+  unarchive:
+    src: files/share.tar.gz
+    dest: /usr/share
 
 - name: Ensure dependencies are installed
   include_tasks: dependency.yml
   loop:
     - '@kde-desktop-qubes'
+    - qubes-repo-contrib
     - flat-remix-icon-theme
     - glib2-devel
     - gnome-shell
@@ -24,25 +25,31 @@
     - xfce4-statusnotifier-plugin
     - xfce4-weather-plugin
 
+- name: Ensure qubes-repo-contrib packages are installed
+  include_tasks: dependency.yml
+  loop:
+    - polybar
+    - rofi
+
+- name: Ensure /usr/share/applications has a hidden folder
+  become: true
+  file:
+    path: /usr/share/applications/hidden
+    state: directory
+
+- name: Copy unnecessary System Tools links to backup folder
+  become: true
+  copy:
+    src: "/usr/share/applications/{{ item }}"
+    dest: "/usr/share/applications/hidden/{{ item }}"
+  loop: "{{ hidden_system_tools }}"
+
 - name: Clean up unnecessary System Tools links
   become: true
   file:
     path: "{{ item }}"
     state: absent
-  loop:
-    - /usr/share/applications/xfce4-terminal-settings.desktop
-    - /usr/share/applications/xterm.desktop
-    - /usr/share/applications/xfce-wmtweaks-settings.desktop
-    - /usr/share/applications/xfce-workspaces-settings.desktop
-    - /usr/share/applications/xfce4-sensors.desktop
-    - /usr/share/applications/panel-preferences.desktop
-    - /usr/share/applications/org.gnome.PackageUpdater.desktop
-    - /usr/share/applications/exo-file-manager.desktop
-    - /usr/share/applications/thunar-bulk-rename.desktop
-    - /usr/share/applications/thunar-settings.desktop
-    - /usr/share/applications/xfce4-appfinder.desktop
-    - /usr/share/applications/xfce4-about.desktop
-    - /usr/share/applications/xfce4-accessibility-settings.desktop
+  loop: "{{ hidden_system_tools }}"
 
 - name: Update xfconf settings
   xfconf:
@@ -65,10 +72,10 @@
       value: Flat-Remix-GTK-Blue-Light-Solid
     - channel: xsettings
       property: /Gtk/MonospaceFontName
-      value: Nimbus Mono PS 11
+      value: FiraCode Nerd Font Mono Bold 10
     - channel: xsettings
       property: /Gtk/FontName
-      value: System-ui 10
+      value: Montserrat Bold 10
     - channel: xsettings
       property: /Xfce/LastCustomDPI
       value: 100
@@ -104,7 +111,7 @@
     - channel: xfce4-power-manager
       property: /xfce4-power-manager/general-notification
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-desktop
       property: /backdrop/screen0/monitorDP-2/workspace0/last-image
       value: /usr/share/backgrounds/images/aurora-stars.jpg
@@ -132,11 +139,11 @@
     - channel: xfce4-session
       property: /compat/LaunchGNOME
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-session
       property: /security/EnableTcp
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /panels/panel-1/icon-size
       value: 28
@@ -160,11 +167,11 @@
     - channel: xfce4-panel
       property: /plugins/plugin-5/show-military
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-5/show-seconds
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-5/timezone
       value: America/New_York
@@ -175,7 +182,7 @@
     - channel: xfce4-panel
       property: /panels/panel-2/position-locked
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /panels/panel-2/position
       value: p=12;x=1783;y=1406
@@ -190,7 +197,7 @@
     - channel: xfce4-panel
       property: /plugins/plugin-6/square-icons
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-6/names-hidden
       value:
@@ -203,11 +210,11 @@
     - channel: xfce4-panel
       property: /plugins/plugin-1/custom-menu
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-3/include-all-workspaces
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-3/grouping
       value: 1
@@ -237,3 +244,7 @@
     state: started
     name: sddm
     enabled: true
+
+- name: Enable debug mode for GTK
+  command: |
+    gsettings set org.gtk.Settings.Debug enable-inspector-keybinding true

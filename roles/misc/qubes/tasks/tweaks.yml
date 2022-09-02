@@ -1,67 +1,9 @@
 ---
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: firacode.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the firacode.tar.gz file to /usr/share/backgrounds/images
+- name: Copy the /usr/share folder
   become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/firacode.tar.gz
-    dest: /usr/share/fonts/firacode
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: flat-remix-gtk-master.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the flat-remix-gtk-master.tar.gz file to /usr/src/flat-remix-gtk
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/flat-remix-gtk-master.tar.gz
-    dest: /usr/src/flat-remix-gtk
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Copy themes from /usr/src/flat-remix-gtk
   copy:
-    src: /usr/src/flat-remix-gtk/themes/{{ item }}
-    dest: /usr/share/themes/{{ item }}
-  loop:
-    - Flat-Remix-Light-XFWM
-    - Flat-Remix-GTK-Blue-Light-Solid
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: simp1e-tokyo-night.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the simp1e-tokyo-night.tar.gz file to /usr/share/icons/tokyo-night-cursor-theme
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/simp1e-tokyo-night.tar.gz
-    dest: /usr/share/icons/tokyo-night-cursor-theme
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: miui-sound-theme.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the miui-sound-theme.tar.gz file to /usr/share/icons/tokyo-night-cursor-theme
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/miui-sound-theme.tar.gz
-    dest: /usr/share/sounds/MIUI
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
+    src: files/share/
+    dest: /usr/share/
 
 - name: Ensure dependencies are installed
   include_tasks: dependency.yml
@@ -81,26 +23,6 @@
     - xfce4-notes-plugin
     - xfce4-statusnotifier-plugin
     - xfce4-weather-plugin
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: flat-remix-gnome-20210118.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the flat-remix-gnome-20210118.tar.gz file to /usr/src/flat-remix-gnome
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/flat-remix-gnome-20210118.tar.gz
-    dest: /usr/src/flat-remix-gnome
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Run make && sudo make install in the flat-remix-gnome src folder
-  command: make && sudo make install
-  args:
-    chdir: /usr/src/flat-remix-gnome
-    creates: /usr/src/flat-remix-gnome/build
 
 - name: Clean up unnecessary System Tools links
   become: true
@@ -303,20 +225,6 @@
     path: /etc/sddm.conf
     regex: "Current="
     line: "Current=sugar-light"
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: sugar-light-sddm.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the sugar-light-sddm.tar.gz file to /usr/share/sddm/themes/sugar-light
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/sugar-light-sddm.tar.gz
-    dest: /usr/share/sddm/themes/sugar-light
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
 
 - name: Stop / disable the lightdm service
   ansible.builtin.systemd:

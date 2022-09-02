@@ -1,11 +1,16 @@
 ---
-- name: Determine if {{ item }} is already installed
+- name: Create search options for {{ item.package | default(item) }}
+  set_fact:
+    dnf_search_options: " --exclude {{ item.excludes }}"
+  when: item.excludes is defined
+
+- name: Determine if {{ item.package | default(item) }} is already installed
   become: true
-  command: dnf search {{ item }}
+  command: dnf search {{ item.package | default(item) }}{{ dnf_search_options | default('') }}
   changed_when: false
   register: dependency_dnf_search
 
-- name: Ensure {{ item }} is installed
+- name: Ensure {{ item.package | default(item) }} is installed
   become: true
-  command: qubes-dom0-update -y {{ item }}
+  command: qubes-dom0-update -y {{ item.package | default(item) }}
   when: "'No matches found.' in dependency_dnf_search.stdout"

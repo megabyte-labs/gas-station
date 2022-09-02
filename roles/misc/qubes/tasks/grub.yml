@@ -1,41 +1,27 @@
 ---
-- name: Ensure dependencies are installed
-  include_tasks: dependency.yml
-  loop:
-    - plymouth-plugin-script
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: jumpusb-master.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the jumpusb-master.tar.gz file to /usr/share/backgrounds/images
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/jumpusb-master.tar.gz
-    dest: /usr/src/jumpusb
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Ensure /boot/grub2/themes/jumpusb is a directory
-  become: true
-  file:
-    path: /boot/grub2/themes/jumpusb
-    state: directory
-
-- name: Copy the JumpUSB theme to the GRUB theme location
+- name: Copy the GRUB /usr/share folder with theme
   become: true
   copy:
-    src: "{{ src_dir }}"
-    dest: /boot/grub2/themes/jumpusb/
-  loop:
-    - /usr/src/jumpusb/ventoy/fonts/
-    - /usr/src/jumpusb/ventoy/themes/default/
-  loop_control:
-    loop_var: src_dir
+    src: files/share/grub/
+    dest: /usr/share/grub/
+
+- name: Ensure /boot/grub2/themes is a directory
+  become: true
+  file:
+    path: /boot/grub2/themes
+    state: directory
+
+- name: Symlink /usr/share/grub/themes/Mirage to /boot/grub2/themes/Mirage
+  become: true
+  ansible.builtin.file:
+    src: /usr/share/grub/themes/Mirage
+    dest: /boot/grub2/themes/Mirage
+    owner: foo
+    group: foo
+    state: link
 
 - name: Optimize the GRUB resolution
+  become: true
   lineinfile:
     path: /etc/default/grub
     regex: "GRUB_GFXMODE="
@@ -43,15 +29,17 @@
   notify: update grub
 
 - name: Ensure GRUB_GFXPAYLOAD_LINUX is set
+  become: true
   lineinfile:
     path: /etc/default/grub
     regex: "GRUB_GFXPAYLOAD_LINUX="
     line: 'GRUB_GFXPAYLOAD_LINUX="keep"'
   notify: update grub
 
-- name: Ensure GRUB is using the JumpUSB theme
+- name: Ensure GRUB is using the Mirage theme
+  become: true
   lineinfile:
     path: /etc/default/grub
     regex: "GRUB_THEME="
-    line: 'GRUB_THEME="/boot/grub2/themes/jumpusb/theme.txt"'
+    line: 'GRUB_THEME="/boot/grub2/themes/Mirage/theme.txt"'
   notify: update grub

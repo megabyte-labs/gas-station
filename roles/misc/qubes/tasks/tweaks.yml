@@ -1,126 +1,38 @@
 ---
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: firacode.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the firacode.tar.gz file to /usr/share/backgrounds/images
+- name: Copy the /usr/share compressed package
   become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/firacode.tar.gz
-    dest: /usr/share/fonts/firacode
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: flat-remix-gtk-master.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the flat-remix-gtk-master.tar.gz file to /usr/src/flat-remix-gtk
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/flat-remix-gtk-master.tar.gz
-    dest: /usr/src/flat-remix-gtk
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Copy themes from /usr/src/flat-remix-gtk
   copy:
-    src: /usr/src/flat-remix-gtk/themes/{{ item }}
-    dest: /usr/share/themes/{{ item }}
-  loop:
-    - Flat-Remix-Light-XFWM
-    - Flat-Remix-GTK-Blue-Light-Solid
+    src: files/share.tar.gz
+    dest: /tmp/qubes-gas.tar.gz
 
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: simp1e-tokyo-night.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the simp1e-tokyo-night.tar.gz file to /usr/share/icons/tokyo-night-cursor-theme
+- name: Unarchive the compressed theme package
   become: true
   unarchive:
-    src: /usr/src/qubes-dom0-binaries/simp1e-tokyo-night.tar.gz
-    dest: /usr/share/icons/tokyo-night-cursor-theme
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: miui-sound-theme.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the miui-sound-theme.tar.gz file to /usr/share/icons/tokyo-night-cursor-theme
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/miui-sound-theme.tar.gz
-    dest: /usr/share/sounds/MIUI
-    extra_opts:
-      - --strip-components=1
+    src: /tmp/qubes-gas.tar.gz
+    dest: /usr/share
     remote_src: true
 
 - name: Ensure dependencies are installed
   include_tasks: dependency.yml
   loop:
-    - @kde-desktop-qubes
-    - flat-remix-icon-theme
-    - glib2-devel
-    - gnome-shell
-    - ImageMagick
-    - qt5ct
-    - sddm
-    - xfce4-clipman-plugin
-    - xfce4-embed-plugin
-    - xfce4-whiskermenu-plugin
-    - xfce4-mpc-plugin
-    - xfce4-netload-plugin
-    - xfce4-notes-plugin
-    - xfce4-statusnotifier-plugin
-    - xfce4-weather-plugin
+    - kde-settings-qubes
+    - qubes-repo-contrib
 
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: flat-remix-gnome-20210118.tar.gz
-  include_tasks: untrusted-download.yml
+- name: Ensure qubes-repo-contrib packages are installed
+  include_tasks: dependency.yml
+  loop:
+    - polybar
+    - rofi
 
-- name: Unpack the flat-remix-gnome-20210118.tar.gz file to /usr/src/flat-remix-gnome
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/flat-remix-gnome-20210118.tar.gz
-    dest: /usr/src/flat-remix-gnome
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
-
-- name: Run make && sudo make install in the flat-remix-gnome src folder
-  command: make && sudo make install
-  args:
-    chdir: /usr/src/flat-remix-gnome
-    creates: /usr/src/flat-remix-gnome/build
-
-- name: Clean up unnecessary System Tools links
+- name: Ensure /usr/share/applications has a hidden folder
   become: true
   file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /usr/share/applications/xfce4-terminal-settings.desktop
-    - /usr/share/applications/xterm.desktop
-    - /usr/share/applications/xfce-wmtweaks-settings.desktop
-    - /usr/share/applications/xfce-workspaces-settings.desktop
-    - /usr/share/applications/xfce4-sensors.desktop
-    - /usr/share/applications/panel-preferences.desktop
-    - /usr/share/applications/org.gnome.PackageUpdater.desktop
-    - /usr/share/applications/exo-file-manager.desktop
-    - /usr/share/applications/thunar-bulk-rename.desktop
-    - /usr/share/applications/thunar-settings.desktop
-    - /usr/share/applications/xfce4-appfinder.desktop
-    - /usr/share/applications/xfce4-about.desktop
-    - /usr/share/applications/xfce4-accessibility-settings.desktop
+    path: /usr/share/applications/hidden
+    state: directory
+
+- name: Remove unnecessary System Tools
+  include_tasks: remove-system-tool.yml
+  loop: "{{ hidden_system_tools }}"
 
 - name: Update xfconf settings
   xfconf:
@@ -128,10 +40,11 @@
     property: "{{ item.property }}"
     value_type: "{{ item.value_type | default('string') }}"
     value: "{{ item.value }}"
+  failed_when: false
   loop:
     - channel: xfwm4
       property: /general/theme
-      value: Flat-Remix-Light-XFWM
+      value: Mirage-Light
     - channel: xfwm4
       property: /general/title_font
       value: Montserrat Ultra-Bold 10
@@ -140,13 +53,13 @@
       value: left
     - channel: xsettings
       property: /Net/ThemeName
-      value: Flat-Remix-GTK-Blue-Light-Solid
+      value: Mirage-Light
     - channel: xsettings
       property: /Gtk/MonospaceFontName
-      value: Nimbus Mono PS 11
+      value: FiraCode Nerd Font Mono Bold 10
     - channel: xsettings
       property: /Gtk/FontName
-      value: System-ui 10
+      value: Montserrat Bold 10
     - channel: xsettings
       property: /Xfce/LastCustomDPI
       value: 100
@@ -182,7 +95,7 @@
     - channel: xfce4-power-manager
       property: /xfce4-power-manager/general-notification
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-desktop
       property: /backdrop/screen0/monitorDP-2/workspace0/last-image
       value: /usr/share/backgrounds/images/aurora-stars.jpg
@@ -210,11 +123,11 @@
     - channel: xfce4-session
       property: /compat/LaunchGNOME
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-session
-      property: /security/EnableTcp
+      property: /compat/LaunchKDE
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /panels/panel-1/icon-size
       value: 28
@@ -238,11 +151,11 @@
     - channel: xfce4-panel
       property: /plugins/plugin-5/show-military
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-5/show-seconds
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-5/timezone
       value: America/New_York
@@ -253,7 +166,7 @@
     - channel: xfce4-panel
       property: /panels/panel-2/position-locked
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /panels/panel-2/position
       value: p=12;x=1783;y=1406
@@ -268,64 +181,67 @@
     - channel: xfce4-panel
       property: /plugins/plugin-6/square-icons
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-6/names-hidden
       value:
         - xfce4-power-manager
         - qui-disk-space
-      value_type: array
     - channel: xfce4-panel
       property: /plugins/plugin-1/button-icon
       value: appvm-blue
     - channel: xfce4-panel
       property: /plugins/plugin-1/custom-menu
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-3/include-all-workspaces
       value: true
-      value_type: boolean
+      value_type: bool
     - channel: xfce4-panel
       property: /plugins/plugin-3/grouping
       value: 1
       value_type: int
+    - channel: xsettings
+      property: /Gtk/CursorThemeName
+      value: Volantes Cursors
+    - channel: xsettings
+      property: /Net/SoundThemeName
+      value: MIUI
+    - channel: xsettings
+      property: /Net/IconThemeName
+      value: Flat-Remix-Blue-Light
 
-# TODO: Verify
 - name: Ensure SDDM configuration is in place
+  become: true
   lineinfile:
     path: /etc/sddm.conf
     regex: "#ServerArguments"
     line: "ServerArguments=-nolisten tcp -background none"
 
 - name: Ensure SDDM configuration is in place
+  become: true
   lineinfile:
     path: /etc/sddm.conf
     regex: "Current="
-    line: "Current=sugar-light"
-
-- name: Ensure "untrusted" binary assets are available
-  vars:
-    file_name: sugar-light-sddm.tar.gz
-  include_tasks: untrusted-download.yml
-
-- name: Unpack the sugar-light-sddm.tar.gz file to /usr/share/sddm/themes/sugar-light
-  become: true
-  unarchive:
-    src: /usr/src/qubes-dom0-binaries/sugar-light-sddm.tar.gz
-    dest: /usr/share/sddm/themes/sugar-light
-    extra_opts:
-      - --strip-components=1
-    remote_src: true
+    line: "Current=Sweet"
 
 - name: Stop / disable the lightdm service
+  become: true
   ansible.builtin.systemd:
     name: lightdm
     enabled: false
     state: stopped
 
 - name: Start / enable the SDDM service
+  become: true
   ansible.builtin.systemd:
     state: started
     name: sddm
     enabled: true
+
+- name: Enable debug mode for GTK
+  community.general.dconf:
+    key: /org/gtk/Settings/Debug
+    value: "['enable-inspector-keybinding', 'false']"
+    state: present

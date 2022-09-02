@@ -64,8 +64,11 @@ fi
 
 # Download Gas Station and transfer to dom0 via DispVM
 echo "Downloading Gas Station into dom0 via temporary VM"
-qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+if qvm-check "$ANSIBLE_DVM"; then
+  qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+  sleep 3
+  qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+fi
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
 qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
 qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"

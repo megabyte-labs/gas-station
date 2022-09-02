@@ -47,7 +47,7 @@ function configureWizard() {
     xdotool key 'Enter'
   else
     sleep 3
-    CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD + 1))
+    CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD_COUNT + 1))
     if [[ "$CONFIG_WIZARD_COUNT" == '4' ]]; then
       echo "The sys-whonix anon-connection-wizard utility did not open."
     else

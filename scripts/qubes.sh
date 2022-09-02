@@ -67,7 +67,7 @@ echo "Downloading Gas Station into dom0 via temporary VM"
 if qvm-check "$ANSIBLE_DVM"; then
   qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
   sleep 1
-  qvm-remove "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+  qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
   sleep 4
 fi
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
@@ -81,7 +81,7 @@ mv "$HOME/gas-station-master" "$HOME/Playbooks"
 echo "Destroying temporary download VM"
 qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 sleep 1
-qvm-remove "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 sleep 4
 
 # Move files to appropriate locations

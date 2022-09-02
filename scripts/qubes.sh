@@ -6,17 +6,20 @@ set -ex
 
 # Update dom0
 if [ ! -f /tmp/dom0_updated ]; then
+  echo "Updating dom0"
   sudo qubesctl --show-output state.sls update.qubes-dom0
   sudo qubes-dom0-update --clean -y
   touch /tmp/dom0_updated
 fi
 
 if [ ! -f /tmp/qubes_ansible_python_installed ]; then
+  echo "Installing the Qubes ansible-python3 package"
   sudo qubes-dom0-update -y ansible-python3 # TODO: Add better check
   touch /tmp/qubes_ansible_python_installed
 fi
 
 # Ensure sys-whonix is configured
+qvm-start sys-whonix --skip-if-running
 CONFIG_WIZARD_COUNT=0
 ENABLE_OBFSC='true'
 function configureWizard() {
@@ -45,17 +48,19 @@ function configureWizard() {
   else
     sleep 3
     CONFIG_WIZARD=$((CONFIG_WIZARD + 1))
-    if [ "$CONFIG_WIZARD_COUNT" == '10' ]; then
-      echo "anon-connection-wizard was probably already run."
+    if [ "$CONFIG_WIZARD_COUNT" == '4' ]; then
+      echo "The sys-whonix anon-connection-wizard utility did not open."
     else
+      echo "Checking for anon-connection-wizard again.."
       configureWizard
     fi
   fi
 }
+echo "Running anon-connection-wizard configuration script"
 configureWizard &
-qvm-start sys-whonix --skip-if-running
 
 # Download Gas Station and transfer to dom0 via DispVM
+echo "Downloading Gas Station into dom0 via temporary VM"
 qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
@@ -66,9 +71,11 @@ rm -f "$HOME/Playbooks.tar.gz"
 mv "$HOME/gas-station-master" "$HOME/Playbooks"
 
 # Delete DispVM
+echo "Destroying temporary download VM"
 qvm-kill "$ANSIBLE_DVM"
 
 # Move files to appropriate locations
+echo "Unpacking Gas Station"
 sudo rm -rf '/etc/ansible'
 sudo mv "$HOME/Playbooks" '/etc/ansible'
 cd '/etc/ansible/collections'
@@ -81,6 +88,7 @@ sudo rm -rf '/usr/share/ansible/library/qubesos.py'
 sudo ln -s '/etc/ansible/scripts/library/qubesos.py' '/usr/share/ansible/library/qubesos.py'
 
 # Symlink the roles to their Galaxy alias
+echo "Symlinking roles to their corresponding Ansible Galaxy folder names"
 while read ROLE_PATH; do
   ROLE_FOLDER="professormanhattan.$(basename "$ROLE_PATH")"
   if [ ! -d "/etc/ansible/roles/$ROLE_FOLDER" ]; then
@@ -90,4 +98,5 @@ while read ROLE_PATH; do
 done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 
 # Run the playbook
+echo "Running the playbook.."
 ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml

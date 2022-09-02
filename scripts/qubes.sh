@@ -19,7 +19,6 @@ if [ ! -f /tmp/qubes_ansible_python_installed ]; then
 fi
 
 # Ensure sys-whonix is configured
-qvm-start sys-whonix --skip-if-running
 CONFIG_WIZARD_COUNT=0
 ENABLE_OBFSC='true'
 function configureWizard() {
@@ -56,8 +55,12 @@ function configureWizard() {
     fi
   fi
 }
-echo "Running anon-connection-wizard configuration script"
-configureWizard > /dev/null &
+
+# Ensure sys-whonix is running an configured
+if ! qvm-check --running sys-whonix; then
+  qvm-start sys-whonix --skip-if-running
+  configureWizard > /dev/null
+fi
 
 # Download Gas Station and transfer to dom0 via DispVM
 echo "Downloading Gas Station into dom0 via temporary VM"

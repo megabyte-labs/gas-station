@@ -12,6 +12,54 @@
   register: qubes_dom0_update_clean
   changed_when: not ('No updates available' in qubes_dom0_update_clean.stdout)
 
+- name: Check if sys-whonix is running
+  command: qvm-check --running sys-whonix
+  register: sys_whonix_running_state
+  changed_when: false
+
+- name: Ensure sys-whonix has started
+  command: qvm-start sys-whonix --skip-if-running
+  when: "'sys-whonix': running' in sys_whonix_running_state.stdout"
+
+- name: Configure anon-connection-wizard
+  shell:
+    cmd: |
+      CONFIG_WIZARD_COUNT=0
+      ENABLE_OBFSC='true'
+      function configureWizard() {
+        if xwininfo -root -tree | grep "Anon Connection Wizard"; then
+          WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
+          sleep 0.5
+          if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+            xdotool key 'Tab'
+            xdotool key 'Tab'
+            xdotool key 'Tab'
+            xdotool key 'Down'
+          fi
+          xdotool key 'Enter'
+          sleep 0.5
+          if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+            xdotool key 'Space'
+          fi
+          xdotool key 'Tab'
+          xdotool key 'Tab'
+          xdotool key 'Enter'
+          sleep 14
+          xdotool windowactivate "$WINDOW_ID"
+          sleep 0.5
+          xdotool key 'Enter'
+        else
+          sleep 3
+          CONFIG_WIZARD=$((CONFIG_WIZARD + 1))
+          if [ "$CONFIG_WIZARD_COUNT" == '10' ]; then
+            echo "anon-connection-wizard was probably already run."
+          else
+            configureWizard
+          fi
+        fi
+      }
+      configureWizard &
+
 - name: Ensure the TemplateVMs are updated
   become: true
   shell: qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm

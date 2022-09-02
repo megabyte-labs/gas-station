@@ -14,7 +14,47 @@ if [ ! -d '/var/lib/qubes/vm-templates/debian-11-minimal' ]; then
   sudo qubes-dom0-update qubes-template-debian-11-minimal
 fi
 
+# Ensure sys-whonix is configured
+CONFIG_WIZARD_COUNT=0
+ENABLE_OBFSC='true'
+function configureWizard() {
+  if xwininfo -root -tree | grep "Anon Connection Wizard"; then
+    WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
+    xdotool windowactivate "$WINDOW_ID"
+    sleep 0.5
+    if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+      xdotool key 'Tab'
+      xdotool key 'Tab'
+      xdotool key 'Tab'
+      xdotool key 'Down'
+    fi
+    xdotool key 'Enter'
+    sleep 0.5
+    if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+      xdotool key 'Space'
+    fi
+    xdotool key 'Tab'
+    xdotool key 'Tab'
+    xdotool key 'Enter'
+    sleep 14
+    xdotool windowactivate "$WINDOW_ID"
+    sleep 0.5
+    xdotool key 'Enter'
+  else
+    sleep 3
+    CONFIG_WIZARD=$((CONFIG_WIZARD + 1))
+    if [ "$CONFIG_WIZARD_COUNT" == '10' ]; then
+      echo "anon-connection-wizard was probably already run."
+    else
+      configureWizard
+    fi
+  fi
+}
+configureWizard &
+qvm-start sys-whonix --skip-if-running
+
 # Download Gas Station and transfer to dom0 via DispVM
+qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
 qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
@@ -28,7 +68,7 @@ qvm-kill "$ANSIBLE_DVM"
 
 # Move files to appropriate locations
 sudo rm -rf '/etc/ansible'
-sudo mv Playbooks '/etc/ansible'
+sudo mv "$HOME/Playbooks" '/etc/ansible'
 cd '/etc/ansible/collections'
 ansible-galaxy collection install -r /etc/ansible/collections/requirements.yml
 sudo mkdir -p '/usr/share/ansible/plugins/connection'

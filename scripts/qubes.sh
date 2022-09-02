@@ -57,7 +57,7 @@ function configureWizard() {
   fi
 }
 echo "Running anon-connection-wizard configuration script"
-configureWizard &
+configureWizard > /dev/null &
 
 # Download Gas Station and transfer to dom0 via DispVM
 echo "Downloading Gas Station into dom0 via temporary VM"

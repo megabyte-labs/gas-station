@@ -64,7 +64,7 @@ fi
 
 # Download Gas Station and transfer to dom0 via DispVM
 echo "Downloading Gas Station into dom0 via temporary VM"
-if qvm-check "$ANSIBLE_DVM"; then
+if qvm-check "$ANSIBLE_DVM" &> /dev/null; then
   qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
   sleep 3
   qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?

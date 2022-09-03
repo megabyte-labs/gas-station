@@ -91,10 +91,6 @@ echo "Unpacking Gas Station"
 sudo rm -rf '/etc/ansible'
 sudo mv "$HOME/Playbooks" '/etc/ansible'
 
-# Install Ansible collections
-cd '/etc/ansible/collections'
-ansible-galaxy collection install -r /etc/ansible/collections/requirements.yml
-
 # Ansible action plugins
 sudo mkdir -p '/usr/share/ansible/plugins/action'
 for ACTION_PLUGIN in 'commonlib.py' 'qubes_pass.py' 'qubesformation.py' 'qubesguid.py' 'qubessls.py'; do
@@ -142,6 +138,10 @@ done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 # Symlink the Qubes playbook
 sudo rm -f '/etc/ansible/qubes.yml'
 sudo ln -s '/etc/ansible/playbooks/qubes.yml' '/etc/ansible/qubes.yml'
+
+# Install Ansible collections
+cd '/etc/ansible/collections'
+ansible-galaxy collection install -r requirements.yml
 
 # Run the playbook
 echo "Your Ansible Vault password should be placed at ~/.vaultpass"

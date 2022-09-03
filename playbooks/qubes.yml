@@ -6,10 +6,16 @@
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
+        - name: Check for presence of /srv/user_salt
+          stat:
+            path: /srv/user_salt
+          register: srv_user_salt
+
         - name: Ensure that the /srv/user_salt Salt directory exists
-          shell: test -d /srv/user_salt || { qubesctl state.highstate || exit $? ; echo CHANGED ; }
+          shell: qubesctl state.highstate || exit $? ; echo CHANGED ;
           register: saltdirs
           changed_when: "'CHANGED' in saltdirs.stdout"
+          when: not srv_user_salt.stat.exists
 
         - name: Configure Qubes Salt formula and the top file
           qubesformation:
@@ -223,12 +229,12 @@
 - name: Configure the TemplateVMs
   hosts: templatevms
   strategy: free
-  roles:
-    - roles/system/dns
-    - roles/system/hosts
-    - roles/system/common
+  roles: []
+    #- roles/system/dns
+    #- roles/system/hosts
+    #- roles/system/common
     # - roles/system/firewall
-    - roles/services/antivirus
+    #- roles/services/antivirus
 
 - name: Configure systems with common settings and applications
   connection: qubes

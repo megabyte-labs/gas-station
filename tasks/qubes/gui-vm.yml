@@ -1,0 +1,86 @@
+---
+- name: Ensure latest Linux theme files are present on system
+  become: true
+  ansible.builtin.unarchive:
+    src: https://gitlab.com/megabyte-labs/linux-theme/-/archive/master/linux-theme-master.tar.gz
+    dest: /usr/src/gas-theme
+    extra_opts: [--strip-components=1]
+    remote_src: true
+
+- name: Copy over theme files
+  become: true
+  copy:
+    src: /usr/src/gas-theme/share/
+    dest: /usr/share/
+    remote_src: true
+
+- name: Ensure package dependencies are installed
+  ansible.builtin.package:
+    name:
+      - kde-plasma-desktop
+      - kdeplasma-addons
+      - kvantum
+      - rofi
+    state: latest
+
+#- name: Ensure /usr/share/applications has a hidden folder
+#  become: true
+#  file:
+#    path: /usr/share/applications/hidden
+#    state: directory
+#
+#- name: Remove unnecessary System Tools
+#  include_tasks: remove-system-tool.yml
+#  loop: "{{ hidden_system_tools }}"
+#
+#- name: Update xfconf settings
+#  xfconf:
+#    channel: "{{ item.channel }}"
+#    property: "{{ item.property }}"
+#    value_type: "{{ item.value_type | default('string') }}"
+#    value: "{{ item.value }}"
+#  failed_when: false
+#  loop: "{{ qubes_xfconf_settings }}"
+#
+#- name: Ensure SDDM configuration is in place
+#  become: true
+#  lineinfile:
+#    path: /etc/sddm.conf
+#    regex: "#ServerArguments"
+#    line: "ServerArguments=-nolisten tcp -background none"
+#
+#- name: Ensure SDDM configuration is in place
+#  become: true
+#  lineinfile:
+#    path: /etc/sddm.conf
+#    regex: "Current="
+#    line: "Current=Sweet"
+#
+#- name: Stop / disable the lightdm service
+#  become: true
+#  ansible.builtin.systemd:
+#    name: lightdm
+#    enabled: false
+#    state: stopped
+#
+#- name: Start / enable the SDDM service
+#  become: true
+#  ansible.builtin.systemd:
+#    state: started
+#    name: sddm
+#    enabled: true
+#
+#- name: Ensure Kvantum has environment variable set
+#  become: true
+#  lineinfile:
+#    path: /etc/environment
+#    regex: "QT_STYLE_OVERRIDE"
+#    line: "export QT_STYLE_OVERRIDE=kvantum"
+#
+#- name: Apply gsettings
+#  include_tasks: gsetting.yml
+#  loop:
+#    # Enables CTRL+Shift+I to inspect Gtk options
+#    - setting: org.gtk.Settings.Debug enable-inspector-keybinding
+#      value: 'true'
+#

@@ -450,8 +450,9 @@ def core(module):
         for key,val in properties.items():
             if not key in PROPS:
                 return VIRT_FAILED, {"Invalid property": key}
-            if type(val) != PROPS[key]:
-                return VIRT_FAILED, {"Invalid property value type": key}
+            # Following two lines are incompatible with Jinja2 templated variables
+            # if type(val) != PROPS[key]:
+            #     return VIRT_FAILED, {"Invalid property value type": key}
             # Make sure that the netvm exists
             if key == "netvm" and val != "":
                 try:

@@ -1,7 +1,7 @@
 ---
 # yamllint disable rule:max-lines
 - name: Provision / initialize dom0
-  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('localhost', true) }}"
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
   connection: local
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
@@ -45,37 +45,12 @@
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
 
 - name: Make MAC addresses random (randomized every reboot)
-  become: true
   hosts: debian-11-dvm
   connection: qubes
   tasks:
     # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
-    - name: Add MAC address randomization configuration
-      copy:
-        content: |
-          [device]
-          wifi.scan-rand-mac-address=yes
-
-          [connection]
-          wifi.cloned-mac-address=stable
-          ethernet.cloned-mac-address=stable
-          connection.stable-id=${CONNECTION}/${BOOT}
-          # Use random IPv6 addresses per session / don't leak MAC via IPv6 (cf. RFC 4941)
-          ipv6.ip6-privacy=2
-        dest: /etc/NetworkManager/conf.d/00-randomize.conf
-    - name: Configure NetworkManager to use dhclient (to prevent hostname leaks)
-      copy:
-        content: |
-          [main]
-          dhcp=dhclient
-        dest: /etc/NetworkManager/conf.d/dhclient.conf
-    - name: Determine if /etc/dhcp/dhclient.conf is sending host-name
-      command: grep 'send host-name' < /etc/dhcp/dhclient.conf
-      changed_when: false
-      register: dhclient_host_name_grep
-    - name: Remove "send host-name" from /etc/dhcp/dhclient.conf
-      command: sed -i '/send host-name/d' /etc/dhcp/dhclient.conf
-      when: dhclient_host_name_grep.rc == 0
+    - name: Randomize MAC address and ensure no hostname leaks
+      include_tasks: qubes/mac.yml
 
 - name: Ensure VM-lockdown scripts are added to Debian and Fedora templates
   hosts: debian-11:debian-11-dvm:fedora-36
@@ -95,35 +70,33 @@
         chdir: /usr/src/hardening
         creates: /lib/systemd/system/vm-boot-protect.service
 
-- name: Ensure additional Debian/Whonix TemplateVM packages are installed to non-minimal templates
-  hosts: debian-11:whonix-ws-16
+- name: Ensure common packages are installed
+  hosts: debian-11:debian-11-dvm:debian-11-minimal:fedora-36:fedora-36-minimal:fedora-36-xfce:whonix-ws-16
   connection: qubes
   tasks:
     - name: Ensure qubes-gpg-split and qubes-u2f are installed
       become: true
-      ansible.builtin.apt:
+      ansible.builtin.package:
         name:
           - qubes-gpg-split
           - qubes-u2f
         state: latest
-        update_cache: yes
-
-- name: Ensure additional Fedora TemplateVM packages are installed to non-minimal templates
-  hosts: fedora-36:fedora-36-xfce
-  connection: qubes
-  tasks:
-    - name: Ensure qubes-gpg-split and qubes-u2f are installed
-      become: true
-      ansible.builtin.dnf:
-        name:
-          - qubes-gpg-split
-          - qubes-u2f
-        state: latest
+    - name: Ensure all VMs have dotfiles
+      include_role:
+        name: professormanhattan.dotfiles
+    # - name: Ensure all VMs have theme files / settings
+    #   include_role:
+    #     name: professormanhattan.theme
 
 - name: Ensure the Fedora 36 XFCE4 TemplateVM gets injected with all the theme files
+  hosts: fedora-36-xfce
+  connection: qubes
+  tasks:
+    - name: Ensure VM is configured to be a GUI VM
+      include_tasks: qubes/gui-vm.yml
 
 - name: Configure all Qubes to forward local traffic on certain ports to OPNSense (if installed)
-  hosts: debian-11
+  hosts: debian-11:fedora-36:fedora-36-xfce
   connection: qubes
   vars:
     systemd_services:
@@ -133,6 +106,7 @@
         port: 443
   tasks:
     - name: "Create {{ service.name }}.socket systemd file"
+      become: true
       copy:
         content: |
           [Unit]
@@ -145,11 +119,12 @@
           [Install]
           WantedBy=sockets.target
         dest: "/lib/systemd/system/{{ service.name }}.socket"
-      loop: "{{ systemd_services }}"
+      loop: "{{ systemd_services | default([]) }}"
       loop_control:
         loop_var: service
       when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
     - name: "Create {{ service.name }}@.service systemd file"
+      become: true
       copy:
         content: |
           [Unit]
@@ -160,39 +135,39 @@
           StandardInput=socket
           StandardOutput=inherit
         dest: /lib/systemd/system/{{ service.name }}@.service
-      loop: "{{ systemd_services }}"
+      loop: "{{ systemd_services | default([]) }}"
       loop_control:
         loop_var: service
       when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
 
 - name: Provisioning TemplateVMs, configuring OPNSense PCI devices, and attaching USB with VirtualBox files for Packer HVMs
-  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('localhost', true) }}"
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
   connection: local
   tasks:
     # Set up TemplateVMs
     - name: Ensure TemplateVMs are initialized
       qubesos:
         guest: '{{ vm.name | lower }}{%if (vm.dvm == true) %}-dvm{% endif %}'
-        state: create
+        state: present
         vmtype: TemplateVM
         properties:
           autostart: false
-          default_dispvm: "{%if ((vm.virt_mode == 'hvm') and (vm.default_dispvm is not defined)) %}{{ omit }}{% else %}{{ vm.default_dispvm | default('debian-11-dvm') }}{% endif %}"
+          default_dispvm: "{%if ((vm.virt_mode | default('none')) == 'hvm') and (vm.default_dispvm is not defined)) %}{{ omit }}{% else %}{{ vm.default_dispvm | default('debian-11-dvm') }}{% endif %}"
           features: '{{ vm.features | default(omit) }}'
           include_in_backups: '{{ vm.include_in_backups | default(true) }}'
-          kernel: "{% if (vm.virt_mode == 'hvm') %}''{% else %}{{ omit }}{% endif %}"
+          kernel: "{% if ((vm.virt_mode | default('none')) == 'hvm') %}{% else %}{{ omit }}{% endif %}"
           label: "{{ vm.color | default('black') }}"
           memory: "{{ vm.memory | default('2048') }}"
           maxmem: "{{ vm.maxmem | default('4096') }}"
           netvm: "{{ vm.netvm | default('sys-firewall') }}"
           provides_network: '{{ vm.provides_network | default(false) }}'
           template_for_dispvms: '{{ vm.dvm == true }}'
-          vcpus: '{{ vm.vcpus | default(2) }}'
-          virt_mode: '{{ vm.virt_mode | default(omit) }}'
+          vcpus: "{{ vm.vcpus | default(2) }}"
+          virt_mode: "{{ vm.virt_mode | default(omit) }}"
           volume:
             name: root
             size: "{{ vm.volume.root | default('20g') }}"
-      loop: '{{ qubes_vms }}'
+      loop: '{{ qubes_vms | default([]) }}'
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm
@@ -210,6 +185,7 @@
       when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
 
     - name: Bind all VMs localhost port 80 and 443 to OPNSense
+      become: true
       copy:
         content: |
           $anyvm @default allow,target=OPNSense
@@ -225,7 +201,7 @@
 
     - name: Create LVM volumes for Packer-built desktop HVMs
       include_tasks: qubes/packer-hvm.yml
-      loop: '{{ qubes_vagrant_vms }}'
+      loop: '{{ qubes_vagrant_vms | default([]) }}'
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm
@@ -239,7 +215,7 @@
     - name: Provision the TemplateVM
       include_role:
         name: "{{ role }}"
-      loop: "{{ qubes_roles[inventory_hostname] }}"
+      loop: "{{ qubes_roles[inventory_hostname] | default([]) }}"
       loop_control:
         label: '{{ inventory_hostname }}'
         loop_var: role
@@ -264,20 +240,20 @@
 
 - name: Finish configuring dom0
   connection: local
-  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('localhost', true) }}"
+  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
   tasks:
     # Initialize all the template-based AppVMs
     - name: Ensure AppVMs/DisposableVMs are initialized
       qubesos:
         guest: '{{ vm.name }}{%if (vm.dvm == true) %}-dvm{% endif %}'
-        state: create
-        vmtype: "{% if ((vm.type is not defined) and (vm.virt_mode == 'hvm')) %}AppVM{% else %}{{ vm.type | default('AppVM') }}{% endif %}"
+        state: present
+        vmtype: "{% if ((vm.type is not defined) and ((vm.virt_mode | default('none')) == 'hvm')) %}AppVM{% else %}{{ vm.type | default('AppVM') }}{% endif %}"
         properties:
           autostart: '{{ vm.autostart | default(false) }}'
           default_dispvm: "{{ vm.default_dispvm | default('debian-11-dvm') }}"
           features: '{{ vm.features | default(omit) }}'
           include_in_backups: '{{ vm.include_in_backups | default(true) }}'
-          kernel: "{% if (vm.virt_mode == 'hvm') %}{% else %}{{ omit }}{% endif %}"
+          kernel: "{% if ((vm.virt_mode | default('none')) == 'hvm') %}{% else %}{{ omit }}{% endif %}"
           label: "{{ vm.color | default('black') }}"
           memory: "{{ vm.memory | default('2048') }}"
           maxmem: "{{ vm.maxmem | default('4096') }}"
@@ -290,7 +266,7 @@
           volume:
             name: private
             size: "{{ vm.volume.private | default('5g') }}"
-      loop: '{{ qubes_vms }}'
+      loop: '{{ qubes_vms | default([]) }}'
       loop_control:
         label: '{{ vm.name }}'
         loop_var: vm

@@ -1,7 +1,7 @@
 ---
-- name: Check for presence of theme archive in /tmp
+- name: Check for presence of theme archive
   stat:
-    path: /tmp/gas-theme.tar.gz
+    path: /usr/src/gas-theme
   register: gas_theme_tmp
 
 - name: Download the git repository asset
@@ -11,6 +11,12 @@
       qvm-run download-vm 'curl -sSL {{ linux_theme_package }} > /home/user/grub.tar.gz'
       qvm-run --pass-io download-vm 'cat /home/user/grub.tar.gz' > "/tmp/gas-theme.tar.gz"
   when: not gas_theme_tmp.stat.exists
+
+- name: Ensure /usr/src/gas-theme is a directory
+  become: true
+  file:
+    path: /usr/src/gas-theme
+    state: directory
 
 - name: Ensure latest GRUB theme files are present on system
   become: true

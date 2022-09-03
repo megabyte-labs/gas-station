@@ -5,6 +5,7 @@
   package:
     name: fuse
     state: present
+  when: ansible_system == 'Linux'
 
 - name: Ensure catfs is intalled
   include_tasks: catfs-Linux.yml
@@ -12,9 +13,10 @@
 - name: Ensure goofys is intalled
   include_tasks: goofys-Linux.yml
 
-# @action Ensures Goofys is installed
-# Mounts S3 buckets
-- name: Ensure S3 buckets are mounted # noqa 301
-  command: "goofys {{ item.bucket }} {{ item.path }}"
+- name: Run generic configuration tasks
+  include_tasks: config-Linux.yml
   when: s3_mounts is defined
   loop: "{{ s3_mounts }}"
+  loop_control:
+    label: "{{ s3_mount.bucket }}"
+    loop_var: s3_mount

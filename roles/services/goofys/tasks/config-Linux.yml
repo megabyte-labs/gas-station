@@ -1,0 +1,26 @@
+---
+# @action Ensures Goofys is configured
+# Configure credentials
+- name: Configure credentials to access S3
+  community.general.ini_file:
+    path: /root/.aws/credentials
+    section: "{{ s3_mount.bucket }}"
+    option: "{{ item.name }}"
+    value: "{{ item.value }}"
+  loop:
+    - name: aws_access_key_id
+      value: "{{ s3_mount.ACCESS_KEY_ID }}"
+    - name: aws_secret_access_key
+      value: "{{ s3_mount.ACCESS_SECRET_KEY }}"
+  when: s3_mount.ACCESS_KEY_ID is defined and s3_mount.ACCESS_SECRET_KEY is defined
+
+# @action Ensures Goofys is configured
+# Adds S3 buckets to fstab to mount using Goofys
+- name: Add Goofys mounts to fstab
+  ansible.posix.mount:
+    path: "{{ s3_mount.path }}"
+    src: goofys#{{ s3_mount.bucket }}
+    opts: "_netdev,allow_other,{{ '--file-mode=0444,--dir-mode=0555' if read_only else '--file-mode=0666,--dir-mode=0777' }},--profile={{ s3_mount.bucket }},\
+      --cache=-o:allow_other:--free:20%:/tmp/{{ s3_mount.bucket }}"
+    state: mounted
+    fstype: fuse

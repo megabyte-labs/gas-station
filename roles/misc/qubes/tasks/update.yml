@@ -1,8 +1,16 @@
 ---
-- name: Enable testing repositories for latest updates
+- name: Enable testing repositories for latest dom0 updates
+  become: true
   copy:
     src: files/qubes-dom0.repo
     dest: /etc/yum.repos.d/qubes-dom0.repo
+
+- name: Enable testing repositories for latest template updates
+  become: true
+  copy:
+    src: files/qubes-templates.repo
+    dest: /etc/qubes/repo-templates/qubes-templates.repo
+
 - name: Check if TemplateVMs were already updated
   stat:
     path: /tmp/dom0_updated
@@ -99,3 +107,24 @@
       templatevm done
     dest: /tmp/templatevms_updated
   when: not templatevm_update_status.stat.exists
+
+# TODO: Add logic to import GPG key and verify these downloads
+- name: Install unman templates (from unman)
+  include_tasks: unofficial-template.yml
+  loop:
+    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-archlinux-4.0.6-202204171510.noarch.rpm
+      file: qubes-template-archlinux-4.0.6-202204171510.noarch.rpm
+      name: Archlinux
+      template: archlinux
+    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-debian-12-4.0.6-202208292254.noarch.rpm
+      file: qubes-template-debian-12-4.0.6-202208292254.noarch.rpm
+      name: Debian 12
+      template: debian-12
+    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-jammy-4.0.6-202205012228.noarch.rpm
+      file: qubes-template-jammy-4.0.6-202205012228.noarch.rpm
+      name: Ubuntu 22.04 Jammy
+      template: jammy
+    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-parrot_full-4.0.6-202208302103.noarch.rpm
+      file: qubes-template-parrot_full-4.0.6-202208302103.noarch.rpm
+      name: Parrot
+      template: parrot

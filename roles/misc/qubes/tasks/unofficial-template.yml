@@ -1,0 +1,27 @@
+---
+- name: "Check if qubes-template-{{ item.template }} is already installed"
+  stat:
+    path: "/var/lib/qubes/vm-templates/{{ item.template }}"
+  register: unofficial_template_folder
+
+- name: Download the unofficial template's RPM file
+  shell:
+    cmd: |
+      qvm-create --label red --template debian-11 unofficial-templates || EXIT_CODE=$?
+      qvm-run unofficial-templates 'curl -sSL {{ item.link }} > /home/user/Downloads/{{ item.file }}
+      qvm-run --pass-io unofficial-templates 'cat /home/user/Downloads/{{ item.file }}' > "/tmp/{{ item.file }}"
+  when: not unofficial_template_folder.stat.exists
+
+- name: "Ensure the {{ item.name }} template is installed"
+  become: true
+  dnf:
+    name: /tmp/{{ item.file }}
+    state: present
+    disable_gpg_check: true
+  when: not unofficial_template_folder.stat.exists
+
+- name: Remove the temporary file
+  file:
+    path: "/tmp/{{ item.file }}"
+    state: absent
+  when: not unofficial_template_folder.stat.exists

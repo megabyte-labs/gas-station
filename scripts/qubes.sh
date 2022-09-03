@@ -66,7 +66,7 @@ fi
 echo "Downloading Gas Station into dom0 via temporary VM"
 if qvm-check "$ANSIBLE_DVM"; then
   qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-  sleep 1
+  sleep 3
   qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
   sleep 1
 fi
@@ -80,7 +80,7 @@ mv "$HOME/gas-station-master" "$HOME/Playbooks"
 # Delete DispVM
 echo "Destroying temporary download VM"
 qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-sleep 1
+sleep 3
 qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 sleep 1
 

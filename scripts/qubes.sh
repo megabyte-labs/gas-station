@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ANSIBLE_DVM="ansible-dvm"
+ANSIBLE_DVM="download-vm"
 
 set -ex
 
@@ -62,15 +62,12 @@ if ! qvm-check --running sys-whonix; then
   configureWizard > /dev/null
 fi
 
-# Download Gas Station and transfer to dom0 via DispVM
-echo "Downloading Gas Station into dom0 via temporary VM"
-if qvm-check "$ANSIBLE_DVM" &> /dev/null; then
-  qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-  sleep 3
-  qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-  sleep 1
+if [ ! -f /tmp/templatevms_updated ]; then
+  qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm
 fi
-qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
+
+# Download Gas Station and transfer to dom0 via DispVM
+qvm-create --label red --template debian-11 "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
 qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
 qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
 tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
@@ -82,13 +79,6 @@ tar -xzf "$HOME/ansible-qubes.tar.gz" -C "$HOME"
 rm -f "$HOME/ansible-qubes.tar.gz"
 sudo rm -rf "$HOME/Playbooks/.modules/ansible-qubes"
 mv "$HOME/ansible-qubes-master" "$HOME/Playbooks/.modules/ansible-qubes"
-
-# Delete DispVM
-echo "Destroying temporary download VM"
-qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-sleep 3
-qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-sleep 1
 
 # Move files to appropriate locations
 echo "Unpacking Gas Station"

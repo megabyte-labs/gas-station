@@ -63,7 +63,7 @@ if ! qvm-check --running sys-whonix; then
 fi
 
 if [ ! -f /tmp/templatevms_updated ]; then
-  sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm
+  sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
 fi
 
 # Download Gas Station and transfer to dom0 via DispVM

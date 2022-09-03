@@ -25,7 +25,7 @@ function configureWizard() {
   if xwininfo -root -tree | grep "Anon Connection Wizard"; then
     WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
     xdotool windowactivate "$WINDOW_ID"
-    sleep 0.5
+    sleep 1
     if [[ "$ENABLE_OBFSC" == 'true' ]]; then
       xdotool key 'Tab'
       xdotool key 'Tab'
@@ -33,7 +33,7 @@ function configureWizard() {
       xdotool key 'Down'
     fi
     xdotool key 'Enter'
-    sleep 0.5
+    sleep 2
     if [[ "$ENABLE_OBFSC" == 'true' ]]; then
       xdotool key 'Space'
     fi
@@ -42,7 +42,7 @@ function configureWizard() {
     xdotool key 'Enter'
     sleep 14
     xdotool windowactivate "$WINDOW_ID"
-    sleep 0.5
+    sleep 1
     xdotool key 'Enter'
   else
     sleep 3

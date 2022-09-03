@@ -143,6 +143,10 @@ while read ROLE_PATH; do
   fi
 done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 
+# Symlink the Qubes playbook
+sudo rm -f '/etc/ansible/qubes.yml'
+sudo ln -s '/etc/ansible/playbooks/qubes.yml' '/etc/ansible/qubes.yml'
+
 # Run the playbook
 echo "Your Ansible Vault password should be placed at ~/.vaultpass"
-ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml
+ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml /etc/ansible/qubes.yml

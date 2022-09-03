@@ -76,6 +76,12 @@ qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.g
 tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
 rm -f "$HOME/Playbooks.tar.gz"
 mv "$HOME/gas-station-master" "$HOME/Playbooks"
+qvm-run "$ANSIBLE_DVM" 'curl -sSL https://github.com/Rudd-O/ansible-qubes/archive/refs/heads/master.zip > ansible-qubes.tar.gz'
+qvm-run --pass-io "$ANSIBLE_DVM" "cat ansible-qubes.tar.gz" > "$HOME/ansible-qubes.tar.gz"
+tar -xzf "$HOME/ansible-qubes.tar.gz" -C "$HOME"
+rm -f "$HOME/ansible-qubes.tar.gz"
+sudo rm -rf "$HOME/Playbooks/.modules/ansible-qubes"
+mv "$HOME/ansible-qubes-master" "$HOME/Playbooks/.modules/ansible-qubes"
 
 # Delete DispVM
 echo "Destroying temporary download VM"
@@ -88,14 +94,44 @@ sleep 1
 echo "Unpacking Gas Station"
 sudo rm -rf '/etc/ansible'
 sudo mv "$HOME/Playbooks" '/etc/ansible'
+
+# Install Ansible collections
 cd '/etc/ansible/collections'
 ansible-galaxy collection install -r /etc/ansible/collections/requirements.yml
+
+# Ansible action plugins
+sudo mkdir -p '/usr/share/ansible/plugins/action'
+for ACTION_PLUGIN in 'commonlib.py' 'qubes_pass.py' 'qubesformation.py' 'qubesguid.py' 'qubessls.py'; do
+  sudo rm -f "/usr/share/ansible/plugins/action/$ACTION_PLUGIN"
+  sudo ln -s "/etc/ansible/.modules/ansible-qubes/action_plugins/$ACTION_PLUGIN" "/usr/share/ansible/plugins/action/$ACTION_PLUGIN"
+done
+
+# Ansible connection plugins
 sudo mkdir -p '/usr/share/ansible/plugins/connection'
-sudo rm -rf '/usr/share/ansible/plugins/connection/qubes.py'
-sudo ln -s '/etc/ansible/scripts/connection/qubes.py' '/usr/share/ansible/plugins/connection/qubes.py'
+sudo rm -f '/usr/share/ansible/plugins/connection/qubes.py'
+sudo ln -s '/etc/ansible/.modules/ansible-qubes/connection_plugins/qubes.py' '/usr/share/ansible/plugins/connection/qubes.py'
+
+# Ansible lookup plugins
+sudo mkdir -p '/usr/share/ansible/plugins/lookup'
+for LOOKUP_PLUGIN in 'jq.py' 'qubes-pass.py'; do
+  sudo rm -f "/usr/share/ansible/plugins/lookup/$LOOKUP_PLUGIN"
+  sudo ln -s "/etc/ansible/.modules/ansible-qubes/lookup_plugins/$LOOKUP_PLUGIN" "/usr/share/ansible/plugins/lookup/$LOOKUP_PLUGIN"
+done
+
+# Ansible library
 sudo mkdir -p '/usr/share/ansible/library'
-sudo rm -rf '/usr/share/ansible/library/qubesos.py'
+sudo rm -f '/usr/share/ansible/library/qubesos.py'
 sudo ln -s '/etc/ansible/scripts/library/qubesos.py' '/usr/share/ansible/library/qubesos.py'
+for ANSIBLE_LIBRARY in 'qubes-pass.py' 'qubesformation.py' 'qubesguid.py' 'qubessls.py'; do
+  sudo rm -f "/usr/share/ansible/library/$ANSIBLE_LIBRARY"
+  sudo ln -s "/etc/ansible/.modules/ansible-qubes/library/$ANSIBLE_LIBRARY" "/usr/share/ansible/library/$ANSIBLE_LIBRARY"
+done
+
+# Ansible Qubes executables
+for BIN_FILE in 'bombshell-client' 'qrun' 'qscp' 'qssh'; do
+  sudo cp -f "/etc/ansible/.modules/ansible-qubes/bin/$BIN_FILE" "/usr/bin/$BIN_FILE"
+  sudo chmod +x "/usr/bin/$BIN_FILE"
+done
 
 # Symlink the roles to their Galaxy alias
 echo "Symlinking roles to their corresponding Ansible Galaxy folder names"
@@ -108,5 +144,5 @@ while read ROLE_PATH; do
 done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 
 # Run the playbook
-echo "Running the playbook.."
-ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml
+echo "Your Ansible Vault password should be placed at ~/.vaultpass"
+ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml /etc/ansible/playbooks/qubes.yml

@@ -1,8 +1,15 @@
 ---
+- name: Download the git repository asset
+  shell:
+    cmd: |
+      qvm-create --label red --template debian-11 download-vm || EXIT_CODE=$?
+      qvm-run download-vm 'curl -sSL {{ linux_theme_package }}?path=share > /home/user/share.tar.gz'
+      qvm-run --pass-io download-vm 'cat /home/user/share.tar.gz' > "/tmp/share.tar.gz"
+
 - name: Ensure latest Linux theme files are present on system
   become: true
   ansible.builtin.unarchive:
-    src: "{{ linux_theme_package }}?path=share"
+    src: /tmp/share.tar.gz
     dest: /usr/share
     remote_src: true
 

@@ -1,8 +1,15 @@
 ---
+- name: Download the git repository asset
+  shell:
+    cmd: |
+      qvm-create --label red --template debian-11 download-vm || EXIT_CODE=$?
+      qvm-run download-vm 'curl -sSL {{ linux_theme_package }}?path=share/grub/themes > /home/user/grub.tar.gz'
+      qvm-run --pass-io download-vm 'cat /home/user/grub.tar.gz' > "/tmp/grub.tar.gz"
+
 - name: Ensure latest GRUB theme files are present on system
   become: true
   ansible.builtin.unarchive:
-    src: "{{ linux_theme_package }}?path=share/grub/themes"
+    src: /tmp/grub.tar.gz
     dest: /usr/share/grub/
     remote_src: true
 

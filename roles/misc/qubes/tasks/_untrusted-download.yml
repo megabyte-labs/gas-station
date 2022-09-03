@@ -1,17 +1,24 @@
 ---
-- name: Check if {{ file_name }} is already present in /usr/src/qubes-dom0-binaries
-  stat:
-    path: /usr/src/qubes-dom0-binaries/{{ file_name }}
-  register: file_name_src_check
-
-- name: Download the qubes-dom0-binaries folder assets
+- name: Download the git repository asset
   shell:
     cmd: |
-      qvm-remove --force download-vm &> /dev/null || EXIT_CODE=$?
-      qvm-create --label red --template debian-11 download-vm
+      qvm-create --label red --template debian-11 download-vm || EXIT_CODE=$?
       qvm-run download-vm 'curl -sSL {{ allow_untrusted_dom0_binaries_repo }} > /home/user/untrusted.tar.gz'
-      qvm-run --pass-io download-vm 'cat /home/user/untrusted.tar.gz' > "$HOME/untrusted.tar.gz"
+      qvm-run --pass-io download-vm 'cat /home/user/untrusted.tar.gz' > "/tmp/untrusted.tar.gz"
       qvm-remove --force download-vm &> /dev/null || EXIT_CODE=$?
+
+      if qvm-check "$ANSIBLE_DVM"; then
+  qvm-shutdown --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+  sleep 1
+  qvm-remove --force "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
+  sleep 1
+fi
+qvm-create --label red --template debian-11 "$ANSIBLE_DVM"
+qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
+qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
+tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
+rm -f "$HOME/Playbooks.tar.gz"
+mv "$HOME/gas-station-master" "$HOME/Playbooks"
   when: not file_name_src_check.stat.exists
 
 - name: Unpack the untrusted binaries .tar.gz file to /usr/src/qubes-dom0-binaries

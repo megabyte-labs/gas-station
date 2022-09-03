@@ -141,4 +141,5 @@ sudo ln -s '/etc/ansible/playbooks/qubes.yml' '/etc/ansible/qubes.yml'
 
 # Run the playbook
 echo "Your Ansible Vault password should be placed at ~/.vaultpass"
+cd /etc/ansible
 ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml /etc/ansible/qubes.yml

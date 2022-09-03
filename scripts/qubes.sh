@@ -64,6 +64,8 @@ fi
 
 if [ ! -f /tmp/templatevms_updated ]; then
   sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
+  I=$(qvm-ls --all --no-spinner --fields=name,state | grep Running | awk '{print $1}'); qvm-shutdown --wait --all ; echo $I | xargs -I{} qvm-start {}
+  touch /tmp/templatevms_updated
 fi
 
 # Download Gas Station and transfer to dom0 via DispVM

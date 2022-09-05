@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# This script can be run a single time or it can be run on a cron. It might be useful to run on a cron
+# when you are hosting a bunch of websites and would like to have the domain names registered by
+# cloudflared.
+
+# Determine whether or not to use sudo for installation
+if ! type sudo &> /dev/null || [ "$USER" == 'root' ]; then
+  SUDO_PREFIX=""
+else
+  SUDO_PREFIX="sudo"
+fi
+
+# Ensure DEFAULT_DOMAIN is defined - you can define it in /etc/environment
+if [ -z "$DEFAULT_DOMAIN" ]; then
+  DEFAULT_DOMAIN="{{ ansible_env.DEFAULT_DOMAIN | default(default_domain | default('ssh.megabyte.space')) }}"
+fi
+
+# Ensure CF_TUNNEL_NAME is defined - you can define it in /etc/environment
+if [ -z "$CF_TUNNEL_NAME" ]; then
+  CF_TUNNEL_NAME="{{ ansible_env.CF_TUNNEL_NAME | default(cf_tunnel_name | default('default-ssh-tunnel')) }}"
+fi
+
+# Detect what port SSH is using
+SSH_PORT='22'
+if $SUDO_PREFIX cat /etc/ssh/sshd_config | grep '^Port ' > /dev/null; then
+  SSH_PORT="$(cat /etc/ssh/sshd_config | grep '^Port ' | sed 's/Port //')"
+fi
+
+# Ensure cloudflared is installed
+if ! type cloudflared > /dev/null; then
+  if [ -f '/etc/ubuntu-release' ] || [ -f '/etc/debian_version' ]; then
+  $SUDO_PREFIX apt-get update
+  $SUDO_PREFIX apt-get install -y wget
+  $SUDO_PREFIX wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -O ./cloudflared-linux-amd64.deb
+  $SUDO_PREFIX dpkg -i ./cloudflared-linux-amd64.deb
+  $SUDO_PREFIX rm cloudflared-linux-amd64.deb
+  elif [ -f '/etc/redhat-release' ]; then
+    $SUDO_PREFIX rpm -ivh https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm
+    $SUDO_PREFIX yum install cloudflared
+  elif [ -f '/etc/SuSE-release' ]; then
+    $SUDO_PREFIX zypper install -f wget
+    $SUDO_PREFIX wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O '/usr/bin/cloudflared'
+  elif [ -f '/etc/alpine-release' ]; then
+    $SUDO_PREFIX apk add --no-cache add -f ca-certificates wget
+    $SUDO_PREFIX wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O '/usr/bin/cloudflared'
+  elif [ -d '/Applications'] && [ -d '/Library' ] && [ -d '/Users' ]; then
+    brew install cloudflare/cloudflare/cloudflared
+  else
+    echo "ERROR: Unsupported distribution" && exit 1
+  fi
+fi
+
+# Setup server tunnel - this will not run when being run as a cron
+if [ -z "$CRONTAB_JOB" ]; then
+  $SUDO_PREFIX cloudflared tunnel login
+  $SUDO_PREFIX cloudflared tunnel create "${CF_TUNNEL_NAME}"
+fi
+
+# Update the cloudflared configuration
+TUNNEL_ID="$($SUDO_PREFIX cloudflared tunnel list | grep " ${CF_TUNNEL_NAME} " | sed 's/^\([^ ]*\).*$/\1/')"
+if [ -n "$TUNNEL_ID" ]; then
+  if [ -z "$CRONTAB_JOB" ]; then
+    $SUDO_PREFIX cloudflared tunnel route ip add 100.64.0.0/10 "${TUNNEL_ID}"
+  fi
+  CONFIG_TMP="$(mktemp)"
+  $SUDO_PREFIX echo "tunnel: ${TUNNEL_ID}" > "$CONFIG_TMP"
+  $SUDO_PREFIX echo "credentials-file: /root/.cloudflared/${TUNNEL_ID}.json" >> "$CONFIG_TMP"
+  $SUDO_PREFIX echo "" >> "$CONFIG_TMP"
+  $SUDO_PREFIX echo "ingress:" >> "$CONFIG_TMP"
+  if [ -d '/opt/easyengine/sites' ]; then
+    DOMAINS_HOSTED="$(find /opt/easyengine/sites -maxdepth 1 -mindepth 1 -type d | sed 's/.*sites\///' | xargs)"
+  else
+    if [ -d /etc/qubes ]; then
+      DOMAINS_HOSTED="$(hostname)-qube.${DEFAULT_DOMAIN}"
+    else
+      DOMAINS_HOSTED="$(hostname).${DEFAULT_DOMAIN}"
+    fi
+  fi
+  for DOMAIN in $DOMAINS_HOSTED; do
+    $SUDO_PREFIX echo "  - hostname: ${DOMAIN}" >> "$CONFIG_TMP"
+    $SUDO_PREFIX echo "    service: ssh://localhost:$SSH_PORT" >> "$CONFIG_TMP"
+  done
+  $SUDO_PREFIX echo "  - service: http_status:404" >> "$CONFIG_TMP"
+  $SUDO_PREFIX echo "" >> "$CONFIG_TMP"
+  $SUDO_PREFIX mkdir -p /root/.cloudflared
+  $SUDO_PREFIX mv "$CONFIG_TMP" /root/.cloudflared/config.yml
+
+  # Install the cloudflared service if it's not a CRONTAB_JOB running
+  if [ -z "$CRONTAB_JOB" ]; then
+    $SUDO_PREFIX cloudflared service install
+  fi
+fi
+
+# Restart if the config file changed
+if [ ! -f /root/.cloudflared/config-previous.yml ] || [ "$(cat /root/.cloudflared/config-previous.yml)" != "$(cat /root/.cloudflared/config.yml)" ]; then
+  $SUDO_PREFIX systemctl restart cloudflared
+  $SUDO_PREFIX cp /root/.cloudflared/config.yml /root/.cloudflared/config-previous.yml
+fi

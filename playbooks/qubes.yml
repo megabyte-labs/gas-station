@@ -4,38 +4,55 @@
   hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
   connection: local
   tasks:
+    - name: Ensure TemplateVMs are initialized
+      qubesos:
+        guest: test-tvm
+        state: present
+        vmtype: TemplateVM
+        properties:
+          autostart: false
+          label: "{{ vm.color | default('black') }}"
+          memory: "{{ vm.memory | default('2048') }}"
+          maxmem: "{{ vm.maxmem | default('4096') }}"
+          netvm: "{{ vm.netvm | default('sys-firewall') }}"
+          provides_network: '{{ vm.provides_network | default(false) }}'
+          vcpus: "{{ vm.vcpus | default(2) }}"
+          virt_mode: "{{ vm.virt_mode | default(omit) }}"
+          volume:
+            name: root
+            size: "{{ vm.volume.root | default('20g') }}"
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
-        - name: Check for presence of /srv/user_salt
-          stat:
-            path: /srv/user_salt
-          register: srv_user_salt
+        #- name: Check for presence of /srv/user_salt
+        #  stat:
+        #    path: /srv/user_salt
+        #  register: srv_user_salt
 
-        - name: Ensure that the /srv/user_salt Salt directory exists
-          become: true
-          shell: qubesctl state.highstate || exit $? ; echo CHANGED ;
-          register: saltdirs
-          changed_when: "'CHANGED' in saltdirs.stdout"
-          when: not srv_user_salt.stat.exists
+        #- name: Ensure that the /srv/user_salt Salt directory exists
+        #  become: true
+        #  shell: qubesctl state.highstate || exit $? ; echo CHANGED ;
+        #  register: saltdirs
+        #  changed_when: "'CHANGED' in saltdirs.stdout"
+        #  when: not srv_user_salt.stat.exists
 
-        - name: Configure Qubes Salt formula and the top file
-          become: true
-          qubesformation:
-            dest: /srv/user_salt/myprovisionedvms.sls
+        #- name: Configure Qubes Salt formula and the top file
+        #  become: true
+        #  qubesformation:
+        #    dest: /srv/user_salt/myprovisionedvms.sls
 
-        - name: Enable Qubes Salt formula
-          become: true
-          shell:
-            cmd: |
-              qubesctl top.enabled | grep myprovisionedvms.top || { qubesctl top.enable myprovisionedvms && echo CHANGED || exit 1 ; }
-          register: enableformation
-          changed_when: "'CHANGED' in enableformation.stdout"
+        #- name: Enable Qubes Salt formula
+        #  become: true
+        #  shell:
+        #    cmd: |
+        #      qubesctl top.enabled | grep myprovisionedvms.top || { qubesctl top.enable myprovisionedvms && echo CHANGED || exit 1 ; }
+        #  register: enableformation
+        #  changed_when: "'CHANGED' in enableformation.stdout"
 
-        - name: Realize Qubes formation
-          become: true
-          qubessls:
-            sls: myprovisionedvms
-            env: user
+        #- name: Realize Qubes formation
+        #  become: true
+        #  qubessls:
+        #    sls: myprovisionedvms
+        #    env: user
 
         # Run the Qubes dom0 role to enable features / update
         - name: Update and configure dom0
@@ -73,6 +90,7 @@
       when:
         - (ansible_local.qubes is not defined) or
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
+        - false
 
 - name: Make MAC addresses random (randomized every reboot)
   hosts: network-disp

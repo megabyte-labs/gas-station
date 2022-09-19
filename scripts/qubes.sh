@@ -79,7 +79,7 @@ qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.g
 tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
 rm -f "$HOME/Playbooks.tar.gz"
 mv "$HOME/gas-station-master" "$HOME/Playbooks"
-qvm-run "$ANSIBLE_DVM" 'curl -sSL https://github.com/Rudd-O/ansible-qubes/archive/refs/heads/master.tar.gz > ansible-qubes.tar.gz'
+qvm-run "$ANSIBLE_DVM" 'curl -sSL https://github.com/ProfessorManhattan/ansible-qubes/archive/refs/heads/master.tar.gz > ansible-qubes.tar.gz'
 qvm-run --pass-io "$ANSIBLE_DVM" "cat ansible-qubes.tar.gz" > "$HOME/ansible-qubes.tar.gz"
 tar -xzf "$HOME/ansible-qubes.tar.gz" -C "$HOME"
 rm -f "$HOME/ansible-qubes.tar.gz"

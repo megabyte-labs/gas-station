@@ -1,27 +1,9 @@
 ---
 # yamllint disable rule:max-lines
 - name: Provision / initialize dom0
-  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
-  connection: local
+  hosts: dom0
+  connection: qubes
   tasks:
-    - name: Ensure Ansible connections are configured to use bash
-      become: true
-      copy:
-        content: |
-          exec bash
-        dest: /etc/qubes-rpc/qubes.VMShell
-        mode: '0755'
-    - name: Ensure dom0 and other VMs can be managed by Ansible
-      become: true
-      copy:
-        content: |
-          provision dom0 allow
-          provision $anyvm allow
-        dest: /etc/qubes-rpc/policy/qubes.VMShell
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
-        mode: '0664'
-
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
         - name: Check for presence of /srv/user_salt

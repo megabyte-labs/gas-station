@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-ANSIBLE_DVM="download-vm"
+ANSIBLE_PROVISION_VM="ansible-provision"
+USE_DOM0="false"
 
 set -ex
 
@@ -70,24 +71,54 @@ if [ ! -f /tmp/templatevms_updated ]; then
   touch /tmp/templatevms_updated
 fi
 
-# Download Gas Station and transfer to dom0 via DispVM
-qvm-create --label red --template debian-11 "$ANSIBLE_DVM" &> /dev/null || EXIT_CODE=$?
-qvm-run "$ANSIBLE_DVM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
-qvm-run --pass-io "$ANSIBLE_DVM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
-tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
-rm -f "$HOME/Playbooks.tar.gz"
-mv "$HOME/gas-station-master" "$HOME/Playbooks"
-qvm-run "$ANSIBLE_DVM" 'curl -sSL https://github.com/ProfessorManhattan/ansible-qubes/archive/refs/heads/master.tar.gz > ansible-qubes.tar.gz'
-qvm-run --pass-io "$ANSIBLE_DVM" "cat ansible-qubes.tar.gz" > "$HOME/ansible-qubes.tar.gz"
-tar -xzf "$HOME/ansible-qubes.tar.gz" -C "$HOME"
-rm -f "$HOME/ansible-qubes.tar.gz"
-sudo rm -rf "$HOME/Playbooks/.modules/ansible-qubes"
-mv "$HOME/ansible-qubes-master" "$HOME/Playbooks/.modules/ansible-qubes"
+if [[ "$(hostname)" == "dom0" ]]; then
+  sudo echo "/bin/bash" > /etc/qubes-rpc/qubes.VMShell
+  sudo chmod 755 /etc/qubes-rpc/qubes.VMShell
+  sudo echo "$ANSIBLE_PROVISION_VM"' dom0 allow' > /etc/qubes-rpc/policy/qubes.VMShell
+  sudo echo "$ANSIBLE_PROVISION_VM"' $anyvm allow' >> /etc/qubes-rpc/policy/qubes.VMShell
+  sudo chown "$(whoami):$(whoami)" /etc/qubes-rpc/policy/qubes.VMShell
+  sudo chmod 644 /etc/qubes-rpc/policy/qubes.VMShell
+fi
 
-# Move files to appropriate locations
-echo "Unpacking Gas Station"
-sudo rm -rf '/etc/ansible'
-sudo mv "$HOME/Playbooks" '/etc/ansible'
+if [[ "$USE_DOM0" == "true" ]] && [[ "$(hostname)" == "dom0" ]]; then
+  # Download Gas Station and transfer to dom0 via DispVM
+  qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
+  qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
+  qvm-run --pass-io "$ANSIBLE_PROVISION_VM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
+  tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
+  rm -f "$HOME/Playbooks.tar.gz"
+  mv "$HOME/gas-station-master" "$HOME/Playbooks"
+  qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://github.com/ProfessorManhattan/ansible-qubes/archive/refs/heads/master.tar.gz > ansible-qubes.tar.gz'
+  qvm-run --pass-io "$ANSIBLE_PROVISION_VM" "cat ansible-qubes.tar.gz" > "$HOME/ansible-qubes.tar.gz"
+  tar -xzf "$HOME/ansible-qubes.tar.gz" -C "$HOME"
+  rm -f "$HOME/ansible-qubes.tar.gz"
+  sudo rm -rf "$HOME/Playbooks/.modules/ansible-qubes"
+  mv "$HOME/ansible-qubes-master" "$HOME/Playbooks/.modules/ansible-qubes"
+  # Move files to appropriate locations
+  echo "Unpacking Gas Station"
+  sudo rm -rf '/etc/ansible'
+  sudo mv "$HOME/Playbooks" '/etc/ansible'
+else
+  if [[ "$(hostname)" == "dom0" ]]; then
+    qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
+    qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
+    exit 0
+  else
+    if [ -d /etc/ansible/playbooks ]; then
+      cd /etc/ansible
+      git pull origin master
+      cd /etc/ansible/.modules/ansible-qubes
+      git pull origin master
+    else
+      sudo rm -rf /etc/ansible
+      cd /etc
+      sudo git clone https://gitlab.com/megabyte-labs/gas-station.git ansible
+      sudo rm -rf /etc/ansible/.modules/ansible-qubes
+      cd /etc/ansible/.modules
+      sudo git clone https://github.com/ProfessorManhattan/ansible-qubes.git ansible-qubes
+    fi
+  fi
+fi
 
 # Ansible action plugins
 sudo mkdir -p '/usr/share/ansible/plugins/action'

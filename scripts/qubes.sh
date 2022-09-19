@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
+# The VM name that will manage the Ansible provisioning
 ANSIBLE_PROVISION_VM="ansible-provision"
+# Whether or not to use dom0 to run the Ansible play (WIP)
 USE_DOM0="false"
 
 set -ex

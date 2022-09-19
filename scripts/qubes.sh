@@ -7,73 +7,73 @@ USE_DOM0="false"
 
 set -ex
 
-# Update dom0
-if [ ! -f /tmp/dom0_updated ]; then
-  echo "Updating dom0"
-  sudo qubesctl --show-output state.sls update.qubes-dom0
-  sudo qubes-dom0-update --clean -y
-  touch /tmp/dom0_updated
-fi
-
-if [ ! -f /tmp/qubes_ansible_python_installed ]; then
-  echo "Installing the Qubes ansible-python3 package"
-  sudo qubes-dom0-update -y ansible-python3 # TODO: Add better check
-  touch /tmp/qubes_ansible_python_installed
-fi
-
-# Ensure sys-whonix is configured
-CONFIG_WIZARD_COUNT=0
-ENABLE_OBFSC='true'
-function configureWizard() {
-  if xwininfo -root -tree | grep "Anon Connection Wizard"; then
-    WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
-    xdotool windowactivate "$WINDOW_ID"
-    sleep 1
-    if [[ "$ENABLE_OBFSC" == 'true' ]]; then
-      xdotool key 'Tab'
-      xdotool key 'Tab'
-      xdotool key 'Tab'
-      xdotool key 'Down'
-    fi
-    xdotool key 'Enter'
-    sleep 2
-    if [[ "$ENABLE_OBFSC" == 'true' ]]; then
-      xdotool key 'Space'
-    fi
-    xdotool key 'Tab'
-    xdotool key 'Tab'
-    xdotool key 'Enter'
-    sleep 14
-    xdotool windowactivate "$WINDOW_ID"
-    sleep 1
-    xdotool key 'Enter'
-  else
-    sleep 3
-    CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD_COUNT + 1))
-    if [[ "$CONFIG_WIZARD_COUNT" == '4' ]]; then
-      echo "The sys-whonix anon-connection-wizard utility did not open."
-    else
-      echo "Checking for anon-connection-wizard again.."
-      configureWizard
-    fi
-  fi
-}
-
-# Ensure sys-whonix is running an configured
-if ! qvm-check --running sys-whonix; then
-  qvm-start sys-whonix --skip-if-running
-  configureWizard > /dev/null
-fi
-
-if [ ! -f /tmp/templatevms_updated ]; then
-  sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
-  while read RESTART_VM; do
-    qvm-shutdown --wait "$RESTART_VM"
-  done< <(qvm-ls --all --no-spinner --fields=name,state | grep Running | grep -v sys-net | grep -v sys-firewall | grep -v sys-whonix | grep -v dom0 | awk '{print $1}')
-  touch /tmp/templatevms_updated
-fi
-
 if [[ "$(hostname)" == "dom0" ]]; then
+  # Update dom0
+  if [ ! -f /tmp/dom0_updated ]; then
+    echo "Updating dom0"
+    sudo qubesctl --show-output state.sls update.qubes-dom0
+    sudo qubes-dom0-update --clean -y
+    touch /tmp/dom0_updated
+  fi
+
+  if [ ! -f /tmp/qubes_ansible_python_installed ]; then
+    echo "Installing the Qubes ansible-python3 package"
+    sudo qubes-dom0-update -y ansible-python3 # TODO: Add better check
+    touch /tmp/qubes_ansible_python_installed
+  fi
+
+  # Ensure sys-whonix is configured
+  CONFIG_WIZARD_COUNT=0
+  ENABLE_OBFSC='true'
+  function configureWizard() {
+    if xwininfo -root -tree | grep "Anon Connection Wizard"; then
+      WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
+      xdotool windowactivate "$WINDOW_ID"
+      sleep 1
+      if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+        xdotool key 'Tab'
+        xdotool key 'Tab'
+        xdotool key 'Tab'
+        xdotool key 'Down'
+      fi
+      xdotool key 'Enter'
+      sleep 2
+      if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+        xdotool key 'Space'
+      fi
+      xdotool key 'Tab'
+      xdotool key 'Tab'
+      xdotool key 'Enter'
+      sleep 14
+      xdotool windowactivate "$WINDOW_ID"
+      sleep 1
+      xdotool key 'Enter'
+    else
+      sleep 3
+      CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD_COUNT + 1))
+      if [[ "$CONFIG_WIZARD_COUNT" == '4' ]]; then
+        echo "The sys-whonix anon-connection-wizard utility did not open."
+      else
+        echo "Checking for anon-connection-wizard again.."
+        configureWizard
+      fi
+    fi
+  }
+
+  # Ensure sys-whonix is running an configured
+  if ! qvm-check --running sys-whonix; then
+    qvm-start sys-whonix --skip-if-running
+    configureWizard > /dev/null
+  fi
+
+  if [ ! -f /tmp/templatevms_updated ]; then
+    sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
+    while read RESTART_VM; do
+      qvm-shutdown --wait "$RESTART_VM"
+    done< <(qvm-ls --all --no-spinner --fields=name,state | grep Running | grep -v sys-net | grep -v sys-firewall | grep -v sys-whonix | grep -v dom0 | awk '{print $1}')
+    touch /tmp/templatevms_updated
+  fi
+
   sudo echo "/bin/bash" > /etc/qubes-rpc/qubes.VMShell
   sudo chmod 755 /etc/qubes-rpc/qubes.VMShell
   sudo echo "$ANSIBLE_PROVISION_VM"' dom0 allow' > /etc/qubes-rpc/policy/qubes.VMShell

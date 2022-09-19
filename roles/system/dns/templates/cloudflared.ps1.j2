@@ -1,0 +1,66 @@
+# @description Install Chocolatey
+function InstallChocolatey {
+  choco --help | Out-Null
+  if (!$?) {
+    Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+  }
+}
+
+# Ensure DEFAULT_DOMAIN is defined - you can define it in /etc/environment
+if ([String]::IsNullOrEmpty($env:DEFAULT_DOMAIN) ]){
+  DEFAULT_DOMAIN="{{ ansible_env.DEFAULT_DOMAIN | default(default_domain | default('ssh.megabyte.space')) }}"
+}
+
+# Ensure CF_TUNNEL_NAME is defined - you can define it in /etc/environment
+if ([String]::IsNullOrEmpty($env:$CF_TUNNEL_NAME) ])
+  CF_TUNNEL_NAME="{{ ansible_env.CF_TUNNEL_NAME | default(cf_tunnel_name | default('default-ssh-tunnel')) }}"
+fi
+
+# Detect what port SSH is using
+SSH_PORT='22'
+if (! [String]::IsNullOrEmpty(Get-Content $env:PROGRAMDATA/ssh/sshd_config | Select-String -Pattern "^Port*") ]){
+  SSH_PORT=(Get-Content /etc/ssh/ssh_config | Select-String -Pattern "^.*Port*").ToString().Split(" ")[-1]
+}
+
+# Setup server tunnel
+New-Item -Type Directory -Path "C:\Cloudflared\bin"
+New-Item -Type Directory -Path "C:\Windows\System32\config\systemprofile\.cloudflared"
+
+cloudflared tunnel login
+Copy-Item "C:\Users\$($env:USERNAME)\.cloudflared\cert.pem" C:\Windows\System32\config\systemprofile\.cloudflared\cert.pem
+
+cloudflared tunnel create "${CF_TUNNEL_NAME}"
+
+# Update the cloudflared configuration
+$TUNNEL_ID="(cloudflared tunnel list | Select-String -Pattern " $CF_TUNNEL_NAME ").ToString().Split(" ")[0]"
+if (! [String]::IsNullOrEmpty($TUNNEL_ID)){
+  cloudflared tunnel route ip add 100.64.0.0/10 "$TUNNEL_ID"
+  CONFIG_TMP="$(mktemp)"
+  "tunnel: $TUNNEL_ID" | Out-File -FilePath "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json"
+  "credentials-file: C:\Windows\System32\config\systemprofile\.cloudflared\$TUNNEL_ID.json" | Out-File -FilePath "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json" -Append
+  "ingress:" | Out-File -FilePath "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json" -Append
+  "  - hostname: $DEFAULT_DOMAIN" | Out-File -FilePath "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json" -Append
+  "    service: ssh://localhost:$SSH_PORT" | Out-File -FilePath "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json" -Append
+  "logfile:  C:\Cloudflared\cloudflared.log" | Out-File -FilePath "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json" -Append
+
+  Copy-Item "C:\Users\$($env:USERNAME)\.cloudflared\$TUNNEL_ID.json" C:\Windows\System32\config\systemprofile\.cloudflared\$TUNNEL_ID.json
+
+  $regsitryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Cloudflared"
+  if (! (Test-Path $regsitryPath)){
+    New-Item -Path $regsitryPath -Force | Out-Null
+    New-ItemProperty -Path $regsitryPath -Name "ImagePath" -Value "$env:PROGRAMDATA\chocolatey\bin\cloudflared.exe --config=C:\Users\$($env:USERNAME)\.cloudflared\config.yml tunnel run" | Out-Null
+  }else{
+    New-ItemProperty -Path $regsitryPath -Name "ImagePath" -Value "$env:PROGRAMDATA\chocolatey\bin\cloudflared.exe --config=C:\Users\$($env:USERNAME)\.cloudflared\config.yml tunnel run" | Out-Null
+  }
+
+  Set-Location -Path C:\Cloudflared\bin
+  Start-Service cloudflared
+}
+
+# Restart if the config file changed
+if ( ! (Test-Path "C:\Users\$($env:USERNAME)\.cloudflared\config-previous.yml") -or
+  ($(Get-FileHash "C:\Users\$($env:USERNAME)\.cloudflared\config.yml").Hash -ne
+  $(Get-FileHash "C:\Users\$($env:USERNAME)\.cloudflared\config-previous.yml").Hash)) {
+  Restart-Service cloudflared
+  Copy-Item "C:\Users\$($env:USERNAME)\.cloudflared\config.yml" "C:\Users\$($env:USERNAME)\.cloudflared\config-previous.yml"
+}

@@ -4,19 +4,6 @@
   hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
   connection: local
   tasks:
-    #- name: Ensure TemplateVMs are initialized
-    #  qubesos:
-    #    guest: test-tvm
-    #    state: present
-    #    vmtype: TemplateVM
-    #    properties:
-    #      autostart: false
-    #      label: black
-    #      memory: 2048
-    #      maxmem: 4096
-    #      netvm: sys-firewall
-    #      provides_network: false
-    #      vcpus: 2
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
         - name: Check for presence of /srv/user_salt
@@ -179,34 +166,6 @@
   hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
   connection: local
   tasks:
-#    # Set up TemplateVMs
-#    - name: Ensure TemplateVMs are initialized
-#      qubesos:
-#        guest: '{{ vm.name | lower }}{%if (vm.dvm == true) %}-dvm{% endif %}'
-#        state: present
-#        vmtype: TemplateVM
-#        properties:
-#          autostart: false
-#          default_dispvm: "{%if ((vm.virt_mode | default('none')) == 'hvm') and (vm.default_dispvm is not defined)) %}{{ omit }}{% else %}{{ vm.default_dispvm | default('debian-11-dvm') }}{% endif %}"
-#          features: '{{ vm.features | default(omit) }}'
-#          include_in_backups: '{{ vm.include_in_backups | default(true) }}'
-#          kernel: "{% if ((vm.virt_mode | default('none')) == 'hvm') %}{% else %}{{ omit }}{% endif %}"
-#          label: "{{ vm.color | default('black') }}"
-#          memory: "{{ vm.memory | default('2048') }}"
-#          maxmem: "{{ vm.maxmem | default('4096') }}"
-#          netvm: "{{ vm.netvm | default('sys-firewall') }}"
-#          provides_network: '{{ vm.provides_network | default(false) }}'
-#          template_for_dispvms: '{{ vm.dvm == true }}'
-#          vcpus: "{{ vm.vcpus | default(2) }}"
-#          virt_mode: "{{ vm.virt_mode | default(omit) }}"
-#          volume:
-#            name: root
-#            size: "{{ vm.volume.root | default('20g') }}"
-#      loop: '{{ qubes_vms | default([]) }}'
-#      loop_control:
-#        label: '{{ vm.name }}'
-#        loop_var: vm
-
 #    - name: Ensure VMs not included in the qubes_vms list have the hardened-VM service enabled
 #      include_tasks: qubes/harden-vm.yml
 #      loop:
@@ -281,36 +240,3 @@
           binds+=( '/var/lib/docker' )
           binds+=( '/etc/docker' )
         dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
-
-#- name: Finish configuring dom0
-#  connection: local
-#  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
-#  tasks:
-#    # Initialize all the template-based AppVMs
-#    - name: Ensure AppVMs/DisposableVMs are initialized
-#      qubesos:
-#        guest: '{{ vm.name }}{%if (vm.dvm == true) %}-dvm{% endif %}'
-#        state: present
-#        vmtype: "{% if ((vm.type is not defined) and ((vm.virt_mode | default('none')) == 'hvm')) %}AppVM{% else %}{{ vm.type | default('AppVM') }}{% endif %}"
-#        properties:
-#          autostart: '{{ vm.autostart | default(false) }}'
-#          default_dispvm: "{{ vm.default_dispvm | default('debian-11-dvm') }}"
-#          features: '{{ vm.features | default(omit) }}'
-#          include_in_backups: '{{ vm.include_in_backups | default(true) }}'
-#          kernel: "{% if ((vm.virt_mode | default('none')) == 'hvm') %}{% else %}{{ omit }}{% endif %}"
-#          label: "{{ vm.color | default('black') }}"
-#          memory: "{{ vm.memory | default('2048') }}"
-#          maxmem: "{{ vm.maxmem | default('4096') }}"
-#          netvm: "{{ vm.netvm | default('sys-firewall') }}"
-#          provides_network: '{{ vm.provides_network | default(false) }}'
-#          template: '{{ vm.name | lower }}'
-#          template_for_dispvms: false
-#          vcpus: '{{ vm.vcpus | default(2) }}'
-#          virt_mode: '{{ vm.virt_mode | default(omit) }}'
-#          volume:
-#            name: private
-#            size: "{{ vm.volume.private | default('5g') }}"
-#      loop: '{{ qubes_vms | default([]) }}'
-#      loop_control:
-#        label: '{{ vm.name }}'
-#        loop_var: vm

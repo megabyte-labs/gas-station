@@ -108,9 +108,9 @@ else
   else
     if [ -d /etc/ansible/playbooks ]; then
       cd /etc/ansible
-      git pull origin master
+      sudo git pull origin master
       cd /etc/ansible/.modules/ansible-qubes
-      git pull origin master
+      sudo git pull origin master
     else
       sudo rm -rf /etc/ansible
       cd /etc

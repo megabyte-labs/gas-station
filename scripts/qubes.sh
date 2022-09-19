@@ -161,8 +161,8 @@ echo "Symlinking roles to their corresponding Ansible Galaxy folder names"
 while read ROLE_PATH; do
   ROLE_FOLDER="professormanhattan.$(basename "$ROLE_PATH")"
   if [ ! -d "/etc/ansible/roles/$ROLE_FOLDER" ]; then
-    rm -rf "/etc/ansible/roles/$ROLE_FOLDER"
-    ln -sf "$ROLE_PATH" "/etc/ansible/roles/$ROLE_FOLDER"
+    sudo rm -rf "/etc/ansible/roles/$ROLE_FOLDER"
+    sudo ln -sf "$ROLE_PATH" "/etc/ansible/roles/$ROLE_FOLDER"
   fi
 done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 

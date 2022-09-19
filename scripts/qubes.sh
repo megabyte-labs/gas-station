@@ -64,8 +64,11 @@ fi
 
 if [ ! -f /tmp/templatevms_updated ]; then
   sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
-  RESTARTED_VMS=$(qvm-ls --all --no-spinner --fields=name,state | grep Running | awk '{print $1}')
-  qvm-shutdown --wait --all
+  while read RESTART_VM; do
+    qvm-shutdown --wait "$RESTART_VM"
+  done< <(qvm-ls --all --no-spinner --fields=name,state | grep Running | grep -v sys-net | grep -v sys-firewall | grep -v dom0 | awk '{print $1}')
+  qvm-shutdown sys-firewall
+  qvm-shutdown sys-net
   qvm-start sys-net
   qvm-start sys-firewall
   qvm-start sys-whonix

@@ -23,15 +23,15 @@
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
         - name: Check for presence of /srv/user_salt
+          become: true
           stat:
             path: /srv/user_salt
           register: srv_user_salt
-        - name: Ensure that the /srv/user_salt Salt directory exists
+        - name: Ensure /srv/user_salt is a directory
           become: true
-          shell: qubesctl state.highstate || exit $? ; echo CHANGED ;
-          register: saltdirs
-          changed_when: "'CHANGED' in saltdirs.stdout"
-          when: not srv_user_salt.stat.exists
+          ansible.builtin.file:
+            state: directory
+            path: /srv/user_salt
         - name: Configure Qubes Salt formula and the top file
           become: true
           qubesformation:

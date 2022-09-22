@@ -15,7 +15,7 @@
       become: true
       copy:
         content: |
-          dom0_provision_time={{ ansible_date_time.iso8601 }}
+          provision_time={{ ansible_date_time.iso8601 }}
         dest: /etc/ansible/facts.d/qubes.fact
 
     - name: Initializing dom0 if it has been over 4 hours since the last system update
@@ -73,8 +73,8 @@
           when: "'.top' in qubesctl_top_grep.stdout"
           # TODO add changed_when
       when:
-        - (ansible_local.qubes is not defined) or
-          ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)
+        - (qubes is not defined) or
+          ((((ansible_date_time.iso8601 - qubes.provision_time).total_seconds() / (3600 * 4)) | int) > 0)
 
 - name: Make MAC addresses random (randomized every reboot)
   hosts: network-disp

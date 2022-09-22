@@ -103,7 +103,7 @@ if [[ "$USE_DOM0" == "true" ]] && [[ "$(hostname)" == "dom0" ]]; then
 else
   if [[ "$(hostname)" == "dom0" ]]; then
     qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
-    qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
+    qvm-run --pass-io "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
     exit 0
   else
     if [ -d /etc/ansible/playbooks ]; then

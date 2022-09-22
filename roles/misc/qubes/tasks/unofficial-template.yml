@@ -12,8 +12,17 @@
       qvm-run --pass-io unofficial-templates 'cat /home/user/Downloads/{{ item.file }}' > "/tmp/{{ item.file }}"
   async: 3667
   poll: 0
+  register: async_unofficial_rpm_download
   when:
     - not unofficial_template_folder.stat.exists
+
+- name: Wait for download to finish
+  async_status:
+    jid: "{{ async_unofficial_rpm_download.ansible_job_id }}"
+  register: async_job_result
+  until: async_job_result.finished
+  retries: 37
+  delay: 24
 
 - name: "Ensure the {{ item.name }} template is installed"
   become: true

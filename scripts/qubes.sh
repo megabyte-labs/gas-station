@@ -74,10 +74,10 @@ if [[ "$(hostname)" == "dom0" ]]; then
     touch /tmp/templatevms_updated
   fi
 
-  sudo echo "/bin/bash" > /etc/qubes-rpc/qubes.VMShell
+  echo "/bin/bash" | sudo tee /etc/qubes-rpc/qubes.VMShell
   sudo chmod 755 /etc/qubes-rpc/qubes.VMShell
-  sudo echo "$ANSIBLE_PROVISION_VM"' dom0 allow' > /etc/qubes-rpc/policy/qubes.VMShell
-  sudo echo "$ANSIBLE_PROVISION_VM"' $anyvm allow' >> /etc/qubes-rpc/policy/qubes.VMShell
+  echo "$ANSIBLE_PROVISION_VM"' dom0 allow' | sudo tee /etc/qubes-rpc/policy/qubes.VMShell
+  echo "$ANSIBLE_PROVISION_VM"' $anyvm allow' | sudo tee -a /etc/qubes-rpc/policy/qubes.VMShell
   sudo chown "$(whoami):$(whoami)" /etc/qubes-rpc/policy/qubes.VMShell
   sudo chmod 644 /etc/qubes-rpc/policy/qubes.VMShell
 fi

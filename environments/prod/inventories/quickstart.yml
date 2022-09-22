@@ -123,6 +123,12 @@ appvms:
           volume:
             private: 20g
             root: 40g
+        pritunl-server:
+          qubes:
+            netvm: opnsense
+            netvm_vm: opnsense
+            template: pritunl-server-template
+            template_vm: pritunl-server-template
         provision:
           qubes:
             netvm: vpn-pritunl
@@ -171,14 +177,16 @@ netvms:
         template_vm: opnsense-template
       volume:
         root: 40g
-    seconion:
-      ansible_password: "{{ lookup('env', 'SECONION_PASSWORD') }}"
-      ansible_user: "{{ lookup('env', 'SECONION_USER') }}"
-      qubes:
-        template: seconion-template
-        template_vm: seconion-template
-      volume:
-        root: 400g
+    # TODO - Add Security Onion to stack.
+    # Note - Ideally it should be run on another offline computer passively tapped into the Ethernet but in the spirit of mashing everything into one computer.. leaving this as a note for now -- PRs weldome
+    # seconion:
+    #   ansible_password: "{{ lookup('env', 'SECONION_PASSWORD') }}"
+    #   ansible_user: "{{ lookup('env', 'SECONION_USER') }}"
+    #   qubes:
+    #     template: seconion-template
+    #     template_vm: seconion-template
+    #   volume:
+    #     root: 400g
   vars:
     ansible_connection: ssh
     qubes:
@@ -252,35 +260,49 @@ templatevms:
         development-template:
         gpg-template:
           qubes:
-            template: fedora-36-minimal
-            vm_type: TemplateVM
+            source: fedora-36-minimal
         media-template:
         personal-template:
+        pritunl-server-template:
+          qubes:
+            source: centos-8
         provision-template:
         remote-template:
         swarm-template:
         vpn-template:
           qubes:
-            template: fedora-36-minimal
-            vm_type: TemplateVM
+            source: fedora-36-minimal
         vault-template:
           qubes:
-            template: fedora-36-minimal
-            vm_type: TemplateVM
+            source: fedora-36-minimal
         work-template:
       vars:
         qubes:
-          template_vm: fedora-36
-          vm_type: TemplateVM
+          source: fedora-36
     desktoptemplates:
       hosts:
+        # TODO Add version numbers in these template names
         archlinux-desktop-template:
+        archlinux-desktop-base-template:
         centos-desktop-template:
+        centos-desktop-base-template:
+        centos-server-template:
         debian-desktop-template:
+        debian-desktop-base-template:
+        debian-server-template:
         fedora-desktop-template:
+        fedora-desktop-base-template:
+        fedora-server-template:
         macos-desktop-template:
+        macos-desktop-base-template:
         ubuntu-desktop-template:
+        ubuntu-desktop-base-template:
+        ubuntu-server-template:
         windows-desktop-template:
+          ansible_connection: winrm
+        windows-desktop-base-template:
+          ansible_connection: winrm
+        windows-server-template:
           ansible_connection: winrm
       vars:
         ansible_connection: ssh
@@ -301,30 +323,25 @@ templatevms:
             pcidevs: '{{ sys_net_pcidevs | default([]) }}'
           volume:
             root: 40g
-        pritunl-template:
-          ansible_password: "{{ lookup('env', 'PRITUNL_PASSWORD') }}"
-          ansible_user: "{{ lookup('env', 'PRITUNL_USER') }}"
-          volume:
-            root: 10g
-        seconion-template:
-          ansible_password: "{{ lookup('env', 'SECONION_PASSWORD') }}"
-          ansible_user: "{{ lookup('env', 'SECONION_USER') }}"
-          volume:
-            root: 10g
+        # seconion-template:
+        #   ansible_password: "{{ lookup('env', 'SECONION_PASSWORD') }}"
+        #   ansible_user: "{{ lookup('env', 'SECONION_USER') }}"
+        #   volume:
+        #     root: 10g
       vars:
         ansible_connection: ssh
         qubes:
           kernel: ''
+          template_for_dispvms: true
           virt_mode: hvm
     dispvmtemplates:
       hosts:
-        anonymous-disp:
+        anonymous-dvm:
           qubes:
-            template: whonix-ws-16
-            template_vm: whonix-ws-16
             services:
               appmenus-dispvm: true
-        web-disp:
+            source: whonix-ws-16
+        web-dvm:
           qubes:
             services:
               appmenus-dispvm: true
@@ -332,9 +349,8 @@ templatevms:
         qubes:
           services:
             vm-boot-protect: true
-          template: fedora-36
           template_for_dispvms: true
-          template_vm: fedora-36
+          source: fedora-36
           vm_type: TemplateVM
 
 standalonevms:
@@ -351,6 +367,9 @@ standalonevms:
   children:
     desktopstandalones:
       hosts:
+        # By default, only initialize standalones for the fully loaded environments
+        # If you just want a default ubuntu HVM, for instance, then qvm-clone from the
+        # `ubuntu-desktop-base-template` TemplateVM
         archlinux-desktop:
           qubes:
             template: archlinux-desktop-template
@@ -363,6 +382,10 @@ standalonevms:
           qubes:
             template: debian-desktop-template
             template_vm: debian-desktop-template
+        debian-server:
+          qubes:
+            template: debian-server-template
+            template_vm: debian-server-template
         fedora-desktop:
           qubes:
             template: fedora-desktop-template
@@ -389,17 +412,6 @@ standalonevms:
           netvm_vm: vpn-proton
         volume:
           root: 50g
-    networkstandalones:
-      hosts:
-        pritunl:
-          ansible_connection: ssh
-          ansible_password: "{{ lookup('env', 'PRITUNL_PASSWORD') }}"
-          ansible_user: "{{ lookup('env', 'PRITUNL_USER') }}"
-          qubes:
-            netvm: opnsense
-            netvm_vm: opnsense
-            template: pritunl-template
-            template_vm: pritunl-template
 
 systemvms:
   hosts:

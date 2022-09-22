@@ -4,6 +4,19 @@
   hosts: dom0
   connection: qubes
   tasks:
+    # Cache time so this block can be skipped on subsequent runs
+    - name: Ensure directory for custom Ansible facts exists
+      become: true
+      ansible.builtin.file:
+        state: directory
+        recurse: yes
+        path: /etc/ansible/facts.d
+    - name: Write time to file for determining whether or not this block should run (on subsequent runs)
+      become: true
+      copy:
+        content: |
+          dom0_provision_time={{ ansible_date_time.iso8601 }}
+        dest: /etc/ansible/facts.d/qubes.fact
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
         - name: Check for presence of /srv/user_salt
@@ -52,20 +65,6 @@
               - yubikey
           include_role:
             name: professormanhattan.qubes
-
-        # Cache time so this block can be skipped on subsequent runs
-        - name: Ensure directory for custom Ansible facts exists
-          become: true
-          ansible.builtin.file:
-            state: directory
-            recurse: yes
-            path: /etc/ansible/facts.d
-        - name: Write time to file for determining whether or not this block should run (on subsequent runs)
-          become: true
-          copy:
-            content: |
-              dom0_provision_time={{ ansible_date_time.iso8601 }}
-            dest: /etc/ansible/facts.d/qubes.fact
       when:
         - (ansible_local.qubes is not defined) or
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)

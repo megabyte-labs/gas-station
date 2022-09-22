@@ -106,6 +106,7 @@ if [[ "$USE_DOM0" == "true" ]] && [[ "$(hostname)" == "dom0" ]]; then
 else
   if [[ "$(hostname)" == "dom0" ]]; then
     qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
+    qvm-volume extend "$ANSIBLE_PROVISION_VM:private" "50G"
     qvm-run --pass-io "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
     exit 0
   else

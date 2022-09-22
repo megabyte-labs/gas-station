@@ -5,14 +5,18 @@
   register: unofficial_template_folder
 
 - name: Download the unofficial template's RPM file
-  shell:
-    cmd: |
-      qvm-create --label red --template debian-11 unofficial-templates &> /dev/null || EXIT_CODE=$?
-      qvm-run unofficial-templates 'curl -O {{ item.link }} > /tmp/{{ item.file }}'
-      qvm-run --pass-io unofficial-templates 'cat /tmp/{{ item.file }}' > "/tmp/{{ item.file }}"
-  register: async_unofficial_rpm_download
-  when:
-    - not unofficial_template_folder.stat.exists
+  # TODO Figure out how to handle when dom0 is running the Ansible play
+  delegate_to: localhost
+  ansible.builtin.get_url:
+    url: "{{ item.link }}"
+    dest: "/home/user/Downloads/{{ item.file }}"
+  when: not unofficial_template_folder.stat.exists
+
+- name: Copy over the unofficial template's RPM file
+  copy:
+    src: /home/user/Downloads/{{ item.file }}
+    dest: /tmp/{{ item.file }}
+  when: not unofficial_template_folder.stat.exists
 
 - name: "Ensure the {{ item.name }} template is installed"
   become: true

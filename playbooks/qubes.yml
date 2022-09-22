@@ -37,6 +37,12 @@
       ansible.builtin.file:
         state: directory
         path: /srv/user_salt
+    - name: Ensure blank template exists
+      shell:
+        cmd: qvm-create --class TemplateVM --label black blank
+      register: blank_register
+      changed_when: "'blank already exists' not in blank_register.stderr"
+      failed_when: false
     - name: Configure Qubes Salt formula and the top file
       become: true
       qubesformation:
@@ -53,12 +59,6 @@
         cmd: qubesctl top.enable structure && echo CHANGED
       register: enableformation
       changed_when: "'CHANGED' in enableformation.stdout"
-    - name: Ensure blank template exists
-      shell:
-        cmd: qvm-create --class TemplateVM --label black blank
-      register: blank_register
-      changed_when: "'blank already exists' not in blank_register.stderr"
-      failed_when: false
     - name: Realize Qubes formation
       become: true
       qubessls:

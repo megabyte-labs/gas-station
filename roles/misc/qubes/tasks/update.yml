@@ -114,34 +114,19 @@
   block:
     - name: Install the template asynchronously
       include_tasks: unofficial-template.yml
-  register: unofficial_template_task
+      register: unofficial_template_task[{{ item.template }}]
   async: 3600
   poll: 0
-  loop:
-    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-archlinux-4.0.6-202204171510.noarch.rpm
-      file: qubes-template-archlinux-4.0.6-202204171510.noarch.rpm
-      name: Archlinux
-      template: archlinux
-    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-debian-12-4.0.6-202208292254.noarch.rpm
-      file: qubes-template-debian-12-4.0.6-202208292254.noarch.rpm
-      name: Debian 12
-      template: debian-12
-    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-jammy-4.0.6-202205012228.noarch.rpm
-      file: qubes-template-jammy-4.0.6-202205012228.noarch.rpm
-      name: Ubuntu 22.04 Jammy
-      template: jammy
-    - link: https://qubes.3isec.org/Templates_4.1/qubes-template-parrot_full-4.0.6-202208302103.noarch.rpm
-      file: qubes-template-parrot_full-4.0.6-202208302103.noarch.rpm
-      name: Parrot
-      template: parrot
+  loop: "{{ unofficial_templates }}"
 
 - name: Wait for unofficial templates to finish installing
   async_status:
-    jid: "{{ unofficial_template_task.ansible_job_id }}"
+    jid: "{{ unofficial_template_task[item.template].ansible_job_id }}"
   register: async_unofficial_job_result
   until: async_unofficial_job_result.finished
   retries: 999
   delay: 20
+  loop: "{{ unofficial_templates }}"
 
 - name: Wait for download to finish
   async_status:

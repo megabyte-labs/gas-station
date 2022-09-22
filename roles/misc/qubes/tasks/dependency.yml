@@ -15,10 +15,10 @@
   become: true
   command: dnf search {{ item.package | default(item) }}{{ dnf_search_options | default(omit) }}
   changed_when: false
-  register: dependency_dnf_search
+  register: dependency_dnf_search_alt
   when: item.excludes is defined
 
 - name: Ensure {{ item.package | default(item) }} is installed
   become: true
   command: qubes-dom0-update -y {{ item.package | default(item) }}
-  when: "'No matches found.' in dependency_dnf_search.stdout"
+  when: "((dependency_dnf_search.stdout is defined) and ('No matches found.' in dependency_dnf_search.stdout)) or ((dependency_dnf_search_alt.stdout is defined) and ('No matches found.' in dependency_dnf_search_alt.stdout))"

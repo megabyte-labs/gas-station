@@ -27,7 +27,7 @@ tasks:
         sh: type git &> /dev/null && git rev-parse HEAD
       SLUG:
         sh: jq -r '.blueprint.slug' package.json
-      TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}'
+      TAG_POST: '{{if .CLI_ARGS}}{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}{{end}}'
       VERSION:
         sh: jq -r '.version' package.json
     run: when_changed
@@ -88,7 +88,7 @@ tasks:
               -r '.blueprint.dockerSlimCommand[$type]' package.json)"
             fi
           fi
-      TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}'
+      TAG_POST: '{{if .CLI_ARGS}}{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}{{end}}'
     log:
       error: Error building `{{.DOCKER_IMAGE}}:slim` with `docker-slim`
       start: Building Docker container named `{{.DOCKER_IMAGE}}:slim`
@@ -135,7 +135,7 @@ tasks:
     vars:
       SLUG:
         sh: echo "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$(jq -r '.blueprint.slug' package.json){{end}}"
-      TAG_POST: '{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}'
+      TAG_POST: '{{if .CLI_ARGS}}{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}{{end}}'
     log:
       error: Encountered error while generating compressed Docker image tar file
       start: Generating compressed Docker image tar file(s)
@@ -161,9 +161,9 @@ tasks:
       PREVIOUS_SLIM_SIZE:
         sh: jq --arg slug '{{.DOCKER_IMAGE_SLUG}}' -r '.blueprint.dockerSlimSize[$slug]' package.json
       REGULAR_SIZE:
-        sh: stat -c%s latest{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}.tar.gz | numfmt --to iec
+        sh: stat -c%s latest{{if .CLI_ARGS}}{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}{{end}}.tar.gz | numfmt --to iec
       SLIM_SIZE:
-        sh: stat -c%s slim{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}.tar.gz | numfmt --to iec
+        sh: stat -c%s slim{{if .CLI_ARGS}}{{if ne .DOCKER_BASE_TAG .CLI_ARGS}}-{{.CLI_ARGS}}{{end}}{{end}}.tar.gz | numfmt --to iec
     log:
       error: Failed to acquire / inject `:slim` image file size information into `package.json` blueprint data
       start: Injecting `:slim` image file size into `package.json` blueprint data

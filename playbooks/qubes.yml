@@ -4,61 +4,61 @@
   hosts: dom0
   connection: qubes
   tasks:
-    - name: Initializing dom0 if it has been over 4 hours since the last system update
-      block:
-        # Run the Qubes dom0 role to enable features / update
-        - name: Update and configure dom0
-          vars:
-            dom0_features:
-              - dotfiles
-              - grub
-              - new-menu
-              - plymouth
-              - split-gpg
-              - sudo-prompt
-              # - sys-gui
-              - sys-usb
-              - theme
-              - tweaks
-              # - tor-updates
-              - u2f
-              - update
-              - yubikey
-              #  - dotfiles
-          include_role:
-            name: professormanhattan.qubes
-        - name: Check for presence of /srv/user_salt
-          become: true
-          stat:
-            path: /srv/user_salt
-          register: srv_user_salt
-        - name: Ensure /srv/user_salt is a directory
-          become: true
-          ansible.builtin.file:
-            state: directory
-            path: /srv/user_salt
-        - name: Configure Qubes Salt formula and the top file
-          become: true
-          qubesformation:
-            dest: /srv/user_salt/structure.sls
-        - name: Ensure top.enabled is activated
-          become: true
-          shell:
-            cmd: qubesctl top.enabled
-          failed_when: false
-          changed_when: false
-        - name: Enable Qubes Salt formula
-          become: true
-          shell:
-            cmd: qubesctl top.enable structure && echo CHANGED
-          register: enableformation
-          changed_when: "'CHANGED' in enableformation.stdout"
-        - name: Realize Qubes formation
-          become: true
-          qubessls:
-            sls: structure
-            env: user
-          # TODO add changed_when
+    # Prepare dom0
+    - name: Update and configure dom0
+      vars:
+        dom0_features:
+          - dotfiles
+          - grub
+          - new-menu
+          - plymouth
+          - split-gpg
+          - sudo-prompt
+          # - sys-gui
+          - sys-usb
+          - theme
+          - tweaks
+          # - tor-updates
+          - u2f
+          - update
+          - yubikey
+          #  - dotfiles
+      include_role:
+        name: professormanhattan.qubes
+
+    # Initialize the VMs
+    - name: Check for presence of /srv/user_salt
+      become: true
+      stat:
+        path: /srv/user_salt
+      register: srv_user_salt
+    - name: Ensure /srv/user_salt is a directory
+      become: true
+      ansible.builtin.file:
+        state: directory
+        path: /srv/user_salt
+    - name: Configure Qubes Salt formula and the top file
+      become: true
+      qubesformation:
+        dest: /srv/user_salt/structure.sls
+    - name: Ensure top.enabled is activated
+      become: true
+      shell:
+        cmd: qubesctl top.enabled
+      failed_when: false
+      changed_when: false
+    - name: Enable Qubes Salt formula
+      become: true
+      shell:
+        cmd: qubesctl top.enable structure && echo CHANGED
+      register: enableformation
+      changed_when: "'CHANGED' in enableformation.stdout"
+    - name: Realize Qubes formation
+      become: true
+      qubessls:
+        sls: structure
+        env: user
+      # TODO add changed_when
 
 - name: Make MAC addresses random (randomized every reboot)
   hosts: debian-11-sys-net-dvm

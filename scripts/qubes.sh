@@ -98,6 +98,9 @@ if [[ "$USE_DOM0" == "true" ]] && [[ "$(hostname)" == "dom0" ]]; then
   mv "$HOME/ansible-qubes-master" "$HOME/Playbooks/.modules/ansible-qubes"
   # Move files to appropriate locations
   echo "Unpacking Gas Station"
+  if [ -d "/etc/ansible/facts.d" ]; then
+    cp -rf /etc/ansible/facts.d "$HOME/Playbooks/facts.d"
+  fi
   sudo rm -rf '/etc/ansible'
   sudo mv "$HOME/Playbooks" '/etc/ansible'
 else
@@ -112,9 +115,15 @@ else
       cd /etc/ansible/.modules/ansible-qubes
       sudo git pull origin master
     else
+      if [ -d "/etc/ansible/facts.d" ]; then
+        cp -rf /etc/ansible/facts.d /tmp/ansible-facts
+      fi
       sudo rm -rf /etc/ansible
       cd /etc
       sudo git clone https://gitlab.com/megabyte-labs/gas-station.git ansible
+      if [ -d "/etc/ansible/facts.d" ]; then
+        cp -rf /tmp/ansible-facts /etc/ansible/facts.d
+      fi
       sudo rm -rf /etc/ansible/.modules/ansible-qubes
       cd /etc/ansible/.modules
       sudo git clone https://github.com/ProfessorManhattan/ansible-qubes.git ansible-qubes

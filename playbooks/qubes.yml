@@ -17,35 +17,9 @@
         content: |
           dom0_provision_time={{ ansible_date_time.iso8601 }}
         dest: /etc/ansible/facts.d/qubes.fact
+
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
-        - name: Check for presence of /srv/user_salt
-          become: true
-          stat:
-            path: /srv/user_salt
-          register: srv_user_salt
-        - name: Ensure /srv/user_salt is a directory
-          become: true
-          ansible.builtin.file:
-            state: directory
-            path: /srv/user_salt
-        - name: Configure Qubes Salt formula and the top file
-          become: true
-          qubesformation:
-            dest: /srv/user_salt/myprovisionedvms.sls
-        - name: Enable Qubes Salt formula
-          become: true
-          shell:
-            cmd: |
-              qubesctl top.enabled | grep myprovisionedvms.top || { qubesctl top.enable myprovisionedvms && echo CHANGED || exit 1 ; }
-          register: enableformation
-          changed_when: "'CHANGED' in enableformation.stdout"
-        - name: Realize Qubes formation
-          become: true
-          qubessls:
-            sls: myprovisionedvms
-            env: user
-
         # Run the Qubes dom0 role to enable features / update
         - name: Update and configure dom0
           vars:
@@ -65,6 +39,39 @@
               - yubikey
           include_role:
             name: professormanhattan.qubes
+        - name: Check for presence of /srv/user_salt
+          become: true
+          stat:
+            path: /srv/user_salt
+          register: srv_user_salt
+        - name: Ensure /srv/user_salt is a directory
+          become: true
+          ansible.builtin.file:
+            state: directory
+            path: /srv/user_salt
+        - name: Configure Qubes Salt formula and the top file
+          become: true
+          qubesformation:
+            dest: /srv/user_salt/structure.sls
+        - name: Ensure top.enabled is activated
+          become: true
+          command: qubesctl top.enabled | grep structure.top
+          changed_when: false
+          register: qubesctl_top_grep
+        - name: Enable Qubes Salt formula
+          become: true
+          shell:
+            cmd: qubesctl top.enable structure && echo CHANGED
+          register: enableformation
+          changed_when: "'CHANGED' in enableformation.stdout"
+          when: "'.top' in qubesctl_top_grep.stdout"
+        - name: Realize Qubes formation
+          become: true
+          qubessls:
+            sls: structure
+            env: user
+          when: "'.top' in qubesctl_top_grep.stdout"
+          # TODO add changed_when
       when:
         - (ansible_local.qubes is not defined) or
           ((((ansible_date_time.iso8601 - ansible_local.qubes.dom0_provision_time).total_seconds() / (3600 * 4)) | int) > 0)

@@ -1,13 +1,18 @@
 ---
 - name: "Copy the {{ item | basename }} Plasmoid to a temporary location"
-  become: true
   copy:
     src: "{{ item }}"
     dest: "/tmp/{{ item | basename }}"
 
-- name: "Install the {{ item | basename }} Plasmoid"
+- name: "Install the {{ item | basename }} Plasmoid globally (fallback for new users)"
   become: true
   command: "plasmapkg2 -g -i /tmp/{{ item | basename }}"
+  register: plasmapkg_register
+  changed_when: "'already exists' not in plasmapkg_register.stderr"
+  failed_when: "(plasmapkg_register.rc != 0) and ('already exists' not in plasmapkg_register.stderr)"
+
+- name: "Install the {{ item | basename }} Plasmoid to the local user (allows settings to be saved)"
+  command: "plasmapkg2 -i /tmp/{{ item | basename }}"
   register: plasmapkg_register
   changed_when: "'already exists' not in plasmapkg_register.stderr"
   failed_when: "(plasmapkg_register.rc != 0) and ('already exists' not in plasmapkg_register.stderr)"

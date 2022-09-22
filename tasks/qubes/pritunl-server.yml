@@ -1,4 +1,10 @@
 ---
+- name: Check for presence of Pritunl server installation indicator
+  become: true
+  stat:
+    path: /root/.pritunl_installed
+  register: pritunl_install_indicator
+
 - name: Run the init script for the Pritunl server (for CentOS 8)
   shell:
     cmd: |
@@ -25,3 +31,5 @@
       sudo yum -y install pritunl mongodb-org
       sudo systemctl start mongod pritunl
       sudo systemctl enable mongod pritunl
+      sudo touch /root/.pritunl_installed
+  when: not pritunl_install_indicator.stat.exists

@@ -99,8 +99,6 @@
   changed_when: qubesctl_template_update.stdout | regex_search('Succeeded. [0-9]* \(changed=[0-9]*\)') is not none
   failed_when: qubesctl_template_update.stdout | regex_search('Failed. *[1-9]+[0-9]*') is not none
   when: not templatevm_update_status.stat.exists
-  async: 3667
-  poll: 0
 
 - name: Create dummy temporary file used to determine whether or not to skip update process
   copy:
@@ -112,24 +110,4 @@
 # TODO: Add logic to import GPG key and verify these downloads
 - name: Install unman templates (from unman)
   include_tasks: unofficial-template.yml
-  register: "unofficial_template_task[{{ item.template }}]"
-  async: 3600
-  poll: 0
   loop: "{{ unofficial_templates }}"
-
-- name: Wait for unofficial templates to finish installing
-  async_status:
-    jid: "{{ unofficial_template_task[item.template].ansible_job_id }}"
-  register: async_unofficial_job_result
-  until: async_unofficial_job_result.finished
-  retries: 999
-  delay: 20
-  loop: "{{ unofficial_templates }}"
-
-- name: Wait for download to finish
-  async_status:
-    jid: "{{ qubesctl_template_update.ansible_job_id }}"
-  register: async_qubesctl_job_result
-  until: async_qubesctl_job_result.finished
-  retries: 999
-  delay: 20

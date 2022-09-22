@@ -49,8 +49,11 @@ tasks:
       - jq '. | .default_path = "./.bin" | .bins = {}' <<< $(echo '{}') > "$HOME/.config/bin/config.json"
       - |
         if [ -n "$CI" ]; then echo "*************** GitHub --> {{.BIN}}"; fi
-      - .config/log info "PATH variable --> $PATH"
-      - bin install -f {{.PACKAGE}} "$GOPATH/bin/{{.BIN}}"
+      - |
+        if [ -z "$GOPATH" ]; then
+          export GOPATH="$HOME/.local/go"
+        fi
+        bin install -f {{.PACKAGE}} "$GOPATH/bin/{{.BIN}}"
     status:
       - type {{.BIN}} > /dev/null || [ -n "$NO_INSTALL_HOMEBREW" ]
 

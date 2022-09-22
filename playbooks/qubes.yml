@@ -6,6 +6,10 @@
   tasks:
     - name: Initializing dom0 if it has been over 4 hours since the last system update
       block:
+        - name: Display all variables/facts known for a host
+          debug:
+            var: hostvars[inventory_hostname]
+          tags: debug_info
         # Cache time so this block can be skipped on subsequent runs
         - name: Ensure directory for custom Ansible facts exists
           become: true
@@ -56,10 +60,9 @@
         - name: Ensure top.enabled is activated
           become: true
           shell:
-            cmd: qubesctl top.enabled | grep structure.top
+            cmd: qubesctl top.enabled
           failed_when: false
           changed_when: false
-          register: qubesctl_top_grep
         - name: Enable Qubes Salt formula
           become: true
           shell:
@@ -71,7 +74,6 @@
           qubessls:
             sls: structure
             env: user
-          when: "'.top' in qubesctl_top_grep.stdout"
           # TODO add changed_when
       when:
         - (ansible_local.qubes.ansible.provision_time is not defined) or

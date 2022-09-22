@@ -53,12 +53,24 @@
         cmd: qubesctl top.enable structure && echo CHANGED
       register: enableformation
       changed_when: "'CHANGED' in enableformation.stdout"
+    - name: Ensure blank template exists
+      shell:
+        cmd: qvm-create --class TemplateVM --label black blank
+      register: blank_register
+      changed_when: "'blank already exists' not in blank_register.stderr"
+      failed_when: false
     - name: Realize Qubes formation
       become: true
       qubessls:
         sls: structure
         env: user
       # TODO add changed_when
+    - name: Remove blank template
+      shell:
+        cmd: qvm-remove --force blank
+      register: blank_register_remove
+      changed_when: "'no such domain' not in blank_register_remove.stderr"
+      failed_when: false
 
 - name: Make MAC addresses random (randomized every reboot)
   hosts: debian-11-sys-net-dvm

@@ -8,6 +8,7 @@
 #   that is using the Megabyte Labs templating/taskfile system. The `start` task will
 #   ensure that the latest upstream changes are retrieved, that the project is
 #   properly generated with them, and that all the development dependencies are installed.
+#   Documentation on Taskfile.yml syntax can be found [here](https://taskfile.dev/).
 
 set -eo pipefail
 

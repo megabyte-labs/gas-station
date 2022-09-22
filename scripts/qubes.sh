@@ -172,7 +172,7 @@ sudo ln -s '/etc/ansible/playbooks/qubes.yml' '/etc/ansible/qubes.yml'
 
 # Install Ansible collections
 cd '/etc/ansible/collections'
-ansible-galaxy collection install -r requirements.yml
+ansible-galaxy collection install --force -r requirements.yml
 
 # Run the playbook
 echo "Your Ansible Vault password should be placed at ~/.vaultpass"

@@ -8,6 +8,11 @@ USE_DOM0="false"
 set -ex
 
 if [[ "$(hostname)" == "dom0" ]]; then
+  # Symlink old Python binary
+  if ! type python &> /dev/null; then
+    sudo ln -s /usr/bin/python3 /usr/bin/python
+  fi
+
   # Update dom0
   if [ ! -f /tmp/dom0_updated ]; then
     echo "Updating dom0"

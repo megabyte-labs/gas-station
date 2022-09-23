@@ -44,6 +44,12 @@
       register: blank_register
       changed_when: "'blank already exists' not in blank_register.stderr"
       failed_when: false
+    - name: Register PCI IDs that sys-net is using (for OPNSense)
+      shell:
+        cmd: qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/'
+      register: sys_net_pcidevs
+    - name: Create a base template for OPNSense 22.7
+      include_tasks: qubes/opnsense.yml
     - name: Configure Qubes Salt formula and the top file
       become: true
       qubesformation:
@@ -194,28 +200,6 @@
         content: |
           $anyvm @default allow,target=OPNSense
         dest: /etc/qubes-rpc/policy/qubes.ConnectTCP
-
-    - name: Check if the OPNSense ISO file is already present
-      shell:
-        cmd: qvm-run provision 'test -f /home/user/Downloads/opnsense-22.7-amd64.iso'
-      register: opnsense_iso_check
-      changed_when: false
-      failed_when: false
-
-    - name: Download the OPNSense ISO bz2 file
-      shell:
-        cmd: qvm-run provision 'curl -sSLO https://mirror-opnsense.serverbase.ch/releases/mirror/OPNsense-22.7-OpenSSL-dvd-amd64.iso.bz2 > /home/user/Downloads/opnsense-22.7-amd64.iso.bz2'
-      when: opnsense_iso_check.rc != 0
-
-    - name: Decompress OPNSense ISO bz2 file
-      shell:
-        cmd: qvm-run provision 'bzip2 -d /home/user/Downloads/opnsense-22.7-amd64.iso.bz2'
-      when: opnsense_iso_check.rc != 0
-
-    - name: Install OPNSense with ISO
-      shell:
-        cmd: qvm-start opnsense-template --cdrom=provision:/home/user/Downloads/opnsense-22.7-amd64.iso
-      # TODO Add when statement that checks if it was installed
 
     # Builds fully-loaded Archlinux, Debian, Fedora, Ubuntu, macOS, and Windows HVM desktop environments from
     # images stored on USB. The `qubes_ventoy_usb_description` variable must be defined and match the USB

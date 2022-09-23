@@ -39,7 +39,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
       xdotool key 'Enter'
       sleep 2
       if [[ "$ENABLE_OBFSC" == 'true' ]]; then
-        xdotool key 'Space'
+        xdotool key 'space'
       fi
       xdotool key 'Tab'
       xdotool key 'Tab'

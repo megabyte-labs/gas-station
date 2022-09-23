@@ -1,14 +1,26 @@
 ---
-- name: Create .desktop link for opening browser links
+- name: Create a link for opening browser links
+  become: true
   copy:
     content: |
       [Desktop Entry]
       Encoding=UTF-8
-      Name=BrowserVM
-      Exec=qvm-open-in-vm APPVMNAME %u
+      Name={{ item.name }}
+      Exec=qvm-open-in-vm {{ item.vm }} %u
       Terminal=false
       X-MultipleArgs=false
       Type=Application
-      Categories=Network;WebBrowser;
-      MimeType=x-scheme-handler/unknown;x-scheme-handler/about;text/html;text/xml;application/xhtml+xml;application/xml;application/vnd.mozilla.xul+xml;application/rss+xml;application/rdf+xml;image/gif;image/jpeg;image/png;x-scheme-handler/http;x-scheme-handler/https;
-    dest: /usr/share/applications/browser_vm.desktop
+      MimeType={{ item.mimes }}
+    dest: /usr/share/applications/{{ item.link }}
+
+- name: Check the value of the current xdg-setting
+  command: "xdg-settings get {{ item.xdg-setting }}"
+  register: xdg_setting_get
+  changed_when: false
+  when: item.xdg-setting is defined
+
+- name: Configure xdg-setting to use the cross-VM link
+  command: "xdg-settings set {{ item.xdg-setting }} {{ item.link }}"
+  when:
+    - item.xdg-setting is defined
+    - "item.xdg-setting not in xdg_setting_get.stdout"

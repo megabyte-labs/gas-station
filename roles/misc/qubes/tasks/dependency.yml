@@ -1,10 +1,22 @@
 ---
+- name: Check if dom0 update cache was cleaned
+  stat:
+    path: /tmp/dom0_update_cache_cleaned
+  register: dom0_cache_clean_check
+
 - name: Ensure dom0 update cache is clean
   become: true
   run_once: true
   shell: qubes-dom0-update --clean -y
   register: qubes_dom0_update_clean
   changed_when: "(qubes_dom0_update_clean.stdout is defined) and ('No updates available' not in qubes_dom0_update_clean.stdout)"
+  when: not dom0_cache_clean_check.stat.exists
+
+- name: Save temporary file indicating dom0 update cache has been cleaned
+  copy:
+    content: |
+      cleaned
+    dest: /tmp/dom0_update_cache_cleaned
 
 - name: Create search options for {{ item.package | default(item) }}
   set_fact:

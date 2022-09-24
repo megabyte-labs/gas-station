@@ -39,18 +39,19 @@
       qvm-volume extend {{ opnsense_template_vm }}:root 40g
   when: opnsense_qvm_check.rc != 0
 - name: Determine number of PCI devices attached to opnsense-dvm
-  command: qvm-device pci list {{ opnsense_template_vm }} | wc -l
+  shell: qvm-device pci list {{ opnsense_template_vm }} | wc -l
   changed_when: false
   register: opnsense_pci_list
 - name: Determine number of PCI devices attached to sys-net
-  command: qvm-device pci list sys-net | wc -l
+  shell: qvm-device pci list sys-net | wc -l
   changed_when: false
   register: sys_net_pci_list
 - name: Attach network PCI devices to opnsense-dvm
-  command: |
-    while read DEVID; do
-      qvm-device pci attach opnsense-dvm "$DEVID" --persistent
-    done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
+  shell:
+    cmd: |
+      while read DEVID; do
+        qvm-device pci attach opnsense-dvm "$DEVID" --persistent
+      done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
   when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
 - name: Check if {{ opnsense_template_vm }} has already been provisioned
   stat:

@@ -36,7 +36,7 @@
 
 - name: Register the Plymouth theme
   become: true
-  alternatives:
+  community.general.system.alternatives:
     name: default.plymouth
     link: /usr/share/plymouth/themes/default.plymouth
     path: /usr/share/plymouth/themes/betelgeuse/betelgeuse.plymouth
@@ -45,4 +45,8 @@
 - name: Set the Plymouth theme
   become: true
   shell: plymouth-set-default-theme -R betelgeuse
+  register: plymouth_set_default
+  failed_when:
+    - plymouth_set_default.rc != 0
+    - "'sys/power/resume: No such file' not in plymouth_set_default.stderr"
   notify: update initramfs

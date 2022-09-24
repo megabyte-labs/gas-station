@@ -198,5 +198,10 @@ ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook --vault-password-file ~/.vaul
 
 # Commands to run after the playbook inside of a dom0 terminal
 if [[ "$(hostname)" == "dom0" ]]; then
-  
+  if type lookandfeeltool &> /dev/null; then
+    lookandfeeltool -a Sweet
+  fi
+  if type kvantummanager &> /dev/null; then
+    kvantummanager --set Sweet
+  fi
 fi

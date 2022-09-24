@@ -35,99 +35,59 @@ all:
                 memory: 512
                 vcpus: 2
               children:
-                systemvms:
-                templatevms:
-                netvms:
-                proxyvms:
-                appvms:
-                standalonevms:
+                system-vms:
+                template-vms:
+                net-vms:
+                proxy-vms:
+                app-vms:
+                standalone-vms:
         windows:
           hosts:
             standard:
               ansible_connection: winrm
 
-appvms:
+app-vms:
   vars:
     qubes:
       maxmem: 2048
       mem: 2048
       memory: 512
+      netvm_vm: sys-firewall
       vm_type: AppVM
   children:
-    primarydvms:
+    app-dvms:
       vars:
         qubes:
           label: green
-          netvm: sys-firewall
           services:
             appmenus-dispvm: true
-            vm-boot-protect: true
-            vm-boot-protect-root: false
-          template_for_dispvms: true
-      hosts:
-        debian-11-dvm:
-          qubes:
-            template: debian-11
-            template_vm: debian-11
-        debian-11-sys-net-dvm:
-          qubes:
-            template: debian-11
-            template_vm: debian-11
-        debian-11-minimal-dvm:
-          qubes:
-            template: debian-11-minimal
-            template_vm: debian-11-minimal
-        fedora-36-dvm:
-          qubes:
-            template: fedora-36
-            template_vm: fedora-36
-        fedora-36-minimal-dvm:
-          qubes:
-            template: fedora-36-minimal
-            template_vm: fedora-36-minimal
-    secondarydvms:
-      vars:
-        qubes:
-          label: green
-          netvm: sys-firewall
-          services:
-            appmenus-dispvm: true
-            vm-boot-protect: true
-            vm-boot-protect-root: false
           template_for_dipvms: true
         hosts:
           anonymous-dvm:
             qubes:
-              template: anonymous-template
               template_vm: anonymous-template
           media-dvm:
             qubes:
-              template: media-template
               template_vm: media-template
           office-dvm:
             qubes:
-              template: office-template
               template_vm: office-template
           util-dvm:
             qubes:
-              template: util-template
               template_vm: util-template
           web-dvm:
             qubes:
-              template: web-template
               template_vm: web-template
-    uservms:
+    standard-vms:
       hosts:
         crypto:
           qubes:
-            netvm: vpn-proton
             netvm_vm: vpn-proton
             template: crypto-template
             template_vm: crypto-template
         development:
           qubes:
             maxmem: 8192
-            netvm: vpn-proton
             netvm_vm: vpn-proton
             template: development-template
             template_vm: development-template
@@ -144,7 +104,6 @@ appvms:
           qubes:
             autostart: true
             maxmem: 8192
-            netvm: vpn-pritunl
             netvm_vm: vpn-pritunl
             template: kubernetes-template
             template_vm: kubernetes-template
@@ -152,21 +111,10 @@ appvms:
             vm_type: NetVM
           volume:
             root: 100g
-        media:
-          qubes:
-            netvm: vpn-proton
-            netvm_vm: vpn-proton
-            template: media-template
-            template_vm: media-template
-          volume:
-            private: 100g
-            root: 10g
         personal:
           qubes:
             maxmem: 8192
-            netvm: sys-firewall
             netvm_vm: vpn-proton
-            template: personal-template
             template_vm: personal-template
             vcpus: 4
           volume:
@@ -174,44 +122,32 @@ appvms:
             root: 40g
         # pritunl-server:
         #   qubes:
-        #     # netvm: opnsense
         #     # netvm_vm: opnsense
-        #     netvm: sys-firewall
         #     netvm_vm: sys-firewall
-        #     template: pritunl-server-template
         #     template_vm: pritunl-server-template
         # provision:
         #   qubes:
-        #     netvm: vpn-pritunl
         #     netvm_vm: vpn-pritunl
-        #     template: provision-template
         #     template_vm: provision-template
         remote:
           qubes:
-            netvm: vpn-pritunl
             netvm_vm: vpn-pritunl
-            template: remote-template
             template_vm: remote-template
         swarm:
           qubes:
             autostart: true
             maxmem: 8192
-            netvm: vpn-pritunl
             netvm_vm: vpn-pritunl
-            template: swarm-template
             template_vm: swarm-template
             vcpus: 4
         vault:
           qubes:
             label: green
-            template: vault-template
             template_vm: vault-template
         work:
           qubes:
             maxmem: 8192
-            netvm: vpn-pritunl
             netvm_vm: vpn-pritunl
-            template: work-template
             template_vm: work-template
             vcpus: 4
           volume:
@@ -220,12 +156,9 @@ appvms:
       vars:
         qubes:
           label: purple
-          services:
-            vm-boot-protect-root: true
-          template: fedora-36
           template_vm: fedora-36
 
-netvms:
+net-vms:
   hosts:
     # opnsense:
     #   ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
@@ -254,17 +187,15 @@ netvms:
       autostart: true
       label: orange
       mem: 4096
-      memory: 8192
       maxmem: 8192
       virt_mode: hvm
       vm_type: NetVM
 
-proxyvms:
+proxy-vms:
   hosts:
     vpn-mullvad:
     vpn-pritunl:
       # qubes:
-        # netvm: opnsense
         # netvm_vm: opnsense
     vpn-proton:
     vpn-tailscale:
@@ -274,15 +205,12 @@ proxyvms:
       autostart: true
       services:
         network-manager: true
-        vm-boot-protect: true
       label: orange
       mem: 512
       memory: 256
       maxmem: 1024
-      netvm: sys-firewall
       netvm_vm: sys-firewall
       provides-network: true
-      template: vpn-template
       template_vm: vpn-template
       vcpus: 1
       vm_type: ProxyVM
@@ -290,15 +218,14 @@ proxyvms:
       private: 2g
       root: 5g
 
-templatevms:
+template-vms:
   vars:
     qubes:
       label: black
-      netvm: sys-firewall
       netvm_vm: sys-firewall
       vm_type: TemplateVM
   children:
-    primarytemplates:
+    primary-templates:
       hosts:
         debian-11:
         debian-11-minimal:
@@ -307,14 +234,29 @@ templatevms:
         fedora-36-xfce:
         whonix-gw-16:
         whonix-ws-16:
-    secondarytemplates:
+    primary-dvm-templates:
+      vars:
+        qubes:
+          label: gray
+          services:
+            appmenus-dispvm: true
+          template_for_dispvms: true
+      hosts:
+        debian-11-dvm:
+          qubes:
+            source: debian-11
+        debian-11-net-dvm:
+          qubes:
+            source: debian-11
+        fedora-36-dvm:
+          qubes:
+            source: fedora-36
+    standard-templates:
       hosts:
         crypto-template:
         development-template:
           include_pii_dotfiles: true
         gpg-template:
-          qubes:
-            source: fedora-36-minimal
         kubernetes-template:
         media-template:
         personal-template:
@@ -328,17 +270,13 @@ templatevms:
         swarm-template:
         util-template:
         vpn-template:
-          qubes:
-            source: fedora-36-minimal
         vault-template:
-          qubes:
-            source: fedora-36-minimal
         work-template:
           include_pii_dotfiles: true
       vars:
         qubes:
           source: fedora-36
-    desktoptemplates:
+    desktop-hvm-templates:
       hosts:
         # TODO Add version numbers in these template names
         archlinux-desktop-template:
@@ -358,11 +296,11 @@ templatevms:
         ubuntu-desktop-base-template:
         ubuntu-server-template:
         windows-desktop-template:
-          # ansible_connection: winrm
+          ansible_connection: winrm
         windows-desktop-base-template:
-          # ansible_connection: winrm
+          ansible_connection: winrm
         windows-server-template:
-          # ansible_connection: winrm
+          ansible_connection: winrm
       vars:
         # SSH connection is unnecessary since templates are loaded from vagrantup.com or via the qubes-packer.yml playbook
         # ansible_connection: ssh
@@ -370,13 +308,12 @@ templatevms:
         # ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
         qubes:
           kernel: ''
-          netvm: sys-net
           netvm_vm: sys-net
           source: blank
           virt_mode: hvm
         volume:
           root: 40g
-    hvmtemplates:
+    misc-hvm-templates:
       hosts:
         # opnsense-template:
         #   ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
@@ -398,122 +335,92 @@ templatevms:
         qubes:
           kernel: ''
           virt_mode: hvm
-    dispvmtemplates:
+    secondary-dvm-templates:
       hosts:
         anonymous-template:
           qubes:
-            services:
-              appmenus-dispvm: true
             source: whonix-ws-16
         web-template:
-          qubes:
-            services:
-              appmenus-dispvm: true
       vars:
         qubes:
-          services:
-            vm-boot-protect: true
           source: fedora-36
+          services:
+            appmenus-dispvm: true
 
-standalonevms:
+standalone-vms:
   vars:
     qubes:
       label: blue
       mem: 4096
-      memory: 4096
       maxmem: 8192
       kernel: ''
       vcpus: 4
       virt_mode: hvm
       vm_type: StandaloneVM
   children:
-    desktopstandalones:
+    desktop-standalone-vms:
       hosts:
         # By default, only initialize standalones for the fully loaded environments
         # If you just want a default ubuntu HVM, for instance, then qvm-clone from the
         # `ubuntu-desktop-base-template` TemplateVM
         archlinux-desktop:
           qubes:
-            template: archlinux-desktop-template
-            template_vm: archlinux-desktop-template
+            source: archlinux-desktop-template
         centos-desktop:
           qubes:
-            template: centos-desktop-template
-            template_vm: centos-desktop-template
+            source: centos-desktop-template
         debian-desktop:
           qubes:
-            template: debian-desktop-template
-            template_vm: debian-desktop-template
+            source: debian-desktop-template
         debian-server:
           qubes:
-            template: debian-server-template
-            template_vm: debian-server-template
+            source: debian-server-template
         fedora-desktop:
           qubes:
-            template: fedora-desktop-template
-            template_vm: fedora-desktop-template
+            source: fedora-desktop-template
         macos-desktop:
           qubes:
-            template: macos-desktop-template
-            template_vm: macos-desktop-template
+            source: macos-desktop-template
         ubuntu-desktop:
           qubes:
-            template: ubuntu-desktop-template
-            template_vm: ubuntu-desktop-template
+            source: ubuntu-desktop-template
         windows-desktop:
           ansible_connection: winrm
           qubes:
-            template: windows-desktop-template
-            template_vm: windows-desktop-template
+            source: windows-desktop-template
       vars:
         ansible_connection: ssh
         ansible_password: "{{ lookup('env', 'VAGRANT_PASSWORD') }}"
         ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
         qubes:
-          netvm: vpn-proton
           netvm_vm: vpn-proton
         volume:
           root: 50g
 
-systemvms:
+system-vms:
   hosts:
     anon-whonix:
       qubes:
-        netvm: sys-whonix
         netvm_vm: sys-whonix
-        services:
-          vm-boot-protect: true
-          vm-boot-protect-root: false
-        template: whonix-ws-16
         template_vm: whonix-ws-16
+    debian-11-dvm:
+      qubes:
+        netvm_vm: sys-firewall
     sys-firewall:
       qubes:
-        netvm: sys-net
         netvm_vm: sys-net
         vm_type: ProxyVM
     sys-net:
     sys-usb:
     sys-whonix:
       qubes:
-        netvm: sys-firewall
         netvm_vm: sys-firewall
-        services:
-          vm-boot-protect: true
-          vm-boot-protect-root: false
-        template: whonix-gw-16
         template_vm: whonix-gw-16
     whonix-ws-16-dvm:
       qubes:
-        netvm: sys-firewall
         netvm_vm: sys-firewall
-        services:
-          vm-boot-protect: true
-          vm-boot-protect-root: false
-        template: whonix-ws-16
         template_vm: whonix-ws-16
   vars:
     qubes:
       label: red
-      services:
-        vm-boot-protect-root: true
       vm_type: AppVM

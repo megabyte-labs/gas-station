@@ -88,8 +88,9 @@
   when: sys_whonix_running_state.rc != 0
 
 - name: Check if TemplateVMs were already updated
+  become: true
   stat:
-    path: /tmp/templatevms_updated
+    path: /root/.template_vms_updated
   register: templatevm_update_status
 
 - name: Ensure the TemplateVMs are updated
@@ -100,11 +101,12 @@
   failed_when: qubesctl_template_update.stdout | regex_search('Failed. *[1-9]+[0-9]*') is not none
   when: not templatevm_update_status.stat.exists
 
-- name: Create dummy temporary file used to determine whether or not to skip update process
+- name: Create file used to determine whether or not to skip update process for TemplateVMs
+  become: true
   copy:
     content: |
-      templatevm done
-    dest: /tmp/templatevms_updated
+      {{ ansible_date_time.iso8601 }}
+    dest: /root/.template_vms_updated
   when: not templatevm_update_status.stat.exists
 
 # TODO: Add logic to import GPG key and verify these downloads

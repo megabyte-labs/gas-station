@@ -122,14 +122,20 @@
     line: "export QT_STYLE_OVERRIDE=kvantum"
 
 - name: Use the Sweet Kvantum theme
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
   shell:
     cmd: kvantummanager --set Sweet
-  # TODO: This is oddly returning an RC of -6 -- no idea why because it works from the terminal with RC 0
-  failed_when: false
   args:
-    executable: /bin/bash -l
+    executable: /bin/bash
 
 - name: Apply gsettings
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
   include_tasks: gsetting.yml
   loop:
     # Enables CTRL+Shift+I to inspect Gtk options
@@ -141,17 +147,28 @@
       value: 'Sweet'
 
 - name: Ensure Sweet KDE look-and-feel is applied
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
   shell:
     cmd: lookandfeeltool -a Sweet
   args:
-    executable: /bin/bash -l
+    executable: /bin/bash
 
-- name: Ensure the Betelgeuse desktop background is applied
-  shell:
-    cmd: |
-      qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = "org.kde.image";d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");d.writeConfig("Image", "file:///usr/share/backgrounds/images/default.png")}'
+# - name: Ensure the Betelgeuse desktop background is applied
+#   become_user: "{{ dom0_user }}"
+#   become_method: su
+#   become_flags: "--login"
+#   shell:
+#     cmd: |
+#       qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = "org.kde.image";d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");d.writeConfig("Image", "file:///usr/share/backgrounds/images/default.png")}'
 
 - name: Update xfconf settings
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
   xfconf:
     channel: "{{ item.channel }}"
     property: "{{ item.property }}"

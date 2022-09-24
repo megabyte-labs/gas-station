@@ -86,6 +86,25 @@ tasks:
           fi
         fi
 
+  ensure:running:
+    summary: |
+      Ensures Docker Desktop is running if on a macOS machine.
+    cmds:
+      - |
+        if ! docker stats --no-stream; then
+          if [ -f /Applications/Docker.app ]; then
+            open /Applications/Docker.app
+            while (! docker stats --no-stream); do
+              echo "Waiting for Docker to launch..."
+              sleep 1
+            done
+          else
+            .config/log error 'Docker is either not running or not installed!'
+          fi
+        fi
+    status:
+      - '[[ "{{OS}}" != "darwin" ]]'
+
   login:
     deps:
       - :install:software:docker

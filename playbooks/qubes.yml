@@ -4,105 +4,28 @@
   hosts: dom0
   connection: qubes
   tasks:
-    # Initialize the VMs
-    - name: Check for presence of /srv/user_salt
-      become: true
-      stat:
-        path: /srv/user_salt
-      register: srv_user_salt
-    - name: Ensure /srv/user_salt is a directory
-      become: true
-      ansible.builtin.file:
-        state: directory
-        path: /srv/user_salt
-    - name: Ensure blank template exists
-      shell:
-        cmd: qvm-create --class TemplateVM --label black blank
-      register: blank_register
-      changed_when: "'blank already exists' not in blank_register.stderr"
-      failed_when: false
-    - name: Register PCI IDs that sys-net is using (for OPNSense)
-      shell:
-        cmd: qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/'
-      register: sys_net_pcidevs
-      changed_when: false
-    - name: Create a base template for OPNSense 22.7
-      include_tasks: tasks/qubes/opnsense.yml
-    - name: Configure Qubes Salt formula and the top file
-      become: true
-      qubesformation:
-        dest: /srv/user_salt/structure.sls
-    - name: Ensure top.enabled is activated
-      become: true
-      shell:
-        cmd: qubesctl top.enabled
-      failed_when: false
-      changed_when: false
-    - name: Enable Qubes Salt formula
-      become: true
-      shell:
-        cmd: qubesctl top.enable structure && echo CHANGED
-      register: enableformation
-      changed_when: "'CHANGED' in enableformation.stdout"
-    - name: Realize Qubes formation
-      become: true
-      qubessls:
-        sls: structure
-        env: user
-      # TODO add changed_when
-    - name: Remove blank template
-      shell:
-        cmd: qvm-remove --force blank
-      register: blank_register_remove
-      changed_when: "'no such domain' not in blank_register_remove.stderr"
-      failed_when: false
-
-- name: Make MAC addresses random (randomized every reboot)
-  hosts: debian-11-sys-net-dvm
-  connection: qubes
-  tasks:
-    # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
-    # TODO: Same logic for OPNSense
-    - name: Randomize MAC address and ensure no hostname leaks
-      include_tasks: tasks/qubes/mac.yml
-
-- name: Install OPNSense HVM
-  hosts: opnsense-template
-  connection: qubes
-  tasks:
-
-    # TODO: https://gitlab.com/megabyte-labs/jumpusb/-/blob/master/ventoy/scripts/qubes/NOTES.md
-
-- name: Ensure VM-lockdown scripts are added to Debian and Fedora templates
-  hosts: primarytemplates
-  connection: qubes
-  tasks:
-    - name: Clone the VM-lockdown repository
-      become: true
-      ansible.builtin.git:
-        repo: https://github.com/tasket/Qubes-VM-hardening.git
-        dest: /usr/src/hardening
-    - name: Run the installer
-      become: true
-      command: |
-        bash install
-        bash configure-sudo-prompt --force
-      args:
-        chdir: /usr/src/hardening
-        creates: /lib/systemd/system/vm-boot-protect.service
-    - name: Ensure qubes-gpg-split and qubes-u2f are installed
-      become: true
-      ansible.builtin.package:
-        name:
-          - qubes-gpg-split
-          - qubes-u2f
-        state: latest
-    - name: Ensure all VMs have dotfiles
+    # Prepare dom0
+    - name: Update and configure dom0
+      vars:
+        dom0_features:
+          - create-vms
       include_role:
-        name: professormanhattan.dotfiles
-    # - name: Ensure all VMs have theme files / settings
-    #   include_role:
-    #     name: professormanhattan.theme
+        name: professormanhattan.qubes
+
+- name: Provision the primary template VMs
+  hosts: secondarytemplates
+  connection: qubes
+  tasks:
+    - name: Provision the custom template VM
+      include_tasks: qubes/tasks/custom-template-vm.yml
+    - name: Configure VMs to forward TCP traffic on certain ports to OPNsense
+      vars:
+      systemd_services:
+        - name: opnsense-http-service
+          port: 80
+        - name: opnsense-https-service
+          port: 443
+      include_tasks: tasks/qubes/tcp-port-bind.yml
 
 - name: Ensure the Fedora 36 XFCE4 TemplateVM gets injected with all the theme files
   hosts: fedora-36-xfce
@@ -111,100 +34,14 @@
     - name: Ensure VM is configured to be a GUI VM
       include_tasks: tasks/qubes/gui-vm.yml
 
-- name: Configure all AppVM Qubes to forward local traffic on certain ports to OPNSense (if installed)
-  hosts: appvms
+- name: Make MAC addresses random (randomized every reboot)
+  hosts: debian-11-sys-net-dvm
   connection: qubes
-  vars:
-    systemd_services:
-      - name: opnsense-http-service
-        port: 80
-      - name: opnsense-https-service
-        port: 443
   tasks:
-    - name: 'Create {{ service.name }}.socket systemd file'
-      become: true
-      copy:
-        content: |
-          [Unit]
-          Description={{ service.name }}
-
-          [Socket]
-          ListenStream=127.0.0.1:{{ service.port }}
-          Accept=true
-
-          [Install]
-          WantedBy=sockets.target
-        dest: '/lib/systemd/system/{{ service.name }}.socket'
-      loop: '{{ systemd_services | default([]) }}'
-      loop_control:
-        loop_var: service
-      when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
-    - name: 'Create {{ service.name }}@.service systemd file'
-      become: true
-      copy:
-        content: |
-          [Unit]
-          Description={{ service.name }}
-
-          [Service]
-          ExecStart=qrexec-client-vm '' qubes.ConnectTCP+{{ service.port }}
-          StandardInput=socket
-          StandardOutput=inherit
-        dest: /lib/systemd/system/{{ service.name }}@.service
-      loop: '{{ systemd_services | default([]) }}'
-      loop_control:
-        loop_var: service
-      when: "'OPNSense' in (qubes_vms | map(attribute='name') | list)"
-
-- name: Provisioning TemplateVMs, configuring OPNSense PCI devices, and attaching USB with VirtualBox files for Packer HVMs
-  hosts: "{{ lookup('env', 'MOLECULE_GROUP') | default('dom0', true) }}"
-  connection: local
-  tasks:
-    #    - name: Ensure VMs not included in the qubes_vms list have the hardened-VM service enabled
-    #      include_tasks: tasks/qubes/harden-vm.yml
-    #      loop:
-    #        - sys-net
-    #        - sys-usb
-    #      loop_control:
-    #        loop_var: vm
-
-    - name: Configure the OPNSense HVM's attached PCI devices to match sys-net's
-      include_tasks: tasks/qubes/opnsense-pci.yml
-
-    # TODO: Restrict from anyvm to appvms
-    - name: Bind all VMs localhost port 80 and 443 to OPNSense
-      become: true
-      copy:
-        content: |
-          $anyvm @default allow,target=OPNSense
-        dest: /etc/qubes-rpc/policy/qubes.ConnectTCP
-
-    # Builds fully-loaded Archlinux, Debian, Fedora, Ubuntu, macOS, and Windows HVM desktop environments from
-    # images stored on USB. The `qubes_ventoy_usb_description` variable must be defined and match the USB
-    # drive's label. See [JumpUSB](https://jumpusb.com) for additional information.
-    # - name: Configure USB that contains Packer / HVM desktop images
-    #   include_tasks: tasks/qubes/packer-usb.yml
-    #   when: qubes_ventoy_usb_description is defined
-#
-# - name: Create LVM volumes for Packer-built desktop HVMs
-#   include_tasks: tasks/qubes/packer-hvm.yml
-#   loop: '{{ qubes_vagrant_vms | default([]) }}'
-#   loop_control:
-#     label: '{{ vm.name }}'
-#     loop_var: vm
-#   when: qubes_ventoy_usb_description is defined
-
-- name: Configure the TemplateVMs
-  hosts: templatevms
-  strategy: free
-  connection: qubes
-  roles:
-    []
-    # - roles/system/dns
-    # - roles/system/hosts
-    # - roles/system/common
-    # - roles/system/firewall
-    # - roles/services/antivirus
+    # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
+    # TODO: Same logic for OPNSense
+    - name: Randomize MAC address and ensure no hostname leaks
+      include_tasks: tasks/qubes/randomize-mac.yml
 
 - name: Install Pritunl server to Pritunl TemplateVM
   hosts: pritunl-server-template
@@ -213,24 +50,8 @@
     - name: Run the install Pritunl server install script
       include_tasks: tasks/qubes/pritunl-server.yml
 
-- name: Configure systems with common settings and applications
-  connection: qubes
-  hosts: all:!blank
-  strategy: free
-  tasks:
-    - name: Provision the TemplateVMs
-      include_role:
-        name: '{{ role }}'
-      loop: '{{ qubes_roles[inventory_hostname] | default([]) }}'
-      loop_control:
-        label: '{{ inventory_hostname }}'
-        loop_var: role
-    - name: Ensure default application launchers are configured to use DVMs
-      include_tasks: tasks/qubes/preferred-app.yml
-      loop: '{{ mimetype_handlers }}'
-
 - name: Configure persistent Docker files in select VMs
-  hosts: development:swarm
+  hosts: development:kubernetes:swarm
   connection: qubes
   strategy: free
   tasks:

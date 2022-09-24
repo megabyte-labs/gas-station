@@ -51,4 +51,16 @@ case $SHELL in
     ;;
 esac
 ​
+if [ ! -f ~/.config/.wayland-session-applied-$(hostname) ]; then
+  if [[ "$(hostname)" == "dom0" ]] || [[ "$(hostname)" == "sys-gui"* ]]; then
+    if type lookandfeeltool &> /dev/null; then
+      lookandfeeltool -a Sweet
+    fi
+    if type kvantummanager &> /dev/null; then
+      kvantummanager --set Sweet
+    fi
+  fi
+  touch ~/.config/.wayland-session-applied-$(hostname)
+fi
+
 exec $@

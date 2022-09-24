@@ -93,13 +93,19 @@
     path: /root/.template_vms_updated
   register: templatevm_update_status
 
+- name: Check if an arbitrary custom template was added
+  command: qvm-check windows-desktop
+  register: qvm_windows_desktop_check
+
 - name: Ensure the TemplateVMs are updated
   become: true
   shell: qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm
   register: qubesctl_template_update
   changed_when: qubesctl_template_update.stdout | regex_search('Succeeded. [0-9]* \(changed=[0-9]*\)') is not none
   failed_when: qubesctl_template_update.stdout | regex_search('Failed. *[1-9]+[0-9]*') is not none
-  when: not templatevm_update_status.stat.exists
+  when:
+    - not templatevm_update_status.stat.exists
+    - qvm_windows_desktop_check.rc != 0
 
 - name: Create file used to determine whether or not to skip update process for TemplateVMs
   become: true

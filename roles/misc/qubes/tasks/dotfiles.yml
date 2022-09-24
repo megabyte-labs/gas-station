@@ -1,9 +1,4 @@
 ---
-- name: Check if dotfiles have already been installed (not used - useful for future implementation)
-  stat:
-    path: ~/.local/bin/install-dotfiles
-  register: dotfiles_local_bin
-
 - name: Check if the provision VM exists
   command: qvm-check provision
   register: qvm_check_provision
@@ -15,9 +10,15 @@
   when: qvm_check_provision.rc != 0
 
 - name: Ensure dotfiles installer script is present
-  ansible.builtin.get_url:
-    url: "{{ dotfiles_installer_script }}"
-    dest: /tmp/dotfiles.sh
+  command: qvm-run --pass-io provision 'curl -sSL {{ dotfiles_installer_script }}' > /tmp/dotfiles.sh
+  args:
+    creates: /tmp/dotfiles.sh
+  tags:
+    - force
 
 - name: Run the dotfiles installer script
   command: bash /tmp/dotfiles.sh
+  args:
+    creates: ~/.local/bin/install-dotfiles
+  tags:
+    - force

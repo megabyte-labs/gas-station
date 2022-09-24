@@ -17,10 +17,18 @@
   shell:
     cmd: qvm-run provision 'bzip2 -d /home/user/Downloads/{{ opnsense_template_vm }}-amd64.iso.bz2'
   when: opnsense_iso_check.rc != 0
+- name: Check if {{ opnsense_versioned_vm }} already exists
+  command: qvm-check {{ opnsense_versioned_vm }}
+  register: opnsense_qvm_check
+  changed_when: false
+  failed_when: false
 - name: Create the {{ opnsense_versioned_vm }} base template
   shell:
+    cmd: qvm-create {{ opnsense_versioned_vm }} --class TemplateVM --label orange
+  when: opnsense_qvm_check.rc != 0
+- name: Apply the appropriate settings to the OPNSense TemplateVM
+  shell:
     cmd: |
-      qvm-create {{ opnsense_versioned_vm }} --class TemplateVM --label orange
       qvm-prefs {{ opnsense_versioned_vm }} default_dispvm none
       qvm-prefs {{ opnsense_versioned_vm }} kernel ''
       qvm-prefs {{ opnsense_versioned_vm }} maxmem 8192
@@ -29,6 +37,7 @@
       qvm-prefs {{ opnsense_versioned_vm }} virt_mode hvm
       qvm-features {{ opnsense_versioned_vm }} video-model cirrus
       qvm-volume extend {{ opnsense_versioned_vm }}:root 40g
+  when: opnsense_qvm_check.rc != 0
 - name: Determine number of PCI devices attached to opnsense-dvm
   command: qvm-device pci list {{ opnsense_versioned_vm }} | wc -l
   changed_when: false
@@ -43,7 +52,11 @@
       qvm-device pci attach opnsense-dvm "$DEVID" --persistent
     done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
   when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
+- name: Check if {{ opnsense_versioned_vm }} has already been provisioned
+  stat:
+    path: /root/.setup-{{ opnsense_versioned_vm }}
+  register: opnsense_setup
 - name: Install OPNSense with ISO
   shell:
     cmd: qvm-start {{ opnsense_versioned_vm }} --cdrom=provision:/home/user/Downloads/{{ opnsense_versioned_vm }}-amd64.iso
-  # TODO Add when statement that checks if it was installed
+  when: not opnsense.stat.exists

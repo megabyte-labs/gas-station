@@ -42,19 +42,19 @@
   shell: qvm-device pci list {{ opnsense_template_vm }} | wc -l
   changed_when: false
   register: opnsense_pci_list
-- name: Determine number of PCI devices attached to sys-net
-  shell: qvm-device pci list sys-net | wc -l
-  changed_when: false
-  register: sys_net_pci_list
 - name: Attach network PCI devices to {{ opnsense_template_vm }}
   shell:
     cmd: |
-      while read DEVID; do
-        qvm-device pci attach {{ opnsense_template_vm }} "$DEVID" --persistent
-      done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
+      while read PCI_DEVICE; do
+        PCI_DEVICE_ID="$(echo "$PCI_DEVICE" | sed 's/^\([^ ]*\).*/\1/')"
+        if [[ "$PCI_DEVICE" == 'Ethernet controller'* ]]; then
+          qvm-device pci detach sys-net "$PCI_DEVICE_ID"
+          qvm-device pci attach {{ opnsense_template_vm }} "$PCI_DEVICE_ID" --persistent
+        fi
+      done< <(qvm-device pci list sys-net)
   args:
     executable: /bin/bash
-  when: opnsense_pci_list.stdout != sys_net_pci_list.stdout
+  when: opnsense_pci_list.stdout == 0
 - name: Check if {{ opnsense_template_vm }} has already been provisioned
   stat:
     path: /root/.setup-{{ opnsense_template_vm }}

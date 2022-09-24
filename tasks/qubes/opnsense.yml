@@ -38,7 +38,7 @@
       qvm-features {{ opnsense_template_vm }} video-model cirrus
       qvm-volume extend {{ opnsense_template_vm }}:root 40g
   when: opnsense_qvm_check.rc != 0
-- name: Determine number of PCI devices attached to opnsense-dvm
+- name: Determine number of PCI devices attached to {{ opnsense_template_vm }}
   shell: qvm-device pci list {{ opnsense_template_vm }} | wc -l
   changed_when: false
   register: opnsense_pci_list
@@ -46,11 +46,11 @@
   shell: qvm-device pci list sys-net | wc -l
   changed_when: false
   register: sys_net_pci_list
-- name: Attach network PCI devices to opnsense-dvm
+- name: Attach network PCI devices to {{ opnsense_template_vm }}
   shell:
     cmd: |
       while read DEVID; do
-        qvm-device pci attach opnsense-dvm "$DEVID" --persistent
+        qvm-device pci attach {{ opnsense_template_vm }} "$DEVID" --persistent
       done< <(qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/')
   args:
     executable: /bin/bash

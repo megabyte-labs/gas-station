@@ -49,7 +49,7 @@
         cmd: qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/'
       register: sys_net_pcidevs
     - name: Create a base template for OPNSense 22.7
-      include_tasks: qubes/opnsense.yml
+      include_tasks: tasks/qubes/opnsense.yml
     - name: Configure Qubes Salt formula and the top file
       become: true
       qubesformation:
@@ -86,7 +86,7 @@
     # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
     # TODO: Same logic for OPNSense
     - name: Randomize MAC address and ensure no hostname leaks
-      include_tasks: qubes/mac.yml
+      include_tasks: tasks/qubes/mac.yml
 
 - name: Install OPNSense HVM
   hosts: opnsense-template
@@ -131,7 +131,7 @@
   connection: qubes
   tasks:
     - name: Ensure VM is configured to be a GUI VM
-      include_tasks: qubes/gui-vm.yml
+      include_tasks: tasks/qubes/gui-vm.yml
 
 - name: Configure all AppVM Qubes to forward local traffic on certain ports to OPNSense (if installed)
   hosts: appvms
@@ -183,7 +183,7 @@
   connection: local
   tasks:
     #    - name: Ensure VMs not included in the qubes_vms list have the hardened-VM service enabled
-    #      include_tasks: qubes/harden-vm.yml
+    #      include_tasks: tasks/qubes/harden-vm.yml
     #      loop:
     #        - sys-net
     #        - sys-usb
@@ -191,7 +191,7 @@
     #        loop_var: vm
 
     - name: Configure the OPNSense HVM's attached PCI devices to match sys-net's
-      include_tasks: qubes/opnsense-pci.yml
+      include_tasks: tasks/qubes/opnsense-pci.yml
 
     # TODO: Restrict from anyvm to appvms
     - name: Bind all VMs localhost port 80 and 443 to OPNSense
@@ -205,11 +205,11 @@
     # images stored on USB. The `qubes_ventoy_usb_description` variable must be defined and match the USB
     # drive's label. See [JumpUSB](https://jumpusb.com) for additional information.
     # - name: Configure USB that contains Packer / HVM desktop images
-    #   include_tasks: qubes/packer-usb.yml
+    #   include_tasks: tasks/qubes/packer-usb.yml
     #   when: qubes_ventoy_usb_description is defined
 #
 # - name: Create LVM volumes for Packer-built desktop HVMs
-#   include_tasks: qubes/packer-hvm.yml
+#   include_tasks: tasks/qubes/packer-hvm.yml
 #   loop: '{{ qubes_vagrant_vms | default([]) }}'
 #   loop_control:
 #     label: '{{ vm.name }}'
@@ -233,7 +233,7 @@
   connection: qubes
   tasks:
     - name: Run the install Pritunl server install script
-      include_tasks: qubes/pritunl-server.yml
+      include_tasks: tasks/qubes/pritunl-server.yml
 
 - name: Configure systems with common settings and applications
   connection: qubes
@@ -248,7 +248,7 @@
         label: '{{ inventory_hostname }}'
         loop_var: role
     - name: Ensure default application launchers are configured to use DVMs
-      include_tasks: qubes/preferred-app.yml
+      include_tasks: tasks/qubes/preferred-app.yml
       loop: "{{ mimetype_handlers }}"
 
 - name: Configure persistent Docker files in select VMs

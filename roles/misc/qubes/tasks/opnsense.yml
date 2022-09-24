@@ -3,29 +3,35 @@
   ansible.builtin.set_fact:
     opnsense_download_url: https://mirror-opnsense.serverbase.ch/releases/mirror/OPNsense-22.7-OpenSSL-dvd-amd64.iso.bz2
     opnsense_template_vm: opnsense-22-7
+
 - name: Check if the OPNSense ISO file is already present
   shell:
     cmd: qvm-run provision 'test -f /home/user/Downloads/{{ opnsense_template_vm }}-amd64.iso'
   register: opnsense_iso_check
   changed_when: false
   failed_when: false
+
 - name: Download the OPNSense ISO bz2 file
   shell:
     cmd: qvm-run provision 'curl -sSL {{ opnsense_download_url }} -o /home/user/Downloads/{{ opnsense_template_vm }}-amd64.iso.bz2'
   when: opnsense_iso_check.rc != 0
+
 - name: Decompress OPNSense ISO bz2 file
   shell:
     cmd: qvm-run provision 'bzip2 -d /home/user/Downloads/{{ opnsense_template_vm }}-amd64.iso.bz2'
   when: opnsense_iso_check.rc != 0
+
 - name: Check if {{ opnsense_template_vm }} already exists
   command: qvm-check {{ opnsense_template_vm }}
   register: opnsense_qvm_check
   changed_when: false
   failed_when: false
+
 - name: Create the {{ opnsense_template_vm }} base template
   shell:
     cmd: qvm-create {{ opnsense_template_vm }} --class TemplateVM --label orange
   when: opnsense_qvm_check.rc != 0
+
 - name: Apply the appropriate settings to the OPNSense TemplateVM
   shell:
     cmd: |
@@ -35,13 +41,14 @@
       qvm-prefs {{ opnsense_template_vm }} memory 8192
       qvm-prefs {{ opnsense_template_vm }} provides_network true
       qvm-prefs {{ opnsense_template_vm }} virt_mode hvm
-      qvm-features {{ opnsense_template_vm }} video-model cirrus
       qvm-volume extend {{ opnsense_template_vm }}:root 40g
   when: opnsense_qvm_check.rc != 0
+
 - name: Determine number of PCI devices attached to {{ opnsense_template_vm }}
   shell: qvm-device pci list {{ opnsense_template_vm }} | wc -l
   changed_when: false
   register: opnsense_pci_list
+
 - name: Attach network PCI devices to {{ opnsense_template_vm }}
   shell:
     cmd: |
@@ -55,11 +62,20 @@
   args:
     executable: /bin/bash
   when: opnsense_pci_list.stdout == 0
+
 - name: Check if {{ opnsense_template_vm }} has already been provisioned
   stat:
     path: /root/.setup-{{ opnsense_template_vm }}
   register: opnsense_setup
+
 - name: Install OPNSense with ISO
   shell:
     cmd: qvm-start {{ opnsense_template_vm }} --cdrom=provision:/home/user/Downloads/{{ opnsense_template_vm }}-amd64.iso
   when: not opnsense_setup.stat.exists
+
+- name: Bind all VMs localhost port 80 and 443 to OPNSense
+  become: true
+  copy:
+    content: |
+      $anyvm @default allow,target=opnsense
+    dest: /etc/qubes-rpc/policy/qubes.ConnectTCP

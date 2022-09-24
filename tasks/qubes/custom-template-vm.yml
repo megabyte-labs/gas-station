@@ -1,0 +1,49 @@
+---
+- name: Clone the VM-lockdown repository
+  become: true
+  ansible.builtin.git:
+    repo: https://github.com/tasket/Qubes-VM-hardening.git
+    dest: /usr/src/hardening
+
+- name: Run the installer
+  become: true
+  command: |
+    bash install
+    bash configure-sudo-prompt --force
+  args:
+    chdir: /usr/src/hardening
+    creates: /lib/systemd/system/vm-boot-protect.service
+
+- name: Ensure qubes-gpg-split and qubes-u2f are installed
+  become: true
+  ansible.builtin.package:
+    name:
+      - qubes-gpg-split
+      - qubes-u2f
+    state: latest
+
+- name: Ensure all the common roles are applied to the custom TemplateVMs
+  include_role:
+    name: '{{ role }}'
+  loop:
+    - roles/system/dns
+    - roles/system/hosts
+    - roles/system/common
+    - roles/system/dotfiles
+    - roles/system/firewall
+    - roles/services/antivirus
+  loop_control:
+    label: '{{ inventory_hostname }}'
+    loop_var: role
+
+- name: Provision the custom TemplateVMs
+  include_role:
+    name: '{{ role }}'
+  loop: '{{ qubes_roles[inventory_hostname] | default([]) }}'
+  loop_control:
+    label: '{{ inventory_hostname }}'
+    loop_var: role
+
+- name: Ensure default application launchers are configured to use DVMs
+  include_tasks: tasks/qubes/preferred-app.yml
+  loop: "{{ mimetype_handlers }}"

@@ -18,6 +18,8 @@ all:
           vars:
             ansible_connection: qubes
             ansible_python_interpreter: /usr/bin/python3
+            # Do not include dotfiles with sensitive information by default
+            include_pii_dotfiles: false
             qubes:
               dom0_vm: dom0
           hosts:
@@ -160,8 +162,10 @@ appvms:
             root: 40g
         pritunl-server:
           qubes:
-            netvm: opnsense
-            netvm_vm: opnsense
+            # netvm: opnsense
+            # netvm_vm: opnsense
+            netvm: sys-firewall
+            netvm_vm: sys-firewall
             template: pritunl-server-template
             template_vm: pritunl-server-template
         provision:
@@ -211,18 +215,17 @@ appvms:
 
 netvms:
   hosts:
-    opnsense:
-      ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
-      ansible_user: "{{ lookup('env', 'OPNSENSE_USER') }}"
-      qubes:
-        netvm: None
-        netvm_vm: None
-        pcidevs: '{{ sys_net_pcidevs | default([]) }}'
-        provides-network: true
-        template: opnsense-template
-        template_vm: opnsense-template
-      volume:
-        root: 40g
+    # opnsense:
+    #   ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
+    #   ansible_user: "{{ lookup('env', 'OPNSENSE_USER') }}"
+    #   qubes:
+    #     netvm_vm: none
+    #     pcidevs: '{{ sys_net_pcidevs | default([]) }}'
+    #     provides-network: true
+    #     template: opnsense-template
+    #     template_vm: opnsense-template
+    #   volume:
+    #     root: 40g
     # TODO - Add Security Onion to stack.
     # Note - Ideally it should be run on another offline computer passively tapped into the Ethernet but in the spirit of mashing everything into one computer.. leaving this as a note for now -- PRs weldome
     # seconion:
@@ -252,8 +255,10 @@ proxyvms:
         netvm_vm: sys-firewall
     vpn-pritunl:
       qubes:
-        netvm: opnsense
-        netvm_vm: opnsense
+        # netvm: opnsense
+        # netvm_vm: opnsense
+        netvm: sys-firewall
+        netvm_vm: sys-firewall
     vpn-proton:
       qubes:
         netvm: sys-firewall
@@ -305,12 +310,14 @@ templatevms:
       hosts:
         crypto-template:
         development-template:
+          include_pii_dotfiles: true
         gpg-template:
           qubes:
             source: fedora-36-minimal
         kubernetes-template:
         media-template:
         personal-template:
+          include_pii_dotfiles: true
         pritunl-server-template:
           qubes:
             source: centos-8
@@ -324,6 +331,7 @@ templatevms:
           qubes:
             source: fedora-36-minimal
         work-template:
+          include_pii_dotfiles: true
       vars:
         qubes:
           source: fedora-36
@@ -367,17 +375,16 @@ templatevms:
           root: 40g
     hvmtemplates:
       hosts:
-        opnsense-template:
-          ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
-          ansible_user: "{{ lookup('env', 'OPNSENSE_USER') }}"
-          qubes:
-            netvm: None
-            netvm_vm: None
-            provides-network: true
-            pcidevs: '{{ sys_net_pcidevs | default([]) }}'
-            source: opnsense-22.7
-          volume:
-            root: 40g
+        # opnsense-template:
+        #   ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
+        #   ansible_user: "{{ lookup('env', 'OPNSENSE_USER') }}"
+        #   qubes:
+        #     netvm_vm: None
+        #     provides-network: true
+        #     pcidevs: '{{ sys_net_pcidevs | default([]) }}'
+        #     source: opnsense-22.7
+        #   volume:
+        #     root: 40g
         # seconion-template:
         #   ansible_password: "{{ lookup('env', 'SECONION_PASSWORD') }}"
         #   ansible_user: "{{ lookup('env', 'SECONION_USER') }}"

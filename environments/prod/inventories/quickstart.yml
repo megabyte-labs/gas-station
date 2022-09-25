@@ -37,8 +37,10 @@ all:
               children:
                 system-vms:
                 template-vms:
+                app-dvm-templates:
                 net-vms:
                 proxy-vms:
+                app-dvms:
                 app-vms:
                 standalone-vms:
         windows:
@@ -57,15 +59,42 @@ app-vms:
   children:
     app-dvms:
       vars:
+        label: yellow
+        services:
+          appmenus-dispvm: true
+      hosts:
+        anon:
+          qubes:
+            template_vm: anon-dvm
+        dev-temp:
+          qubes:
+            template_vm: dev-dvm
+        media:
+          qubes:
+            template_vm: media-dvm
+        office:
+          qubes:
+            template_vm: office-dvm
+        util:
+          qubes:
+            template_vm: util-dvm
+        web:
+          qubes:
+            template_vm: web-dvm
+    app-dvm-templates:
+      vars:
         qubes:
           label: gray
           services:
             appmenus-dispvm: true
           template_for_dipvms: true
         hosts:
-          anonymous-dvm:
+          anon-dvm:
             qubes:
-              template_vm: anonymous-tmpl
+              template_vm: anon-tmpl
+          dev-dvm:
+            qubes:
+              template_vm: dev-tmpl
           media-dvm:
             qubes:
               template_vm: media-tmpl
@@ -104,12 +133,12 @@ app-vms:
             netvm_vm: vpn-proton
             template: crypto-tmpl
             template_vm: crypto-tmpl
-        development:
+        dev:
           qubes:
             maxmem: 8192
             netvm_vm: vpn-proton
-            template: development-tmpl
-            template_vm: development-tmpl
+            template: dev-tmpl
+            template_vm: dev-tmpl
             vcpus: 4
           volume:
             private: 40g
@@ -159,8 +188,8 @@ app-vms:
             autostart: true
             maxmem: 8192
             netvm_vm: vpn-pritunl
-            template: remote-tmpl
-            template_vm: swarm-tmpl
+            template: docker-tmpl
+            template_vm: docker-tmpl
             vcpus: 4
         vault:
           qubes:
@@ -181,6 +210,28 @@ app-vms:
         qubes:
           label: purple
           template_vm: fedora-36
+
+specialty-vms:
+  vars:
+    qubes:
+      vm_type: AppVM
+  hosts:
+    api:
+      qubes:
+        label: orange
+        template: provision-tmpl
+        template_vm: provision-tmpl
+    maas:
+      qubes:
+        label: orange
+        # netvm_vm: opnsense
+        template: provision-tmpl
+        template_vm: provision-tmpl
+    mirror:
+      qubes:
+        label: orange
+        template: docker-tmpl
+        template_vm: docker-tmpl
 
 net-vms:
   hosts:
@@ -264,10 +315,11 @@ template-vms:
           label: red
     standard-templates:
       hosts:
-        anonymous-tmpl:
+        anon-tmpl:
         crypto-tmpl:
-        development-tmpl:
+        dev-tmpl:
           include_pii_dotfiles: true
+        docker-tmpl:
         gpg-tmpl:
         kubernetes-tmpl:
         media-tmpl:
@@ -278,8 +330,9 @@ template-vms:
         #     source: debian-10
         office-tmpl:
         provision-tmpl:
+          qubes:
+            source: jammy
         remote-tmpl:
-        swarm-tmpl:
         util-tmpl:
         vpn-tmpl:
         vault-tmpl:

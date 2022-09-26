@@ -194,4 +194,7 @@ ansible-galaxy collection install --force -r requirements.yml
 # Run the playbook
 echo "Your Ansible Vault password should be placed at ~/.vaultpass"
 cd /etc/ansible
-ANSIBLE_STDOUT_CALLBACK="default" ansible-playbook --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml -vv /etc/ansible/qubes.yml
+if [[ "$(hostname)" == 'dom0' ]]; then
+  export ANSIBLE_STDOUT_CALLBACK="default"
+fi
+ansible-playbook --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml -vv /etc/ansible/qubes.yml

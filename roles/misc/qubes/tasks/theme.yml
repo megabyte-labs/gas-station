@@ -50,27 +50,22 @@
   become: true
   shell:
     cmd: |
-      set -e
-      function squashSymlink() {
-        for link; do
-          test -h "$link" || continue
-
-          dir=$(dirname "$link")
-          reltarget=$(readlink "$link")
-          case $reltarget in
-              /*) abstarget=$reltarget;;
-              *)  abstarget=$dir/$reltarget;;
-          esac
-
-          rm -fv "$link"
-          cp -afv "$abstarget" "$link" || {
-              # on failure, restore the symlink
-              rm -rfv "$link"
-              ln -sfv "$reltarget" "$link"
-          }
-        done
-      }
-      find /usr/share/plasma -type l -exec squashSymlink {} +
+      set -ex
+      while read link; do
+        test -h "$link" || continue
+        dir=$(dirname "$link")
+        reltarget=$(readlink "$link")
+        case $reltarget in
+            /*) abstarget=$reltarget;;
+            *)  abstarget=$dir/$reltarget;;
+        esac
+        rm -fv "$link"
+        cp -afv "$abstarget" "$link" || {
+            # on failure, restore the symlink
+            rm -rfv "$link"
+            ln -sfv "$reltarget" "$link"
+        }
+      done< <(find /usr/share/plasma -type l)
   register: squash_symlink
   changed_when: "squash_symlink.stdout != ''"
   args:

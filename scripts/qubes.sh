@@ -34,7 +34,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
     if xwininfo -root -tree | grep "Anon Connection Wizard"; then
       WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
       xdotool windowactivate "$WINDOW_ID"
-      sleep 1
+      sleep 3
       if [[ "$ENABLE_OBFSC" == 'true' ]]; then
         xdotool key 'Tab'
         xdotool key 'Tab'
@@ -42,7 +42,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
         xdotool key 'Down'
       fi
       xdotool key 'Enter'
-      sleep 2
+      sleep 3
       if [[ "$ENABLE_OBFSC" == 'true' ]]; then
         xdotool key 'space'
       fi
@@ -51,7 +51,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
       xdotool key 'Enter'
       sleep 14
       xdotool windowactivate "$WINDOW_ID"
-      sleep 1
+      sleep 3
       xdotool key 'Enter'
     else
       sleep 3
@@ -160,8 +160,6 @@ done
 
 # Ansible library
 sudo mkdir -p '/usr/share/ansible/library'
-sudo rm -f '/usr/share/ansible/library/qubesos.py'
-sudo ln -s '/etc/ansible/scripts/library/qubesos.py' '/usr/share/ansible/library/qubesos.py'
 for ANSIBLE_LIBRARY in 'qubes-pass.py' 'qubesformation.py' 'qubesguid.py' 'qubessls.py'; do
   sudo rm -f "/usr/share/ansible/library/$ANSIBLE_LIBRARY"
   sudo ln -s "/etc/ansible/.modules/ansible-qubes/library/$ANSIBLE_LIBRARY" "/usr/share/ansible/library/$ANSIBLE_LIBRARY"

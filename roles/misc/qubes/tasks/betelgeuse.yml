@@ -1,0 +1,28 @@
+---
+- name: Check for presence of theme archive
+  stat:
+    path: /usr/src/betelgeuse
+  register: gas_theme_tmp
+
+- name: Download the git repository asset
+  shell:
+    cmd: |
+      qvm-create --label red --template debian-11 provision || EXIT_CODE=$?
+      qvm-run provision 'curl -sSL {{ linux_theme_package }} > /home/user/share.tar.gz'
+      qvm-run --pass-io provision 'cat /home/user/share.tar.gz' > "/tmp/betelgeuse.tar.gz"
+  when: not gas_theme_tmp.stat.exists
+
+- name: Ensure /usr/src/betelgeuse is a directory
+  become: true
+  file:
+    path: /usr/src/betelgeuse
+    state: directory
+
+- name: Ensure latest Linux theme files are present on system
+  become: true
+  ansible.builtin.unarchive:
+    src: /tmp/betelgeuse.tar.gz
+    dest: /usr/src/betelgeuse
+    extra_opts: [--strip-components=1]
+    remote_src: true
+  when: not gas_theme_tmp.stat.exists

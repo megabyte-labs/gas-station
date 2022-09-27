@@ -51,8 +51,10 @@
   become_user: "{{ dom0_user }}"
   become_method: su
   become_flags: "--login"
-  stat:
+  file:
     path: ~/.config/user-kde-settings
+    state: directory
+    recurse: true
   register: user_theme_indicator
 
 - name: Ensure user theme backup gets applied
@@ -64,7 +66,7 @@
     src: files/user-kde-settings.tar.gz
     dest: ~/.config/user-kde-settings
     extra_opts: [--strip-components=1]
-  when: not user_theme_indicator.stat.exists
+  when: user_theme_indicator.changed
 
 - name: Move user theme plasma/plasmoids folder
   become: true
@@ -75,7 +77,7 @@
     src: ~/.config/user-kde-settings/plasma/
     dest: ~/.local/plasma/
     remote_src: true
-  when: not user_theme_indicator.stat.exists
+  when: user_theme_indicator.changed
 
 - name: Remove user-kde-settings plasma folder
   become: true
@@ -85,7 +87,7 @@
   file:
     path: ~/.config/user-kde-settings/plasma
     state: absent
-  when: not user_theme_indicator.stat.exists
+  when: user_theme_indicator.changed
 
 - name: Copy over other files in the user-kde-settings to ~/.config
   become: true
@@ -96,7 +98,7 @@
     src: ~/.config/user-kde-settings/
     dest: ~/.config/
     remote_src: true
-  when: not user_theme_indicator.stat.exists
+  when: user_theme_indicator.changed
 
 - name: Ensure /usr/share/plasma uses files instead of symlinks
   become: true

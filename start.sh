@@ -527,6 +527,23 @@ if [ ! -f "$HOME/.profile" ]; then
   touch "$HOME/.profile"
 fi
 
+# @description Ensure git hosts are all in ~/.ssh/known_hosts
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+if [ ! -f ~/.ssh/known_hosts ]; then
+  touch ~/.ssh/known_hosts
+  chmod 600 ~/.ssh/known_hosts
+fi
+if [ ! -n "$(grep "^gitlab.com " ~/.ssh/known_hosts)" ]; then
+  ssh-keyscan gitlab.com >> ~/.ssh/known_hosts 2>/dev/null
+fi
+if [ ! -n "$(grep "^github.com " ~/.ssh/known_hosts)" ]; then
+  ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+fi
+if [ ! -n "$(grep "^bitbucket.org " ~/.ssh/known_hosts)" ]; then
+  ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts 2>/dev/null
+fi
+
 # @description Ensures ~/.local/bin is in PATH
 ensureLocalPath
 

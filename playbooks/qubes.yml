@@ -7,26 +7,37 @@
     # Prepare dom0
     # NOTE: The Qubes dom0 provisioning has some "become" sourcery involved because the default
     # user is root instead of the dom0 user
-    #- name: Update and configure dom0
-    #  vars:
-    #    dom0_features:
-    #      - create-vms
-    #      - dotfiles
-    #      - grub
-    #      - new-menu
-    #      - opnsense
-    #      - plymouth
-    #      - policy
-    #      - split-gpg
-    #      - sudo-prompt
-    #      - sys-gui
-    #      - sys-usb
-    #      - theme
-    #      - u2f
-    #      - update
-    #      - yubikey
-    #  include_role:
-    #    name: professormanhattan.qubes
+    - name: Check if dom0 was provisioned
+      stat:
+        path: /tmp/.setup-dom0-fully-provisioned
+      register: dom0_fully_provisioned
+    - name: Update and configure dom0
+      vars:
+        dom0_features:
+          - create-vms
+          - dotfiles
+          - grub
+          - new-menu
+          - opnsense
+          - plymouth
+          - policy
+          - split-gpg
+          - sudo-prompt
+          - sys-gui
+          - sys-usb
+          - theme
+          - u2f
+          - update
+          - yubikey
+      include_role:
+        name: professormanhattan.qubes
+      when: not dom0_fully_provisioned.stat.exists
+    - name: Register "fully provisioned" indicator temporary file
+      copy:
+        content: |
+          done
+        dest: /tmp/.setup-dom0-fully-provisioned
+      when: not dom0_fully_provisioned.stat.exists
 
 - name: Provision the primary template VMs
   hosts: vpn-tmpl
@@ -94,5 +105,5 @@
       vars:
         dom0_features:
           - tor-updates
-        include_role:
-          name: professormanhattan.qubes
+      include_role:
+        name: professormanhattan.qubes

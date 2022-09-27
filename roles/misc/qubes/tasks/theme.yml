@@ -46,14 +46,57 @@
     dest: /usr/share/
     remote_src: true
 
+- name: Check for presence of user theme archive
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
+  stat:
+    path: ~/.config/user-kde-settings
+  register: user_theme_indicator
+
 - name: Ensure user theme backup gets applied
   become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
   ansible.builtin.unarchive:
     src: files/user-kde-settings.tar.gz
-    dest: ~/.local
+    dest: ~/.config/user-kde-settings
     extra_opts: [--strip-components=1]
+  when: not user_theme_indicator.stat.exists
+
+- name: Move user theme plasma/plasmoids folder
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
+  copy:
+    src: ~/.config/user-kde-settings/plasma/
+    dest: ~/.local/plasma/
     remote_src: true
-  when: not gas_theme_tmp.stat.exists
+  when: not user_theme_indicator.stat.exists
+
+- name: Remove user-kde-settings plasma folder
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
+  file:
+    path: ~/.config/user-kde-settings/plasma
+    state: absent
+  when: not user_theme_indicator.stat.exists
+
+- name: Copy over other files in the user-kde-settings to ~/.config
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
+  copy:
+    src: ~/.config/user-kde-settings/
+    dest: ~/.config/
+    remote_src: true
+  when: not user_theme_indicator.stat.exists
 
 - name: Ensure /usr/share/plasma uses files instead of symlinks
   become: true

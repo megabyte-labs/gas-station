@@ -90,15 +90,16 @@ fi
 if [[ "$USE_DOM0" == "true" ]] && [[ "$(hostname)" == "dom0" ]]; then
   # Download Gas Station and transfer to dom0 via DispVM
   qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
-  qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > Playbooks.tar.gz'
-  qvm-run --pass-io "$ANSIBLE_PROVISION_VM" "cat Playbooks.tar.gz" > "$HOME/Playbooks.tar.gz"
-  tar -xzf "$HOME/Playbooks.tar.gz" -C "$HOME"
-  rm -f "$HOME/Playbooks.tar.gz"
+  qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://gitlab.com/megabyte-labs/gas-station/-/archive/master/gas-station-master.tar.gz > ~/Downloads/Playbooks.tar.gz'
+  mkdir -p "$HOME/.local/src"
+  qvm-run --pass-io "$ANSIBLE_PROVISION_VM" "cat ~/.local/src/Playbooks.tar.gz" > "$HOME/.local/src/Playbooks.tar.gz"
+  tar -xzf "$HOME/.local/src/Playbooks.tar.gz" -C "$HOME"
+  rm -f "$HOME/.local/src/Playbooks.tar.gz"
   mv "$HOME/gas-station-master" "$HOME/Playbooks"
-  qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://github.com/ProfessorManhattan/ansible-qubes/archive/refs/heads/master.tar.gz > ansible-qubes.tar.gz'
-  qvm-run --pass-io "$ANSIBLE_PROVISION_VM" "cat ansible-qubes.tar.gz" > "$HOME/ansible-qubes.tar.gz"
-  tar -xzf "$HOME/ansible-qubes.tar.gz" -C "$HOME"
-  rm -f "$HOME/ansible-qubes.tar.gz"
+  qvm-run "$ANSIBLE_PROVISION_VM" 'curl -sSL https://github.com/ProfessorManhattan/ansible-qubes/archive/refs/heads/master.tar.gz > ~/Downloads/ansible-qubes.tar.gz'
+  qvm-run --pass-io "$ANSIBLE_PROVISION_VM" "cat ~/Downloads/ansible-qubes.tar.gz" > "$HOME/.local/src/ansible-qubes.tar.gz"
+  tar -xzf "$HOME/.local/src/ansible-qubes.tar.gz" -C "$HOME"
+  rm -f "$HOME/.local/src/ansible-qubes.tar.gz"
   sudo rm -rf "$HOME/Playbooks/.modules/ansible-qubes"
   mv "$HOME/ansible-qubes-master" "$HOME/Playbooks/.modules/ansible-qubes"
   # Move files to appropriate locations
@@ -119,8 +120,10 @@ else
     sudo apt-get install -y ansible
     if [ -d /etc/ansible/playbooks ]; then
       cd /etc/ansible
+      sudo git config pull.rebase false
       sudo git pull origin master
       cd /etc/ansible/.modules/ansible-qubes
+      sudo git config pull.rebase false
       sudo git pull origin master
     else
       if [ -d "/etc/ansible/facts.d" ]; then

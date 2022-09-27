@@ -146,6 +146,7 @@ tasks:
     status:
       - '[ "$SNAP_PACKAGE" == "null" ]'
 
+  # eslint-disable max-len
   analyze:
     summary: |
       | Command property | Description                                                                                                                                                |
@@ -235,17 +236,21 @@ tasks:
     deps:
       - :install:software:jq
     env:
+      ARTIFACTS_JSON:
+        sh: jq -r '.' build/artifacts.json || echo null
+      METADATA_JSON:
+        sh: jq -r '.' build/metadata.json || echo null
       PACKAGE_JSON:
         sh: jq -r '.' package.json
       RELEASE_JSON:
-        sh: jq -r '.' .release.json
+        sh: jq -r '.' .release.json || echo null
       TMP:
         sh: mktemp
       VARIABLES_JSON:
         sh: jq -r '.' .variables.json
     cmds:
-      - jq -n --arg pkg "$PACKAGE_JSON" --arg release "$RELEASE_JSON" --arg vars "$VARIABLES_JSON" --arg job "$CI_JOB_ID"
-        '.["package.json"] = $pkg | .[".release.json"] = $release | .[".variables.json"] = $vars | .CI_JOB_ID = $job' > "$TMP"
+      - jq -n --arg artifacts "$ARTIFACTS_JSON" --arg metadata "$METADATA_JSON" --arg pkg "$PACKAGE_JSON" --arg release "$RELEASE_JSON" --arg vars "$VARIABLES_JSON" --arg job "$CI_JOB_ID"
+        '.["package.json"] = $pkg | .[".release.json"] = $release | .["build/artifacts.json"] = $artifacts | .["build/metadata.json"] = $metadata | .[".variables.json"] = $vars | .CI_JOB_ID = $job' > "$TMP"
       - >
         curl -X POST -H "Content-Type: application/json" -d "$(cat "$TMP")"
         "https://maker.ifttt.com/trigger/SemanticReleaseFail/json/with/key/$IFTTT_WEBHOOK_TOKEN"

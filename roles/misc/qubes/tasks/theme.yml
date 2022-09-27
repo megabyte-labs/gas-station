@@ -1,7 +1,7 @@
 ---
 - name: Check for presence of theme archive
   stat:
-    path: /usr/src/gas-theme
+    path: /usr/src/betelgeuse
   register: gas_theme_tmp
 
 - name: Download the git repository asset
@@ -9,20 +9,20 @@
     cmd: |
       qvm-create --label red --template debian-11 provision || EXIT_CODE=$?
       qvm-run provision 'curl -sSL {{ linux_theme_package }} > /home/user/share.tar.gz'
-      qvm-run --pass-io provision 'cat /home/user/share.tar.gz' > "/tmp/gas-theme.tar.gz"
+      qvm-run --pass-io provision 'cat /home/user/share.tar.gz' > "/tmp/betelgeuse.tar.gz"
   when: not gas_theme_tmp.stat.exists
 
-- name: Ensure /usr/src/gas-theme is a directory
+- name: Ensure /usr/src/betelgeuse is a directory
   become: true
   file:
-    path: /usr/src/gas-theme
+    path: /usr/src/betelgeuse
     state: directory
 
 - name: Ensure latest Linux theme files are present on system
   become: true
   ansible.builtin.unarchive:
-    src: /tmp/gas-theme.tar.gz
-    dest: /usr/src/gas-theme
+    src: /tmp/betelgeuse.tar.gz
+    dest: /usr/src/betelgeuse
     extra_opts: [--strip-components=1]
     remote_src: true
   when: not gas_theme_tmp.stat.exists
@@ -42,9 +42,18 @@
 - name: Copy over theme files
   become: true
   copy:
-    src: /usr/src/gas-theme/share/
+    src: /usr/src/betelgeuse/share/
     dest: /usr/share/
     remote_src: true
+
+- name: Ensure user theme backup gets applied
+  become: true
+  ansible.builtin.unarchive:
+    src: files/betelgeuse-kde-settings.tar.gz
+    dest: ~/.local
+    extra_opts: [--strip-components=1]
+    remote_src: true
+  when: not gas_theme_tmp.stat.exists
 
 - name: Ensure /usr/share/plasma uses files instead of symlinks
   become: true
@@ -84,12 +93,7 @@
     - package: kvantum
       exclude: kvantum-data
     - qubes-repo-contrib
-
-- name: Ensure /usr/src/gas-plasmoids is a directory
-  become: true
-  file:
-    path: /usr/src/gas-plasmoids
-    state: directory
+    # Add KDE Connect
 
 - name: Install Plasmoids
   include_tasks: plasmoid.yml

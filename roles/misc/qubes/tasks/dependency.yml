@@ -7,7 +7,8 @@
 - name: Ensure dom0 update cache is clean
   become: true
   run_once: true
-  shell: qubes-dom0-update --clean -y
+  shell:
+    cmd: qubes-dom0-update --clean -y
   register: qubes_dom0_update_clean
   changed_when: "(qubes_dom0_update_clean.stdout is defined) and ('No updates available' not in qubes_dom0_update_clean.stdout)"
   when: not dom0_cache_clean_check.stat.exists
@@ -25,19 +26,25 @@
 
 - name: Determine if {{ item.package | default(item) }} is already installed
   become: true
-  command: dnf list {{ item.package | default(item) }}
+  command:
+    cmd: dnf list {{ item.package | default(item) }}
   changed_when: false
   failed_when: false
   register: dependency_dnf_search
   when: item.excludes is not defined
+  args:
+    executable: /bin/bash
 
 - name: Determine if {{ item.package | default(item) }} is already installed (with search options)
   become: true
-  command: dnf list {{ item.package | default(item) }}{{ dnf_search_options | default(omit) }}
+  command:
+    cmd: dnf list {{ item.package | default(item) }}{{ dnf_search_options | default(omit) }}
   changed_when: false
   failed_when: false
   register: dependency_dnf_search_alt
   when: item.excludes is defined
+  args:
+    executable: /bin/bash
 
 - name: Ensure {{ item.package | default(item) }} is installed
   become: true

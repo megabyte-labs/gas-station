@@ -2,33 +2,96 @@
 # yamllint disable rule:max-lines
 - name: Provision / initialize dom0
   hosts: dom0
-  connection: qubes
   tasks:
     # Prepare dom0
     # NOTE: The Qubes dom0 provisioning has some "become" sourcery involved because the default
     # user is root instead of the dom0 user
     - name: Check if dom0 was provisioned
       stat:
-        path: /tmp/.setup-dom0-fully-provisioned
-      register: dom0_fully_provisioned
+        path: /tmp/.setup-dom0-partially-provisioned
+      register: dom0_partially_provisioned
     - name: Update and configure dom0
       vars:
         dom0_features:
           - create-vms
-          # - dotfiles
-          # - grub
-          # - new-menu
+          - dotfiles
+          - grub
+          - new-menu
           # - opnsense
-          # - plymouth
-          # - policy
-          # - split-gpg
-          # - sudo-prompt
-          # - sys-gui
-          # - sys-usb
-          # - theme
-          # - u2f
-          # - update
-          # - yubikey
+          - plymouth
+          - policy
+          - split-gpg
+          - sudo-prompt
+          - sys-gui
+          - sys-usb
+          - theme
+          - u2f
+          - update
+          - yubikey
+      include_role:
+        name: professormanhattan.qubes
+      when: not dom0_partially_provisioned.stat.exists
+    - name: Register "partially provisioned" indicator temporary file
+      copy:
+        content: |
+          done
+        dest: /tmp/.setup-dom0-partially-provisioned
+      when: not dom0_partially_provisioned.stat.exists
+
+- name: Ensure upstream templates are upgraded
+  hosts: primary-templates
+  tasks:
+    - name: Determine if template was already updated
+      become: true
+      stat:
+        path: /root/.setup-base-template-updated
+      register: template_update_indicator
+    - name: Ensure Debian systems are updated
+      become: true
+      apt:
+        cache_valid_time: 3600
+        force_apt_get: true
+        update_cache: true
+        upgrade: dist
+      when:
+        - ansible_os_family == 'Debian'
+        - not template_update_indicator.stat.exists
+    - name: Ensure RedHat systems are updated
+      become: true
+      dnf:
+        name:  "*"
+        state: latest
+        update_cache: true
+      when:
+        - ansible_os_family == 'RedHat'
+        - not template_update_indicator.stat.exists
+    - name: Ensure Archlinux systems are updated
+      become: true
+      community.general.pacman:
+        update_cache: true
+        upgrade: true
+      when:
+        - ansible_os_family == 'Archlinux'
+        - not template_update_indicator.stat.exists
+    - name: Register "template updated" indicator file
+      become: true
+      copy:
+        content: |
+          done
+        dest: /root/.setup-base-template-updated
+      when: not template_update_indicator.stat.exists
+
+- name: Create the VM structure now that the templates are updated
+  hosts: dom0
+  tasks:
+    - name: Check whether the structure was recently provisioned
+      stat:
+        path: /tmp/.setup-dom0-fully-provisioned
+      register: dom0_fully_provisioned
+    - name: Scaffold out the VM structure using Salt
+      vars:
+        dom0_features:
+          - create-vms
       include_role:
         name: professormanhattan.qubes
       when: not dom0_fully_provisioned.stat.exists
@@ -41,8 +104,6 @@
 
 - name: Provision the primary template VMs
   hosts: vpn-tmpl
-  connection: qubes
-  gather_facts: true
   tasks:
     - name: Provision the custom template VM
       include_tasks: tasks/qubes/custom-template-vm.yml
@@ -57,14 +118,12 @@
 
 # - name: Ensure the Fedora 36 XFCE4 TemplateVM gets injected with all the theme files
 #   hosts: fedora-36-xfce
-#   connection: qubes
 #   tasks:
 #     - name: Ensure VM is configured to be a GUI VM
 #       include_tasks: tasks/qubes/gui-vm.yml
 
 - name: Make MAC addresses random (randomized every reboot)
   hosts: sys-net-dvm
-  connection: qubes
   tasks:
     # Source: https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md
     # TODO: Same logic for OPNSense
@@ -74,14 +133,12 @@
 # Needs StandaloneVM - will build with Packer
 # - name: Install Pritunl server to Pritunl TemplateVM
 #   hosts: pritunl-server-template
-#   connection: qubes
 #   tasks:
 #     - name: Run the install Pritunl server install script
 #       include_tasks: tasks/qubes/pritunl-server.yml
 
 - name: Configure persistent Docker files in select VMs
   hosts: development:kubernetes:swarm
-  connection: qubes
   strategy: free
   tasks:
     - name: Ensure directory for custom Ansible facts exists
@@ -99,7 +156,6 @@
 
 - name: Finish provisioning dom0
   hosts: dom0
-  connection: qubes
   tasks:
     - name: Enable updates over Tor
       vars:

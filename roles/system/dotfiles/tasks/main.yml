@@ -13,6 +13,16 @@
     state: present
   when: ansible_system == 'Linux'
 
+- name: Clone the git files repository source code
+  become: true
+  ansible.builtin.git:
+    repo: "{{ dotfiles_git_url }}"
+    dest: /usr/src/{{ theme_slug }}-dotfiles
+    clone: true
+    update: true
+  register: dotfiles_git
+  when: ansible_system == 'Linux' or ansible_os_family == 'Darwin'
+
 - name: Loop through users and add dotfiles
   include_tasks: user-continue.yml
   loop: '{{ user_configs | default([]) }}'

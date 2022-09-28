@@ -1,15 +1,18 @@
 ---
+- name: Copy over the user KDE settings compressed archive
+  copy:
+    src: files/user-kde-settings.tar.gz
+    dest: ~/.config/user-kde-settings.tar.gz
+  register: kde_settings_archive
+  args:
+    creates: ~/.config/user-kde-settings.tar.gz
+
 - name: Ensure the ~/.config/user-kde-settings directory exists
   file:
     path: ~/.config/user-kde-settings
     state: directory
     recurse: true
-
-- name: Copy over the user KDE settings compressed archive
-  copy:
-    src: files/user-kde-settings.tar.gz
-    dest: ~/.config/user-kde-settings.tar.gz
-  when: kde_settings_archive
+  when: kde_settings_archive.changed
 
 - name: Decompress the user KDE settings compressed archive
   ansible.builtin.unarchive:
@@ -17,6 +20,19 @@
     dest: ~/.config/user-kde-settings
     remote_src: true
     extra_opts: [--strip-components=1]
+  when: kde_settings_archive.changed
+
+- name: Ensure ~/.local/plasma is a folder
+  file:
+    path: ~/.local/plasma
+    state: directory
+    recurse: true
+
+- name: Move user theme plasma/plasmoids folder
+  copy:
+    src: ~/.config/user-kde-settings/plasma/
+    dest: ~/.local/plasma/
+    remote_src: true
   when: kde_settings_archive.changed
 
 - name: Remove the ~/.config/user-kde-settings/plasma folder
@@ -46,71 +62,55 @@
   include_tasks: misc/remove-shortcut.yml
   loop: "{{ hidden_system_tools }}"
 
+---
+- name: Ensure ~/.config/user-kde-settings is a folder
+  file:
+    path: ~/.config/user-kde-settings
+    state: directory
+    recurse: true
 
-
-- name: Apply gsettings
-  include_tasks: gsetting.yml
-  loop:
-    # Enables CTRL+Shift+I to inspect Gtk options
-    - setting: org.gtk.Settings.Debug enable-inspector-keybinding
-      value: 'true'
-    - setting: org.gnome.desktop.interface gtk-theme
-      value: 'Sweet'
-    - setting: org.gnome.desktop.wm.preferences theme
-      value: 'Sweet'
-
-# - name: Ensure the Betelgeuse desktop background is applied
-#   become_user: "{{ dom0_user }}"
-#   become_method: su
-#   become_flags: "--login"
-#   shell:
-#     cmd: |
-#       qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = "org.kde.image";d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");d.writeConfig("Image", "file:///usr/share/backgrounds/images/default.png")}'
-
-- name: Update xfconf settings
-  become: true
-  become_user: "{{ dom0_user }}"
-  become_method: su
-  become_flags: "--login"
-  community.general.system.xfconf:
-    channel: "{{ item.channel }}"
-    property: "{{ item.property }}"
-    value_type: "{{ item.value_type | default('string') }}"
-    value: "{{ item.value }}"
-  failed_when: false
-  loop: "{{ qubes_xfconf_settings }}"
-
-- name: Ensure SDDM configuration is in place
-  become: true
-  lineinfile:
-    path: /etc/sddm.conf
-    regex: "#ServerArguments"
-    line: "ServerArguments=-nolisten tcp -background none"
-
-- name: Ensure SDDM configuration is in place
-  become: true
-  lineinfile:
-    path: /etc/sddm.conf
-    regex: "Current="
-    line: "Current=Sweet"
-
-- name: Add custom wayland-session to load Sweet theme prior to display
-  become: true
+- name: Ensure user theme backup gets applied
   copy:
-    src: files/wayland-session.sh
-    dest: /etc/sddm/wayland-session
-    mode: '0755'
+    src: files/user-kde-settings.tar.gz
+    dest: ~/.config/user-kde-settings.tar.gz
+  register: user_kde_copy
+  args:
+    creates: ~/.config/user-kde-settings.tar.gz
 
-- name: Stop / disable the lightdm service
-  become: true
-  ansible.builtin.systemd:
-    name: lightdm
-    enabled: false
-    state: stopped
+- name: Decompress the user-kde-settings.tar.gz file
+  ansible.builtin.unarchive:
+    src: ~/.config/user-kde-settings.tar.gz
+    dest: ~/.config/user-kde-settings
+  when: user_kde_copy.changed
 
-- name: Start / enable the SDDM service
-  become: true
-  ansible.builtin.systemd:
-    state: started
-    name: sddm
-    enabled: true
+- name: Ensure ~/.config/plasma is a folder
+  file:
+    path: ~/.local/plasma
+    state: directory
+    recurse: true
+  when: user_kde_copy.changed
+
+- name: Move user theme plasma/plasmoids folder
+  copy:
+    src: ~/.config/user-kde-settings/plasma/
+    dest: ~/.local/plasma/
+    remote_src: true
+  when: user_kde_copy.changed
+
+- name: Remove user-kde-settings plasma folder
+  file:
+    path: ~/.config/user-kde-settings/plasma
+    state: absent
+  when: user_kde_copy.changed
+
+- name: Copy over other files in the user-kde-settings to ~/.config
+  copy:
+    src: ~/.config/user-kde-settings/
+    dest: ~/.config/
+    remote_src: true
+  when: user_kde_copy.changed
+
+- name: Remove the ~/.config/user-kde-settings folder now that everything has been transferred
+  file:
+    path: ~/.config/user-kde-settings
+    state: absent

@@ -1,157 +1,6 @@
 ---
 version: '3'
 
-output: interleaved
-
-vars:
-  DOCKERHUB_PROFILE:
-    sh: |
-      if [ -f .config/variables.json ] && type jq &> /dev/null; then
-        echo "$(jq -r '.profile.dockerhub' .config/variables.json)"
-      else
-        echo 'megabytelabs'
-      fi
-  DOCKERHUB_USER:
-    sh: |
-      if [ -f .config/variables.json ] && type jq &> /dev/null; then
-        echo "$(jq -r '.profile.dockerHubUser' .config/variables.json)"
-      else
-        echo 'ProfessorManhattan'
-      fi
-  ESLINT_FIX_RECURSIVE: 'true'
-  ESLINT_FORMATTER: stylish
-  ESLINT_FORMATTER_OPTIONS: git-log gitlab pretty summary
-  GALAXY_AUTHOR: ProfessorManhattan
-  GALAXY_COMPANY: Megabyte Labs
-  GALAXY_NAMESPACE:
-    sh: |
-      if [ -f meta/main.yml ]; then
-        grep namespace < meta/main.yml | sed 's/.*namespace: \\(.*\\)$/\\1/g'
-      else
-        if [ -f .config/variables.json ] && type jq &> /dev/null; then
-          echo "$(jq -r '.profile.galaxy' .config/variables.json)"
-        else
-          echo 'ProfessorManhattan'
-        fi
-      fi
-  GALAXY_ROLE_NAME:
-    sh: "if [ -f meta/main.yml ]; then grep role_name < meta/main.yml | sed 's/.*role_name: \\(.*\\)$/\\1/g'; fi"
-  GITHUB_ORG:
-    sh: |
-      if [ -f package.json ] && type jq &> /dev/null && [ "$(jq -r '.blueprint.repository.github' package.json)" != 'null' ]; then
-        echo "$(jq -r '.blueprint.repository.github' package.json | sed 's/https:\/\/github.com\///' | sed 's/\/.*$//')"
-      elif [ -f .config/variables.json ] && type jq &> /dev/null; then
-         echo "$(jq -r '.profile.githubOrg' .config/variables.json)"
-      else
-        echo 'megabyte-labs'
-      fi
-  GITHUB_USER:
-    sh: |
-      if [ -f .config/variables.json ] && type jq &> /dev/null; then
-         echo "$(jq -r '.profile.github' .config/variables.json)"
-      else
-        echo 'ProfessorManhattan'
-      fi
-  GROUP_EXEC_ASYNC: 'false'
-  # yamllint disable rule:line-length
-  IGNORE_FOLDERS: >-
-    -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*' -o
-    -path './.modules/*' -o -path './.npm/*' -o
-    -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*' -o
-    -path './build/*' -o -path './dist/*' -o -path './node_modules/*' -o -path './roles/*' -o -name pnpm-lock.yaml -o
-    -name package-lock.json -o -name poetry.lock -o -name '.variables.json' -o -name '.git'
-  INIT_SCRIPT: https://gitlab.com/megabyte-labs/gitlab-ci/-/raw/master/scripts/update-init.sh
-  LOG_FIX:
-    sh: chmod +x .config/log
-  MODEL_TASKFILE: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/Taskfile.yml
-  NPM_KEEP_UPDATED: ''
-  NPM_PROGRAM: pnpm
-  PROJECT_TYPE:
-    sh: |
-      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.group' package.json)"; if [ "$VER" == 'null' ]; then TYPE="$GROUP_TYPE"; else TYPE="$VER"; fi; else TYPE="$GROUP_TYPE"; fi
-      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.subgroup' package.json)"; if [ "$VER" == 'null' ]; then SUBTYPE="$REPOSITORY_TYPE"; else SUBTYPE="$VER"; fi; else SUBTYPE="$REPOSITORY_TYPE"; fi
-      if [ "$TYPE" == 'common' ] && [ "$SUBTYPE" == 'shared' ]; then
-        echo 'shared'
-      elif [ "$TYPE" == 'common' ]; then
-        echo 'common'
-      elif [ "$TYPE" == 'documentation' ] && [ "$SUBTYPE" == 'shared' ]; then
-        echo 'commondocs'
-      elif [ "$TYPE" == 'documentation' ]; then
-        echo 'docs'
-      else
-        echo 'project'
-      fi
-  # yamllint enable rule:line-length
-  PYTHON_HANDLE:
-    sh: |
-      if type poetry &> /dev/null; then
-        echo 'poetry run '
-      else
-        echo ''
-      fi
-  PYTHON_VIRTUALENV: true
-  REPOSITORY_SUBTYPE:
-    sh: |
-      if [ -n "$REPOSITORY_TYPE" ]; then REPO_SUBTYPE="$REPOSITORY_TYPE"; fi
-      if type jq &> /dev/null && [ -f package.json ]; then
-        VER="$(jq -r '.blueprint.subgroup' package.json)"
-        if [ "$VER" == 'null' ]; then
-          if [ -n "$REPO_SUBTYPE" ]; then echo "$REPO_SUBTYPE"; else echo "misc"; fi
-        else
-          echo "$VER"
-        fi
-      else
-        if [ -n "$REPO_SUBTYPE" ]; then echo "$REPO_SUBTYPE"; else echo "misc"; fi
-      fi
-  REPOSITORY_TYPE:
-    sh: |
-      if [ -n "$GROUP_TYPE" ]; then REPO_TYPE="$GROUP_TYPE"; fi
-      if type jq &> /dev/null && [ -f package.json ]; then
-        VER="$(jq -r '.blueprint.group' package.json)"
-        if [ "$VER" == 'null' ]; then
-          if [ -n "$REPO_TYPE" ]; then echo "$REPO_TYPE"; else echo "misc"; fi
-        else
-          echo "$VER"
-        fi
-      else
-        if [ -n "$REPO_TYPE" ]; then echo "$REPO_TYPE"; else echo "misc"; fi
-      fi
-  SEMANTIC_CONFIG: semantic-release-config
-  TIMEZONE: America/New_York
-
-env:
-  GOPATH:
-    sh: |
-      if [ -z "$GOPATH" ]; then
-        echo "$HOME/.local/go"
-      else
-        echo "$GOPATH"
-      fi
-  OSTYPE:
-    sh: |
-      {{if (eq OS "linux")}}LINUX_FLAVOR='linux-gnu'
-      LIBC=$(ldd /bin/ls | grep 'musl' | head -1 | cut -d ' ' -f1)
-      if [ -n "$LIBC" ]; then LINUX_FLAVOR='linux-musl'; fi{{end}}
-      echo "{{if (eq OS "linux")}}$LINUX_FLAVOR{{else}}darwin{{end}}"
-  PATH:
-    sh: |
-      PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin:$HOME/.gem/bin:$HOME/.asdf/bin"
-      PATH="$PATH:$HOME/.local/go/bin:$HOME/go/bin"
-      PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
-      PATH="$PATH:$PWD/bin"
-      PATH="$PATH:$HOME/.volta/bin"
-      echo "$PATH"
-  RECORD_INSTALL:
-    sh: if [ -n "$CI" ]; then echo 'true'; fi
-  SENTRY_DSN:
-    sh: |
-      if type jq &> /dev/null; then
-        DSN="$(jq -r '.blueprint.sentryDSN' package.json)"
-        if [ "$DSN" != 'null' ]; then echo "$DSN"; fi
-      fi
-  VOLTA_HOME:
-    sh: echo "$HOME/.volta"
-
 includes:
   ansible:
     taskfile: ./.config/taskfiles/ansible/Taskfile.yml
@@ -334,8 +183,8 @@ includes:
     taskfile: ./.config/taskfiles/lint/Taskfile-prose.yml
     optional: true
   log:
-    taskfile: ./.config/taskfiles/log/Taskfile.yml
     optional: true
+    taskfile: ./.config/taskfiles/log/Taskfile.yml
   nest:
     taskfile: ./.config/taskfiles/nest/Taskfile.yml
     optional: true
@@ -463,6 +312,157 @@ includes:
     taskfile: ./.config/taskfiles/web/Taskfile-profile.yml
     optional: true
 
+output: interleaved
+
+vars:
+  DOCKERHUB_PROFILE:
+    sh: |
+      if [ -f .config/variables.json ] && type jq &> /dev/null; then
+        echo "$(jq -r '.profile.dockerhub' .config/variables.json)"
+      else
+        echo 'megabytelabs'
+      fi
+  DOCKERHUB_USER:
+    sh: |
+      if [ -f .config/variables.json ] && type jq &> /dev/null; then
+        echo "$(jq -r '.profile.dockerHubUser' .config/variables.json)"
+      else
+        echo 'ProfessorManhattan'
+      fi
+  ESLINT_FIX_RECURSIVE: 'true'
+  ESLINT_FORMATTER: stylish
+  ESLINT_FORMATTER_OPTIONS: git-log gitlab pretty summary
+  GALAXY_AUTHOR: ProfessorManhattan
+  GALAXY_COMPANY: Megabyte Labs
+  GALAXY_NAMESPACE:
+    sh: |
+      if [ -f meta/main.yml ]; then
+        grep namespace < meta/main.yml | sed 's/.*namespace: \\(.*\\)$/\\1/g'
+      else
+        if [ -f .config/variables.json ] && type jq &> /dev/null; then
+          echo "$(jq -r '.profile.galaxy' .config/variables.json)"
+        else
+          echo 'ProfessorManhattan'
+        fi
+      fi
+  GALAXY_ROLE_NAME:
+    sh: "if [ -f meta/main.yml ]; then grep role_name < meta/main.yml | sed 's/.*role_name: \\(.*\\)$/\\1/g'; fi"
+  GITHUB_ORG:
+    sh: |
+      if [ -f package.json ] && type jq &> /dev/null && [ "$(jq -r '.blueprint.repository.github' package.json)" != 'null' ]; then
+        echo "$(jq -r '.blueprint.repository.github' package.json | sed 's/https:\/\/github.com\///' | sed 's/\/.*$//')"
+      elif [ -f .config/variables.json ] && type jq &> /dev/null; then
+         echo "$(jq -r '.profile.githubOrg' .config/variables.json)"
+      else
+        echo 'megabyte-labs'
+      fi
+  GITHUB_USER:
+    sh: |
+      if [ -f .config/variables.json ] && type jq &> /dev/null; then
+         echo "$(jq -r '.profile.github' .config/variables.json)"
+      else
+        echo 'ProfessorManhattan'
+      fi
+  GROUP_EXEC_ASYNC: 'false'
+  # yamllint disable rule:line-length
+  IGNORE_FOLDERS: >-
+    -path './.autodoc/*' -o -path './.cache/*' -o -path './.common*' -o -path './.config/*' -o -path './.git/*' -o
+    -path './.modules/*' -o -path './.npm/*' -o
+    -path './.pnpm-store/*' -o -path './.shared/*' -o -path './.task/*' -o -path './.venv/*' -o -path './.vscode/*' -o
+    -path './build/*' -o -path './dist/*' -o -path './node_modules/*' -o -path './roles/*' -o -name pnpm-lock.yaml -o
+    -name package-lock.json -o -name poetry.lock -o -name '.variables.json' -o -name '.git'
+  INIT_SCRIPT: https://gitlab.com/megabyte-labs/gitlab-ci/-/raw/master/scripts/update-init.sh
+  LOG_FIX:
+    sh: chmod +x .config/log
+  MODEL_TASKFILE: https://gitlab.com/megabyte-labs/common/shared/-/raw/master/Taskfile.yml
+  NPM_KEEP_UPDATED: ''
+  NPM_PROGRAM: pnpm
+  PROJECT_TYPE:
+    sh: |
+      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.group' package.json)"; if [ "$VER" == 'null' ]; then TYPE="$GROUP_TYPE"; else TYPE="$VER"; fi; else TYPE="$GROUP_TYPE"; fi
+      if type jq &> /dev/null && [ -f package.json ]; then VER="$(jq -r '.blueprint.subgroup' package.json)"; if [ "$VER" == 'null' ]; then SUBTYPE="$REPOSITORY_TYPE"; else SUBTYPE="$VER"; fi; else SUBTYPE="$REPOSITORY_TYPE"; fi
+      if [ "$TYPE" == 'common' ] && [ "$SUBTYPE" == 'shared' ]; then
+        echo 'shared'
+      elif [ "$TYPE" == 'common' ]; then
+        echo 'common'
+      elif [ "$TYPE" == 'documentation' ] && [ "$SUBTYPE" == 'shared' ]; then
+        echo 'commondocs'
+      elif [ "$TYPE" == 'documentation' ]; then
+        echo 'docs'
+      else
+        echo 'project'
+      fi
+  # yamllint enable rule:line-length
+  PYTHON_HANDLE:
+    sh: |
+      if type poetry &> /dev/null; then
+        echo 'poetry run '
+      else
+        echo ''
+      fi
+  PYTHON_VIRTUALENV: true
+  REPOSITORY_SUBTYPE:
+    sh: |
+      if [ -n "$REPOSITORY_TYPE" ]; then REPO_SUBTYPE="$REPOSITORY_TYPE"; fi
+      if type jq &> /dev/null && [ -f package.json ]; then
+        VER="$(jq -r '.blueprint.subgroup' package.json)"
+        if [ "$VER" == 'null' ]; then
+          if [ -n "$REPO_SUBTYPE" ]; then echo "$REPO_SUBTYPE"; else echo "misc"; fi
+        else
+          echo "$VER"
+        fi
+      else
+        if [ -n "$REPO_SUBTYPE" ]; then echo "$REPO_SUBTYPE"; else echo "misc"; fi
+      fi
+  REPOSITORY_TYPE:
+    sh: |
+      if [ -n "$GROUP_TYPE" ]; then REPO_TYPE="$GROUP_TYPE"; fi
+      if type jq &> /dev/null && [ -f package.json ]; then
+        VER="$(jq -r '.blueprint.group' package.json)"
+        if [ "$VER" == 'null' ]; then
+          if [ -n "$REPO_TYPE" ]; then echo "$REPO_TYPE"; else echo "misc"; fi
+        else
+          echo "$VER"
+        fi
+      else
+        if [ -n "$REPO_TYPE" ]; then echo "$REPO_TYPE"; else echo "misc"; fi
+      fi
+  SEMANTIC_CONFIG: semantic-release-config
+  TIMEZONE: America/New_York
+
+env:
+  GOPATH:
+    sh: |
+      if [ -z "$GOPATH" ]; then
+        echo "$HOME/.local/go"
+      else
+        echo "$GOPATH"
+      fi
+  OSTYPE:
+    sh: |
+      {{if (eq OS "linux")}}LINUX_FLAVOR='linux-gnu'
+      LIBC=$(ldd /bin/ls | grep 'musl' | head -1 | cut -d ' ' -f1)
+      if [ -n "$LIBC" ]; then LINUX_FLAVOR='linux-musl'; fi{{end}}
+      echo "{{if (eq OS "linux")}}$LINUX_FLAVOR{{else}}darwin{{end}}"
+  PATH:
+    sh: |
+      PATH="$PATH:$HOME/.local/bin:$HOME/.poetry/bin:$HOME/.gem/bin:$HOME/.asdf/bin"
+      PATH="$PATH:$HOME/.local/go/bin:$HOME/go/bin"
+      PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin"
+      PATH="$PATH:$PWD/bin"
+      PATH="$PATH:$HOME/.volta/bin"
+      echo "$PATH"
+  RECORD_INSTALL:
+    sh: if [ -n "$CI" ]; then echo 'true'; fi
+  SENTRY_DSN:
+    sh: |
+      if type jq &> /dev/null; then
+        DSN="$(jq -r '.blueprint.sentryDSN' package.json)"
+        if [ "$DSN" != 'null' ]; then echo "$DSN"; fi
+      fi
+  VOLTA_HOME:
+    sh: echo "$HOME/.volta"
+
 profile: |
   if [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
     if [ -f /home/linuxbrew/.linuxbrew/bin/brew ] && ! type brew > /dev/null; then
@@ -488,17 +488,17 @@ tasks:
       - install:software:jq
       - install:software:node
     desc: Build the project using the build script defined in `package.json`
-    vars:
-      NONINTERACTIVE_MISSING_BUILD_CMD: There must be a build command under `.scripts.build` in `package.json`!
     summary: |
       # Build the Project
 
       Use this command to build the project. It executes the command defined
       in `package.json` under the `.scripts.build` key.
+    vars:
+      NONINTERACTIVE_MISSING_BUILD_CMD: There must be a build command under `.scripts.build` in `package.json`!
     log:
+      error: Encountered error while running `npm run build`
       start: Running `npm run build`
       success: Successfully ran `npm run build`
-      error: Encountered error while running `npm run build`
     cmds:
       - |
         if [ "$(jq '.scripts.build' package.json)" != 'null' ]; then
@@ -568,9 +568,9 @@ tasks:
       task commit -- "Added new files that do not need to show up in CHANGELOG.md"
       ```
     log:
+      error: Error while running commit logic
       start: Adding all changes and committing
       success: Successfully commit changes
-      error: Error while running commit logic
     cmds:
       - |
         {{if .CLI_ARGS}}
@@ -599,7 +599,6 @@ tasks:
       - install:software:docker
 
   donothing: 'true'
-
 
   environment:
     interactive: true
@@ -679,12 +678,6 @@ tasks:
     cmds:
       - task: git:gitlab:group:exec
 
-  ssh-keys:
-    deps:
-      - cloud:heroku:ssh-keys
-      - git:github:ssh-keys
-      - git:gitlab:ssh-keys
-
   init:
     deps:
       - install:software:jq
@@ -710,9 +703,9 @@ tasks:
       `UPDATE_INIT_SCRIPT` as an environment variable. If it is not specified, then this
       task runs the [default script]({{.INIT_SCRIPT}}).
     log:
+      error: Failed to run initialization script
       start: Initializing project by running initialization script
       success: Successfully bootstrapped project by running initialization script
-      error: Failed to run initialization script
     cmds:
       - git init
       - task: repair
@@ -782,6 +775,87 @@ tasks:
     cmds:
       - task: prepare
 
+  playbook:
+    desc: Run the playbook
+    summary: |
+      # Run the Playbook
+
+      This task will prompt you for the environment and inventory you would like to
+      run the `main.yml` playbook with. It will:
+
+      1. Symlink all roles in the `roles/` folder to `~/.ansible/roles`
+      2. Run `task environment` (which prompts and symlinks the appropriate environment)
+      3. Prompt for which inventory to use
+      4. Run `ansible-playbook -i inventories/your_choice --ask-vault-pass main.yml`
+
+      **Example usage:**
+      `task playbook`
+
+      **Example bypassing prompts, using the `inventories/inventory.yml` file:**
+      `task playbook -- inventory.yml`
+    cmds:
+      - task: ansible:playbook:run
+
+  preload:
+    desc: Set up your workstation in advance by installing commonly used programs
+    summary: |
+      # Speed Up Future Development by Preloading Common System Applications
+
+      Just about every development task requires some sort of globally installed
+      application. TypeScript requires Node.js to be installed. Ansible requires
+      a handful of CLIs (and Python). This task will check for missing applications
+      and install them globally. If you do not run this task, the routines will
+      assume you want to keep the footprint small and use disposable virtual
+      environments whenever possible (i.e. `{{.NPX_PACKAGE}}` in the case of Node.js,
+      `poetry` in the case of Python, etc.).
+
+      ## Reboot Requirements
+
+      Some software that is installed, like VirtualBox and Docker, require reboots so
+      it is recommended that you reboot after running this task.
+
+      ## Passwordless Installation
+
+      This installation method and all the methods we use will only prompt for a sudo
+      password when absolutely necessary. If you already have common development tools
+      it is possible that you will not even have to enter a sudo password. This is
+      accomplished by installing to `$HOME/.local/bin` whenever a traditionally system
+      level binary is installed. However, if you are missing something like git, then
+      chances are you will be asked for a sudo password. In this case, we recommend
+      you adopt the Megabyte Labs philosophy and inspect the code before running it.
+    log:
+      error: Encountered error while preloading system with common dependencies (REBOOT RECOMMENDED)
+      start: Preloading system with common dependencies
+      success: Successfully preloaded system with common dependencies (REBOOT RECOMMENDED)
+    cmds:
+      - task: install:software:common
+      - task: install:brewfile
+      - task: install:extras
+      - task: install:go:bundle
+      - task: install:rust:bundle
+      - task: install:github:bundle
+      - task: install:npm:bundle
+      - task: install:pipx:bundle
+      - task: install:python:requirements
+      - task: install:modules:local
+
+  prepare:
+    desc: Prepares the project for the normal start command
+    summary: |
+      # Prepare the Project
+
+      This task ensures the project has all the required metadata. If a project
+      is missing required metadata then this task will interactively prompt the user
+      for the missing data. It also performs miscellaneous tasks that are sometimes
+      required by the `start` task.
+    log:
+      error: Encountered error while preparing the project
+      start: Preparing the project
+      success: Successfully prepared the project
+    cmds:
+      - task: boilerplate:check:package
+      - task: boilerplate:clean
+
   publish:
     desc: Publish a semantic release via `semantic-release`
     summary: |
@@ -831,8 +905,6 @@ tasks:
       - task: publish:semantic-release
 
   publish:force:
-    vars:
-      UPDATE_LEVEL: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}PATCH UPDATE{{end}}'
     desc: Force a `semantic-release` even if there are no new eligible commits
     summary: |
       # Force a Release with Empty Commit
@@ -850,6 +922,8 @@ tasks:
 
       **Example of major update:**
       `task publish:force -- 'MAJOR UPDATE'`
+    vars:
+      UPDATE_LEVEL: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}PATCH UPDATE{{end}}'
     log:
       error: Error creating update via `task publish:force`
       start: Publishing `semantic-release` update via `task publish:force`
@@ -859,87 +933,22 @@ tasks:
         HUSKY=0 git commit -a --allow-empty -m '🔨 chore(bump): Forced semantic-release {{.UPDATE_LEVEL}}' -n
       - task: publish
 
-  playbook:
-    desc: Run the playbook
+  pull:upstream:
+    desc: Pull from upstream repositories
     summary: |
-      # Run the Playbook
+      # Pull Changes from Upstream Repositories
 
-      This task will prompt you for the environment and inventory you would like to
-      run the `main.yml` playbook with. It will:
+      This task will do a `git pull` on each repository defined in `.blueprint.upstreamRemotes`.
+      The variable should be an array of objects where each object has the `remote`, `url`, and `branch` keys.
 
-      1. Symlink all roles in the `roles/` folder to `~/.ansible/roles`
-      2. Run `task environment` (which prompts and symlinks the appropriate environment)
-      3. Prompt for which inventory to use
-      4. Run `ansible-playbook -i inventories/your_choice --ask-vault-pass main.yml`
-
-      **Example usage:**
-      `task playbook`
-
-      **Example bypassing prompts, using the `inventories/inventory.yml` file:**
-      `task playbook -- inventory.yml`
-    cmds:
-      - task: ansible:playbook:run
-
-
-  preload:
-    desc: Set up your workstation in advance by installing commonly used programs
-    summary: |
-      # Speed Up Future Development by Preloading Common System Applications
-
-      Just about every development task requires some sort of globally installed
-      application. TypeScript requires Node.js to be installed. Ansible requires
-      a handful of CLIs (and Python). This task will check for missing applications
-      and install them globally. If you do not run this task, the routines will
-      assume you want to keep the footprint small and use disposable virtual
-      environments whenever possible (i.e. `{{.NPX_PACKAGE}}` in the case of Node.js,
-      `poetry` in the case of Python, etc.).
-
-      ## Reboot Requirements
-
-      Some software that is installed, like VirtualBox and Docker, require reboots so
-      it is recommended that you reboot after running this task.
-
-      ## Passwordless Installation
-
-      This installation method and all the methods we use will only prompt for a sudo
-      password when absolutely necessary. If you already have common development tools
-      it is possible that you will not even have to enter a sudo password. This is
-      accomplished by installing to `$HOME/.local/bin` whenever a traditionally system
-      level binary is installed. However, if you are missing something like git, then
-      chances are you will be asked for a sudo password. In this case, we recommend
-      you adopt the Megabyte Labs philosophy and inspect the code before running it.
+      **Sample value of `.blueprint.upstreamRemotes`:**
+      `[{ "remote": "ionic", "url": "git@github.com:ionic-team/ionic-docs.git", "branch": "main" }]`
     log:
-      start: Preloading system with common dependencies
-      success: Successfully preloaded system with common dependencies (REBOOT RECOMMENDED)
-      error: Encountered error while preloading system with common dependencies (REBOOT RECOMMENDED)
+      error: Encountered error while running `git pull` on each of the `upstreamRemotes`
+      start: Running `git pull` on each of the `upstreamRemotes`
+      success: Successfully pulled from `upstreamRemotes`
     cmds:
-      - task: install:software:common
-      - task: install:brewfile
-      - task: install:extras
-      - task: install:go:bundle
-      - task: install:rust:bundle
-      - task: install:github:bundle
-      - task: install:npm:bundle
-      - task: install:pipx:bundle
-      - task: install:python:requirements
-      - task: install:modules:local
-
-  prepare:
-    desc: Prepares the project for the normal start command
-    summary: |
-      # Prepare the Project
-
-      This task ensures the project has all the required metadata. If a project
-      is missing required metadata then this task will interactively prompt the user
-      for the missing data. It also performs miscellaneous tasks that are sometimes
-      required by the `start` task.
-    log:
-      start: Preparing the project
-      success: Successfully prepared the project
-      error: Encountered error while preparing the project
-    cmds:
-      - task: boilerplate:check:package
-      - task: boilerplate:clean
+      - task: common:update:upstream:remotes:pull
 
   repair:
     cmds:
@@ -963,23 +972,6 @@ tasks:
       updates, it re-generates any templated files.
     cmds:
       - task: common:reset
-
-  pull:upstream:
-    desc: Pull from upstream repositories
-    summary: |
-      # Pull Changes from Upstream Repositories
-
-      This task will do a `git pull` on each repository defined in `.blueprint.upstreamRemotes`.
-      The variable should be an array of objects where each object has the `remote`, `url`, and `branch` keys.
-
-      **Sample value of `.blueprint.upstreamRemotes`:**
-      `[{ "remote": "ionic", "url": "git@github.com:ionic-team/ionic-docs.git", "branch": "main" }]`
-    log:
-      error: Encountered error while running `git pull` on each of the `upstreamRemotes`
-      start: Running `git pull` on each of the `upstreamRemotes`
-      success: Successfully pulled from `upstreamRemotes`
-    cmds:
-      - task: common:update:upstream:remotes:pull
 
   reset:force:
     desc: 'Aggressively reset the project (**WARNING** This will wipe uncommitted work)'
@@ -1013,8 +1005,8 @@ tasks:
       task is a convenience method that will present a list of scripts alongside
       their descriptions that you can interactively launch.
     log:
-      start: Running `NTL_RUNNER={{.NPM_PROGRAM}} ntl`
       error: Error running `NTL_RUNNER={{.NPM_PROGRAM}} ntl`
+      start: Running `NTL_RUNNER={{.NPM_PROGRAM}} ntl`
     cmds:
       - NTL_RUNNER={{.NPM_PROGRAM}} ntl
 
@@ -1065,6 +1057,12 @@ tasks:
     cmds:
       - task: common:shell
 
+  ssh-keys:
+    deps:
+      - cloud:heroku:ssh-keys
+      - git:github:ssh-keys
+      - git:gitlab:ssh-keys
+
   start:
     desc: Start the project by installing / updating dependencies, repairing issues, and opening a tutorial
     summary: |
@@ -1083,9 +1081,9 @@ tasks:
       as possible. In some cases, this command will open documentation or a tutorial to read while dependencies are being
       installed.
     log:
+      error: Yikes! Error starting the project!
       start: Starting the project..
       success: Project started!
-      error: Yikes! Error starting the project!
     cmds:
       - task: common:start
 
@@ -1104,9 +1102,9 @@ tasks:
       **Example usage:**
       `task start`
     log:
+      error: Error encountered while starting up the project
       start: Synchronizing project with upstream file changes and bootstrapping
       success: Successfully synchronized the project with upstream file changes and also bootstrapped the project
-      error: Error encountered while starting up the project
     cmds:
       - task: upstream:{{.PROJECT_TYPE}}
 
@@ -1167,8 +1165,6 @@ tasks:
       - install:software:node
     interactive: true
     desc: Open an interactive dialog to select and run a Molecule test
-    vars:
-      NONINTERACTIVE_MISSING_TEST_CMD: There must be a `.scripts.test` definition in `package.json`!
     summary: |
       # Test the Project
 
@@ -1184,6 +1180,8 @@ tasks:
       3. VirtualBox Desktop tests which are not automatically destroyed
       4. Running the play locally
       5. Running the play over SSH on a remote target
+    vars:
+      NONINTERACTIVE_MISSING_TEST_CMD: There must be a `.scripts.test` definition in `package.json`!
     cmds:
       - |
         if [ "$(jq '.scripts.test' package.json)" != 'null' ]; then

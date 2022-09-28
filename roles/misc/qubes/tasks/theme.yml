@@ -21,6 +21,31 @@
     dest: /usr/share/
     remote_src: true
 
+- name: Ensure /usr/share/plasma uses files instead of symlinks
+  become: true
+  shell:
+    cmd: |
+      set -ex
+      while read link; do
+        test -h "$link" || continue
+        dir=$(dirname "$link")
+        reltarget=$(readlink "$link")
+        case $reltarget in
+            /*) abstarget=$reltarget;;
+            *)  abstarget=$dir/$reltarget;;
+        esac
+        rm -fv "$link"
+        cp -afv "$abstarget" "$link" || {
+            # on failure, restore the symlink
+            rm -rfv "$link"
+            ln -sfv "$reltarget" "$link"
+        }
+      done< <(find /usr/share/plasma -type l)
+  register: squash_symlink
+  changed_when: "squash_symlink.stdout != ''"
+  args:
+    executable: /bin/bash
+
 - name: Check for presence of user theme archive
   become: true
   become_user: "{{ dom0_user }}"
@@ -74,31 +99,6 @@
     dest: ~/.config/
     remote_src: true
   when: user_theme_indicator.changed
-
-- name: Ensure /usr/share/plasma uses files instead of symlinks
-  become: true
-  shell:
-    cmd: |
-      set -ex
-      while read link; do
-        test -h "$link" || continue
-        dir=$(dirname "$link")
-        reltarget=$(readlink "$link")
-        case $reltarget in
-            /*) abstarget=$reltarget;;
-            *)  abstarget=$dir/$reltarget;;
-        esac
-        rm -fv "$link"
-        cp -afv "$abstarget" "$link" || {
-            # on failure, restore the symlink
-            rm -rfv "$link"
-            ln -sfv "$reltarget" "$link"
-        }
-      done< <(find /usr/share/plasma -type l)
-  register: squash_symlink
-  changed_when: "squash_symlink.stdout != ''"
-  args:
-    executable: /bin/bash
 
 - name: Ensure dependencies are installed
   include_tasks: dependency.yml

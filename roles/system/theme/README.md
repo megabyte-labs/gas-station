@@ -1,12 +1,12 @@
 <!-- ⚠️ This README has been generated from the file(s) ".config/docs/blueprint-readme-role.md" ⚠️--><div align="center">
   <center>
-    <a href="https://github.com/ProfessorManhattan/ansible-androidstudio">
-      <img width="148" height="148" alt="Android Studio logo" src="https://gitlab.com/megabyte-labs/ansible-roles/androidstudio/-/raw/master/logo.png" />
+    <a href="https://github.com/megabyte-labs/ansible-theme">
+      <img width="148" height="148" alt="Betelgeuse Theme logo" src="https://gitlab.com/megabyte-labs/ansible-roles/theme/-/raw/master/logo.png" />
     </a>
   </center>
 </div>
 <div align="center">
-  <center><h1 align="center"><i></i>Android Studio - An IDE for Android Development<i></i></h1></center>
+  <center><h1 align="center"><i></i>Betelgeuse - The Cross-Platform Galaxy Theme<i></i></h1></center>
   <center><h4 style="color: #18c3d1;">Crafted by <a href="https://megabyte.space" target="_blank">Megabyte Labs</a></h4><i></i></center>
 </div>
 
@@ -14,56 +14,59 @@
   <a href="https://megabyte.space" title="Megabyte Labs homepage" target="_blank">
     <img alt="Homepage" src="https://img.shields.io/website?down_color=%23FF4136&down_message=Down&label=Homepage&logo=home-assistant&logoColor=white&up_color=%232ECC40&up_message=Up&url=https%3A%2F%2Fmegabyte.space&style=for-the-badge" />
   </a>
-  <a href="https://github.com/ProfessorManhattan/ansible-androidstudio/blob/master/docs/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
+  <a href="https://github.com/megabyte-labs/ansible-theme/blob/master/docs/CONTRIBUTING.md" title="Learn about contributing" target="_blank">
     <img alt="Contributing" src="https://img.shields.io/badge/Contributing-Guide-0074D9?logo=github-sponsors&logoColor=white&style=for-the-badge" />
   </a>
   <a href="https://app.slack.com/client/T01ABCG4NK1/C01NN74H0LW/details/" title="Chat with us on Slack" target="_blank">
     <img alt="Slack" src="https://img.shields.io/badge/Slack-Chat-e01e5a?logo=slack&logoColor=white&style=for-the-badge" />
   </a>
-  <a href="https://github.com/ProfessorManhattan/ansible-androidstudio" title="GitHub mirror" target="_blank">
+  <a href="https://gitter.im/megabyte-labs/community" title="Chat with the community on Gitter" target="_blank">
+    <img alt="Gitter" src="https://img.shields.io/gitter/room/megabyte-labs/community?logo=gitter&logoColor=white&style=for-the-badge" />
+  </a>
+  <a href="https://github.com/megabyte-labs/ansible-theme" title="GitHub mirror" target="_blank">
     <img alt="GitHub" src="https://img.shields.io/badge/Mirror-GitHub-333333?logo=github&style=for-the-badge" />
   </a>
-  <a href="https://gitlab.com/megabyte-labs/ansible-roles/androidstudio" title="GitLab repository" target="_blank">
+  <a href="https://gitlab.com/megabyte-labs/ansible-roles/theme" title="GitLab repository" target="_blank">
     <img alt="GitLab" src="https://img.shields.io/badge/Repo-GitLab-fc6d26?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAAHJJREFUCNdNxKENwzAQQNEfWU1ZPUF1cxR5lYxQqQMkLEsUdIxCM7PMkMgLGB6wopxkYvAeI0xdHkqXgCLL0Beiqy2CmUIdeYs+WioqVF9C6/RlZvblRNZD8etRuKe843KKkBPw2azX13r+rdvPctEaFi4NVzAN2FhJMQAAAABJRU5ErkJggg==&style=for-the-badge" />
   </a>
 </div>
 <br/>
 <div align="center">
-  <a title="Ansible Galaxy role: professormanhattan.galaxy_info.role_name" href="https://galaxy.ansible.com/professormanhattan/galaxy_info.role_name" target="_blank">
-    <img alt="Ansible Galaxy role: professormanhattan.galaxy_info.role_name" src="https://img.shields.io/ansible/role/56329?logo=ansible&style=flat-square" />
+  <a title="Ansible Galaxy role: professormanhattan.theme" href="https://galaxy.ansible.com/professormanhattan/theme" target="_blank">
+    <img alt="Ansible Galaxy role: professormanhattan.theme" src="https://img.shields.io/ansible/role/ansible_galaxy_project_id?logo=ansible&style=flat-square" />
   </a>
-  <a title="Version: 1.1.14" href="https://github.com/ProfessorManhattan/ansible-androidstudio" target="_blank">
+  <a title="Version: 1.1.14" href="https://github.com/megabyte-labs/ansible-theme" target="_blank">
     <img alt="Version: 1.1.14" src="https://img.shields.io/badge/version-1.1.14-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style=flat-square" />
   </a>
-  <a title="GitLab build status" href="https://gitlab.com/megabyte-labs/ansible-roles/androidstudio/-/commits/master" target="_blank">
-    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/galaxy_info.role_name?branch=master&label=build&logo=gitlab&logoColor=white&style=flat-square">
+  <a title="GitLab build status" href="https://gitlab.com/megabyte-labs/ansible-roles/theme/-/commits/master" target="_blank">
+    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/theme?branch=master&label=build&logo=gitlab&logoColor=white&style=flat-square">
   </a>
-  <a title="Windows 11 test status on GitHub" href="https://github.com/ProfessorManhattan/ansible-androidstudio/actions/workflows/Windows.yml" target="_blank">
-    <img alt="Windows 11 test status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-galaxy_info.role_name/Windows%20Ansible%20Role%20Test/master?color=cyan&label=windows&logo=windows&style=flat-square">
+  <a title="Windows 11 test status on GitHub" href="https://github.com/megabyte-labs/ansible-theme/actions/workflows/Windows.yml" target="_blank">
+    <img alt="Windows 11 test status" src="https://img.shields.io/github/workflow/status/ProfessorManhattan/ansible-theme/Windows%20Ansible%20Role%20Test/master?color=cyan&label=windows&logo=windows&style=flat-square">
   </a>
-  <a title="macOS test status on GitLab" href="https://gitlab.com/megabyte-labs/ansible-roles/androidstudio/-/commits/master" target="_blank">
-    <img alt="macOS test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/galaxy_info.role_name?branch=test%2Fdarwin&label=osx&logo=apple&style=flat-square">
+  <a title="macOS test status on GitLab" href="https://gitlab.com/megabyte-labs/ansible-roles/theme/-/commits/master" target="_blank">
+    <img alt="macOS test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/theme?branch=test%2Fdarwin&label=osx&logo=apple&style=flat-square">
   </a>
-  <a title="Linux Molecule test status on GitLab" href="https://gitlab.com/megabyte-labs/ansible-roles/androidstudio/-/commits/master" target="_blank">
-    <img alt="Linux Molecule test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/galaxy_info.role_name?branch=test%2Flinux&label=linux&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAElBMVEUAAAAwPEEuOEIxOzswPj7///91+pI+AAAABXRSTlMANRkNJejDPNcAAAB+SURBVCjPddHBDYAgDIXhGtMRHMG7S3hvTP79VxFIQVq1wOVLm7wU8QIJpSThC2wGwwJoPQFKRdiAAIhGsAykZNSZAOVNMx4BMjwtpySgr6CDJdB/MAdJwAvSiFoE5aABHUb0ch0WHNQq+KPAOgCgrbEnbjAHArjGz3jr3hpumrQpvwi66rkAAAAASUVORK5CYII=&style=flat-square">
+  <a title="Linux Molecule test status on GitLab" href="https://gitlab.com/megabyte-labs/ansible-roles/theme/-/commits/master" target="_blank">
+    <img alt="Linux Molecule test status" src="https://img.shields.io/gitlab/pipeline-status/megabyte-labs/ansible-roles/theme?branch=test%2Flinux&label=linux&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAElBMVEUAAAAwPEEuOEIxOzswPj7///91+pI+AAAABXRSTlMANRkNJejDPNcAAAB+SURBVCjPddHBDYAgDIXhGtMRHMG7S3hvTP79VxFIQVq1wOVLm7wU8QIJpSThC2wGwwJoPQFKRdiAAIhGsAykZNSZAOVNMx4BMjwtpySgr6CDJdB/MAdJwAvSiFoE5aABHUb0ch0WHNQq+KPAOgCgrbEnbjAHArjGz3jr3hpumrQpvwi66rkAAAAASUVORK5CYII=&style=flat-square">
   </a>
-  <a title="Ansible Galaxy quality score (out of 5)" href="https://galaxy.ansible.com/professormanhattan/galaxy_info.role_name" target="_blank">
-    <img alt="Ansible Galaxy quality score" src="https://img.shields.io/ansible/quality/56329?logo=ansible&style=flat-square" />
+  <a title="Ansible Galaxy quality score (out of 5)" href="https://galaxy.ansible.com/professormanhattan/theme" target="_blank">
+    <img alt="Ansible Galaxy quality score" src="https://img.shields.io/ansible/quality/ansible_galaxy_project_id?logo=ansible&style=flat-square" />
   </a>
-  <a title="Ansible Galaxy download count" href="https://galaxy.ansible.com/professormanhattan/galaxy_info.role_name" target="_blank">
-    <img alt="Ansible Galaxy download count" src="https://img.shields.io/ansible/role/d/56329?logo=ansible&label=downloads&style=flat-square">
+  <a title="Ansible Galaxy download count" href="https://galaxy.ansible.com/professormanhattan/theme" target="_blank">
+    <img alt="Ansible Galaxy download count" src="https://img.shields.io/ansible/role/d/ansible_galaxy_project_id?logo=ansible&label=downloads&style=flat-square">
   </a>
   <a title="Documentation" href="https://megabyte.space/docs/ansible" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&logoColor=white&style=flat-square" />
   </a>
-  <a title="License: MIT" href="https://github.com/ProfessorManhattan/ansible-androidstudio/blob/master/LICENSE" target="_blank">
+  <a title="License: MIT" href="https://github.com/megabyte-labs/ansible-theme/blob/master/LICENSE" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAAHpJREFUCNdjYOD/wMDAUP+PgYHxhzwDA/MB5gMM7AwMDxj4GBgKGGQYGCyAEEgbMDDwAAWAwmk8958xpIOI5zKH2RmOyhxmZjguAiKmgIgtQOIYmFgCIp4AlaQ9OczGkJYCJEAGgI0CGwo2HmwR2Eqw5SBnNIAdBHYaAJb6KLM15W/CAAAAAElFTkSuQmCC&style=flat-square" />
   </a>
 </div>
 
-> </br><h4 align="center">**subheader_description**</h4></br>
+> </br><h4 align="center">**An Ansible role that installs the Betelgeuse Linux theme which styles a wide variety of display managers (among other things)**</h4></br>
 
-<!--TERMINALIZE![terminalizer_title](https://gitlab.com/megabyte-labs/ansible-roles/galaxy_info.role_name* **github**: /raw/master/docs/demo.gif
+<!--TERMINALIZE![terminalizer_title](https://gitlab.com/megabyte-labs/ansible-roles/theme* **github**: /raw/master/docs/demo.gif
 * **gitlab**: /-/raw/master/docs/demo.gif)TERMINALIZE-->
 
 <a href="#table-of-contents" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
@@ -71,12 +74,9 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
 - [Quick Start](#quick-start)
 - [Variables](#variables)
   - [Variable Examples](#variable-examples)
-    - [`android_sdks`](#android_sdks)
-    - [`sdk_location`](#sdk_location)
     - [`user_configs`](#user_configs)
 - [Supported Operating Systems](#supported-operating-systems)
 - [Dependencies](#dependencies)
@@ -86,47 +86,31 @@
 - [Example Playbook](#example-playbook)
   - [Real World Example](#real-world-example)
 - [Contributing](#contributing)
+  - [Affiliates](#affiliates)
 - [License](#license)
 
 <a href="#overview" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
 ## Overview
 
-alternative_description. [Android Studio](https://developer.android.com/studio) is the official integrated development environment for Google's Android operating system, built on JetBrains' IntelliJ IDEA software and designed specifically for Android development. This role installs Android Studio on nearly any operating system and also ensures a configurable list of command-line tools and SDKs are installed and seamlessly integrated with the system (i.e. the role adds the appropriate items to the `PATH` environment variable).
-
-<a href="#features" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
-
-## Features
-
-**Ensures Android Studio is installed:**
-
-- Installs Android Studio on Archlinux, CentOS, Debian, Fedora, macOS, Ubuntu, and Windows
-- Ensures command-line tools are downloaded, installed, and available in the `PATH`
-
-**Ensures configured Android SDKs are present:**
-
-- Installs a configurable list of Android SDKs and Tools to user(s) home folder(s)
-- Ensures Android SDK tools like `adb` are present in PATH
-- Updates `~/.bashrc` to include SDK tools in `PATH` on Linux systems
-- Updates `~/.zshrc` to include SDK tools in `PATH` on Linux systems
-- Updates `PATH` on Windows systems
+This repository is the home of an [Ansible](https://www.ansible.com/) role that installs the Betelgeuse Linux theme which styles a wide variety of display managers (among other things). Betelgeuse is a theme for KDE, XFCE, Gnome, and many more themeing engines. It is heavily based on [Sweet](https://store.kde.org/p/1294174). It tries to make the theme compatible with many environment types. It also includes special styles geared towards styling [Qubes OS](https://www.qubes-os.org/).
 
 <a href="#quick-start" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
 ## Quick Start
 
-Looking to install Android Studio without having to deal with [Ansible](https://www.ansible.com/)? Simply run the following command that correlates to your operating system:
+Looking to install Betelgeuse Theme without having to deal with [Ansible](https://www.ansible.com/)? Simply run the following command that correlates to your operating system:
 
 **Linux/macOS:**
 
 ```shell
-curl -sS https://install.doctor/galaxy_info.role_name | bash
+curl -sS https://install.doctor/theme | bash
 ```
 
 **Windows:**
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/galaxy_info.role_name?os=win'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/theme?os=win'))
 ```
 
 **Important Note:** _Before running the commands above you should probably directly access the URL to make sure the code is legit. We already know it is safe but, before running any script on your computer, you should inspect it._
@@ -141,31 +125,10 @@ This role contains variables that you can customize. The variables you can custo
 
 | Name                            | Default Value | Description                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`android_sdks`](#android_sdks) | `[]`          | The list of SDKs and tools to install after Android Studio is installed. If no value is provided, the latest version of the SDKs and tools will be installed. Use the correct format, which can be found by executing `sdkmanage --list` after the CLI tools are installed; some package need a version to be specified and some do not.                                                                                   |
-| [`sdk_location`](#sdk_location) | `""`          | The folder to set as the SDK location                                                                                                                                                                                                                                                                                                                                                                                      |
+| theme_slug                      | `""`          | The slug / folder name of the theme                                                                                                                                                                                                                                                                                                                                                                                        |
 | [`user_configs`](#user_configs) | `[]`          | The `user_configs` variable is an array of objects that should, at the very least have the `username` property defined for each user with a home directory that you would like this role to install the Android SDK tools into. If the system property is set to true, then the SDK tools will not be installed to that user's home directory. You can control the installation location with the `sdk_location` variable. |
 
 ### Variable Examples
-
-#### `android_sdks`
-
-```yaml
-#💬 Example implementation of the android_sdks variable
-android_sdks:
-  - platform-tools
-  - emulator
-  - build-tools;30.0.0
-  - platforms;android-30
-  - sources;android-30
-  - patcher;v4
-```
-
-#### `sdk_location`
-
-```yaml
-#💬 Example implementation of the sdk_location variable
-sdk_location: ~/Android/Sdk
-```
 
 #### `user_configs`
 
@@ -183,12 +146,8 @@ user_configs:
 
 The chart below shows the operating systems that we have tested this role on. It is automatically generated using the Ansible Molecule tests located in the `molecule/` folder. There is CI logic in place to automatically handle the testing of Windows, macOS, Ubuntu, Fedora, CentOS, Debian, and Archlinux. If your operating system is not listed but is a variant of one of the systems we test (i.e. a Debian-flavored system or a RedHat-flavored system) then it is possible that the role will still work.
 
-| OS Family | OS Version            | Status                       | Idempotent                   | Tested On        |
-| --------- | --------------------- | ---------------------------- | ---------------------------- | ---------------- |
-| Debian    | 10 (Buster)           | <div align="center">✅</div> | <div align="center">❌</div> | August 5th, 2021 |
-| Ubuntu    | 18.04 (Bionic Beaver) | <div align="center">✅</div> | <div align="center">❌</div> | August 5th, 2021 |
-| Ubuntu    | 20.04 (Focal Fossa)   | <div align="center">✅</div> | <div align="center">❌</div> | August 5th, 2021 |
-| Ubuntu    | 21.04 (Hirsute Hippo) | <div align="center">✅</div> | <div align="center">❌</div> | August 5th, 2021 |
+| OS Family | OS Version | Status | Idempotent | Tested On |
+| --------- | ---------- | ------ | ---------- | --------- |
 
 **_What does idempotent mean?_** Idempotent means that if you run this role twice in row then there will be no changes to the system the second time around.
 
@@ -236,11 +195,12 @@ Although most of our roles do not have dependencies, there are some cases where 
 
 The `requirements.yml` file contains a full list of the Ansible Galaxy dependencies required by this role (i.e. `meta/main.yml` role dependencies, helper roles, collections, etc.). For your convenience, a list of the role dependencies along with quick descriptions is below:
 
-| Dependency                                                                                                                                                                    | Description                                                                |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| <b><a href="https://galaxy.ansible.com/professormanhattan/snapd" title="professormanhattan.snapd on Ansible Galaxy" target="_blank">professormanhattan.snapd</a></b>          | Ensures Snap is installed and properly configured on Linux systems         |
-| <b><a href="https://galaxy.ansible.com/professormanhattan/homebrew" title="professormanhattan.homebrew on Ansible Galaxy" target="_blank">professormanhattan.homebrew</a></b> | Installs Homebrew (a package management system) on macOS and Linux systems |
-| <b><a href="https://galaxy.ansible.com/professormanhattan/java" title="professormanhattan.java on Ansible Galaxy" target="_blank">professormanhattan.java</a></b>             | Installs Java on almost any platform                                       |
+| Dependency                                                                                                                                                                    | Description             |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| <b><a href="https://galaxy.ansible.com/professormanhattan/snapd" title="professormanhattan.snapd on Ansible Galaxy" target="_blank">professormanhattan.snapd</a></b>          | Description unavailable |
+| <b><a href="https://galaxy.ansible.com/professormanhattan/homebrew" title="professormanhattan.homebrew on Ansible Galaxy" target="_blank">professormanhattan.homebrew</a></b> | Description unavailable |
+| <b><a href="https://galaxy.ansible.com/professormanhattan/java" title="professormanhattan.java on Ansible Galaxy" target="_blank">professormanhattan.java</a></b>             | Description unavailable |
+| <b><a href="https://galaxy.ansible.com/professormanhattan/dotfiles" title="professormanhattan.dotfiles on Ansible Galaxy" target="_blank">professormanhattan.dotfiles</a></b> | Description unavailable |
 
 ### Galaxy Collections
 
@@ -259,7 +219,7 @@ With the dependencies installed, all you have to do is add the role to your main
 ```lang-yml
 - hosts: all
   roles:
-    - galaxy_info.namespace.galaxy_info.role_name
+    - professormanhattan.theme
 ```
 
 If you are incorporating this role into a pre-existing playbook, then it might be prudent to copy the requirements outlined in `pyproject.toml` and `requirements.yml` to their corresponding files in the root of your playbook so you only have to worry about installing one set of requirements during future use. Note that the dependencies in `pyproject.toml` can be moved to the more traditional `requirements.txt`, if that is what you are currently using to track Python dependencies.
@@ -272,7 +232,7 @@ You can find an example of a playbook that incorporates this role in our main pl
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/ProfessorManhattan/ansible-androidstudio/issues). If you would like to contribute, please take a look at the [contributing guide](https://github.com/ProfessorManhattan/ansible-androidstudio/blob/master/docs/CONTRIBUTING.md).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/megabyte-labs/ansible-theme/issues). If you would like to contribute, please take a look at the [contributing guide](https://github.com/megabyte-labs/ansible-theme/blob/master/docs/CONTRIBUTING.md).
 
 <details>
 <summary><b>Sponsorship</b></summary>
@@ -297,10 +257,21 @@ I create open source projects out of love. Although I have a job, shelter, and a
   <img alt="Patreon" src="https://img.shields.io/badge/Patreon-Support-052d49?logo=patreon&logoColor=white&style=for-the-badge" />
 </a>
 
+### Affiliates
+
+Below you will find a list of services we leverage that offer special incentives for signing up for their services through our special links:
+
+<a href="http://eepurl.com/h3aEdX" title="Sign up for $30 in MailChimp credits" target="_blank">
+  <img alt="MailChimp" src="https://cdn-images.mailchimp.com/monkey_rewards/grow-business-banner-2.png" />
+</a>
+<a href="https://www.digitalocean.com/?refcode=751743d45e36&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge">
+  <img src="https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg" alt="DigitalOcean Referral Badge" />
+</a>
+
 </details>
 
 <a href="#license" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 
 ## License
 
-Copyright © 2020-2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](https://gitlab.com/megabyte-labs/ansible-roles/androidstudio/-/blob/master/LICENSE) licensed.
+Copyright © 2020-2021 [Megabyte LLC](https://megabyte.space). This project is [MIT](https://gitlab.com/megabyte-labs/ansible-roles/theme/-/blob/master/LICENSE) licensed.

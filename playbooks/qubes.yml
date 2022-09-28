@@ -74,6 +74,14 @@
       when:
         - ansible_os_family == 'Archlinux'
         - not template_update_indicator.stat.exists
+    - name: Apply full theme and dotfiles
+      include_role:
+        name: professormanhattan.theme
+      when: not template_update_indicator.stat.exists
+    - name: Apply just the dotfiles
+      include_role:
+        name: professormanhattan.dotfiles
+      when: not template_update_indicator.stat.exists
     - name: Register "template updated" indicator file
       become: true
       copy:
@@ -89,7 +97,7 @@
       stat:
         path: /tmp/.setup-dom0-fully-provisioned
       register: dom0_fully_provisioned
-    - name: Scaffold out the VM structure using Salt
+    - name: Scaffold out the VM structure using Salt (now that all the TemplateVMs are updated)
       vars:
         dom0_features:
           - create-vms
@@ -134,23 +142,12 @@
       include_tasks: tasks/qubes/randomize-mac.yml
       when: randomize_mac_address | default(false)
 
-# - name: Ensure the Fedora 36 XFCE4 TemplateVM gets injected with all the theme files
-#   hosts: fedora-36-xfce
-#   tasks:
-#     - name: Ensure VM is configured to be a GUI VM
-#       include_tasks: tasks/qubes/gui-vm.yml
-
 # Needs StandaloneVM - will build with Packer
 # - name: Install Pritunl server to Pritunl TemplateVM
 #   hosts: pritunl-server-template
 #   tasks:
 #     - name: Run the install Pritunl server install script
 #       include_tasks: tasks/qubes/pritunl-server.yml
-
-- name: Configure persistent Docker files in select VMs
-  hosts: development:kubernetes:swarm:work
-  strategy: free
-  tasks:
 
 - name: Finish provisioning dom0
   hosts: dom0

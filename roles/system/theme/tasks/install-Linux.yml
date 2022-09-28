@@ -1,0 +1,72 @@
+---
+- name: Ensure display manager specific package dependencies / scripts are installed
+  include_tasks: kde/system.yml
+
+- name: Remove extra backgrounds and wallpapers
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /usr/share/backgrounds
+    - /usr/share/wallpapers
+
+- name: Ensure {{ theme_slug }} theme source is available
+  ansible.builtin.git:
+    repo: "{{ theme_git_url }}"
+    dest: /usr/src/{{ theme_slug }}
+    clone: true
+    update: true
+  register: linux_theme
+
+- name: Copy over theme files
+  copy:
+    src: /usr/src/{{ theme_slug }}/share/
+    dest: /usr/share/
+    remote_src: true
+  when: linux_theme.changed
+
+- name: Ensure /usr/share/plasma uses files instead of symlinks
+  shell:
+    cmd: |
+      set -ex
+      while read link; do
+        test -h "$link" || continue
+        dir=$(dirname "$link")
+        reltarget=$(readlink "$link")
+        case $reltarget in
+            /*) abstarget=$reltarget;;
+            *)  abstarget=$dir/$reltarget;;
+        esac
+        rm -fv "$link"
+        cp -afv "$abstarget" "$link" || {
+            # on failure, restore the symlink
+            rm -rfv "$link"
+            ln -sfv "$reltarget" "$link"
+        }
+      done< <(find /usr/share/plasma -type l)
+  register: squash_symlink
+  changed_when: "squash_symlink.stdout != ''"
+  when: linux_theme.changed
+  args:
+    executable: /bin/bash
+
+- name: Ensure /usr/share/applications has a hidden folder
+  file:
+    path: /usr/share/applications/hidden
+    state: directory
+    recurse: true
+
+- name: Remove unnecessary desktop shortcuts
+  include_tasks: misc/remove-shortcut.yml
+  loop: "{{ hidden_system_tools }}"
+
+- name: Configure user-based settings
+  include_tasks: user-Linux.yml
+  loop: "{{ user_configs }}"
+  loop_control:
+    label: "{{ user.username }}"
+    loop_var: user
+  when: not (user.system | default(false))
+
+- name: Setup SDDM
+  include_tasks: kde/sddm.yml

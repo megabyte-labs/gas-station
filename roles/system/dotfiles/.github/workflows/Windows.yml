@@ -21,7 +21,14 @@ jobs:
 
       - name: Setup WinRM.
         run: |
-          ./test/windows/test.ps1
+          Write-Host "Changing $env:UserName password to 'AnsibleTest999'"
+          $NewPassword = ConvertTo-SecureString "AnsibleTest999" -AsPlainText -Force
+          Set-LocalUser -Name $env:UserName -Password $NewPassword
+          Write-Host "Setting up WinRM CredSSP"
+          $url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
+          $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
+          (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
+          PowerShell.exe -ExecutionPolicy ByPass -File $file -Verbose -EnableCredSSP -DisableBasicAuth -ForceNewSSLCert
 
       - name: Setup WSL.
         uses: Vampire/setup-wsl@v1.1.0
@@ -29,15 +36,16 @@ jobs:
           additional-packages: dos2unix python3 python3-pip
           distribution: Ubuntu-20.04
 
-      - name: Install dependencies.
+      - name: Install task.
         shell: wsl-bash {0}
         run: |
-          pip3 install ansible 'pywinrm[credssp]'
-          dos2unix test/windows/test.sh
+          dos2unix start.sh
+          bash start.sh
 
       - name: Test the role.
         env:
           ANSIBLE_FORCE_COLOR: '1'
         shell: wsl-bash {0}
         run: |
-          bash test/windows/test.sh
+          export WINDOWS_ANSIBLE_TEST=true
+          task ansible:test:local

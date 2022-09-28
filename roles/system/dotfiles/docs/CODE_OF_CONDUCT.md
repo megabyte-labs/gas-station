@@ -1,8 +1,11 @@
-<h1>Contributor Covenant Code of Conduct</h1>
+<div align="center">
+  <center><h1>Contributor Covenant Code of Conduct</h1></center>
+  <center><h4 style="color: #18c3d1;">A set of guidelines that all all members, contributors, and leaders should follow</h4></center>
+</div>
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#our-pledge)
 
-## ➤ Our Pledge
+## Our Pledge
 
 We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
 
@@ -10,7 +13,7 @@ We pledge to act and interact in ways that contribute to an open, welcoming, div
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#our-standards)
 
-## ➤ Our Standards
+## Our Standards
 
 Examples of behavior that contributes to a positive environment for our community include:
 
@@ -30,7 +33,7 @@ Examples of unacceptable behavior include:
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#enforcement-responsibilities)
 
-## ➤ Enforcement Responsibilities
+## Enforcement Responsibilities
 
 Community leaders are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
 
@@ -38,13 +41,13 @@ Community leaders have the right and responsibility to remove, edit, or reject c
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#scope)
 
-## ➤ Scope
+## Scope
 
 This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces. Examples of representing our community include using an official e-mail address, posting via an official social media account, or acting as an appointed representative at an online or offline event.
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#enforcement)
 
-## ➤ Enforcement
+## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at [help@megabyte.space](emailto:help@megabyte.space). All complaints will be reviewed and investigated promptly and fairly.
 
@@ -52,7 +55,7 @@ All community leaders are obligated to respect the privacy and security of the r
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#enforcement-guidelines)
 
-## ➤ Enforcement Guidelines
+## Enforcement Guidelines
 
 Community leaders will follow these Community Impact Guidelines in determining the consequences for any action they deem in violation of this Code of Conduct:
 
@@ -82,7 +85,7 @@ Community leaders will follow these Community Impact Guidelines in determining t
 
 [![-----------------------------------------------------](https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png)](#attribution)
 
-## ➤ Attribution
+## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 2.0, available at [https://www.contributor-covenant.org/version/2/0/code_of_conduct.html][v2.0].
 

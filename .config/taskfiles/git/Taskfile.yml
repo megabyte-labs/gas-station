@@ -91,12 +91,26 @@ tasks:
         sh: basename "$PWD"
       GITLAB_REPO:
         sh: jq -r '.blueprint.repository.gitlab' package.json
+    summary: |
+      # Convert Folder to Sub-repo
+
+      This task will work if you have Taskfiles set up in a sub-directory of a project
+      that is already a git repository. Instead of using sub-modules, this method makes
+      the main repository's structure look as if no sub-module wizardry is going on.
+
+      To use this task, go into a sub-directory that you want to make a git subrepo and
+      then run `task git:convert:folder:subrepo` while making sure that the
+      `FULLY_AUTOMATED_TASKS` variables is set equal to `true`. There may be other
+      tokens required for accessing the APIs of GitHub, GitLab, etc.
     log:
       error: Error encountered while converting `{{.BASENAME}}` into a sub-repo
       start: Converting `{{.BASENAME}}` into a sub-repo
       success: Converted `{{.BASENAME}}` into a sub-repo
     cmds:
       - rm -rf .git
+      - git config url."git@gitlab.com:".insteadOf "https://gitlab.com/"
+      - git config url."git@github.com:".insteadOf "https://github.com/"
+      - task: commit:automated
       - |
         ROLE_DIR="$PWD"
         while ! test -d .git; do cd ..; done
@@ -104,7 +118,13 @@ tasks:
           git remote add {{.BASENAME}} {{.GITLAB_REPO}}
         fi
         RELATIVE_DIR="$(echo $ROLE_DIR | sed 's@'"$PWD"'/@@')"
+        if [ -d "$RELATIVE_DIR" ]; then
+          rm -rf "$RELATIVE_DIR"
+        fi
+        task git:commit:automated
         HUSKY=0 git subrepo clone {{.BASENAME}} "$RELATIVE_DIR" -b master
+    status:
+      - '[ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
   filter:
     log:

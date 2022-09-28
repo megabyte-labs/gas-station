@@ -1,1 +1,126 @@
+---
+- name: Ensure the ~/.config/user-kde-settings directory exists
+  file:
+    path: ~/.config/user-kde-settings
+    state: directory
+    recurse: true
 
+- name: Copy over the user KDE settings compressed archive
+  copy:
+    src: files/user-kde-settings.tar.gz
+    dest: ~/.config/user-kde-settings.tar.gz
+  when: kde_settings_archive
+
+- name: Decompress the user KDE settings compressed archive
+  ansible.builtin.unarchive:
+    src: ~/.config/user-kde-settings.tar.gz
+    dest: ~/.config/user-kde-settings
+    remote_src: true
+    extra_opts: [--strip-components=1]
+  when: kde_settings_archive.changed
+
+- name: Remove the ~/.config/user-kde-settings/plasma folder
+  file:
+    path: ~/.config/user-kde-settings/plasma
+    state: absent
+
+- name: Copy the KDE configuration files to ~/.config
+  copy:
+    src: ~/.config/user-kde-settings/
+    dest: ~/.config/
+    remote_src: true
+  when: kde_settings_archive.changed
+
+- name: Remove the ~/.config/user-kde-settings folder
+  file:
+    path: ~/.config/user-kde-settings
+    state: absent
+
+
+- name: Install Plasmoids
+  include_tasks: plasmoid.yml
+  loop: "{{ lookup('fileglob', 'files/plasmoids/*', wantlist=True) }}"
+
+- name: Ensure /usr/share/applications has a hidden folder
+  become: true
+  file:
+    path: /usr/share/applications/hidden
+    state: directory
+
+- name: Remove unnecessary System Tools
+  include_tasks: remove-system-tool.yml
+  loop: "{{ hidden_system_tools }}"
+
+- name: Ensure Kvantum has environment variable set
+  become: true
+  lineinfile:
+    path: /etc/environment
+    regex: "QT_STYLE_OVERRIDE"
+    line: "export QT_STYLE_OVERRIDE=kvantum"
+
+- name: Apply gsettings
+  include_tasks: gsetting.yml
+  loop:
+    # Enables CTRL+Shift+I to inspect Gtk options
+    - setting: org.gtk.Settings.Debug enable-inspector-keybinding
+      value: 'true'
+    - setting: org.gnome.desktop.interface gtk-theme
+      value: 'Sweet'
+    - setting: org.gnome.desktop.wm.preferences theme
+      value: 'Sweet'
+
+# - name: Ensure the Betelgeuse desktop background is applied
+#   become_user: "{{ dom0_user }}"
+#   become_method: su
+#   become_flags: "--login"
+#   shell:
+#     cmd: |
+#       qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = "org.kde.image";d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");d.writeConfig("Image", "file:///usr/share/backgrounds/images/default.png")}'
+
+- name: Update xfconf settings
+  become: true
+  become_user: "{{ dom0_user }}"
+  become_method: su
+  become_flags: "--login"
+  community.general.system.xfconf:
+    channel: "{{ item.channel }}"
+    property: "{{ item.property }}"
+    value_type: "{{ item.value_type | default('string') }}"
+    value: "{{ item.value }}"
+  failed_when: false
+  loop: "{{ qubes_xfconf_settings }}"
+
+- name: Ensure SDDM configuration is in place
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: "#ServerArguments"
+    line: "ServerArguments=-nolisten tcp -background none"
+
+- name: Ensure SDDM configuration is in place
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: "Current="
+    line: "Current=Sweet"
+
+- name: Add custom wayland-session to load Sweet theme prior to display
+  become: true
+  copy:
+    src: files/wayland-session.sh
+    dest: /etc/sddm/wayland-session
+    mode: '0755'
+
+- name: Stop / disable the lightdm service
+  become: true
+  ansible.builtin.systemd:
+    name: lightdm
+    enabled: false
+    state: stopped
+
+- name: Start / enable the SDDM service
+  become: true
+  ansible.builtin.systemd:
+    state: started
+    name: sddm
+    enabled: true

@@ -1,1 +1,36 @@
+---
 
+- name: Ensure SDDM configuration is in place
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: "#ServerArguments"
+    line: "ServerArguments=-nolisten tcp -background none"
+
+- name: Ensure SDDM configuration is in place
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: "Current="
+    line: "Current=Sweet"
+
+- name: Add custom wayland-session to load Sweet theme prior to display
+  become: true
+  copy:
+    src: files/wayland-session.sh
+    dest: /etc/sddm/wayland-session
+    mode: '0755'
+
+- name: Stop / disable the lightdm service
+  become: true
+  ansible.builtin.systemd:
+    name: lightdm
+    enabled: false
+    state: stopped
+
+- name: Start / enable the SDDM service
+  become: true
+  ansible.builtin.systemd:
+    state: started
+    name: sddm
+    enabled: true

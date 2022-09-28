@@ -27,7 +27,7 @@ all:
               qubes:
                 vm_type: TemplateVM
           children:
-            vms:
+            qubes-vms:
               vars:
                 memory: 512
                 maxmem: 4096
@@ -100,6 +100,7 @@ app-vms:
             template: fedora-36
             template_vm: fedora-36
         sys-net-dvm:
+          randomize_mac_address: true
           qubes:
             template: debian-11
             template_vm: debian-11
@@ -107,13 +108,14 @@ app-vms:
       hosts:
         crypto:
           qubes:
-            _net: sys-vpn-proton
+            _netvm: sys-vpn-proton
             template: crypto-tmpl
             template_vm: crypto-tmpl
         dev:
+          persistent_docker_volumes: true
           qubes:
             maxmem: 8192
-            _net: sys-vpn-proton
+            _netvm: sys-vpn-proton
             template: dev-tmpl
             template_vm: dev-tmpl
             vcpus: 4
@@ -126,10 +128,11 @@ app-vms:
             template: gpg-tmpl
             template_vm: gpg-tmpl
         kubernetes:
+          persistent_docker_volumes: true
           qubes:
             autostart: true
             maxmem: 8192
-            _net: sys-vpn-pritunl
+            _netvm: sys-vpn-pritunl
             template: kubernetes-tmpl
             template_vm: kubernetes-tmpl
             vcpus: 4
@@ -137,9 +140,10 @@ app-vms:
           volume:
             root: 100g
         personal:
+          persistent_docker_volumes: true
           qubes:
             maxmem: 8192
-            _net: sys-vpn-proton
+            _netvm: sys-vpn-proton
             template: personal-tmpl
             template_vm: personal-tmpl
             vcpus: 4
@@ -148,23 +152,24 @@ app-vms:
             root: 40g
         # pritunl-server:
         #   qubes:
-        #     # _net: opnsense
-        #     _net: sys-firewall
+        #     # _netvm: opnsense
+        #     _netvm: sys-firewall
         #     template_vm: pritunl-server-tmpl
         # provision:
         #   qubes:
-        #     _net: sys-vpn-pritunl
+        #     _netvm: sys-vpn-pritunl
         #     template_vm: provision-tmpl
         remote:
           qubes:
-            _net: sys-vpn-pritunl
+            _netvm: sys-vpn-pritunl
             template: remote-tmpl
             template_vm: remote-tmpl
         swarm:
+          persistent_docker_volumes: true
           qubes:
             autostart: true
             maxmem: 8192
-            _net: sys-vpn-pritunl
+            _netvm: sys-vpn-pritunl
             template: swarm-tmpl
             template_vm: swarm-tmpl
             vcpus: 4
@@ -174,9 +179,10 @@ app-vms:
             template: vault-tmpl
             template_vm: vault-tmpl
         work:
+          persistent_docker_volumes: true
           qubes:
             maxmem: 8192
-            _net: sys-vpn-pritunl
+            _netvm: sys-vpn-pritunl
             template: work-tmpl
             template_vm: work-tmpl
             vcpus: 4
@@ -201,7 +207,7 @@ specialty-vms:
     maas:
       qubes:
         label: orange
-        # _net: opnsense
+        # _netvm: opnsense
         template: provision-tmpl
         template_vm: provision-tmpl
     mirror:
@@ -221,7 +227,7 @@ net-vms:
     #   ansible_password: "{{ lookup('env', 'OPNSENSE_PASSWORD') }}"
     #   ansible_user: "{{ lookup('env', 'OPNSENSE_USER') }}"
     #   qubes:
-    #     _net: none
+    #     _netvm: none
     #     pcidevs: '{{ sys_net_pcidevs | default([]) }}'
     #     provides_network: true
     #     template: opnsense-tmpl
@@ -252,10 +258,26 @@ proxy-vms:
   children:
     vpn-dvms:
       hosts:
-        vpn-random-dvm:
+        vpn-pritunl-dvm:
           qubes:
-            template: vpn-random-tmpl
-            template_vm: vpn-random-tmpl
+            template: vpn-pritunl-tmpl
+            template_vm: vpn-pritunl-tmpl
+        vpn-proton-dvm:
+          qubes:
+            template: vpn-proton-tmpl
+            template_vm: vpn-proton-tmpl
+        vpn-nm-dvm:
+          qubes:
+            template: vpn-nm-tmpl
+            template_vm: vpn-nm-tmpl
+        vpn-tailscale-dvm:
+          qubes:
+            template: vpn-tailscale-tmpl
+            template_vm: vpn-tailscale-tmpl
+        vpn-warp-dvm:
+          qubes:
+            template: vpn-warp-tmpl
+            template_vm: vpn-warp-tmpl
       vars:
         qubes:
           label: gray
@@ -263,6 +285,7 @@ proxy-vms:
           maxmem: 1024
           netvm_vm: sys-firewall
           provides_network: true
+          template_for_dispvms: true
           vm_type: AppVM
 
 template-vms:
@@ -324,10 +347,8 @@ template-vms:
     vpn-templates:
       hosts:
         vpn-pritunl-tmpl:
-          # qubes:
-          # _net: opnsense
         vpn-proton-tmpl:
-        vpn-random-tmpl:
+        vpn-nm-tmpl:
         vpn-tailscale-tmpl:
         vpn-warp-tmpl:
       vars:
@@ -425,9 +446,25 @@ standalone-vms:
         ansible_password: "{{ lookup('env', 'VAGRANT_PASSWORD') }}"
         ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
         qubes:
-          _net: sys-vpn-proton
+          _netvm: sys-vpn-proton
         volume:
           root: 50g
+    unikernel-vms:
+      hosts:
+        mirage-firewall:
+          mirage_compile_from_source: false
+          qubes:
+            kernel: mirage-firewall
+            kernelopts: ''
+            memory: 64
+            maxmem: 64
+            provides_network: true
+            vcpus: 1
+            virt_mode: pvh
+            label: green
+            vm_type: StandaloneVM
+          # TODO qvm-features mirage-firewall qubes-firewall 1
+          # TODO qvm-features mirage-firewall no-default-kernelopts 1
 
 system-vms:
   hosts:

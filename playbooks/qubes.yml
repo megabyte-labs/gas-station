@@ -41,7 +41,7 @@
     - name: Ensure primary-templates-full TemplateVMs are configured to use sys-firewall as their NetVM
       vars:
         netvm: sys-firewall
-      include_tasks: tasks/qubes/connect-netvm.yml
+      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['primary-templates-full'] }}"
     - name: Check if debian-11-backup was created
       command: qvm-check debian-11-backup
@@ -119,7 +119,7 @@
     - name: Ensure primary full TemplateVMs are disconnected from NetVMs
       vars:
         netvm: None
-      include_tasks: tasks/qubes/connect-netvm.yml
+      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['primary-templates-full'] }}"
     - name: Check whether the structure was recently provisioned
       stat:
@@ -143,57 +143,71 @@
     - name: Ensure TemplateVMs in the group "template-vms" are configured to use sys-firewall as their NetVM
       vars:
         netvm: sys-firewall
-      include_tasks: tasks/qubes/connect-netvm.yml
+      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['template-vms'] }}"
 
-- name: Provision the primary template VMs
+- name: Provision the VPN TemplateVM for the other VPN TemplateVMs
   hosts: vpn-tmpl
   tasks:
-    - name: Provision the custom template VM
-      include_tasks: tasks/qubes/custom-template-vm.yml
-    - name: Configure VMs to forward TCP traffic on certain ports to OPNsense
+    - include_tasks: tasks/qubes/vm-template.yml
+
+- name: Shutdown the "vpn-tmpl"
+  hosts: dom0
+  tasks:
+    - include_tasks: tasks/qubes/qvm-shutdown.yml
+      loop:
+        - vpn-tmpl
+
+- name: Provision the VPN templates
+  hosts: vpn-templates
+  tasks:
+    - include_tasks: tasks/qubes/vm-template.yml
+
+- name: Shutdown the VPN TemplateVMs
+  hosts: dom0
+  tasks:
+    - include_tasks: tasks/qubes/qvm-shutdown.yml
+      loop: "{{ groups['vpn-templates'] }}"
+
+- name: Provision the "standard-templates" TemplateVMs
+  hosts: standard-templates
+  tasks:
+    - include_tasks: tasks/qubes/vm-template.yml
+
+- name: Shutdown the "standard" TemplateVMs
+  hosts: dom0
+  tasks:
+    - include_tasks: tasks/qubes/qvm-shutdown.yml
+      loop: "{{ groups['standard-templates'] }}"
+
+- name: Provision the desktop HVM TemplateVMs
+  hosts: desktop-hvm-templates
+  tasks:
+    - include_tasks: tasks/qubes/hvm-template.yml
+
+- name: Shutdown the desktop HVM TemplateVMs
+  hosts: dom0
+  tasks:
+    - include_tasks: tasks/qubes/qvm-shutdown.yml
       vars:
-        systemd_services:
-          - name: opnsense-http-service
-            port: 80
-          - name: opnsense-https-service
-            port: 443
-      include_tasks: tasks/qubes/tcp-port-bind.yml
-    - name: Ensure directory for custom Ansible facts exists
-      become: true
-      ansible.builtin.file:
-        state: directory
-        recurse: yes
-        path: /rw/config/qubes-bind-dirs.d
-      when: persistent_docker_volumes | default(false)
-    - name: Ensure Docker files are persistent
-      copy:
-        content: |
-          binds+=( '/var/lib/docker' )
-          binds+=( '/etc/docker' )
-        dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
-      when: persistent_docker_volumes | default(false)
-    - name: Randomize MAC address and ensure no hostname leaks (Source -> https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md)
-      include_tasks: tasks/qubes/randomize-mac.yml
-      when: randomize_mac_address | default(false)
+        force_shutdown: true
 
 - name: Disable TemplateVM's NetVMs and enable ProxyVM NetVMs
-  hosts: dom0:!dom0
+  hosts: dom0
   tasks:
     - name: Ensure the TemplateVMs in the "template-vms" group are disconnected from sys-firewall
       vars:
         netvm: None
-      include_tasks: tasks/qubes/connect-netvm.yml
+      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['template-vms] }}"
     - name: Connect AppVMs to the sys-firewall NetVM
       vars:
         netvm: sys-firewall
-      include_tasks: tasks/qubes/connect-netvm.yml
+      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['template-vms] }}"
 
 - name: Provision the AppVMs, ProxyVMs, and StandaloneVMs with any non-templated changes
-  # hosts: app-vms:proxy-vms:standalone-vms
-  hosts: none
+  hosts: app-vms:proxy-vms:standalone-vms
   tasks:
     - name: Provision the custom TemplateVMs
       include_role:
@@ -204,10 +218,12 @@
         loop_var: role
 
 - name: Finish provisioning dom0
-  hosts: dom0:!dom0
+  hosts: dom0
   tasks:
-    - name: Set the NetVM for all VMs
-      include_tasks: tasks/qubes/set-netvm.yml
+    - name: Set the NetVM for all VMs equal to their inventory-defined NetVM
+      vars:
+        connect_default_netvm: true
+      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['qubes-vms'] }}"
     - name: Enable updates over Tor
       vars:

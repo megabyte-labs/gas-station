@@ -65,3 +65,32 @@
 - name: Ensure default application launchers are configured to use DVMs
   include_tasks: tasks/qubes/preferred-app.yml
   loop: '{{ mimetype_handlers }}'
+
+- name: Configure VMs to forward TCP traffic on certain ports to OPNsense
+  vars:
+    systemd_services:
+      - name: opnsense-http-service
+        port: 80
+      - name: opnsense-https-service
+        port: 443
+  include_tasks: tcp-port-bind.yml
+
+- name: Ensure directory for custom Ansible facts exists
+  become: true
+  ansible.builtin.file:
+    state: directory
+    recurse: yes
+    path: /rw/config/qubes-bind-dirs.d
+  when: persistent_docker_volumes | default(false)
+
+- name: Ensure Docker files are persistent
+  copy:
+    content: |
+      binds+=( '/var/lib/docker' )
+      binds+=( '/etc/docker' )
+    dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
+  when: persistent_docker_volumes | default(false)
+
+- name: Randomize MAC address and ensure no hostname leaks (Source -> https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md)
+  include_tasks: tasks/qubes/vm-randomize-mac.yml
+  when: randomize_mac_address | default(false)

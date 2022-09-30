@@ -140,10 +140,13 @@
           done
         dest: /tmp/.setup-dom0-fully-provisioned
       when: not dom0_fully_provisioned.stat.exists
-    - name: Ensure TemplateVMs in the group "template-vms" are configured to use sys-firewall as their NetVM
+
+- name: Ensure TemplateVMs use sys-firewall as their NetVM
+  hosts: dom0
+  tasks:
+    - include_tasks: tasks/qubes/qvm-netvm.yml
       vars:
         netvm: sys-firewall
-      include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['template-vms'] }}"
 
 - name: Provision the VPN TemplateVM for the other VPN TemplateVMs
@@ -200,11 +203,11 @@
         netvm: None
       include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['template-vms] }}"
-    - name: Connect AppVMs to the sys-firewall NetVM
+    - name: Connect AppVMs, ProxyVMs, and StandaloneVMs to the sys-firewall NetVM
       vars:
         netvm: sys-firewall
       include_tasks: tasks/qubes/qvm-netvm.yml
-      loop: "{{ groups['template-vms] }}"
+      loop: "{{ groups['app-vms'] +  groups['proxy-vms'] + groups['standalone-vms'] }}"
 
 - name: Provision the AppVMs, ProxyVMs, and StandaloneVMs with any non-templated changes
   hosts: app-vms:proxy-vms:standalone-vms

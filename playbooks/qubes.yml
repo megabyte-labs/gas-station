@@ -1,7 +1,8 @@
 ---
 # yamllint disable rule:max-lines
 - name: Provision / initialize dom0
-  hosts: none
+  hosts: dom0
+  when: false
   tasks:
     # Prepare dom0
     # NOTE: The Qubes dom0 provisioning has some "become" sourcery involved because the default
@@ -51,7 +52,8 @@
       when: qvm_debian_check.rc != 0
 
 - name: Ensure upstream templates are upgraded
-  hosts: none
+  hosts: primary-templates-full:!debian-11-backup
+  when: false
   tasks:
     - name: Determine if RPM Fusion was already enabled
       become: true
@@ -113,7 +115,8 @@
         name: professormanhattan.dotfiles
 
 - name: Create the VM structure now that the templates are updated
-  hosts: none
+  hosts: dom0
+  when: false
   tasks:
     - name: Ensure primary full TemplateVMs are disconnected from NetVMs
       vars:
@@ -139,6 +142,11 @@
           done
         dest: /tmp/.setup-dom0-fully-provisioned
       when: not dom0_fully_provisioned.stat.exists
+    - name: Ensure TemplateVMs in the group "template-vms" are configured to use sys-firewall as their NetVM
+      vars:
+        netvm: sys-firewall
+      include_tasks: tasks/qubes/connect-netvm.yml
+      loop: "{{ groups['template-vms'] }}"
 
 - name: Provision the primary template VMs
   hosts: vpn-tmpl
@@ -171,15 +179,36 @@
       include_tasks: tasks/qubes/randomize-mac.yml
       when: randomize_mac_address | default(false)
 
-# Needs StandaloneVM - will build with Packer
-# - name: Install Pritunl server to Pritunl TemplateVM
-#   hosts: pritunl-server-template
-#   tasks:
-#     - name: Run the install Pritunl server install script
-#       include_tasks: tasks/qubes/pritunl-server.yml
+- name: Disable TemplateVM's NetVMs and enable ProxyVM NetVMs
+  hosts: dom0
+  when: false
+  tasks:
+    - name: Ensure the TemplateVMs in the "template-vms" group are disconnected from sys-firewall
+      vars:
+        netvm: None
+      include_tasks: tasks/qubes/connect-netvm.yml
+      loop: "{{ groups['template-vms] }}"
+    - name: Connect AppVMs to the sys-firewall NetVM
+      vars:
+        netvm: sys-firewall
+      include_tasks: tasks/qubes/connect-netvm.yml
+      loop: "{{ groups['template-vms] }}"
+
+- name: Provision the AppVMs, ProxyVMs, and StandaloneVMs with any non-templated changes
+  hosts: app-vms:proxy-vms:standalone-vms
+  when: false
+  tasks:
+    - name: Provision the custom TemplateVMs
+      include_role:
+        name: '{{ role }}'
+      loop: '{{ qubes_roles[inventory_hostname] | default([]) }}'
+      loop_control:
+        label: '{{ inventory_hostname }}'
+        loop_var: role
 
 - name: Finish provisioning dom0
   hosts: dom0
+  when: false
   tasks:
     - name: Set the NetVM for all VMs
       include_tasks: tasks/qubes/set-netvm.yml

@@ -1,7 +1,6 @@
 ---
 - name: Remove the VMs added by Gas Station
   hosts: all:!system-vms
-  # hosts: standalone-vms:secondary-dvm-templates:misc-hvm-templates:desktop-hvm-templates:standard-templates:primary-dvm-templates:proxy-vms:net-vms:standard-vms:app-dvms:app-vms
   connection: qubes
   gather_facts: false
   tasks:
@@ -9,5 +8,7 @@
       delegate_to: dom0
       shell:
         cmd: |
-          qvm-shutdown --force --wait {{ inventory_hostname }} || EXIT_CODE=$?
-          qvm-remove -f {{ inventory_hostname }}
+          if qvm-check {{ inventory_hostname }}; then
+            qvm-shutdown --force --wait {{ inventory_hostname }} || EXIT_CODE=$?
+            qvm-remove -f {{ inventory_hostname }}
+          fi

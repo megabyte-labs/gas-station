@@ -44,7 +44,12 @@
         netvm: sys-firewall
       include_tasks: tasks/qubes/connect-netvm.yml
       loop: "{{ groups['primary-templates-full'] }}"
-
+    - name: Check if debian-11-backup was created
+      command: qvm-check debian-11-backup
+      register: qvm_debian_check
+    - name: Clone a backup of debian-11
+      command: qvm-clone debian-11 debian-11-backup
+      when: qvm_debian_check.rc != 0
 
 - name: Ensure upstream templates are upgraded
   hosts: primary-templates-full

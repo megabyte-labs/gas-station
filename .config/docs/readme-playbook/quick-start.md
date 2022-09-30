@@ -26,10 +26,10 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/wi
 
 ### Qubes
 
-Our playbooks include a specially crafted playbook for Qubes. It will load your VMs with sensible defaults. For more details, check out the [Qubes playbook](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/playbooks/qubes.yml) and [Qubes variables](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/environments/prod/group_vars/all/qubes.yml).
+Our playbooks include a specially crafted playbook for Qubes. It will load your VMs with sensible defaults. For more details, check out the [Qubes playbook](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/playbooks/qubes.yml) and [Qubes variables](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/environments/prod/group_vars/qubes). Perhaps most importantly, the "quickstart" [the inventory file](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/environments/prod/inventories/quickstart.yml) details the VM structure that the provisioning script adds to the target system.
 
 To setup Qubes, run the following on a fresh install in dom0:
 
 ```shell
-qvm-run --pass-io work "curl -sSL https://install.doctor/qubes" > ./setup.sh && bash ./setup.sh
+qvm-run --pass-io sys-firewall "curl -sSL https://install.doctor/qubes" > ./setup.sh && bash ./setup.sh
 ```

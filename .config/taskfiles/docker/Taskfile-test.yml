@@ -4,7 +4,7 @@ version: '3'
 vars:
   SCENARIO:
     sh: |
-      {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}
+      {{if .CLI_ARGS}}echo "{{.CLI_ARGS}}"{{else}}
       SCENARIO="$(jq -r '.blueprint.dockerBaseTag' package.json)"
       if [ "$SCENARIO" != 'null' ]; then
         echo "$SCENARIO"
@@ -12,6 +12,8 @@ vars:
         echo 'default'
       fi
       {{end}}
+  SLUG:
+    sh: jq -r '.blueprint.slug' package.json
 
 tasks:
   codeclimate:
@@ -35,8 +37,8 @@ tasks:
           fi
         fi
     status:
-      - '[[ "$(docker images -q {{.IMAGE_NAME}}:latest-codeclimate 2> /dev/null)" == "" ]]'
-      - '[[ "$(docker images -q {{.IMAGE_NAME}}:slim-codeclimate 2>/dev/null)" == "" ]]'
+      - '[[ "$(docker images -q {{.DOCKER_IMAGE}}:latest-codeclimate 2> /dev/null)" == "" ]]'
+      - '[[ "$(docker images -q {{.DOCKER_IMAGE}}:slim-codeclimate 2>/dev/null)" == "" ]]'
 
   container-structure-test:
     desc: Runs ContainerStructureTest for Dockerfile build
@@ -62,7 +64,7 @@ tasks:
     cmds:
       - container-structure-test test --image {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest{{.TAG_POST}} --config ./test/structure/{{.SCENARIO}}.yml
     status:
-      - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest{{.TAG_POST}} 2>/dev/null)" == "" ]] | [ ! -f ./test/structure/{{.SCENARIO}}.yml ]'
+      - '[[ "$(docker images -q {{.DOCKERHUB_PROFILE}}/{{.SLUG}}:latest{{.TAG_POST}} 2>/dev/null)" == "" ]] || [ ! -f ./test/structure/{{.SCENARIO}}.yml ]'
 
   container-structure-test:slim:
     deps:
@@ -201,5 +203,5 @@ tasks:
         fi
     status:
       - '(! find ./test -mindepth 1 -maxdepth 1 -type d -name "output-*" | grep output-)
-        || [[ "$(docker images -q {{.IMAGE_NAME}}:slim 2> /dev/null)" == "" ]]
-        || [[ "$(docker images -q {{.IMAGE_NAME}}:latest 2>/dev/null)" == "" ]]'
+        || [[ "$(docker images -q {{.DOCKER_IMAGE}}:slim 2> /dev/null)" == "" ]]
+        || [[ "$(docker images -q {{.DOCKER_IMAGE}}:latest 2>/dev/null)" == "" ]]'

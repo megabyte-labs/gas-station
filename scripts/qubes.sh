@@ -49,6 +49,12 @@ if [[ "$(hostname)" == "dom0" ]]; then
       xdotool key 'Tab'
       xdotool key 'Tab'
       xdotool key 'Enter'
+      sleep 3
+      if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+        xdotool key 'Tab'
+        xdotool key 'Tab'
+        xdotool key 'Enter'
+      fi
       sleep 14
       xdotool windowactivate "$WINDOW_ID"
       sleep 3

@@ -38,15 +38,40 @@
           done
         dest: /tmp/.setup-dom0-partially-provisioned
       when: not dom0_partially_provisioned.stat.exists
+    - name: Ensure primary-templates-full TemplateVMs are configured to use sys-firewall as their NetVM
+      vars:
+        netvm: sys-firewall
+      include_tasks: tasks/qubes/connect-netvm.yml
+      loop: "groups['primary-templates-full']"
+
 
 - name: Ensure upstream templates are upgraded
   hosts: primary-templates-full
   tasks:
-    - name: Determine if template was already updated
+    - name: Determine if RPM Fusion was already enabled
       become: true
       stat:
-        path: /root/.setup-base-template-updated
-      register: template_update_indicator
+        path: /root/.setup-rpm-fusion-enabled
+      register: template_rpm_fusion
+    - name: Ensure RPM Fusion package repositories are enabled on RedHat-flavored systems
+      become: true
+      command:
+        cmd: |
+          dnf config-manager --set-enabled rpmfusion-free
+          dnf config-manager --set-enabled rpmfusion-free-updates
+          dnf config-manager --set-enabled rpmfusion-nonfree
+          dnf config-manager --set-enabled rpmfusion-non-free-updates
+          dnf upgrade --refresh
+      when:
+        - ansible_os_family == 'RedHat'
+        - not template_rpm_fusion.stat.exists
+    - name: Register RPM Fusion enabled indicator
+      become: true
+      copy:
+        content: |
+          done
+        dest: /root/.setup-rpm-fusion-enabled
+      when: not template_rpm_fusion.stat.exists
     - name: Ensure Debian systems are updated
       become: true
       apt:
@@ -54,41 +79,30 @@
         force_apt_get: true
         update_cache: true
         upgrade: dist
-      when:
-        - ansible_os_family == 'Debian'
-        - not template_update_indicator.stat.exists
+      when: ansible_os_family == 'Debian'
     - name: Ensure RedHat systems are updated
       become: true
       dnf:
         name: '*'
         state: latest
         update_cache: true
-      when:
-        - ansible_os_family == 'RedHat'
-        - not template_update_indicator.stat.exists
+      when: ansible_os_family == 'RedHat'
     - name: Ensure Archlinux systems are updated
       become: true
       community.general.pacman:
         update_cache: true
         upgrade: true
-      when:
-        - ansible_os_family == 'Archlinux'
-        - not template_update_indicator.stat.exists
+      when: ansible_os_family == 'Archlinux'
+    - name: Install common software packages
+      ansible.builtin.package:
+        name: "{{ common_software_packages }}"
+        state: latest
     - name: Apply full theme and dotfiles
       include_role:
         name: professormanhattan.theme
-      when: not template_update_indicator.stat.exists
     - name: Apply just the dotfiles
       include_role:
         name: professormanhattan.dotfiles
-      when: not template_update_indicator.stat.exists
-    - name: Register "template updated" indicator file
-      become: true
-      copy:
-        content: |
-          done
-        dest: /root/.setup-base-template-updated
-      when: not template_update_indicator.stat.exists
 
 - name: Create the VM structure now that the templates are updated
   hosts: dom0

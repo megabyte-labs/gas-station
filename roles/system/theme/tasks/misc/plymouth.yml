@@ -1,0 +1,43 @@
+---
+# @action Ensures Plymouth is configured
+# Installs Plymouth's required packages on Debian-flavored systems
+- name: Ensure plymouth's packages are installed
+  apt:
+    name:
+      - plymouth-themes
+      - plymouth-label
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: ansible_os_family == 'Debian'
+
+# @action Ensures Plymouth is configured
+# Installs Plymouth's required packages on RedHat-flavored systems
+- name: Ensure plymouth's packages are installed
+  dnf:
+    name: plymouth-plugin-script
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: ansible_os_family == 'RedHat'
+
+- name: Ensrue Plymouth is installed (Archlinux)
+  include_tasks: plymouth-Archlinux.yml
+  when: ansible_os_family == 'Archlinux'
+
+- name: Register the Plymouth theme
+  become: true
+  community.general.system.alternatives:
+    name: default.plymouth
+    link: /usr/share/plymouth/themes/default.plymouth
+    path: /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
+    priority: 100
+  register: plymouth_alternative
+
+- name: Set the Plymouth theme
+  become: true
+  shell: plymouth-set-default-theme -R {{ theme_slug }}
+  register: plymouth_set_default
+  failed_when:
+    - plymouth_set_default.rc != 0
+    - "'sys/power/resume: No such file' not in plymouth_set_default.stderr"
+  notify: update initramfs
+  when: plymouth_alternative.changed

@@ -1,12 +1,7 @@
 ---
-- name: Debugging
-  debug:
-    msg: "{{ formation }}"
-
-- name: Debugging2
-  debug:
-    msg: "{{ formation_slug }}"
-
+- name: set facts
+  set_fact:
+    qubesformation_id: testing
 - name: Check for presence of /srv/user_salt
   become: true
   stat:
@@ -36,7 +31,7 @@
 - name: Configure Qubes Salt formula and the top file
   become: true
   qubesformation:
-    dest: "/srv/user_salt/{{ formation_slug }}.sls"
+    dest: "/srv/user_salt/{{ qubesformation_id }}.sls"
 
 - name: Ensure top.enabled is activated
   become: true
@@ -48,14 +43,14 @@
 - name: Enable Qubes Salt formula
   become: true
   shell:
-    cmd: qubesctl top.enable {{ formation_slug }} && echo CHANGED
+    cmd: qubesctl top.enable {{ qubesformation_id }} && echo CHANGED
   register: enableformation
   changed_when: "'CHANGED' in enableformation.stdout"
 
 - name: Realize Qubes formation
   become: true
   qubessls:
-    sls: "{{ formation_slug }}"
+    sls: "{{ qubesformation_id }}"
     env: user
   # TODO add changed_when
 
@@ -65,9 +60,9 @@
   register: blank_register_remove
   changed_when: "'no such domain' not in blank_register_remove.stderr"
   failed_when: false
-  when: (formation_slug | default('all')) == 'all'
+  when: (qubesformation_id | default('all')) == 'all'
 
 - name: Create new DispVMs
   include_tasks: dispvm.yml
   loop: "{{ sys_dispvms }}"
-  when: (formation_slug | default('all')) == 'all'
+  when: (qubesformation_id | default('all')) == 'all'

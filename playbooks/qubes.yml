@@ -63,6 +63,20 @@
         regexp: 'HTTPS\/\/\/'
         replace: ''
 
+- name: Ensure *-minimal templates have an internet connection
+  hosts: primary-templates-minimal
+  tasks:
+    - name: Enable networking on *-minimal template
+      become: true
+      ansible.builtin.package:
+        name: qubes-core-agent-networking
+        state: latest
+      when: enable_minimal_networking | default(true)
+      register: qubes_core_net
+    - name: Unconditionally reboot the machine with all defaults
+      ansible.builtin.reboot:
+      when: qubes_core_net.changed
+
 - name: Ensure base templates are updated
   hosts: primary-templates-stock:primary-templates-minimal
   tasks:

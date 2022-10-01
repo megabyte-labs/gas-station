@@ -1,5 +1,3 @@
-
-12.98 KiB
 ---
 # Three hosts are defined but the quickstart script filters using an environment variable
 # so only one host is provisioned at a time by quickstart.
@@ -20,6 +18,8 @@ all:
         qubes:
           vars:
             ansible_connection: qubes
+            # ansible_password: "{{ lookup('env', 'ANSIBLE_PASSWORD') | default() }}"
+            # ansible_user: "{{ lookup('env', 'ANSIBLE_USER') }}"
             ansible_python_interpreter: /usr/bin/python3
             qubes:
               dom0_vm: dom0
@@ -29,19 +29,21 @@ all:
               qubes:
                 vm_type: TemplateVM
           children:
-            qubes-vms:
+            vms:
               vars:
+                install_grub_theme: false
+                install_plymouth_theme: false
                 memory: 512
                 maxmem: 4096
                 vcpus: 2
               children:
                 system-vms:
-                template-vms:
-                net-vms:
-                proxy-vms:
-                app-dvms:
-                app-vms:
-                standalone-vms:
+                # template-vms:
+                # net-vms:
+                # proxy-vms:
+                # app-dvms:
+                # app-vms:
+                # standalone-vms:
         windows:
           hosts:
             standard:
@@ -49,6 +51,7 @@ all:
           vars:
             ansible_password: "{{ lookup('env', 'ANSIBLE_PASSWORD') }}"
             ansible_user: "{{ lookup('env', 'ANSIBLE_USER') }}"
+
 app-vms:
   vars:
     qubes:
@@ -95,16 +98,16 @@ app-vms:
       hosts:
         debian-11-dvm:
           qubes:
-            template_vm: debian-11
+            template_vm: debian-11-base
         fedora-36-dvm:
           qubes:
-            template: fedora-36
-            template_vm: fedora-36
-        sys-net-dvm:
+            template: fedora-36-base
+            template_vm: fedora-36-base
+        net-dvm:
           randomize_mac_address: true
           qubes:
-            template: debian-11
-            template_vm: debian-11
+            template: net-tmpl
+            template_vm: net-tmpl
     standard-vms:
       hosts:
         crypto:
@@ -121,8 +124,8 @@ app-vms:
             template_vm: dev-tmpl
             vcpus: 4
           volume:
-            private: 40g
-            root: 40g
+            private: 30
+            root: 30
         gpg:
           qubes:
             label: green
@@ -139,7 +142,7 @@ app-vms:
             vcpus: 4
             vm_type: NetVM
           volume:
-            root: 100g
+            root: 100
         personal:
           persistent_docker_volumes: true
           qubes:
@@ -149,8 +152,8 @@ app-vms:
             template_vm: personal-tmpl
             vcpus: 4
           volume:
-            private: 20g
-            root: 40g
+            private: 20
+            root: 40
         # pritunl-server:
         #   qubes:
         #     # _netvm: opnsense
@@ -188,12 +191,13 @@ app-vms:
             template_vm: work-tmpl
             vcpus: 4
           volume:
-            private: 40g
-            root: 40g
+            private: 30
+            root: 30
       vars:
         qubes:
           label: purple
-          template_vm: fedora-36
+          template_vm: fedora-36-base
+
 specialty-vms:
   vars:
     qubes:
@@ -220,6 +224,7 @@ specialty-vms:
       qubes:
         template: fedora-32
         template_vm: fedora-32
+
 net-vms:
   hosts:
     # opnsense:
@@ -252,6 +257,7 @@ net-vms:
       maxmem: 8192
       virt_mode: hvm
       vm_type: NetVM
+
 proxy-vms:
   children:
     vpn-dvms:
@@ -285,26 +291,69 @@ proxy-vms:
           provides_network: true
           template_for_dispvms: true
           vm_type: AppVM
+
 template-vms:
   vars:
     qubes:
       label: black
-      netvm_vm: sys-firewall
+      netvm_vm: None
       vm_type: TemplateVM
   children:
     primary-templates:
-      hosts:
-        archlinux:
-        debian-11:
-        debian-11-minimal:
-        debian-12:
-        fedora-32:
-        fedora-36:
-        fedora-36-minimal:
-        fedora-36-xfce:
-        jammy:
-        whonix-gw-16:
-        whonix-ws-16:
+      children:
+        primary-templates-base:
+          hosts:
+            debian-11-base:
+              qubes:
+                source: debian-11
+            fedora-36-base:
+              qubes:
+                source: fedora-36
+          vars:
+            volume:
+              root: 14
+              private: 5
+        primary-templates-docker:
+          hosts:
+            debian-11-docker:
+              qubes:
+                source: debian-11-base
+            fedora-36-docker:
+              qubes:
+                source: fedora-36-base
+        primary-templates-full:
+          hosts:
+            debian-11-full:
+              qubes:
+                source: debian-11-base
+            fedora-36-full:
+              qubes:
+                source: fedora-36-base
+        primary-templates-stock:
+          hosts:
+            archlinux:
+            debian-11:
+            debian-11-backup:
+            debian-12:
+            fedora-32:
+            fedora-36:
+            fedora-36-xfce:
+            jammy:
+          vars:
+            apply_theme: true
+            common_software_packages:
+              - snapd
+              - qubes-snapd-helper
+        primary-templates-minimal:
+          hosts:
+            debian-11-minimal:
+            fedora-36-minimal:
+            whonix-gw-16:
+              install_updates: false
+            whonix-ws-16:
+              install_updates: false
+          vars:
+            apply_theme: true
       vars:
         qubes:
           label: red
@@ -313,15 +362,26 @@ template-vms:
         anon-tmpl:
         crypto-tmpl:
         dev-tmpl:
-          full_terminal_profile: true
-          include_pii_dotfiles: true
+          qubes:
+            source: fedora-36-full
+          # full_terminal_profile: true
+          # include_pii_dotfiles: true
         docker-tmpl:
+          qubes:
+            source: fedora-36-docker
         gpg-tmpl:
+          qubes:
+            source: fedora-36
+        net-tmpl:
+          qubes:
+            source: fedora-36
         kubernetes-tmpl:
+          qubes:
+            source: fedora-36-docker
         media-tmpl:
         personal-tmpl:
-          full_terminal_profile: true
-          include_pii_dotfiles: true
+          qubes:
+            source: fedora-36-full
         # pritunl-server-tmpl:
         #   qubes:
         #     source: debian-10
@@ -329,18 +389,22 @@ template-vms:
         provision-tmpl:
         remote-tmpl:
         swarm-tmpl:
+          qubes:
+            source: fedora-36-docker
         util-tmpl:
         vpn-tmpl:
           qubes:
-            source: debian-11
+            source: debian-11-base
         vault-tmpl:
+          qubes:
+            source: feodra-36
         web-tmpl:
         work-tmpl:
-          full_terminal_profile: true
-          include_pii_dotfiles: true
+          qubes:
+            fedora-36-full
       vars:
         qubes:
-          source: fedora-36
+          source: fedora-36-base
     vpn-templates:
       hosts:
         vpn-pritunl-tmpl:
@@ -351,29 +415,29 @@ template-vms:
       vars:
         qubes:
           source: vpn-tmpl
-    desktop-hvm-templates:
-      hosts:
-        # TODO Add version numbers in these template names
-        archlinux-desktop-tmpl:
-        centos-desktop-tmpl:
-        debian-desktop-tmpl:
-        debian-server-tmpl:
-        fedora-desktop-tmpl:
-        macos-desktop-tmpl:
-        ubuntu-desktop-tmpl:
-        windows-desktop-tmpl:
-          ansible_connection: winrm
-      vars:
-        # SSH connection is unnecessary since templates are loaded from vagrantup.com or via the qubes-packer.yml playbook
-        # ansible_connection: ssh
-        # ansible_password: "{{ lookup('env', 'VAGRANT_PASSWORD') }}"
-        # ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
-        qubes:
-          kernel: ''
-          source: blank
-          virt_mode: hvm
-        volume:
-          root: 40g
+    # desktop-hvm-templates:
+    #   hosts:
+    #     # TODO Add version numbers in these template names
+    #     archlinux-desktop-tmpl:
+    #     centos-desktop-tmpl:
+    #     debian-desktop-tmpl:
+    #     debian-server-tmpl:
+    #     fedora-desktop-tmpl:
+    #     macos-desktop-tmpl:
+    #     ubuntu-desktop-tmpl:
+    #     windows-desktop-tmpl:
+    #       ansible_connection: winrm
+    #   vars:
+    #     # SSH connection is unnecessary since templates are loaded from vagrantup.com or via the qubes-packer.yml playbook
+    #     # ansible_connection: ssh
+    #     # ansible_password: "{{ lookup('env', 'VAGRANT_PASSWORD') }}"
+    #     # ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
+    #     qubes:
+    #       kernel: ''
+    #       source: blank
+    #       virt_mode: hvm
+    #     volume:
+    #       root: 40g
     misc-hvm-templates:
       hosts:
         # opnsense-tmpl:
@@ -396,6 +460,7 @@ template-vms:
         qubes:
           kernel: ''
           virt_mode: hvm
+
 standalone-vms:
   vars:
     qubes:
@@ -407,44 +472,44 @@ standalone-vms:
       virt_mode: hvm
       vm_type: StandaloneVM
   children:
-    desktop-standalone-vms:
-      hosts:
-        # By default, only initialize standalones for the fully loaded environments
-        # If you just want a default ubuntu HVM, for instance, then qvm-clone from the
-        # `ubuntu-desktop-base-tmpl` TemplateVM
-        archlinux-desktop:
-          qubes:
-            source: archlinux-desktop-tmpl
-        centos-desktop:
-          qubes:
-            source: centos-desktop-tmpl
-        debian-desktop:
-          qubes:
-            source: debian-desktop-tmpl
-        debian-server:
-          qubes:
-            source: debian-server-tmpl
-        fedora-desktop:
-          qubes:
-            source: fedora-desktop-tmpl
-        macos-desktop:
-          qubes:
-            source: macos-desktop-tmpl
-        ubuntu-desktop:
-          qubes:
-            source: ubuntu-desktop-tmpl
-        windows-desktop:
-          ansible_connection: winrm
-          qubes:
-            source: windows-desktop-tmpl
-      vars:
-        ansible_connection: ssh
-        ansible_password: "{{ lookup('env', 'VAGRANT_PASSWORD') }}"
-        ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
-        qubes:
-          _netvm: sys-vpn-proton
-        volume:
-          root: 50g
+    # desktop-standalone-vms:
+    #   hosts:
+    #     # By default, only initialize standalones for the fully loaded environments
+    #     # If you just want a default ubuntu HVM, for instance, then qvm-clone from the
+    #     # `ubuntu-desktop-base-tmpl` TemplateVM
+    #     archlinux-desktop:
+    #       qubes:
+    #         source: archlinux-desktop-tmpl
+    #     centos-desktop:
+    #       qubes:
+    #         source: centos-desktop-tmpl
+    #     debian-desktop:
+    #       qubes:
+    #         source: debian-desktop-tmpl
+    #     debian-server:
+    #       qubes:
+    #         source: debian-server-tmpl
+    #     fedora-desktop:
+    #       qubes:
+    #         source: fedora-desktop-tmpl
+    #     macos-desktop:
+    #       qubes:
+    #         source: macos-desktop-tmpl
+    #     ubuntu-desktop:
+    #       qubes:
+    #         source: ubuntu-desktop-tmpl
+    #     windows-desktop:
+    #       ansible_connection: winrm
+    #       qubes:
+    #         source: windows-desktop-tmpl
+    #   vars:
+    #     ansible_connection: ssh
+    #     ansible_password: "{{ lookup('env', 'VAGRANT_PASSWORD') }}"
+    #     ansible_user: "{{ lookup('env', 'VAGRANT_USER') }}"
+    #     qubes:
+    #       _netvm: sys-vpn-proton
+    #     volume:
+    #       root: 50g
     unikernel-vms:
       hosts:
         mirage-firewall:
@@ -455,12 +520,14 @@ standalone-vms:
             memory: 64
             maxmem: 64
             provides_network: true
+            source: blank
             vcpus: 1
             virt_mode: pvh
             label: green
             vm_type: StandaloneVM
           # TODO qvm-features mirage-firewall qubes-firewall 1
           # TODO qvm-features mirage-firewall no-default-kernelopts 1
+
 system-vms:
   hosts:
     anon-whonix:

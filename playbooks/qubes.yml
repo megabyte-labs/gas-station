@@ -41,11 +41,16 @@
     - name: Ensure all VMs except sys-net, sys-firewall, sys-whonix, and provision are shutdown
       become: true
       command: qvm-shutdown --all --wait --exclude=dom0 --exclude=sys-net --exclude=sys-firewall --exclude=sys-whonix --exclude=sys-usb --exclude=sys-gui --exclude=sys-gui-gpu --exclude=sys-gui-vnc --exclude=provision
-    - name: Ensure primary-templates-stock TemplateVMs are configured to use sys-firewall as their NetVM
+    - name: Ensure primary-templates-stock / primary-templates-minimal TemplateVMs are configured to use sys-firewall as their NetVM
       vars:
         netvm: sys-firewall
       include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['primary-templates-stock'] + groups['primary-templates-minimal'] }}"
+    - name: Ensure primary-templates-stock / primary-templates-minimal are using the appropriate sized volumes
+      include_tasks: tasks/qubes/qvm-volume.yml
+      loop: "{{ groups['primary-templates-stock'] + groups['primary-templates-minimal'] }}"
+      loop_control:
+        loop_var: vm
 
 - name: Ensure base templates are updated
   hosts: primary-templates-stock:primary-templates-minimal

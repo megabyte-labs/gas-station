@@ -1,0 +1,63 @@
+---
+- name: Determine if RPM Fusion was already enabled
+  become: true
+  stat:
+    path: /root/.setup-rpm-fusion-enabled
+  register: template_rpm_fusion
+  when: ansible_os_family == 'RedHat'
+
+- name: Ensure RPM Fusion package repositories are enabled on RedHat-flavored systems
+  become: true
+  shell:
+    cmd: |
+      dnf config-manager --set-enabled rpmfusion-free
+      dnf config-manager --set-enabled rpmfusion-free-updates
+      dnf config-manager --set-enabled rpmfusion-nonfree
+      dnf config-manager --set-enabled rpmfusion-nonfree-updates
+  when:
+    - ansible_os_family == 'RedHat'
+    - not template_rpm_fusion.stat.exists
+
+- name: Register RPM Fusion enabled indicator
+  become: true
+  copy:
+    content: |
+      done
+    dest: /root/.setup-rpm-fusion-enabled
+  when:
+    - ansible_os_family == 'RedHat'
+    - not template_rpm_fusion.stat.exists
+
+- name: Ensure Debian systems are updated
+  become: true
+  apt:
+    cache_valid_time: 3600
+    force_apt_get: true
+    update_cache: true
+    upgrade: dist
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure RedHat systems are updated
+  become: true
+  dnf:
+    name: '*'
+    state: latest
+    update_cache: true
+  when: ansible_os_family == 'RedHat'
+
+- name: Ensure Archlinux systems are updated
+  become: true
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+  when: ansible_os_family == 'Archlinux'
+
+- name: Install common software packages
+  become: true
+  ansible.builtin.package:
+    name: "{{ common_software_packages }}"
+    state: latest
+
+- name: Apply full theme and dotfiles
+  include_role:
+    name: professormanhattan.theme

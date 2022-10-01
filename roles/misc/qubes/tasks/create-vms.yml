@@ -23,11 +23,14 @@
     cmd: qvm-device pci list sys-net | sed 's/^\([^ ]*\).*/\1/'
   register: sys_net_pcidevs
   changed_when: false
+  when: "'opnsense' in dom0_features"
 
 - name: Configure Qubes Salt formula and the top file
   become: true
+  vars:
+    vms: "{{ formation_vms }}"
   qubesformation:
-    dest: /srv/user_salt/structure.sls
+    dest: /srv/user_salt/{{ formation_slug | default('all') }}.sls
 
 - name: Ensure top.enabled is activated
   become: true
@@ -39,14 +42,14 @@
 - name: Enable Qubes Salt formula
   become: true
   shell:
-    cmd: qubesctl top.enable structure && echo CHANGED
+    cmd: qubesctl top.enable {{ formation_slug | default('all') }} && echo CHANGED
   register: enableformation
   changed_when: "'CHANGED' in enableformation.stdout"
 
 - name: Realize Qubes formation
   become: true
   qubessls:
-    sls: structure
+    sls: "{{ formation_slug | default('all') }}"
     env: user
   # TODO add changed_when
 
@@ -56,7 +59,9 @@
   register: blank_register_remove
   changed_when: "'no such domain' not in blank_register_remove.stderr"
   failed_when: false
+  when: (formation_slug | default('all')) == 'all'
 
 - name: Create new DispVMs
   include_tasks: dispvm.yml
   loop: "{{ sys_dispvms }}"
+  when: (formation_slug | default('all')) == 'all'

@@ -1,0 +1,21 @@
+---
+- name: Provision the custom TemplateVMs
+  include_role:
+    name: '{{ role }}'
+  loop: '{{ qubes_roles[inventory_hostname] | default([]) }}'
+  loop_control:
+    label: '{{ inventory_hostname }}'
+    loop_var: role
+
+- name: Run the finishing role(s) on the TemplateVMs
+  include_role:
+    name: '{{ role }}'
+  loop:
+    - roles/system/finish
+  loop_control:
+    label: '{{ inventory_hostname }}'
+    loop_var: role
+
+- name: Randomize MAC address and ensure no hostname leaks (Source -> https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md)
+  include_tasks: tasks/qubes/randomize-mac.yml
+  when: randomize_mac_address | default(false)

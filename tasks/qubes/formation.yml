@@ -1,0 +1,31 @@
+---
+- name: Check whether the structure was recently provisioned
+  stat:
+    path: /tmp/.setup-dom0-{{ formation_slug }}
+  register: phase_fully_provisioned
+
+- name: Ensure all VMs except sys-net, sys-firewall, sys-whonix, and provision are shutdown
+  command: qvm-shutdown --all --exclude=dom0 --exclude=sys-net --exclude=sys-firewall --exclude=sys-whonix --exclude=sys-usb --exclude=sys-gui --exclude=sys-gui-gpu --exclude=sys-gui-vnc --exclude=provision
+
+- name: Apply the formation
+  vars:
+    dom0_features:
+      - create-vms
+    formation_slug: "{{ formation_slug }}"
+    formation_vms: "{{ formation_vms }}"
+  include_role:
+    name: professormanhattan.qubes
+  when: not phase_fully_provisioned.stat.exists
+
+- name: Ensure the new VMs have access to sys-firewall so they can be provisioned
+  vars:
+    netvm: sys-firewall
+  include_tasks: tasks/qubes/qvm-netvm.yml
+  loop: "{{ formation_vms | difference(formation_vms_previous) }}"
+
+- name: Register "fully provisioned" indicator temporary file
+  copy:
+    content: |
+      done
+    dest: /tmp/.setup-dom0-{{ formation_slug }}
+  when: not phase_fully_provisioned.stat.exists

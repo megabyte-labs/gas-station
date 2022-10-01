@@ -36,15 +36,6 @@
     label: '{{ inventory_hostname }}'
     loop_var: role
 
-- name: Provision custom TemplateVMs with fully configured terminals
-  include_role:
-    name: '{{ role }}'
-  loop: '{{ full_terminal_roles }}'
-  loop_control:
-    label: '{{ inventory_hostname }}'
-    loop_var: role
-  when: full_terminal_profile | default(false)
-
 - name: Provision the custom TemplateVMs
   include_role:
     name: '{{ role }}'
@@ -74,23 +65,3 @@
       - name: opnsense-https-service
         port: 443
   include_tasks: tcp-port-bind.yml
-
-- name: Ensure directory for custom Ansible facts exists
-  become: true
-  ansible.builtin.file:
-    state: directory
-    recurse: yes
-    path: /rw/config/qubes-bind-dirs.d
-  when: persistent_docker_volumes | default(false)
-
-- name: Ensure Docker files are persistent
-  copy:
-    content: |
-      binds+=( '/var/lib/docker' )
-      binds+=( '/etc/docker' )
-    dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
-  when: persistent_docker_volumes | default(false)
-
-- name: Randomize MAC address and ensure no hostname leaks (Source -> https://github.com/Qubes-Community/Contents/blob/master/docs/privacy/anonymizing-your-mac-address.md)
-  include_tasks: tasks/qubes/vm-randomize-mac.yml
-  when: randomize_mac_address | default(false)

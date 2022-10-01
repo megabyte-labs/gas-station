@@ -1,0 +1,33 @@
+---
+- name: Provision the custom TemplateVMs
+  include_role:
+    name: '{{ role }}'
+  loop: '{{ qubes_roles[inventory_hostname] | default([]) }}'
+  loop_control:
+    label: '{{ inventory_hostname }}'
+    loop_var: role
+
+- name: Run the finishing role(s) on the TemplateVMs
+  include_role:
+    name: '{{ role }}'
+  loop:
+    - roles/system/finish
+  loop_control:
+    label: '{{ inventory_hostname }}'
+    loop_var: role
+
+- name: Ensure directory for custom Ansible facts exists
+  become: true
+  ansible.builtin.file:
+    state: directory
+    recurse: yes
+    path: /rw/config/qubes-bind-dirs.d
+  when: persistent_docker_volumes | default(false)
+
+- name: Ensure Docker files are persistent
+  copy:
+    content: |
+      binds+=( '/var/lib/docker' )
+      binds+=( '/etc/docker' )
+    dest: /rw/config/qubes-bind-dirs.d/50-docker.conf
+  when: persistent_docker_volumes | default(false)

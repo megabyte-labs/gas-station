@@ -1,7 +1,7 @@
 ---
 # yamllint disable rule:max-lines
 - name: Provision / initialize dom0
-  hosts: dom0:!dom0
+  hosts: dom0
   tasks:
     # Prepare dom0
     # NOTE: The Qubes dom0 provisioning has some "become" sourcery involved because the default
@@ -38,21 +38,14 @@
           done
         dest: /tmp/.setup-dom0-partially-provisioned
       when: not dom0_partially_provisioned.stat.exists
-    - name: Ensure primary-templates-full TemplateVMs are configured to use sys-firewall as their NetVM
+    - name: Ensure primary-templates-stock TemplateVMs are configured to use sys-firewall as their NetVM
       vars:
         netvm: sys-firewall
       include_tasks: tasks/qubes/qvm-netvm.yml
-      loop: "{{ groups['primary-templates-full'] }}"
-    - name: Check if debian-11-backup was created
-      command: qvm-check debian-11-backup
-      register: qvm_debian_check
-    - name: Clone a backup of debian-11
-      command: qvm-clone debian-11 debian-11-backup
-      when: qvm_debian_check.rc != 0
+      loop: "{{ groups['primary-templates-stock'] + groups['primary-templates-minimal'] }}"
 
-- name: Ensure upstream templates are upgraded
-  # hosts: primary-templates-full:!debian-11-backup
-  hosts: none
+- name: Ensure base templates are updated
+  hosts: primary-templates-stock:primary-templates-minimal
   tasks:
     - name: Determine if RPM Fusion was already enabled
       become: true
@@ -109,116 +102,87 @@
     - name: Apply full theme and dotfiles
       include_role:
         name: professormanhattan.theme
-    - name: Apply just the dotfiles
-      include_role:
-        name: professormanhattan.dotfiles
 
-- name: Create the VM structure now that the templates are updated
+- name: Prepare for the "base" TemplateVM provisioning
   hosts: dom0
   tasks:
-    - name: Ensure primary full TemplateVMs are disconnected from NetVMs
-      vars:
-        netvm: None
-      include_tasks: tasks/qubes/qvm-netvm.yml
-      loop: "{{ groups['primary-templates-full'] }}"
-    - name: Check whether the structure was recently provisioned
-      stat:
-        path: /tmp/.setup-dom0-fully-provisioned
-      register: dom0_fully_provisioned
-    - name: Ensure all VMs except sys-net, sys-firewall, sys-whonix, and provision are shutdown
-      command: qvm-shutdown --all --exclude=dom0 --exclude=sys-net --exclude=sys-firewall --exclude=sys-whonix --exclude=sys-usb --exclude=sys-gui --exclude=sys-gui-gpu --exclude=sys-gui-vnc --exclude=provision
-    - name: Scaffold out the VM structure using Salt (now that all the TemplateVMs are updated)
+    - name: Realize the "base" TemplateVMs
       vars:
         dom0_features:
           - create-vms
-      include_role:
-        name: professormanhattan.qubes
-      when: not dom0_fully_provisioned.stat.exists
-    - name: Register "fully provisioned" indicator temporary file
-      copy:
-        content: |
-          done
-        dest: /tmp/.setup-dom0-fully-provisioned
-      when: not dom0_fully_provisioned.stat.exists
+        formation_slug: base
+        formation_vms: "{{ groups['primary-templates-minimal'] + groups['primary-templates-stock'] + groups['groups['primary-templates-base'] }}"
+        formation_vms_previous: "{{ groups['primary-templates-minimal'] + groups['primary-templates-stock'] }}"
+      include_tasks: tasks/qubes/formation.yml
 
-- name: Ensure TemplateVMs use sys-firewall as their NetVM
+- name: Provision the "base" TemplateVMs
+  hosts: primary-templates-base
+  tasks:
+    - include_tasks: tasks/qubes/vm-template-base.yml
+
+- name: Prepare for the "full" TemplateVM provisioning
   hosts: dom0
   tasks:
-    - include_tasks: tasks/qubes/qvm-netvm.yml
+    - name: Realize the "full" TemplateVMs
       vars:
-        netvm: sys-firewall
-      loop: "{{ groups['template-vms'] }}"
+        dom0_features:
+          - create-vms
+        formation_slug: full
+        formation_vms: "{{ groups['primary-templates'] + ['vpn-tmpl'] }}"
+        formation_vms_previous: "{{ groups['primary-templates-minimal'] + groups['primary-templates-stock'] + groups['groups['primary-templates-base'] }}"
+      include_tasks: tasks/qubes/formation.yml
 
-- name: Provision the VPN TemplateVM for the other VPN TemplateVMs
-  hosts: vpn-tmpl
+- name: Provision the "full" TemplateVMs
+  hosts: primary-templates-full:primary-templates-docker:vpn-tmpl
   tasks:
-    - include_tasks: tasks/qubes/vm-template.yml
+    - include_tasks: tasks/qubes/vm-template-full.yml
 
-- name: Shutdown the "vpn-tmpl"
+- name: Prepare for the "tmpl" TemplateVM provisioning
   hosts: dom0
   tasks:
-    - include_tasks: tasks/qubes/qvm-shutdown.yml
-      loop:
-        - vpn-tmpl
-
-- name: Provision the VPN templates
-  hosts: vpn-templates
-  tasks:
-    - include_tasks: tasks/qubes/vm-template.yml
-
-- name: Shutdown the VPN TemplateVMs
-  hosts: dom0
-  tasks:
-    - include_tasks: tasks/qubes/qvm-shutdown.yml
-      loop: "{{ groups['vpn-templates'] }}"
-
-- name: Provision the "standard-templates" TemplateVMs
-  hosts: standard-templates
-  tasks:
-    - include_tasks: tasks/qubes/vm-template.yml
-
-- name: Shutdown the "standard" TemplateVMs
-  hosts: dom0
-  tasks:
-    - include_tasks: tasks/qubes/qvm-shutdown.yml
-      loop: "{{ groups['standard-templates'] }}"
-
-- name: Provision the desktop HVM TemplateVMs
-  hosts: desktop-hvm-templates
-  tasks:
-    - include_tasks: tasks/qubes/hvm-template.yml
-
-- name: Shutdown the desktop HVM TemplateVMs
-  hosts: dom0
-  tasks:
-    - include_tasks: tasks/qubes/qvm-shutdown.yml
+    - name: Realize the "tmpl" TemplateVMs
       vars:
-        force_shutdown: true
+        dom0_features:
+          - create-vms
+        formation_slug: tmpl
+        formation_vms: "{{ groups['primary-templates'] + groups['standard-templates'] + groups['vpn-templates'] }}"
+        formation_vms_previous: "{{ groups['primary-templates'] + ['vpn-tmpl'] }}"
+      include_tasks: tasks/qubes/formation.yml
+
+- name: Provision the "tmpl" TemplateVMs
+  hosts: vpn-templates:standard-templates
+  tasks:
+    - include_tasks: tasks/qubes/vm-template-tmpl.yml
+
+- name: Prepare for provisioning the rest of the Qubes VMs
+  hosts: dom0
+  tasks:
+    - name: Realize all the Qubes VMs
+      vars:
+        dom0_features:
+          - create-vms
+        formation_slug: all
+        formation_vms:  "{{ groups['vms'] }}"
+        formation_vms_previous: "{{ groups['primary-templates'] + groups['standard-templates'] + groups['vpn-templates'] }}"
+      include_tasks: tasks/qubes/formation.yml
+
+- name: Provision all of the AppVMs etc.
+  hosts: vms:!primary-templates:!standard-templates:!vpn-templates
+  tasks:
+    - include_tasks: tasks/qubes/vm-template-all.yml
+
+
 
 - name: Disable TemplateVM's NetVMs and enable ProxyVM NetVMs
   hosts: dom0
   tasks:
-    - name: Ensure the TemplateVMs in the "template-vms" group are disconnected from sys-firewall
-      vars:
-        netvm: None
-      include_tasks: tasks/qubes/qvm-netvm.yml
-      loop: "{{ groups['template-vms] }}"
+
     - name: Connect AppVMs, ProxyVMs, and StandaloneVMs to the sys-firewall NetVM
       vars:
         netvm: sys-firewall
       include_tasks: tasks/qubes/qvm-netvm.yml
       loop: "{{ groups['app-vms'] +  groups['proxy-vms'] + groups['standalone-vms'] }}"
 
-- name: Provision the AppVMs, ProxyVMs, and StandaloneVMs with any non-templated changes
-  hosts: app-vms:proxy-vms:standalone-vms
-  tasks:
-    - name: Provision the custom TemplateVMs
-      include_role:
-        name: '{{ role }}'
-      loop: '{{ qubes_roles[inventory_hostname] | default([]) }}'
-      loop_control:
-        label: '{{ inventory_hostname }}'
-        loop_var: role
 
 - name: Finish provisioning dom0
   hosts: dom0

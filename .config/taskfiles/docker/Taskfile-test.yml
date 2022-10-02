@@ -148,7 +148,7 @@ tasks:
           if [ "$(jq -r '.blueprint.dockerInDocker' package.json)" == 'true' ]; then
             echo "-v {{.DIND_MOUNT_MAPPING}} "
           fi
-      MOUNT_PATH: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}${PWD}{{end}}'
+      MOUNT_PATH: '{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}$PWD{{end}}'
       OUTPUT_COMMAND:
         sh: |
           BP_OUTPUT="$(jq -r '.blueprint.dockerOutputCommand' package.json)"
@@ -166,10 +166,10 @@ tasks:
     cmds:
       - |
         LATEST_OUTPUT="$(docker run -v "{{.MOUNT_PATH}}:/work" -w /work {{.DOCKER_IMAGE}}:latest {{.OUTPUT_COMMAND}})"
-        .config/log success 'Acquired `latest` image output for `'"{{.MOUNT_PATH}}"'`'
-        .config/log info 'Acquiring `slim` image output for `'"{{.MOUNT_PATH}}"'`'
+        .config/log success 'Acquired `latest` image output'
+        .config/log info 'Acquiring `slim` image output'
         SLIM_OUTPUT="$(docker run -v "{{.MOUNT_PATH}}:/work" -w /work {{.DOCKER_IMAGE}}:slim {{.OUTPUT_COMMAND}})"
-        .config/log success 'Acquired `slim` image output for `'"{{.MOUNT_PATH}}"'`'
+        .config/log success 'Acquired `slim` image output'
         if [ "$LATEST_OUTPUT" != "$SLIM_OUTPUT" ]; then
           .config/log error 'The `latest` image output did not match the `slim` image output with the command `{{.OUTPUT_COMMAND}}`'
           echo "$LATEST_OUTPUT" > latest.log

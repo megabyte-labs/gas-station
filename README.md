@@ -888,7 +888,12 @@ Although most of the `brew` installs are handled by the [Binaries](#binaries) in
 
 On macOS, some software is installed using Homebrew casks. These include:
 
-cask_var_chart
+| Package                                                  | Description                                                                                                                                                                  | GitHub&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Clocker](https://formulae.brew.sh/cask/clocker)**     | macOS program that shows the time in multiple timezones in the top menu bar (_[Homepage](https://abhishekbanthia.com/clocker/)_)                                             | [![GitHub Repo stars](https://img.shields.io/github/stars/n0shake/clocker?style=social)](https://github.com/n0shake/clocker)           |
+| **[Secretive](https://formulae.brew.sh/cask/secretive)** | there is no importing/exporting keys so you only have access to the public key                                                                                               | [![GitHub Repo stars](https://img.shields.io/github/stars/maxgoedjen/secretive?style=social)](https://github.com/maxgoedjen/secretive) |
+| **[Sloth](https://formulae.brew.sh/cask/sloth)**         | macOS program that shows all open files, directories, sockets, pipes, and devices in use by all running processes on the system (_[Homepage](https://sveinbjorn.org/sloth)_) | [![GitHub Repo stars](https://img.shields.io/github/stars/sveinbjornt/Sloth?style=social)](https://github.com/sveinbjornt/Sloth)       |
+| **[Stats](https://formulae.brew.sh/cask/stats)**         | macOS program that shows the system monitor in the top menu bar (_[Homepage]()_)                                                                                             | [![GitHub Repo stars](https://img.shields.io/github/stars/exelban/stats?style=social)](https://github.com/exelban/stats)               |
 
 ### Go, Rust, and System-Specific Packages
 

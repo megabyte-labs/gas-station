@@ -4,39 +4,21 @@
     path: /root/.setup-minimal-xdotool-{{ item }}
   register: minimal_xdotool
 
-- name: Open up an XTERM window via the Qubes XTERM proxy
-  command: qvm-run -u root {{ item }} xterm
-  when:
-    - "'-minimal' in item"
-    - not minimal_xdotool.stat.exists
-
-- name: Configure the {{ item }} VM to allow passwordless root via xdotool automation
+- name: Install qubes-core-agent-passwordless-root on Debian-flavored minimal VM
   shell:
     cmd: |
-      CONFIG_WIZARD_COUNT=0
-      ENABLE_OBFSC='true'
-      function configureWizard() {
-        if xwininfo -root -tree | grep "{{ item }}"; then
-          WINDOW_ID="$(xwininfo -root -tree | grep "{{ item }}" | sed 's/^ *\([^ ]*\) .*/\1/')"
-          sleep 2
-          xdotool windowactivate "$WINDOW_ID"
-          if [[ "{{ item }}" == "fedora"* ]]; then
-            xdotool key d n f space i n s t a l l space minus y space q u b e s minus c o r e minus a g e n t minus p a s s w o r d l e s s minus r o o t space ampersand ampersand space e x i t Enter
-          else
-            xdotool key a p t minus g e t space i n s t a l l space minus y space q u b e s minus c o r e minus a g e n t minus p a s s w o r d l e s s minus r o o t space ampersand ampersand space e x i t Enter
-          fi
-        else
-          sleep 2
-          CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD_COUNT + 1))
-          if [[ "$CONFIG_WIZARD_COUNT" == '4' ]]; then
-            echo "anon-connection-wizard was probably already run."
-          else
-            configureWizard
-          fi
-        fi
-      }
-      configureWizard > /dev/null
-      sleep 14
+      qvm-run -u root {{ item }} apt-get update
+      qvm-run -u root {{ item }} apt-get install -y qubes-core-agent-passwordless-root
   when:
     - "'-minimal' in item"
     - not minimal_xdotool.stat.exists
+    - "'debian' in item or 'ubuntu' in item"
+
+- name: Install qubes-core-agent-passwordless-root on RedHat-flavored minimal VM
+  shell:
+    cmd: |
+      qvm-run -u root {{ item }} dnf install -y qubes-core-agent-passwordless-root
+  when:
+    - "'-minimal' in item"
+    - not minimal_xdotool.stat.exists
+    - "'fedora' in item or 'centos' in item"

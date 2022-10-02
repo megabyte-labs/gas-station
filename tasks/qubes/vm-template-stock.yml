@@ -46,6 +46,21 @@
     update_cache: true
   when: ansible_os_family == 'RedHat'
 
+- name: Check if Archlinux has refreshed keys
+  stat:
+    path: /root/.setup-pacman-refreshed-keys
+  register: pacman_key_refresh
+
+- name: Ensure Archlinux pacman GPG keys are updated
+  command: sudo pacman-key --refresh-keys
+  when: not pacman_key_refresh.stat.exists
+
+- name: Ensure Archlinux key refresh is saved to prevent unnecessary future calls
+  copy:
+    content: |
+      done
+
+
 - name: Ensure Archlinux systems are updated
   # sudo pacman -Syu --noconfirm --ignore *pulse*
   become: true

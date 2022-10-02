@@ -1,4 +1,9 @@
 ---
+- name: Check if user has sudo priviledges
+  command: sudo -n true
+  register: sudo_privs
+  changed_when: false
+
 - name: Temporarily enable passwordless sudo for the ansible_user
   lineinfile:
     dest: /etc/sudoers
@@ -7,7 +12,9 @@
     state: present
     validate: 'visudo -cf %s'
     mode: 0644
-  when: homebrew_temporary_passwordless_sudo
+  when:
+    - homebrew_temporary_passwordless_sudo
+    - sudo_privs.rc != 0
 
 - name: Install Homebrew if not already installed
   include_tasks: install-Darwin.yml
@@ -20,4 +27,6 @@
     state: present
     validate: 'visudo -cf %s'
     mode: 0644
-  when: homebrew_temporary_passwordless_sudo
+  when:
+    - homebrew_temporary_passwordless_sudo
+    - sudo_privs.rc != 0

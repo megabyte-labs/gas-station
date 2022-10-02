@@ -534,13 +534,13 @@ if [ ! -f ~/.ssh/known_hosts ]; then
   touch ~/.ssh/known_hosts
   chmod 600 ~/.ssh/known_hosts
 fi
-if [ -z "$(grep "^gitlab.com " ~/.ssh/known_hosts)" ]; then
+if ! grep -q "^gitlab.com " ~/.ssh/known_hosts; then
   ssh-keyscan gitlab.com >> ~/.ssh/known_hosts 2>/dev/null
 fi
-if [ -z "$(grep "^github.com " ~/.ssh/known_hosts)" ]; then
+if ! grep -q "^github.com " ~/.ssh/known_hosts; then
   ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
 fi
-if [ -z "$(grep "^bitbucket.org " ~/.ssh/known_hosts)" ]; then
+if ! grep -q "^bitbucket.org " ~/.ssh/known_hosts; then
   ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts 2>/dev/null
 fi
 

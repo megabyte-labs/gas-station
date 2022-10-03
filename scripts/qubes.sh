@@ -34,30 +34,30 @@ if [[ "$(hostname)" == "dom0" ]]; then
     if xwininfo -root -tree | grep "Anon Connection Wizard"; then
       WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"
       xdotool windowactivate "$WINDOW_ID"
-      sleep 3
-      if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+      sleep 1
+      if [ "$ENABLE_OBFSC" == 'true' ]; then
         xdotool key 'Tab'
         xdotool key 'Tab'
         xdotool key 'Tab'
         xdotool key 'Down'
       fi
       xdotool key 'Enter'
-      sleep 3
-      if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+      sleep 1
+      if [ "$ENABLE_OBFSC" == 'true' ]; then
         xdotool key 'space'
       fi
       xdotool key 'Tab'
       xdotool key 'Tab'
       xdotool key 'Enter'
-      sleep 3
-      if [[ "$ENABLE_OBFSC" == 'true' ]]; then
+      sleep 1
+      if [ "$ENABLE_OBFSC" == 'true' ]; then
         xdotool key 'Tab'
         xdotool key 'Tab'
         xdotool key 'Enter'
       fi
       sleep 14
       xdotool windowactivate "$WINDOW_ID"
-      sleep 3
+      sleep 1
       xdotool key 'Enter'
     else
       sleep 3
@@ -120,6 +120,11 @@ else
     qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
     qvm-volume extend "$ANSIBLE_PROVISION_VM:private" "40G"
     qvm-run --pass-io "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
+    # TODO - Copy ~/.vaultpass from DOM0 to provision VM
+    if [ -f ~/.vaultpass ]; then
+      qvm-copy-to-vm "$ANSIBLE_PROVISION_VM" ~/.vaultpass
+      qvm-run "$ANSIBLE_PROVISION_VM" 'cp ~/QubesIncoming/dom0/.vaultpass ~/.vaultpass'
+    fi
     exit 0
   else
     echo "Ensuring Ansible is installed"

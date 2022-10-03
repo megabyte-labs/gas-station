@@ -14,6 +14,18 @@
   set_fact:
     dom0_user: "{{ first_dom0_user.stdout }}"
 
+- name: Ensure official templates are available
+  include_tasks: templates.yml
+  loop: "{{ qubes_templates }}"
+  loop_control:
+    loop_var: template
+  when: "'templates' in dom0_features"
+
+- name: Ensure *-minimal templates are accessible by Ansible (via passwordless root)
+  include_tasks: minimal-vms.yml
+  when: "'minimal-vms' in dom0_features"
+  loop: "{{ minimal_vms }}"
+
 - name: Ensure dom0 and TemplateVMs are up-to-date
   include_tasks: update.yml
   when: "'update' in dom0_features"
@@ -29,18 +41,6 @@
 - name: Ensure sys-gui is added
   include_tasks: gui.yml
   when: "'sys-gui' in dom0_features"
-
-- name: Ensure official templates are available
-  include_tasks: templates.yml
-  loop: "{{ qubes_templates }}"
-  loop_control:
-    loop_var: template
-  when: "'templates' in dom0_features"
-
-- name: Ensure *-minimal templates are accessible by Ansible (via passwordless root)
-  include_tasks: minimal-vms.yml
-  when: "'minimal-vms' in dom0_features"
-  loop: "{{ minimal_vms }}"
 
 - name: Add dotfiles
   include_tasks: dotfiles.yml

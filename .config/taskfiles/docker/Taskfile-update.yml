@@ -69,7 +69,7 @@ tasks:
       - grep 'org.opencontainers.image.documentation' Dockerfile
 
   # yamllint disable rule:line-length
-
+  # eslint-disable max-len
   labels:update:
     vars:
       AUTHORS:
@@ -127,8 +127,12 @@ tasks:
     cmds:
       - docker build --tag {{.DOCKER_IMAGE}}:latest  --target "{{.DOCKER_BASE_TAG}}" .
       - |
-        VERSION="$({{.VERSION_COMMAND}})" || EXIT_CODE=$?
-        VERSION="$(echo "$VERSION" | perl -pe 'if(($v)=/([0-9]+([.][0-9]+)+)/){print"$v\n";exit}$_=""')"
+        if [ -n "$VERSION_OVERRIDE" ]; then
+          VERSION="$VERSION_OVERRIDE"
+        else
+          VERSION="$({{.VERSION_COMMAND}})" || EXIT_CODE=$?
+          VERSION="$(echo "$VERSION" | perl -pe 'if(($v)=/([0-9]+([.][0-9]+)+)/){print"$v\n";exit}$_=""')"
+        fi
         if [ -n "$EXIT_CODE" ]; then
           .config/log warn 'Failed to run version command (`{{.VERSION_COMMAND}}`) - will retry after images are finished building'
         else

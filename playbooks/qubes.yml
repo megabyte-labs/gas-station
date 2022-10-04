@@ -191,23 +191,15 @@
   tasks:
     - include_tasks: tasks/qubes/vm-template-all.yml
 
-- name: Disable TemplateVM's NetVMs and enable ProxyVM NetVMs
-  hosts: dom0
-  tasks:
-    - name: Connect AppVMs, ProxyVMs, and StandaloneVMs to the sys-firewall NetVM
-      vars:
-        netvm: sys-firewall
-      include_tasks: tasks/qubes/qvm-netvm.yml
-      loop: "{{ groups['app-vms'] +  groups['proxy-vms'] + groups['standalone-vms'] }}"
-
 - name: Finish provisioning dom0
   hosts: dom0
   tasks:
-    - name: Set the NetVM for all VMs equal to their inventory-defined NetVM
+    - name: Apply the formation again so the templates use the appropriate NetVM
       vars:
-        connect_default_netvm: true
-      include_tasks: tasks/qubes/qvm-netvm.yml
-      loop: "{{ groups['qubes-vms'] }}"
+        dom0_features:
+          - create-vms
+      include_role:
+        name: professormanhattan.qubes
     - name: Enable updates over Tor
       vars:
         dom0_features:

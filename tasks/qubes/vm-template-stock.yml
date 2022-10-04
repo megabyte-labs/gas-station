@@ -50,28 +50,33 @@
   stat:
     path: /root/.setup-pacman-refreshed-keys
   register: pacman_key_refresh
+  when: ansible_os_family == 'Archlinux'
 
 - name: Ensure Archlinux pacman GPG keys are updated
-  command: sudo pacman-key --refresh-keys
-  when: not pacman_key_refresh.stat.exists
+  become: true
+  command: pacman-key --refresh-keys
+  when:
+    - ansible_os_family == 'Archlinux'
+    - not pacman_key_refresh.stat.exists
 
 - name: Ensure Archlinux key refresh is saved to prevent unnecessary future calls
+  become: true
   copy:
     content: |
       done
     dest: /root/.setup-pacman-refreshed-keys
-  when: not pacman_key_refresh.stat.exists
+  when:
+    - ansible_os_family == 'Archlinux'
+    - not pacman_key_refresh.stat.exists
 
 - name: Ensure Archlinux systems are updated
-  # sudo pacman -Syu --noconfirm --ignore *pulse*
   become: true
   community.general.pacman:
     update_cache: true
     upgrade: true
-    extra_args: --ignore="*pulse*"
+    extra_args: --ignore=*pulse*
     update_cache_extra_args: --noconfirm
     upgrade_extra_args: --ignore="*pulse*"
-    # extra_args:
   when: ansible_os_family == 'Archlinux'
 
 - name: Install common software packages

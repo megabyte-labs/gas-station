@@ -12,12 +12,16 @@
     label: '{{ inventory_hostname }}'
     loop_var: role
 
+- name: Register the a list of software to be installed
+  set_fact:
+    generic_software: "{{ qubes_software[inventory_hostname] | default([]) }}"
+
 - name: Install software packages using the generic installer
   vars:
-    software: "{{ qubes_software[inventory_hostname] | default('') }}"
+    software: "{{ generic_software }}"
   include_role:
     name: roles/helpers/installer
-  when: qubes_software[inventory_hostname] is defined
+  when: (generic_software | length) != 0
 
 - name: Run the finishing role(s) on the TemplateVMs
   include_role:

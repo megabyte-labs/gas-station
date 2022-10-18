@@ -78,6 +78,16 @@ if [[ "$(hostname)" == "dom0" ]]; then
       xdotool windowactivate "$WINDOW_ID"
       sleep 1
       xdotool key 'Enter'
+      # TODO: Add logic to recursively check for presence of WINDOW_ID_SYSCHECK
+      if [ "$ENABLE_OBFSC" == 'true' ]; then
+        sleep 480
+      else
+        sleep 140
+      fi
+      WINDOW_ID_SYSCHECK="$(xwininfo -root -tree | grep "systemcheck | Whonix" | sed 's/^ *\([^ ]*\) .*/\1/')"
+      xdotool windowactivate "$WINDOW_ID_SYS_CHECK"
+      sleep 1
+      xdotool key 'Enter'
     else
       sleep 3
       CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD_COUNT + 1))

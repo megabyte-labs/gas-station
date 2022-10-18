@@ -13,6 +13,21 @@ if [[ "$(hostname)" == "dom0" ]]; then
     sudo ln -s /usr/bin/python3 /usr/bin/python
   fi
 
+  if [ ! -f ~/.vaultpass ]; then
+    echo "Enter N to use a custom playbook with customizations like encrypted Ansible Vault secrets:"
+    read -p "Use defaults? (Y/N): " confirm
+    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+      echo "Using default playbook values. Check out the README for more information on customizing the playbook to setup API key-related services / apps."
+    else
+      echo "NOTE: To customize the playbook repository used, you will have to edit the repository specified in this script."
+      read -p "Enter Vault password: " ANSIBLE_VAULT_PASS
+      echo "$ANSIBLE_VAULT_PASS" > ~/.vaultpass
+    fi
+  else
+    echo "Reading previously entered Ansible Vault password from ~/.vaultpass"
+    ANSIBLE_VAULT_PASS="$(cat ~/.vaultpass)"
+  fi
+
   # Update dom0
   if [ ! -f /tmp/dom0_updated ]; then
     echo "Updating dom0"
@@ -51,6 +66,10 @@ if [[ "$(hostname)" == "dom0" ]]; then
       xdotool key 'Enter'
       sleep 1
       if [ "$ENABLE_OBFSC" == 'true' ]; then
+        xdotool key 'Tab'
+        xdotool key 'Tab'
+        xdotool key 'Enter'
+        sleep 1
         xdotool key 'Tab'
         xdotool key 'Tab'
         xdotool key 'Enter'

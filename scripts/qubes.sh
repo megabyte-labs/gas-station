@@ -151,7 +151,7 @@ else
     qvm-run --pass-io "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
     # TODO - Copy ~/.vaultpass from DOM0 to provision VM
     if [ -f ~/.vaultpass ]; then
-      qvm-copy-to-vm "$ANSIBLE_PROVISION_VM" ~/.vaultpass
+      qvm-copy-to-vm "$ANSIBLE_PROVISION_VM" ~/.vaultpass || echo "~/.vaultpass is already present in the $ANSIBLE_PROVISION_VM VM"
       qvm-run "$ANSIBLE_PROVISION_VM" 'cp ~/QubesIncoming/dom0/.vaultpass ~/.vaultpass'
     fi
     exit 0

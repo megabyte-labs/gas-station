@@ -54,10 +54,10 @@ esac
 if [ ! -f ~/.config/.wayland-session-applied-$(hostname) ]; then
   if [[ "$(hostname)" == "dom0" ]] || [[ "$(hostname)" == "sys-gui"* ]]; then
     if type lookandfeeltool &> /dev/null; then
-      lookandfeeltool -a Sweet
+      lookandfeeltool -a Betelgeuse
     fi
     if type kvantummanager &> /dev/null; then
-      kvantummanager --set Sweet
+      kvantummanager --set Betelgeuse
     fi
   fi
   touch ~/.config/.wayland-session-applied-$(hostname)

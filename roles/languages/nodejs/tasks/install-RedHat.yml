@@ -43,7 +43,9 @@
       args:
         warn: false
       register: module_disable
-      changed_when: "'Nothing to do.' not in module_disable.stdout"
+      changed_when:
+        - module_disable.stdout is defined
+        - "'Nothing to do.' not in module_disable.stdout"
       when: ansible_distribution_major_version|int >= 8
 
     - name: 'Ensure {{ app_name }} and npm are installed'
@@ -84,6 +86,17 @@
           /{{ ansible_architecture }}/nodesource-release-fc{{ ansible_distribution_major_version }}-1.noarch.rpm"
         state: absent
       when: (ansible_distribution_major_version | int >= 7) and (ansible_distribution == 'Fedora')
+
+    - name: Check if Homebrew is installed
+      command: brew --version
+      register: brew_version
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure Homebrew is installed
+      ansible.builtin.include_role:
+        name: professormanhattan.homebrew
+      when: brew_version.rc != 0
 
     - name: 'Ensure {{ app_name }} and npm are installed'
       become: false

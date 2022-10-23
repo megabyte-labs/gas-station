@@ -85,22 +85,15 @@
   ansible.builtin.package:
     name: '{{ common_software_packages | default([]) }}'
     state: latest
-  when: ansible_os_family != 'Archlinux'
-
-- name: Install common software packages (Archlinux)
-  become: true
-  community.general.pacman:
-    name: '{{ common_software_packages | default([]) }}'
-    state: latest
-  when: ansible_os_family == 'Archlinux'
 
 - name: Clone the yay repository (Archlinux)
   become: true
   ansible.builtin.git:
     repo: https://aur.archlinux.org/yay.git
     dest: /usr/src/yay
-  args:
-    creates: /usr/src/yay
+    single_branch: true
+    version: master
+  when: ansible_os_family == 'Archlinux'
 
 - name: Check if yay is installed
   command: type yay

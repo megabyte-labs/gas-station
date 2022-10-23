@@ -94,6 +94,49 @@
     state: latest
   when: ansible_os_family == 'Archlinux'
 
+- name: Clone the yay repository (Archlinux)
+  become: true
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/yay.git
+    dest: /usr/src/yay
+  args:
+    creates: /usr/src/yay
+
+- name: Check if yay is installed
+  command: type yay
+  register: yay_type
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family == 'Archlinux'
+
+- name: Install yay (Archlinux)
+  command: makepkg -si
+  args:
+    chdir: /usr/src/yay
+  when:
+    - ansible_os_family == 'Archlinux'
+    - yay_type.rc != 0
+
+- name: Check if snap is installed
+  command: type snap
+  register: snap_type
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family == 'Archlinux'
+
+- name: Install snapd with yay (Archlinux)
+  shell:
+    cmd: echo N | yay -Sy snapd
+  when:
+    - ansible_os_family == 'Archlinux'
+    - snap_type.rc != 0
+
+- name: Ensure snapd is enabled and running
+  ansible.builtin.systemd:
+    enabled: true
+    state: started
+    name: snapd
+
 - name: Apply full theme and dotfiles
   include_role:
     name: professormanhattan.theme

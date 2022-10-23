@@ -1,7 +1,7 @@
 ---
 # @action Supports latest version of Ubuntu
 # Skips ensuring the `awk` package is installed on Ubuntu 22.04 or higher since `awk` is removed from apt-get
-- name: "Ensure awk is installed"
+- name: 'Ensure awk is installed'
   become_user: root
   package:
     name: awk
@@ -15,7 +15,7 @@
 - name: "Ensure {{ app_name }}'s dependencies are installed"
   become_user: "{{ ansible_user if ansible_os_family == 'Darwin' else 'root' }}"
   package:
-    name: "{{ asdf_dependencies + asdf_plugin_dependencies }}"
+    name: '{{ asdf_dependencies + asdf_plugin_dependencies }}'
     state: present
   when: ansible_system == 'Linux'
 
@@ -29,18 +29,18 @@
 - name: "Ensure {{ asdf_src_dir }}'s source directory exists"
   file:
     mode: 0755
-    path: "{{ asdf_src_dir }}"
+    path: '{{ asdf_src_dir }}'
     owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
     state: directory
   when: ansible_system == 'Linux'
 
-- name: "Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/{{ app_name }}"
+- name: 'Check if {{ app_name }} has configuration stored in ~/.config/megabytelabs/{{ app_name }}'
   stat:
-    path: "~/.config/megabytelabs/{{ app_name }}"
+    path: '~/.config/megabytelabs/{{ app_name }}'
   register: asdf_config
   when: ansible_system == 'Linux'
 
-- name: "Detect previously installed {{ app_name }} version"
+- name: 'Detect previously installed {{ app_name }} version'
   command: cat {{ app_name }}
   args:
     chdir: ~/.config/megabytelabs
@@ -50,13 +50,13 @@
     - ansible_system == 'Linux'
     - asdf_config.stat.exists
 
-- name: "Detect the latest {{ app_name }} version"
+- name: 'Detect the latest {{ app_name }} version'
   uri:
     url: https://api.github.com/repos/asdf-vm/asdf/tags
   register: asdf_latest_release_tag
   when: ansible_system == 'Linux'
 
-- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+- name: 'Determine whether or not the latest version of {{ app_name }} is already installed'
   set_fact:
     install_asdf: "{{ (current_asdf_version.skipped | default(false)) or \
       ((not current_asdf_version.skipped | default(false)) and (current_asdf_version.stdout != asdf_latest_release_tag.json[0].name | replace('v',''))) }}"
@@ -67,8 +67,8 @@
 - name: "Ensure {{ app_name }}'s source is cloned and up-to-date"
   git:
     repo: https://github.com/asdf-vm/asdf.git
-    dest: "{{ asdf_src_dir }}"
-    version: "{{ asdf_latest_release_tag.json[0].name }}"
+    dest: '{{ asdf_src_dir }}'
+    version: '{{ asdf_latest_release_tag.json[0].name }}'
   when:
     - ansible_system == 'Linux'
     - install_asdf
@@ -92,6 +92,8 @@
       . $(brew --prefix asdf)/libexec/asdf.sh
       {%- endif -%}
     mode: 0700
+  tags:
+    - dotfiles
 
 # @action Integrates ASDF with system
 # Enables Bash completions
@@ -110,6 +112,8 @@
       {%- else -%}
       . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
       {%- endif -%}
+  tags:
+    - dotfiles
 
 - name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
   lineinfile:
@@ -128,6 +132,8 @@
       . $(brew --prefix asdf)/libexec/asdf.sh
       {%- endif -%}
     mode: 0700
+  tags:
+    - dotfiles
 
 # @action Integrates ASDF with system
 # Enables ZSH completions (if applicable)
@@ -138,11 +144,13 @@
       fpath=({{ asdf_src_dir }}/completions $fpath)
       autoload -Uz compinit
       compinit
+  tags:
+    - dotfiles
   when: ansible_system == 'Linux'
 
-- name: "Save meta information about the version of {{ app_name }} that was installed"
+- name: 'Save meta information about the version of {{ app_name }} that was installed'
   copy:
-    dest: "~/.config/megabytelabs/{{ app_name }}"
+    dest: '~/.config/megabytelabs/{{ app_name }}'
     mode: 0600
     content: |
       {{ asdf_latest_release_tag.json[0].name | replace('v','') }}
@@ -152,7 +160,7 @@
 
 - name: Ensure Plugins are installed
   include_tasks: plugin.yml
-  loop: "{{ asdf_plugins | default([]) }}"
+  loop: '{{ asdf_plugins | default([]) }}'
   loop_control:
     loop_var: plugin
-    label: "{{ plugin.name }}"
+    label: '{{ plugin.name }}'

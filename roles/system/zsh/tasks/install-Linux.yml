@@ -1,7 +1,7 @@
 ---
 - name: "Ensure {{ app_name }}'s dependencies are installed"
   package:
-    name: "{{ omz_linux_dependencies }}"
+    name: '{{ omz_linux_dependencies }}'
     state: present
     update_cache: true
   when: ansible_system == 'Linux'
@@ -9,7 +9,7 @@
 - name: Ensure Oh My Zsh src folder exists
   file:
     mode: 0755
-    path: "{{ omz_destination }}"
+    path: '{{ omz_destination }}'
     state: directory
   when:
     - not install_prezto
@@ -17,29 +17,29 @@
 - name: Ensure Oh My Zsh installer script is downloaded
   get_url:
     url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-    dest: "{{ omz_destination }}/install.sh"
+    dest: '{{ omz_destination }}/install.sh'
     mode: 0755
     force: true
   register: omz_installer
   when: not install_prezto
 
-- name: "Ensure older version of {{ app_name }} is uninstalled" # noqa 503
+- name: 'Ensure older version of {{ app_name }} is uninstalled' # noqa 503
   file:
-    path: "{{ omz_destination }}/oh-my-zsh"
+    path: '{{ omz_destination }}/oh-my-zsh'
     state: absent
   when:
     - not install_prezto
     - omz_installer.changed
 
-- name: "Ensure {{ app_name }} is installed" # noqa 503
+- name: 'Ensure {{ app_name }} is installed' # noqa 503
   environment:
-    ZSH: "{{ omz_destination }}/oh-my-zsh"
+    ZSH: '{{ omz_destination }}/oh-my-zsh'
     CHSH: "{{ 'yes' if (switch_to_zsh) else 'no' }}"
-    RUNZSH: "no"
+    RUNZSH: 'no'
   command: ./install.sh --unattended
   args:
-    chdir: "{{ omz_destination }}"
-    creates: "{{ omz_destination }}/oh-my-zsh"
+    chdir: '{{ omz_destination }}'
+    creates: '{{ omz_destination }}/oh-my-zsh'
   when:
     - not install_prezto
     - omz_installer.changed
@@ -51,40 +51,42 @@
     - ansible_os_family not in ('Darwin', 'Debian')
 
 - name: Ensure ~/.zshrc is setup
-  become_user: "{{ user.username }}"
+  become_user: '{{ user.username }}'
   template:
     src: zshrc.j2
     dest: ~/.zshrc
     mode: 0700
     backup: true
-  loop: "{{ user_configs }}"
+  loop: '{{ user_configs }}'
   loop_control:
-    label: "{{ user.username }}"
+    label: '{{ user.username }}'
     loop_var: user
   register: zshrc_template
+  tags:
+    - dotfiles
   when:
     - not install_prezto
     - (user.system is not defined) or ((user.system is defined) and (not user.system))
 
 - name: Ensure config backup directory exists
-  become_user: "{{ user.username }}"
+  become_user: '{{ user.username }}'
   file:
-    path: "~/.config/megabytelabs/backups"
+    path: '~/.config/megabytelabs/backups'
     state: directory
     mode: 0700
   when: zshrc_template.backup_file is defined and zshrc_template.backup_file | length > 0
 
 - name: Copy the backup file
-  become_user: "{{ user.username }}"
+  become_user: '{{ user.username }}'
   copy:
-    src: "{{ zshrc_template.backup_file }}"
-    dest: "~/.config/megabytelabs/backups/"
+    src: '{{ zshrc_template.backup_file }}'
+    dest: '~/.config/megabytelabs/backups/'
     remote_src: true
   when: zshrc_template.backup_file is defined and zshrc_template.backup_file | length > 0
 
 - name: Delete the backup file
-  become_user: "{{ user.username }}"
+  become_user: '{{ user.username }}'
   file:
-    path: "{{ zshrc_template.backup_file }}"
+    path: '{{ zshrc_template.backup_file }}'
     state: absent
   when: zshrc_template.backup_file is defined and zshrc_template.backup_file | length > 0

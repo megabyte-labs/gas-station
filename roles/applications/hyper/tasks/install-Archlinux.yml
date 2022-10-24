@@ -2,18 +2,18 @@
 - name: Ensure Megabyte Labs configuration directory exists
   file:
     mode: 0700
-    path: "{{ item }}"
+    path: '{{ item }}'
     state: directory
   loop:
     - ~/.config
     - ~/.config/megabytelabs
 
-- name: "Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/hyper"
+- name: 'Check if {{ app_name }} has configuration stored in /root/.config/megabytelabs/hyper'
   stat:
     path: ~/.config/megabytelabs/hyper
   register: hyper_config
 
-- name: "Detect previously installed {{ app_name }} version"
+- name: 'Detect previously installed {{ app_name }} version'
   command: cat hyper
   args:
     chdir: ~/.config/megabytelabs
@@ -21,7 +21,7 @@
   register: current_hyper_version
   when: hyper_config.stat.exists
 
-- name: "Detect the latest {{ app_name }} version"
+- name: 'Detect the latest {{ app_name }} version'
   uri:
     url: https://api.github.com/repos/vercel/hyper/releases/latest
   register: hyper_latest_release_tag
@@ -35,41 +35,38 @@
   get_url:
     url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.json.tag_name }}/\
       hyper-{{ hyper_latest_release_tag.json.tag_name }}-x86_64.AppImage"
-    dest: "{{ hyper_src_path }}"
+    dest: '/opt/Hyper.AppImage'
+    mode: 0755
   when: install_hyper
 
-- name: "Fetch CHECKSUMS file of {{ app_name }} from the release page"
+- name: Link to /usr/local/bin
+  file:
+    src: /opt/Hyper.AppImage
+    dest: /usr/local/bin/Hyper
+    state: link
+  when: install_hyper
+
+- name: 'Fetch CHECKSUMS file of {{ app_name }} from the release page'
   uri:
-    url: "https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.json.tag_name }}/latest-linux.yml"
+    url: 'https://github.com/vercel/hyper/releases/download/{{ hyper_latest_release_tag.json.tag_name }}/latest-linux.yml'
     return_content: true
   register: hyper_checksum_file
   when: install_hyper
 
-- name: "Find the Checksum of {{ app_name }} installer"
+- name: 'Find the Checksum of {{ app_name }} installer'
   set_fact:
     hyper_checksum: "{{ hyper_checksum_file.content | regex_search('sha512. .*') | regex_replace('sha512. ','') }}"
   when: install_hyper
 
-- name: "Find the checksum of the downloaded AppImage of {{ app_name }}"
+- name: 'Find the checksum of the downloaded AppImage of {{ app_name }}'
   stat:
-    path: "{{ hyper_src_path }}/hyper-{{ hyper_latest_release_tag.json.tag_name }}-x86_64.AppImage"
+    path: '/opt/Hyper.AppImage'
     checksum_algorithm: sha512
     get_checksum: true
   register: hyper_stat
   when: install_hyper
 
-- name: "Ensure {{ app_name }}'s AppImage is available in all non-system user's Applications folders"
-  include_tasks: install-AppImage.yml
-  loop: "{{ user_configs }}"
-  loop_control:
-    label: "{{ user.username }}"
-    loop_var: user
-  when:
-    - install_hyper
-    - hyper_stat.stat.checksum == hyper_checksum
-    - (user.system is not defined) or ((user.system is defined) and (not user.system))
-
-- name: "Save meta information about the version of {{ app_name }} that was installed"
+- name: 'Save meta information about the version of {{ app_name }} that was installed'
   copy:
     dest: ~/.config/megabytelabs/hyper
     mode: 0600

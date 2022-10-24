@@ -119,11 +119,11 @@
     - name: Realize the "full" TemplateVMs
       vars:
         formation_slug: full
-        formation: "{{ (groups['primary-templates'] + ['vpn-tmpl']) }}"
+        formation: "{{ (groups['primary-templates'] + groups['vpn-base-templates']) }}"
         formation_previous: "{{ (groups['primary-templates-minimal'] + groups['primary-templates-stock'] + groups['primary-templates-base']) }}"
         formation_vm_groups:
           - primary-templates
-          - vpn-tmpl
+          - vpn-base-templates
       include_tasks: tasks/qubes/formation.yml
 
 - name: Provision the "docker" and "full" TemplateVMs with roles
@@ -148,7 +148,7 @@
       loop: '{{ full_template_roles | default([]) }}'
 
 - name: Provision the "full" TemplateVMs with tasks
-  hosts: primary-templates-full:primary-templates-docker:vpn-tmpl
+  hosts: primary-templates-full:primary-templates-docker:vpn-base-templates
   tasks:
     - include_tasks: tasks/qubes/vm-template-full.yml
 
@@ -159,7 +159,7 @@
       vars:
         formation_slug: tmpl
         formation: "{{ groups['primary-templates'] + groups['standard-templates'] + groups['vpn-templates'] }}"
-        formation_previous: "{{ groups['primary-templates'] + ['vpn-tmpl'] }}"
+        formation_previous: "{{ groups['primary-templates'] + groups['vpn-base-templates'] }}"
         formation_vm_groups:
           - primary-templates
           - standard-templates

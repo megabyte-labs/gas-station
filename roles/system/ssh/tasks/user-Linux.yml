@@ -36,6 +36,16 @@
   loop: "{{ user.ssh_private_keys | default([]) }}"
   ignore_errors: true
 
+- name: Copy accompanying public keys
+  copy:
+    src: "{{ item }}.pub"
+    dest: "{{ (custom_ssh_key_path if (custom_ssh_key_path is defined and custom_ssh_key_path | length > 0) else '~/.ssh') + '/' + item | basename }}.pub"
+    owner: "{{ user.username }}"
+    group: "{{ user.group | default(omit) }}"
+    mode: 0400
+  loop: "{{ user.ssh_private_keys | default([]) }}"
+  ignore_errors: true
+
 - name: Copy SSH config
   template:
     src: config.j2

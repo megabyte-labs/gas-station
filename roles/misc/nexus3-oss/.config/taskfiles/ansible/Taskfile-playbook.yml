@@ -1,0 +1,283 @@
+---
+version: '3'
+
+tasks:
+  docs:
+    deps:
+      - :install:npm:leasot
+    summary: |
+      ```shell
+      # @description Processes leasot data and returns .variables.json data including charts written in @appnest/readme format
+      #
+      # @arg $1 The file that the leasot JSON was written to
+      # @arg $2 The tag being processed
+      function populateChartVar() {
+        ...
+      }
+      ```
+    vars:
+      DOC_IDS: '@binary,@brew,@cask,@chrome,@firefox,@gem,@helm,@npm,@pypi,@vscode'
+    log:
+      error: Failed to acquire package information from comments via `leasot`
+      start: Scanning and acquiring package information in comments via `leasot`
+      success: Acquired package information from comments
+    cmds:
+      - |
+        function populateChartVar() {
+          CHART='[["Package", "Description"]'
+          jq --arg tag "$(echo $2 | tr '[a-z]' '[A-Z]')" -r '.[] | select(.tag == $tag) | .
+          | del(. ["file", "ref", "line", "tag"]) | .text' "$1" | while read COMMENT; do
+            if [ "$CHART" != '[' ]; then
+              CHART="${CHART},"
+            fi
+            LINK="$(echo $COMMENT | sed 's/ - .*//')"
+            DESCRIPTION="$(echo $COMMENT | sed 's/.* - //' | sed 's/\"/\\\"/g')"
+            CHART="${CHART}[\"**$LINK**\",\"$DESCRIPTION\"]"
+          done
+          CHART="${CHART}]"
+          TMP_CHART="$(mktemp)"
+          KEY="$(echo $2 | sed 's/^@//')"
+          jq --arg chart "$CHART" --arg key "${KEY}_var_chart" '.[$key] = ($chart | fromjson)' .variables.json > "$TMP_CHART"
+          mv "$TMP_CHART" .variables.json
+        }
+        TMP="$(mktemp)"
+        leasot --tags '{{.DOC_IDS}}' --reporter json './environments/prod/group_vars/**/*.yml' > "$TMP" || true
+        VARIABLES_JSON="$(jq '.' .variables.json)"
+        for ID in {{replace "," " " .DOC_IDS}}; do
+          populateChartVar "$TMP" "$ID"
+        done
+
+  environment:
+    desc: Prompts for which environment to use and then symlinks to it
+    hide: '{{ne (print .REPOSITORY_TYPE "-" .REPOSITORY_SUBTYPE) "ansible-playbook"}}'
+    summary: |
+      # Switch environments using an interactive dialogue
+
+      Ansible does not really provide any great ways to switch between environments (or sets of
+      `host_vars/`, `group_vars/` etc.). If you place all the files and folders you wish to constitute
+      as an environment inside a folder named as the name of the environment then you can use
+      this task to handle the symlinking and switching between environments.
+
+      **Example of opening the interactive prompt:**
+      `task ansible:environment`
+
+      **You can directly switch enironments to `environments/prod/` by running:**
+      `task ansible:environment -- prod`
+    cmds:
+      - task: environment:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}
+
+  environment:cli:
+    log:
+      error: Encountered an error while switching environments to `{{.CLI_ARGS}}`
+      start: Switching environment to `{{.CLI_ARGS}}`
+      success: Successfully switched environment to `{{.CLI_ARGS}}`
+    cmds:
+      - |
+        {{if .CLI_ARGS}}
+          for ITEM in environments/{{.CLI_ARGS}}/*; do
+            ITEM="$(echo $ITEM | sed 's/.*\///')"
+            if test -L "$ITEM" || ! test -e "$ITEM"; then
+              rm -f "$ITEM"
+              ln -s "./environments/{{.CLI_ARGS}}/$ITEM" "$ITEM"
+              .config/log success "Successfully symlinked `$ITEM` from ./environments/{{.CLI_ARGS}}/$ITEM"
+            else
+              .config/log warn "$ITEM exists in the root and was not a symlink so it was skipped to prevent possible data loss"
+            fi
+          done
+        {{else}}
+          exit 69
+        {{end}}
+
+  environment:prompt:
+    vars:
+      MARKDOWN: |
+        # Symlink Environment
+
+        Answer the prompt below to switch between environments. Each environment
+        should be a folder with folders and files you wish to link to from the root
+        of the project. They should normally consist of a host_vars, group_vars,
+        inventory, and files folder (but can contain any files/folders you wish to link).
+        Each environment should have its own folder in the `environments/` folder titled
+        as the name of the environment. After you select an answer, the script will
+        symlink all of the items in the environments folder to the root as long as there
+        is not anything except a symlink to the target location (i.e. it will overwrite
+        symlinks but not files).
+    cmds:
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - task: environment:prompt:continue
+
+  environment:prompt:continue:
+    interactive: true
+    deps:
+      - :install:software:jq
+    vars:
+      ENVIRONMENT_OPTIONS:
+        sh: find ./environments -maxdepth 1 -mindepth 1 | sed 's/\.\/environments\///' | jq -R '[.]' | jq -s -c 'add'
+    prompt:
+      type: select
+      message: Which environment would you like to use?
+      options: '{{.ENVIRONMENT_OPTIONS}}'
+      answer:
+        cmds:
+          - task: environment:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
+
+  find-missing:
+    desc: Find roles that are missing files
+    hide: '{{ne (print .REPOSITORY_TYPE "-" .REPOSITORY_SUBTYPE) "ansible-playbook"}}'
+    summary: |
+      # Find roles that are missing any given file
+
+      This task scans through all the folders in the roles/ directory and checks
+      for the presence of a file that you pass in through the CLI.
+
+      **Example usage:**
+      `task find-missing -- logo.png`
+
+      The example above will look through all the folders two levels deep (e.g. `./roles/tools/nmap`,
+      `./roles/system/snapd`) in the roles folder and display any roles that are missing the file.
+    log:
+      error: Failed to scan the `/roles/*` folders for roles missing `{{.CLI_ARGS}}`
+      start: Determining which roles in the `/roles/*` folders are missing `{{.CLI_ARGS}}`
+      success: Finished scanning for roles missing `{{.CLI_ARGS}}` (if there are any then they should be listed above)
+    cmds:
+      - |
+        FILES=$(find ./roles -mindepth 2 -maxdepth 2 -type d '!' -exec test -e "{}/{{.CLI_ARGS}}" ';' -print)
+        .config/log info 'Found '"$(echo "$FILES" | wc -l | xargs)"' roles missing {{.CLI_ARGS}}'
+        echo "$FILES"
+    preconditions:
+      - sh: test -d roles
+        msg: The `roles/` folder is missing. Is the project set up right?
+
+  remotes:
+    deps:
+      - :install:software:git
+      - :install:software:jq
+    summary: |
+      # Ensures each role is added as a remote and a sub-repo (if applicable)
+
+      This task cycles through all the roles in the `/roles` folder and ensures
+      they are added as remotes. This helps with managing the git trees used
+      for combining the many role repositories into the playbook mono-repository.
+
+      It also adds a remote for a private submodule that is intended to store
+      files that are not meant to be shared. The remote is named `private`.
+    run: once
+    log:
+      error: Failed to set remotes for one or more of the roles in the `/roles/*` folders
+      start: Adding git remotes for all of the roles in the `/roles/*` folders
+      success: Successfully added git remotes for all of the roles in the `/roles/*` folders
+    cmds:
+      - git init -q
+      - |
+        for ROLE_RELATIVE_PATH in roles/*/*; do
+          if [ -f "${ROLE_RELATIVE_PATH}/package.json" ]; then
+            ROLE_FOLDER="$(basename $ROLE_RELATIVE_PATH)"
+            ROLE_HTTPS_REPO="$(jq -r '.blueprint.repository.gitlab' $ROLE_RELATIVE_PATH/package.json)"
+            ROLE_SSH_REPO="$(echo $ROLE_HTTPS_REPO | sed 's/https:\/\/gitlab.com\//git@gitlab.com:/' | sed 's/$/.git/')"
+            if git config "remote.${ROLE_FOLDER}.url" > /dev/null; then
+              git remote set-url "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            else
+              git remote add "$ROLE_FOLDER" "$ROLE_SSH_REPO"
+            fi
+            if [ -d $ROLE_RELATIVE_PATH/.git ] && [ ! -f $ROLE_RELATIVE_PATH/.gitrepo ]; then
+              task ansible:playbook:subrepo:init -- $ROLE_RELATIVE_PATH
+            fi
+          else
+            .config/log warn "${ROLE_RELATIVE_PATH}/package.json is missing!"
+          fi
+        done
+
+  run:
+    cmds:
+      - task: run:{{if .CLI_ARGS}}cli{{else}}prompt{{end}}
+
+  run:cli:
+    deps:
+      - task: :install:python:requirements
+        env:
+          INSTALL_OPTIONS: --no-dev
+      - :symlink:playbook
+    log:
+      error: Error encounted while running `ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml`
+      start: Running `ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml`
+      success: Successfully ran `ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml`
+    cmds:
+      - ansible-playbook -i inventories/{{.CLI_ARGS}} --ask-vault-pass main.yml
+
+  run:prompt:
+    vars:
+      MARKDOWN: |
+        # Run the Playbook
+
+        These set of prompts will run the `main.yml` playbook after you specify:
+
+        1. The "environment"
+
+        The environment is a collection of folders that should, at the very minimum,
+        include "files", "group_vars", "host_vars", and "inventories". Each folder in
+        the "environments" folder constitutes a different environment. By using
+        environments, you can seperate different sets of variables/files or even seperate
+        your private variables out into a sub-module.
+
+        2. An inventory file
+
+        The Ansible inventory stored in the "inventories" folder. This will generally be
+        a YML file with host connection information that also correlates the inventory with
+        the proper host_vars and group_vars. It is assumed that your sudo username and
+        password are encrypted inside the inventory (via "ansible-vault").
+    cmds:
+      - task: environment
+      - task: :log:markdown
+        vars:
+          MARKDOWN: '{{.MARKDOWN}}'
+      - task: run:prompt:continue
+
+  run:prompt:continue:
+    interactive: true
+    deps:
+      - :install:software:jq
+    vars:
+      INVENTORY_OPTIONS:
+        sh: find ./inventories/ -mindepth 1 -maxdepth 1 | sed 's/\.\/inventories\///' | jq -R '[.]' | jq -s -c 'add'
+    prompt:
+      type: select
+      message: Which inventory would you like to use?
+      options: '{{.INVENTORY_OPTIONS}}'
+      answer:
+        cmds:
+          - task: run:cli
+            vars:
+              CLI_ARGS: '{{.ANSWER}}'
+
+  subrepo:init:
+    deps:
+      - :install:software:subrepo
+    summary: |
+      # Add Role as a Sub-Repository
+
+      Since roles should each have their own repository for Ansible Galaxy and to make it easier
+      for the community to download specific roles, they must be declared as sub-repositories.
+      Submodules could also be used but we use sub-repos instead because they are more flexible.
+
+      In the main playbook, if someone clones the playbook, the playbook and all the roles will download
+      without any requirement to initialize submodules. At the same time, each role can be in its own
+      repository. The playbook recognizes roles like this because they have a `.gitrepo` file that is only
+      saved in the playbook version of the role. Users can interact with the playbook and its role
+      repositories transparently without any need to understand what git subrepos are.
+
+      Managers of roles can update the role repositories without any need to understand what git subrepos
+      are. Managers of the playbook can use the tool [git-subrepo](https://github.com/ingydotnet/git-subrepo)
+      to perform various actions including pulling changes from individual role repositories and
+      other actions.
+
+      Usage:
+      `task ansible:playbook:subrepo:init -- path/to/folder/with.git/folder`
+    cmds:
+      - |
+        BASENAME="$(basename {{.CLI_ARGS}})"
+        REMOTE="$(git remote get-url $BASENAME)"
+        HUSKY=0 git subrepo init {{.CLI_ARGS}} -r "$REMOTE" -b master

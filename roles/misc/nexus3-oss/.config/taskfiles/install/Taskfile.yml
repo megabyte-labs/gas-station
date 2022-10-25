@@ -1,0 +1,269 @@
+---
+version: '3'
+
+tasks:
+  brewfile:
+    deps:
+      - :install:software:brew
+    log:
+      error: Encountered error while installing Homebrew software bundle defined in `.config/Brewfile`
+      start: Installing Homebrew software bundle defined in `.config/Brewfile`
+      success: Successfully installed Homebrew software bundle defined in `.config/Brewfile`
+    cmds:
+      - brew tap Homebrew/bundle
+      - mkdir -p local
+      - cp .config/Brewfile local/Brewfile.common
+      - brew bundle install --file local/Brewfile.common
+      - |
+        if [ -f local/Brewfile ]; then
+          brew bundle install --file local/Brewfile
+        fi
+
+  install-doctor:
+    log:
+      error: Error encountered while installing {{.SOFTWARE}} via https://install.doctor
+      start: Ensuring {{.SOFTWARE}} is installed using Install Doctor
+      success: Successfully installed `{{.SOFTWARE}}` via Install Doctor
+    cmds:
+      - |
+        .config/log info 'Installing `{{.SOFTWARE}}` by running `curl -sS https://install.doctor/{{.SOFTWARE}} | bash`'
+        curl -sS https://install.doctor/{{.SOFTWARE}} | bash
+    status:
+      - type {{.SOFTWARE}} &> /dev/null || [[ "${container:=}" == "docker" ]]
+
+  modules:global:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+      - :install:software:yq
+    run: once
+    log:
+      error: Error pre-loading NPM global packages
+      start: Pre-loading NPM global packages
+      success: Finished pre-loading NPM global packages
+    cmds:
+      - |
+        PKGS="$(yq eval '.tasks[].cmds[0].vars.NPM_PACKAGE' .config/taskfiles/install/Taskfile-npm.yml | tr '\n' ' ')"
+        for PKG in $PKGS; do
+          if [ -f "$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*//')/$PKG" ]; then
+            LIST="$LIST $PKG"
+          fi
+        done
+        if [ -n "$LIST" ]; then
+          .config/log info "Installing the following NPM packages globally - $LIST"
+          npm install -g $LIST
+        fi
+    status:
+      - '[[ "${container:=}" == "docker" ]]'
+
+  modules:local:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM_LOCAL}}
+      - :install:software:jq
+    env:
+      DEPS:
+        sh: jq -r -S '.dependencies + .devDependencies + .optionalDependencies + .peerDependencies' package.json
+      PREVIOUS_DEPS:
+        sh: |
+          if [ -f .task/npm-deps ]; then
+            cat .task/npm-deps
+          else
+            echo ""
+          fi
+      SEMANTIC_PYTHON_POST_INSTALL: '{{if eq .SEMANTIC_RELEASE "true"}}true{{else}}false{{end}}'
+    run: once
+    log:
+      error: Encountered error while installing local NPM dependencies
+      start: Installing local NPM dependencies
+      success: Successfully installed local NPM dependencies
+    cmds:
+      - task: tslib
+      - |
+        if [ "$DEPS" != "$PREVIOUS_DEPS" ] || [ ! -d node_modules ]; then
+          if [ -n "$AUTO_UPDATE_NPM_PACKAGES" ]; then
+            {{.NPM_PROGRAM_LOCAL}} update
+          else
+            {{.NPM_PROGRAM_LOCAL}} install {{if eq .NPM_PROGRAM_LOCAL "pnpm"}}--public-hoist-pattern *types* \
+            --public-hoist-pattern *eslint* --public-hoist-pattern @prettier/plugin-* \
+            --public-hoist-pattern *prettier-plugin-* --public-hoist-pattern *jest* {{end}}|| EXIT_CODE=$?
+            if [ -n "$EXIT_CODE" ]; then
+              .config/log info 'Running `{{.NPM_PROGRAM_LOCAL}} update` because install had non-zero exit code '"(Code $EXIT_CODE)"
+              {{.NPM_PROGRAM_LOCAL}} update
+            fi
+          fi
+        fi
+        mkdir -p .task
+        echo "$DEPS" > .task/npm-deps
+    sources:
+      - package.json
+
+  modules:local:lockfiles:
+    deps:
+      - :install:npm:pnpm-lock-export
+      - :install:npm:synp
+    cmds:
+      - |
+        if [ ! -f package-lock.json ]; then
+          pnpm-lock-export
+          MOVE_PACKAGE_LOCK=true
+        fi
+        if [ ! -f yarn.lock ] && [ -f package-lock.json ]; then
+          synp --source-file package-lock.json
+          mkdir -p local
+          mv yarn.lock local/yarn.lock
+        fi
+        if [ -n "$MOVE_PACKAGE_LOCK" ]; then
+          mkdir -p local
+          mv package-lock.json local/package-lock.json
+        fi
+    sources:
+      - pnpm-lock.yaml
+
+  modules:local:sync:
+    log:
+      error: Error while synchronizing `NPM_KEEP_UPDATED` packages with the latest version(s)
+      start: Ensuring `NPM_KEEP_UPDATED` NPM packages are the latest version
+      success: '`NPM_KEEP_UPDATED` packages are all the latest version'
+    cmds:
+      - |
+        TMP_REFRESH="$(mktemp)"
+        TMP_LIST="$(mktemp)"
+        function updateAvailable() {
+          LATEST="$(npm view $1 version)"
+          LOCAL="$(jq -r '.version' ./node_modules/$1/package.json)"
+          if ! printf '%s\n%s\n' "$LATEST" "$LOCAL" | sort -V -c > /dev/null; then
+            .config/log info "Version $LATEST is available for $1 (currently version $LOCAL)"
+            echo "true" > "$TMP_REFRESH"
+          fi
+        }
+        for PATTERN in {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}{{.NPM_KEEP_UPDATED}}{{end}}; do
+           while read PATHH; do
+            if [ -f "$PATHH/package.json" ]; then
+              PKG="$(echo $PATHH | sed 's/.\/node_modules\///')"
+              PACKAGE_LIST="$(cat "$TMP_LIST") ${PKG}@latest"
+              echo "$PACKAGE_LIST" > "$TMP_LIST"
+              updateAvailable "$PKG" &
+            fi
+          done < <(find ./node_modules/$PATTERN -maxdepth 0)
+        done
+        wait
+        PACKAGE_LIST="$(cat "$TMP_LIST")"
+        REFRESH_PACKAGES="$(cat $TMP_REFRESH)"
+        if [[ "$REFRESH_PACKAGES" == 'true' ]]; then
+          PACKAGE_LIST="$(echo $PACKAGE_LIST | sed 's/^.//')"
+          .config/log info "Updating NPM packages configured to sync with latest version since one or more of them have an update available"
+          {{.NPM_PROGRAM_LOCAL}} update $PACKAGE_LIST
+          .config/log success 'Successfully updated to the following - `'"$PACKAGE_LIST"'`'
+        else
+          {{if .CLI_ARGS}}
+          .config/log info '`{{.CLI_ARGS}}` is already the latest version'
+          {{else}}
+          .config/log info "NPM packages configured to sync with latest version are all up-to-date"
+          {{end}}
+        fi
+
+  modules:prompt:
+    deps:
+      - :install:npm:{{.NPM_PROGRAM}}
+    run: once
+    cmds:
+      - npm install chalk inquirer signale
+    sources:
+      - .config/scripts/prompts/**
+
+  path:add:
+    vars:
+      UNAME:
+        sh: uname
+    log:
+      error: Failed to modify PATH
+      start: Adding `$HOME/{{.PATH_STRING}}` to the PATH in $HOME/.profile
+    cmds:
+      - |
+        if [[ '{{.UNAME}}' == 'Darwin' ]] || [[ '{{.UNAME}}' == 'Linux' ]]; then
+          # shellcheck disable=SC2016
+          PATH_STRING='PATH="$HOME/{{.PATH_STRING}}:$PATH"'
+          if ! grep "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+            echo -e "export ${PATH_STRING}\n" >> "$HOME/.profile"
+            .config/log info "Updated the PATH variable to include ~/{{.PATH_STRING}} in $HOME/.profile"
+          fi
+        elif [[ '{{.UNAME}}' == 'CYGWIN'* ]] || [[ '{{.UNAME}}' == 'MINGW'* ]]; then
+          .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+        elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+          .config/log error "FreeBSD support not added yet" && exit 1
+        else
+          .config/log error "System type not recognized ($OSTYPE)"
+        fi
+
+  pipx:bundle:
+    cmds:
+      - task: pipx:global
+
+  pipx:global:
+    deps:
+      - :install:software:pipx
+      - :install:software:yq
+    vars:
+      PIPX_PACKAGES: ansible-base ansible-lint ansibler black blocklint docker flake8
+        mod-ansible-autodoc molecule molecule-docker molecule-vagrant pre-commit-hooks
+        proselint python-vagrant pywinrm
+    log:
+      error: Error encountered while pre-loading common pipx packages
+      start: Pre-loading common pipx packages
+      success: Finished pre-loading common pipx packages
+    cmds:
+      - |
+        for PKG in {{.PIPX_PACKAGES}}; do
+          if ! type "$PKG" > /dev/null; then
+            .config/log info "Ensuring $PKG is installed"
+            pipx install "$PKG" &
+          else
+            .config/log info "$PKG is already installed"
+          fi
+        done
+        wait
+
+  profile:add:
+    log:
+      error: Error modifying $HOME/.profile
+      start: Adding `{{.PROFILE_STRING}}` to $HOME/.profile
+      success: Successfully modified $HOME/.profile
+    cmds:
+      - |
+        if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]]; then
+          # shellcheck disable=SC2016
+          PROFILE_STRING='{{.PROFILE_STRING}}'
+          if ! grep "$PROFILE_STRING" "$HOME/.profile" > /dev/null; then
+            echo -e "${PROFILE_STRING}\n" >> "$HOME/.profile"
+            .config/log info 'Added `{{.PROFILE_STRING}}` to '"$HOME/.profile"
+          fi
+        elif [[ "$OSTYPE" == 'cygwin' ]] || [[ "$OSTYPE" == 'msys' ]] || [[ "$OSTYPE" == 'win32' ]]; then
+          .config/log error "Windows is not directly supported. Use WSL or Docker." && exit 1
+        elif [[ "$OSTYPE" == 'freebsd'* ]]; then
+          .config/log error "FreeBSD support not added yet" && exit 1
+        else
+          .config/log error "System type not recognized"
+        fi
+
+  tslib:
+    vars:
+      TSLIB_MSG: You can potentially optimize your bundle by setting `importHelpers` in compilerOptions
+        in tsconfig.json to `true`. After importHelpers is set to true, the taskfiles will automatically
+        install tslib.
+    run: once
+    log:
+      error: Failed to probe `tslib`
+      start: Checking if `tslib` is being used
+    cmds:
+      - |
+        if [[ "$(jq -r '.dependencies.tslib' package.json)" == 'null' ]]; then
+          if [ "$(jq -r '.compilerOptions.importHelpers' tsconfig.json)" != 'true' ]; then
+            .config/log info '{{.TSLIB_MSG}}'
+          else
+            .config/log info 'Adding `tslib` to dependencies since `importHelpers` is set to true in tsconfig.json'
+            TMP="$(mktemp)"
+            jq '.dependencies.tslib = "latest"' package.json > "$TMP"
+            mv "$TMP" package.json
+          fi
+        fi
+    status:
+      - '[ ! -f tsconfig.json ]'

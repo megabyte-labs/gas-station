@@ -1,0 +1,37 @@
+---
+version: '3'
+
+tasks:
+  bundle:
+    deps:
+      - catfs
+
+  catfs:
+    run: once
+    cmds:
+      - task: install
+        vars:
+          BIN: catfs
+          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: catfs
+
+  install:
+    deps:
+      - :install:software:rust
+    vars:
+      INSTALL_RECORD:
+        sh: |
+          if [ -n "$RECORD_INSTALL" ]; then
+            mkdir -p local/slim
+            echo '{{.BIN}}' >> local/slim/exe.txt
+            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
+          fi
+    run: when_changed
+    log:
+      error: Failed to install Cargo crate `{{.PACKAGE}}`
+      start: Installing Cargo crate `{{.PACKAGE}}`
+      success: Installed Cargo crate `{{.PACKAGE}}`
+    cmds:
+      - cargo install {{.PACKAGE}}
+    status:
+      - type {{.BIN}} > /dev/null

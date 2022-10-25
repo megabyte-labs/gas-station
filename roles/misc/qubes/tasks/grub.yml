@@ -45,3 +45,31 @@
     regex: "GRUB_THEME="
     line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug_uppercase }}/theme.txt"'
   notify: update grub
+
+- name: Register the stdout of /etc/default/grub
+  command: cat /etc/default/grub
+  register: cat_default_grub
+  changed_when: false
+
+- name: Generate version of /etc/default/grub that has no duplicate lines
+  shell:
+    cmd: cat /etc/default/grub | uniq -u
+  register: uniq_default_grub
+  changed_when: false
+
+- name: Ensure there are no duplicate lines in /etc/default/grub
+  become: true
+  copy:
+    dest: /etc/default/grub
+    content: |
+      {{ uniq_default_grub.stdout }}
+    mode: 0644
+  when: cat_default_grub.stdout != uniq_default_grub.stdout
+
+- name: Ensure grubenv is available in the Qubes EFI folder
+  become: true
+  copy:
+    src: /boot/grub2/grubenv
+    dest: /boot/efi/EFI/qubes/grubenv
+    mode: 0644
+    remote_src: true

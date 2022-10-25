@@ -47,7 +47,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
 
   # Ensure sys-whonix is configured
   CONFIG_WIZARD_COUNT=0
-  ENABLE_OBFSC='true'
+  ENABLE_OBFSC='false'
   function configureWizard() {
     if xwininfo -root -tree | grep "Anon Connection Wizard"; then
       WINDOW_ID="$(xwininfo -root -tree | grep "Anon Connection Wizard" | sed 's/^ *\([^ ]*\) .*/\1/')"

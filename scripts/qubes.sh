@@ -28,6 +28,9 @@ if [[ "$(hostname)" == "dom0" ]]; then
     ANSIBLE_VAULT_PASS="$(cat ~/.vaultpass)"
   fi
 
+  if [ -f ~/.vaultpass ]; then
+
+
   # Update dom0
   if [ ! -f /tmp/dom0_updated ]; then
     echo "Updating dom0"
@@ -150,13 +153,12 @@ else
   if [[ "$(hostname)" == "dom0" ]]; then
     qvm-create --label red --template debian-11 "$ANSIBLE_PROVISION_VM" &> /dev/null || EXIT_CODE=$?
     qvm-volume extend "$ANSIBLE_PROVISION_VM:private" "40G"
-    qvm-run --pass-io "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
-    # TODO - Copy ~/.vaultpass from DOM0 to provision VM
     if [ -f ~/.vaultpass ]; then
       qvm-run "$ANSIBLE_PROVISION_VM" 'rm -f ~/QubesIncoming/dom0/.vaultpass'
       qvm-copy-to-vm "$ANSIBLE_PROVISION_VM" ~/.vaultpass
       qvm-run "$ANSIBLE_PROVISION_VM" 'cp ~/QubesIncoming/dom0/.vaultpass ~/.vaultpass'
     fi
+    qvm-run --pass-io "$ANSIBLE_PROVISION_VM" 'curl -sSL https://install.doctor/qubes > ~/provision.sh && bash ~/provision.sh'
     exit 0
   else
     echo "Ensuring Ansible is installed"

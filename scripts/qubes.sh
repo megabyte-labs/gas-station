@@ -74,7 +74,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
         xdotool key 'Tab'
         xdotool key 'Enter'
       fi
-      sleep 14
+      sleep 24
       xdotool windowactivate "$WINDOW_ID"
       sleep 1
       xdotool key 'Enter'
@@ -82,7 +82,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
       if [ "$ENABLE_OBFSC" == 'true' ]; then
         sleep 480
       else
-        sleep 140
+        sleep 150
       fi
       if xwininfo -root -tree | grep "systemcheck | Whonix" > /dev/null; then
         WINDOW_ID_SYSCHECK="$(xwininfo -root -tree | grep "systemcheck | Whonix" | sed 's/^ *\([^ ]*\) .*/\1/')"

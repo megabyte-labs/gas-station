@@ -84,10 +84,12 @@ if [[ "$(hostname)" == "dom0" ]]; then
       else
         sleep 140
       fi
-      WINDOW_ID_SYSCHECK="$(xwininfo -root -tree | grep "systemcheck | Whonix" | sed 's/^ *\([^ ]*\) .*/\1/')"
-      xdotool windowactivate "$WINDOW_ID_SYS_CHECK"
-      sleep 1
-      xdotool key 'Enter'
+      if xwininfo -root -tree | grep "systemcheck | Whonix" > /dev/null; then
+        WINDOW_ID_SYSCHECK="$(xwininfo -root -tree | grep "systemcheck | Whonix" | sed 's/^ *\([^ ]*\) .*/\1/')"
+        xdotool windowactivate "$WINDOW_ID_SYS_CHECK"
+        sleep 1
+        xdotool key 'Enter'
+      fi
     else
       sleep 3
       CONFIG_WIZARD_COUNT=$((CONFIG_WIZARD_COUNT + 1))

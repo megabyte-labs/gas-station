@@ -7,14 +7,13 @@ The easiest way to run the entire playbook, outlined in the `main.yml` file, is 
 To test it out with Vagrant, you can run the following commands which will open up an interactive dialog where you can pick which operating system and virtualization provider you wish to test the installation with:
 
 ```shell
-bash .config/scripts/start.sh # Only required if you do not have the dependencies (i.e. Task) already installed
-task ansible:test:vagrant
+bash start.sh && task ansible:test:vagrant
 ```
 
 ### macOS/Linux
 
 ```shell
-curl -sS https://gitlab.com/megabyte-labs/gas-station/-/raw/master/files/quickstart.sh | bash
+curl -sSL https://install.doctor/quickstart > ./setup.sh && bash ./setup.sh
 ```
 
 ### Windows
@@ -22,5 +21,15 @@ curl -sS https://gitlab.com/megabyte-labs/gas-station/-/raw/master/files/quickst
 In an administrative PowerShell session, run:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://gitlab.com/megabyte-labs/gas-station/-/raw/master/files/quickstart.ps1'))
+iex ((New-Object System.Net.WebClient).DownloadString('https://install.doctor/windows-quickstart'))
+```
+
+### Qubes
+
+Our playbooks include a specially crafted playbook for Qubes. It will load your VMs with sensible defaults. For more details, check out the [Qubes playbook](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/playbooks/qubes.yml) and [Qubes variables](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/environments/prod/group_vars/qubes). Perhaps most importantly, the "quickstart" [the inventory file](https://gitlab.com/megabyte-labs/gas-station/-/blob/master/environments/prod/inventories/quickstart.yml) details the VM structure that the provisioning script adds to the target system.
+
+To setup Qubes, run the following on a fresh install in dom0:
+
+```shell
+qvm-run --pass-io sys-firewall "curl -sSL https://install.doctor/qubes" > ./setup.sh && bash ./setup.sh
 ```

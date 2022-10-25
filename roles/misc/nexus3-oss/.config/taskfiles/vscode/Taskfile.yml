@@ -20,20 +20,16 @@ tasks:
       VS Code show a popup with a link that leads to a list of plugins that the project recommends.
       This list is populated by converting the list of VS Code plugins installed by default by
       [Gas Station](https://gitlab.com/megabyte-labs/gas-station) into VS Code syntax.
+    run: once
     log:
       error: Failed to generate `{{.EXTENSIONS_FILE}}`
       start: Generating `{{.EXTENSIONS_FILE}}`
       success: Generated `{{.EXTENSIONS_FILE}}`
     cmds:
       - mkdir -p .vscode
-      - |
-        TMP="$(mktemp)"
-        curl -s {{.EXTENSIONS_URL}} > "$TMP"
-        TMP_YQ="$(mktemp)"
-        yq e '.vscode_extensions[].name' - < "$TMP" > "$TMP_YQ"
-        TMP_JQ="$(mktemp)"
-        jq -cRrs 'split("\n") | "{ \"recommendations\": \(.) }"' < "$TMP_YQ" > "$TMP_JQ"
-        sed 's/,""//' < "$TMP_JQ" > '{{.EXTENSIONS_FILE}}'
+      - >-
+        curl -s {{.EXTENSIONS_URL}} | yq e -o=j | jq '.[] = [(.[][] | select(.types | index("{{.REPOSITORY_TYPE}}") or index("all")))
+        | .name] | . + {"recommendations": .vscode_extensions } | del(.vscode_extensions)' > {{.EXTENSIONS_FILE}}
       - task: :fix:prettier
         vars:
           CLI_ARGS: '{{.EXTENSIONS_FILE}}'
@@ -47,6 +43,7 @@ tasks:
 
       This task synchronizes the extensions from `.vscode/extensions.json` into the
       `.devcontainer/devcontainer.json` extensions field.
+    run: once
     log:
       error: Failed to inject `{{.EXTENSIONS_FILE}}` `recommendations` into `{{.DEVCONTAINER_CONFIG}}`
       start: Injecting `{{.EXTENSIONS_FILE}}` `recommendations` into `{{.DEVCONTAINER_CONFIG}}`
@@ -54,7 +51,7 @@ tasks:
     cmds:
       - |
         TMP="$(mktemp)"
-        jq --arg recommendations "$(jq '.recommendations' {{.EXTENSIONS_FILE}})" '.extensions = ($recommendations | fromjson)' {{.DEVCONTAINER_CONFIG}} > "$TMP"
+        jq --arg recs "$(jq '.recommendations' {{.EXTENSIONS_FILE}})" '.extensions = ($recs | fromjson)' {{.DEVCONTAINER_CONFIG}} > "$TMP"
         mv "$TMP" {{.DEVCONTAINER_CONFIG}}
       - task: :fix:prettier
         vars:
@@ -64,6 +61,7 @@ tasks:
     deps:
       - extensions
       - tasks
+    run: once
     cmds:
       - task: extensions:devcontainer
 
@@ -92,9 +90,10 @@ tasks:
         TASKS='['
         while read LINE; do
           if [[ "${LINE:0:1}" == '*' ]]; then
-            TASK_NAME=$(echo "$LINE" | sed 's/^\*.\([^\ ]*\):\(.*\)$/\1/g' | xargs)
-            TASK_DESC=$(echo "$LINE" | sed 's/^\*.\([^\ ]*\):\(.*\)$/\2/g' | xargs)
+            TASK_NAME=$(echo "$LINE" | sed "s/'/ADD_QUOTE_BACK_IN/g" | sed 's/^\*.\([^\ ]*\):\(.*\)$/\1/g' | xargs)
+            TASK_DESC=$(echo "$LINE" | sed "s/'/ADD_QUOTE_BACK_IN/g" | sed 's/^\*.\([^\ ]*\):\(.*\)$/\2/g' | xargs)
             LABEL="($TASK_NAME): $TASK_DESC"
+            LABEL="$(echo "$LABEL" | sed "s/ADD_QUOTE_BACK_IN/'/g")"
             TYPE="shell"
             COMMAND="bash start.sh && task $TASK_NAME"
             TASKS+="{\"label\": \"$LABEL\", \"type\": \"$TYPE\", \"command\": \"$COMMAND\"},"

@@ -8,8 +8,21 @@
 #   that is using the Megabyte Labs templating/taskfile system. The `start` task will
 #   ensure that the latest upstream changes are retrieved, that the project is
 #   properly generated with them, and that all the development dependencies are installed.
+#   Documentation on Taskfile.yml syntax can be found [here](https://taskfile.dev/).
 
 set -eo pipefail
+
+# @description Initialize variables
+DELAYED_CI_SYNC=""
+ENSURED_TASKFILES=""
+export HOMEBREW_NO_INSTALL_CLEANUP=true
+
+# @description Ensure permissions in CI environments
+if [ -n "$CI" ]; then
+  if type sudo &> /dev/null; then
+    sudo chown -R "$(whoami):$(whoami)" .
+  fi
+fi
 
 # @description Ensure .config/log is present
 if [ ! -f .config/log ]; then
@@ -24,10 +37,10 @@ chmod +x .config/log
 
 # @description Acquire unique ID for this script
 if [ -z "$CI" ]; then
-  if type m5sum &> /dev/null; then
+  if type md5sum &> /dev/null; then
     FILE_HASH="$(md5sum "$0" | sed 's/\s.*$//')"
   else
-    FILE_HASH="$(date +%s -r "$0")"
+    FILE_HASH="$(date -r "$0" +%s)"
   fi
 else
   FILE_HASH="none"
@@ -91,6 +104,54 @@ function logger() {
   fi
 }
 
+# @description Helper function for ensurePackageInstalled for Alpine installations
+function ensureAlpinePackageInstalled() {
+  if type sudo &> /dev/null && [ "$CAN_USE_SUDO" != 'false' ]; then
+    sudo apk --no-cache add "$1"
+  else
+    apk --no-cache add "$1"
+  fi
+}
+
+# @description Helper function for ensurePackageInstalled for ArchLinux installations
+function ensureArchPackageInstalled() {
+  if type sudo &> /dev/null && [ "$CAN_USE_SUDO" != 'false' ]; then
+    sudo pacman update
+    sudo pacman -S "$1"
+  else
+    pacman update
+    pacman -S "$1"
+  fi
+}
+
+# @description Helper function for ensurePackageInstalled for Debian installations
+function ensureDebianPackageInstalled() {
+  if type sudo &> /dev/null && [ "$CAN_USE_SUDO" != 'false' ]; then
+    sudo apt-get update
+    sudo apt-get install -y "$1"
+  else
+    apt-get update
+    apt-get install -y "$1"
+  fi
+}
+
+# @description Helper function for ensurePackageInstalled for RedHat installations
+function ensureRedHatPackageInstalled() {
+  if type sudo &> /dev/null && [ "$CAN_USE_SUDO" != 'false' ]; then
+    if type dnf &> /dev/null; then
+      sudo dnf install -y "$1"
+    else
+      sudo yum install -y "$1"
+    fi
+  else
+    if type dnf &> /dev/null; then
+      dnf install -y "$1"
+    else
+      yum install -y "$1"
+    fi
+  fi
+}
+
 # @description Installs package when user is root on Linux
 #
 # @example
@@ -101,19 +162,17 @@ function logger() {
 # @exitcode 0 The package was successfully installed
 # @exitcode 1+ If there was an error, the package needs to be installed manually, or if the OS is unsupported
 function ensureRootPackageInstalled() {
+  export CAN_USE_SUDO='false'
   if ! type "$1" &> /dev/null; then
     if [[ "$OSTYPE" == 'linux'* ]]; then
       if [ -f "/etc/redhat-release" ]; then
-        yum update
-        yum install -y "$1"
-      elif [ -f "/etc/lsb-release" ]; then
-        apt update
-        apt install -y "$1"
+        ensureRedHatPackageInstalled "$1"
+      elif [ -f "/etc/debian_version" ]; then
+        ensureDebianPackageInstalled "$1"
       elif [ -f "/etc/arch-release" ]; then
-        pacman update
-        pacman -S "$1"
+        ensureArchPackageInstalled "$1"
       elif [ -f "/etc/alpine-release" ]; then
-        apk --no-cache add "$1"
+        ensureAlpinePackageInstalled "$1"
       fi
     fi
   fi
@@ -122,11 +181,11 @@ function ensureRootPackageInstalled() {
 # @description If the user is running this script as root, then create a new user named
 # megabyte and restart the script with that user. This is required because Homebrew
 # can only be invoked by non-root users.
-if [ "$USER" == "root" ] && [ -z "$INIT_CWD" ] && type useradd &> /dev/null; then
+if [ -z "$NO_INSTALL_HOMEBREW" ] && [ "$USER" == "root" ] && [ -z "$INIT_CWD" ] && type useradd &> /dev/null; then
   # shellcheck disable=SC2016
   logger info 'Running as root - creating seperate user named `megabyte` to run script with'
   echo "megabyte ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-  useradd -m -s "$(which bash)" -c "Megabyte Labs Homebrew Account" megabyte > /dev/null || ROOT_EXIT_CODE=$?
+  useradd -m -s "$(which bash)" --gecos "" --disabled-login -c "Megabyte Labs" megabyte > /dev/null || ROOT_EXIT_CODE=$?
   if [ -n "$ROOT_EXIT_CODE" ]; then
     # shellcheck disable=SC2016
     logger info 'User `megabyte` already exists'
@@ -152,9 +211,9 @@ fi
 function ensureLocalPath() {
   if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux'* ]]; then
     # shellcheck disable=SC2016
-    PATH_STRING='PATH="$HOME/.local/bin:$PATH"'
+    PATH_STRING='export PATH="$HOME/.local/bin:$PATH"'
     mkdir -p "$HOME/.local/bin"
-    if grep -L "$PATH_STRING" "$HOME/.profile" > /dev/null; then
+    if ! grep "$PATH_STRING" < "$HOME/.profile" > /dev/null; then
       echo -e "${PATH_STRING}\n" >> "$HOME/.profile"
       logger info "Updated the PATH variable to include ~/.local/bin in $HOME/.profile"
     fi
@@ -177,58 +236,27 @@ function ensureLocalPath() {
 # @exitcode 0 The package(s) were successfully installed
 # @exitcode 1+ If there was an error, the package needs to be installed manually, or if the OS is unsupported
 function ensurePackageInstalled() {
+  export CAN_USE_SUDO='true'
   if ! type "$1" &> /dev/null; then
     if [[ "$OSTYPE" == 'darwin'* ]]; then
       brew install "$1"
     elif [[ "$OSTYPE" == 'linux'* ]]; then
       if [ -f "/etc/redhat-release" ]; then
-        if [ "$USER" == "root" ]; then
-          yum install -y "$1"
-        elif type sudo &> /dev/null && sudo -n true; then
-          sudo yum install -y "$1"
-        elif type sudo &> /dev/null; then
-          sudo yum install -y "$1"
-        else
-          yum install -y "$1"
-        fi
-      elif [ -f "/etc/lsb-release" ]; then
-        if [ "$USER" == "root" ]; then
-          apt-get update
-          apt-get install -y "$1"
-        elif type sudo &> /dev/null && sudo -n true; then
-          sudo apt update
-          sudo apt install -y "$1"
-        elif type sudo &> /dev/null; then
-          sudo apt update
-          sudo apt install -y "$1"
-        else
-          apt-get update
-          apt-get install -y "$1"
-        fi
+        ensureRedHatPackageInstalled "$1"
+      elif [ -f "/etc/debian_version" ]; then
+        ensureDebianPackageInstalled "$1"
       elif [ -f "/etc/arch-release" ]; then
-        if [ "$USER" == "root" ]; then
-          pacman update
-          pacman -S "$1"
-        elif type sudo &> /dev/null && sudo -n true; then
-          sudo pacman update
-          sudo pacman -S "$1"
-        elif type sudo &> /dev/null; then
-          sudo pacman update
-          sudo pacman -S "$1"
-        else
-          pacman update
-          pacman -S "$1"
-        fi
+        ensureArchPackageInstalled "$1"
       elif [ -f "/etc/alpine-release" ]; then
-        if [ "$USER" == "root" ]; then
-          apk --no-cache add "$1"
-        elif type sudo &> /dev/null && sudo -n true; then
-          sudo apk --no-cache add "$1"
-        elif type sudo &> /dev/null; then
-          sudo apk --no-cache add "$1"
-        else
-          apk --no-cache add "$1"
-        fi
+        ensureAlpinePackageInstalled "$1"
+      elif type dnf &> /dev/null || type yum &> /dev/null; then
+        ensureRedHatPackageInstalled "$1"
+      elif type apt-get &> /dev/null; then
+        ensureDebianPackageInstalled "$1"
+      elif type pacman &> /dev/null; then
+        ensureArchPackageInstalled "$1"
+      elif type apk &> /dev/null; then
+        ensureAlpinePackageInstalled "$1"
       else
         logger error "$1 is missing. Please install $1 to continue." && exit 1
       fi
@@ -273,7 +301,8 @@ function ensureTaskInstalled() {
       TASK_UPDATE_TIME="$(date +%s)"
       echo "$TASK_UPDATE_TIME" > "$HOME/.cache/megabyte/start.sh/bodega-update-check"
     fi
-    TIME_DIFF="$(($(date +%s) - "$TASK_UPDATE_TIME"))"
+    # shellcheck disable=SC2004
+    TIME_DIFF="$(($(date +%s) - $TASK_UPDATE_TIME))"
     # Only run if it has been at least 15 minutes since last attempt
     if [ "$TIME_DIFF" -gt 900 ] || [ "$TIME_DIFF" -lt 5 ]; then
       date +%s > "$HOME/.cache/megabyte/start.sh/bodega-update-check"
@@ -286,11 +315,14 @@ function ensureTaskInstalled() {
         logger info "A new version of Task is available (version $LATEST_VERSION)"
         logger info "The current version of Task installed is $CURRENT_VERSION"
         if ! type task &> /dev/null; then
+          logger info "Task is not available in the PATH"
           installTask
         else
-          if rm "$(which task)" &> /dev/null; then
+          if rm -f "$(which task)"; then
+            logger info "Removing task was successfully done without sudo"
             installTask
-          elif sudo rm "$(which task)" &> /dev/null; then
+          elif sudo rm -f "$(which task)"; then
+            logger info "Removing task was successfully done with sudo"
             installTask
           else
             logger warn "Unable to remove previous version of Task"
@@ -319,11 +351,13 @@ function installTask() {
   CHECKSUMS_URL="$TASK_RELEASE_URL/download/task_checksums.txt"
   DOWNLOAD_DESTINATION=/tmp/megabytelabs/task.tar.gz
   TMP_DIR=/tmp/megabytelabs
+  logger info "Checking if install target is macOS or Linux"
   if [[ "$OSTYPE" == 'darwin'* ]]; then
     DOWNLOAD_URL="$TASK_RELEASE_URL/download/task_darwin_amd64.tar.gz"
   else
     DOWNLOAD_URL="$TASK_RELEASE_URL/download/task_linux_amd64.tar.gz"
   fi
+  logger "Creating folder for Task download"
   mkdir -p "$(dirname "$DOWNLOAD_DESTINATION")"
   logger info "Downloading latest version of Task"
   curl -sSL "$DOWNLOAD_URL" -o "$DOWNLOAD_DESTINATION"
@@ -333,7 +367,7 @@ function installTask() {
   sha256 "$DOWNLOAD_DESTINATION" "$DOWNLOAD_SHA256" > /dev/null
   logger success "Validated checksum"
   mkdir -p "$TMP_DIR/task"
-  tar -xzvf "$DOWNLOAD_DESTINATION" -C "$TMP_DIR/task" > /dev/null
+  tar -xzf "$DOWNLOAD_DESTINATION" -C "$TMP_DIR/task" > /dev/null
   if type task &> /dev/null && [ -w "$(which task)" ]; then
     TARGET_BIN_DIR="."
     TARGET_DEST="$(which task)"
@@ -411,17 +445,59 @@ function sha256() {
 # @example
 #   ensureTaskfiles
 function ensureTaskfiles() {
-  # shellcheck disable=SC2030
-  task donothing || BOOTSTRAP_EXIT_CODE=$?
-  # shellcheck disable=SC2031
-  if [ -n "$BOOTSTRAP_EXIT_CODE" ]; then
-    curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/archive/master/shared-master.tar.gz > shared-master.tar.gz
-    tar -xzvf shared-master.tar.gz
-    rm shared-master.tar.gz
-    mv shared-master/common/.config .config
-    mv shared-master/common/.editorconfig .editorconfig
-    mv shared-master/common/.gitignore .gitignore
-    rm -rf shared-master
+  if [ -z "$ENSURED_TASKFILES" ]; then
+    # shellcheck disable=SC2030
+    task donothing || BOOTSTRAP_EXIT_CODE=$?
+    mkdir -p "$HOME/.cache/megabyte/start.sh"
+    if [ -f "$HOME/.cache/megabyte/start.sh/ensure-taskfiles" ]; then
+      TASK_UPDATE_TIME="$(cat "$HOME/.cache/megabyte/start.sh/ensure-taskfiles")"
+    else
+      TASK_UPDATE_TIME="$(date +%s)"
+      echo "$TASK_UPDATE_TIME" > "$HOME/.cache/megabyte/start.sh/ensure-taskfiles"
+    fi
+    # shellcheck disable=SC2004
+    TIME_DIFF="$(($(date +%s) - $TASK_UPDATE_TIME))"
+    # Only run if it has been at least 60 minutes since last attempt
+    if [ -n "$BOOTSTRAP_EXIT_CODE" ] || [ "$TIME_DIFF" -gt 3600 ] || [ "$TIME_DIFF" -lt 5 ] || [ -n "$FORCE_TASKFILE_UPDATE" ]; then
+      logger info 'Grabbing latest Taskfiles by downloading shared-master.tar.gz'
+      # shellcheck disable=SC2031
+      date +%s > "$HOME/.cache/megabyte/start.sh/ensure-taskfiles"
+      ENSURED_TASKFILES="true"
+      if [ -d common/.config/taskfiles ]; then
+        if [[ "$OSTYPE" == 'darwin'* ]]; then
+          cp -rf common/.config/taskfiles/ .config/taskfiles
+        else
+          cp -rT common/.config/taskfiles/ .config/taskfiles
+        fi
+      else
+        mkdir -p .config/taskfiles
+        curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/archive/master/shared-master.tar.gz > shared-master.tar.gz
+        tar -xzf shared-master.tar.gz > /dev/null
+        rm shared-master.tar.gz
+        rm -rf .config/taskfiles
+        mv shared-master/common/.config/taskfiles .config/taskfiles
+        mv shared-master/common/.editorconfig .editorconfig
+        mv shared-master/common/.gitignore .gitignore
+        rm -rf shared-master
+      fi
+    fi
+    if [ -n "$BOOTSTRAP_EXIT_CODE" ] && ! task donothing; then
+      # task donothing still does not work so issue must be with main Taskfile.yml
+      # shellcheck disable=SC2016
+      logger warn 'Something is wrong with the `Taskfile.yml` - grabbing main `Taskfile.yml`'
+      git checkout HEAD~1 -- Taskfile.yml
+      if ! task donothing; then
+        logger error 'Error appears to be with main Taskfile.yml'
+      else
+        logger warn 'Error appears to be with one of the included Taskfiles'
+        logger info 'Removing and cloning Taskfile library from upstream repository'
+        rm -rf .config/taskfiles
+        FORCE_TASKFILE_UPDATE=true ensureTaskfiles
+        if task donothing; then
+          logger warn 'The issue was remedied by cloning the latest Taskfile includes'
+        fi
+      fi
+    fi
   fi
 }
 
@@ -451,6 +527,23 @@ if [ ! -f "$HOME/.profile" ]; then
   touch "$HOME/.profile"
 fi
 
+# @description Ensure git hosts are all in ~/.ssh/known_hosts
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+if [ ! -f ~/.ssh/known_hosts ]; then
+  touch ~/.ssh/known_hosts
+  chmod 600 ~/.ssh/known_hosts
+fi
+if ! grep -q "^gitlab.com " ~/.ssh/known_hosts; then
+  ssh-keyscan gitlab.com >> ~/.ssh/known_hosts 2>/dev/null
+fi
+if ! grep -q "^github.com " ~/.ssh/known_hosts; then
+  ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+fi
+if ! grep -q "^bitbucket.org " ~/.ssh/known_hosts; then
+  ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts 2>/dev/null
+fi
+
 # @description Ensures ~/.local/bin is in PATH
 ensureLocalPath
 
@@ -458,8 +551,6 @@ ensureLocalPath
 if [[ "$OSTYPE" == 'darwin'* ]]; then
   if ! type curl &> /dev/null && type brew &> /dev/null; then
     brew install curl
-  else
-    logger error "Neither curl nor brew are installed. Install one of them manually and try again."
   fi
   if ! type git &> /dev/null; then
     # shellcheck disable=SC2016
@@ -467,18 +558,17 @@ if [[ "$OSTYPE" == 'darwin'* ]]; then
     sudo xcode-select --install
   fi
 elif [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
-  if ! type curl &> /dev/null || ! type git &> /dev/null || ! type gzip &> /dev/null; then
+  if ! type curl &> /dev/null || ! type git &> /dev/null || ! type gzip &> /dev/null || ! type sudo &> /dev/null || ! type jq &> /dev/null; then
     ensurePackageInstalled "curl"
     ensurePackageInstalled "file"
     ensurePackageInstalled "git"
     ensurePackageInstalled "gzip"
     ensurePackageInstalled "sudo"
     ensurePackageInstalled "jq"
-    ensurePackageInstalled "yq"
   fi
 fi
 
-# @description Ensures Homebrew and Poetry are installed
+# @description Ensures Homebrew, Poetry, and Volta are installed
 if [ -z "$NO_INSTALL_HOMEBREW" ]; then
   if [[ "$OSTYPE" == 'darwin'* ]] || [[ "$OSTYPE" == 'linux-gnu'* ]] || [[ "$OSTYPE" == 'linux-musl'* ]]; then
     if [ -z "$INIT_CWD" ]; then
@@ -490,36 +580,89 @@ if [ -z "$NO_INSTALL_HOMEBREW" ]; then
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         fi
       fi
+      if ! (grep "/bin/brew shellenv" < "$HOME/.profile" &> /dev/null) && [[ "$OSTYPE" != 'darwin'* ]]; then
+        # shellcheck disable=SC2016
+        logger info 'Adding linuxbrew source command to `~/.profile`'
+        # shellcheck disable=SC2016
+        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$HOME/.profile"
+      fi
       if [ -f "$HOME/.profile" ]; then
         # shellcheck disable=SC1091
-        . "$HOME/.profile"
+        . "$HOME/.profile" &> /dev/null || true
       fi
       if ! type poetry &> /dev/null; then
         # shellcheck disable=SC2016
         brew install poetry || logger info 'There may have been an issue installing `poetry` with `brew`'
       fi
+      if ! type jq &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install jq || logger info 'There may have been an issue installiny `jq` with `brew`'
+      fi
+      if ! type yq &> /dev/null; then
+        # shellcheck disable=SC2016
+        brew install yq || logger info 'There may have been an issue installing `yq` with `brew`'
+      fi
+      if ! type volta &> /dev/null || ! type node &> /dev/null; then
+        # shellcheck disable=SC2016
+        curl https://get.volta.sh | bash
+        # shellcheck disable=SC1091
+        . "$HOME/.profile" &> /dev/null || true
+        volta setup
+        volta install node
+      fi
     fi
+  fi
+fi
+
+# @description Second attempt to install yq if snap is on system but the Homebrew install was skipped
+if ! type yq &> /dev/null && type snap &> /dev/null; then
+  if type sudo &> /dev/null; then
+    sudo snap install yq
+  else
+    snap install yq
   fi
 fi
 
 # @description Attempts to pull the latest changes if the folder is a git repository.
 if [ -d .git ] && type git &> /dev/null; then
+  if [ -n "$GROUP_ACCESS_TOKEN" ] && [ -n "$GITLAB_CI_EMAIL" ] && [ -n "$GITLAB_CI_NAME" ] && [ -n "$GITLAB_CI" ]; then
+    git remote set-url origin "https://root:$GROUP_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    git config user.email "$GITLAB_CI_EMAIL"
+    git config user.name "$GITLAB_CI_NAME"
+  fi
   mkdir -p .cache/start.sh
   if [ -f .cache/start.sh/git-pull-time ]; then
     GIT_PULL_TIME="$(cat .cache/start.sh/git-pull-time)"
   else
-    GIT_PULL_TIME="$(date +%s)"
+    GIT_PULL_TIME=$(date +%s)
     echo "$GIT_PULL_TIME" > .cache/start.sh/git-pull-time
   fi
-  TIME_DIFF="$(($(date +%s) - "$GIT_PULL_TIME"))"
+  # shellcheck disable=SC2004
+  TIME_DIFF="$(($(date +%s) - $GIT_PULL_TIME))"
   # Only run if it has been at least 15 minutes since last attempt
   if [ "$TIME_DIFF" -gt 900 ] || [ "$TIME_DIFF" -lt 5 ]; then
     date +%s > .cache/start.sh/git-pull-time
-    HTTPS_VERSION="$(git remote get-url origin | sed 's/git@gitlab.com:/https:\/\/gitlab.com\//')"
-    if [ "$(git rev-parse --abbrev-ref HEAD)" == 'synchronize' ]; then
-      git reset --hard master
+    git fetch origin
+    GIT_POS="$(git rev-parse --abbrev-ref HEAD)"
+    logger info 'Current branch is `'"$GIT_POS"'`'
+    if [ "$GIT_POS" == 'synchronize' ] || [ "$CI_COMMIT_REF_NAME" == 'synchronize' ]; then
+      git reset --hard origin/master
+      git push --force origin synchronize || FORCE_SYNC_ERR=$?
+      if [ -n "$FORCE_SYNC_ERR" ] && type task &> /dev/null; then
+        NO_GITLAB_SYNCHRONIZE=true task ci:synchronize || CI_SYNC_TASK_ISSUE=$?
+        if [ -n "$CI_SYNC_TASK_ISSUE" ]; then
+          ensureTaskfiles
+          NO_GITLAB_SYNCHRONIZE=true task ci:synchronize
+        fi
+      else
+        DELAYED_CI_SYNC=true
+      fi
+    elif [ "$GIT_POS" == 'HEAD' ]; then
+      if [ -n "$GITLAB_CI" ]; then
+        printenv
+      fi
     fi
-    git pull "$HTTPS_VERSION" master --ff-only
+    git pull --force origin master --ff-only || true
     ROOT_DIR="$PWD"
     if ls .modules/*/ > /dev/null 2>&1; then
       for SUBMODULE_PATH in .modules/*/; do
@@ -528,8 +671,8 @@ if [ -d .git ] && type git &> /dev/null; then
         git reset --hard HEAD
         git checkout "$DEFAULT_BRANCH"
         git pull origin "$DEFAULT_BRANCH" --ff-only || true
+        cd "$ROOT_DIR"
       done
-      cd "$ROOT_DIR"
       # shellcheck disable=SC2016
       logger success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
     fi
@@ -539,18 +682,31 @@ fi
 # @description Ensures Task is installed and properly configured
 ensureTaskInstalled
 
+# @description Ensures Taskfiles are up-to-date
+logger info 'Ensuring Taskfile.yml files are all in good standing'
+ensureTaskfiles
+
+# @description Try synchronizing again (in case Task was not available yet)
+if [ "$DELAYED_CI_SYNC" == 'true' ]; then
+  logger info 'Attempting to synchronize CI..'
+  task ci:synchronize
+fi
+
 # @description Run the start logic, if appropriate
-if [ -z "$CI" ] && [ -z "$INIT_CWD" ]; then
+if [ -z "$CI" ] && [ -z "$START" ] && [ -z "$INIT_CWD" ]; then
+  if ! type pipx &> /dev/null; then
+    task install:software:pipx
+  fi
+  logger info "Sourcing profile located in $HOME/.profile"
   # shellcheck disable=SC1091
-  . "$HOME/.profile"
+  . "$HOME/.profile" &> /dev/null || true
   ensureProjectBootstrapped
   if task donothing &> /dev/null; then
-    task start
+    task -vvv start
   else
-    logger info 'Ensuring Taskfile.yml files are all in good standing'
-    ensureTaskfiles
+    FORCE_TASKFILE_UPDATE=true ensureTaskfiles
     if task donothing &> /dev/null; then
-      task start
+      task -vvv start
     else
       # shellcheck disable=SC2016
       logger warn 'Something appears to be wrong with the main `Taskfile.yml` - resetting to shared common version'

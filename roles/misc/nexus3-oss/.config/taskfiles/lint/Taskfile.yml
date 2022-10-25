@@ -22,7 +22,7 @@ tasks:
   ansible:
     deps:
       - :symlink:{{.REPOSITORY_SUBTYPE}}
-      - :install:python:requirements
+      - :install:pipx:ansible-lint
     desc: Lint Ansible projects using Ansible Lint
     hide: '{{ne .REPOSITORY_TYPE "ansible"}}'
     summary: |
@@ -42,21 +42,26 @@ tasks:
       start: Linting project with Ansible Lint
       success: Validated project with Ansible Lint
     cmds:
-      - '{{.PYTHON_HANDLE}}ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}'
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        ansible-lint -c {{.ANSIBLE_LINT_CONFIG}}
 
   any:
     deps:
-      - :install:python:requirements
+      - :install:pipx:blocklint
+      - :install:pipx:pre-commit-hooks
     desc: Generic linting of files for things like destroyed-symlinks, merge conflicts, etc.
     log:
       error: Errors were reported by the global linters for `{{.CLI_ARGS}}`
       start: Linting `{{.CLI_ARGS}}` with global linters
     cmds:
-      - '{{.PYTHON_HANDLE}}blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}'
-      - '{{.PYTHON_HANDLE}}check-merge-conflict {{.CLI_ARGS}}'
-      - '{{.PYTHON_HANDLE}}check-added-large-files {{.CLI_ARGS}}'
-      - '{{.PYTHON_HANDLE}}check-symlinks {{.CLI_ARGS}}'
-      - '{{.PYTHON_HANDLE}}destroyed-symlinks {{.CLI_ARGS}}'
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        blocklint --wordlist blacklist,slave,whitelist {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && check-merge-conflict {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && check-added-large-files {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && check-symlinks {{.CLI_ARGS}}
+      - PATH="$PATH:$HOME/.local/bin" && destroyed-symlinks {{.CLI_ARGS}}
 
   codeclimate:
     deps:
@@ -90,7 +95,20 @@ tasks:
       start: Running `codeclimate`
       success: Successfully validated the project by running `codeclimate`
     cmds:
-      - CODECLIMATE_DEBUG=1 codeclimate analyze --dev{{if .CLI_ARGS}}{{.CLI_ARGS}}{{end}}
+      - |
+        if [ -z "$CODECLIMATE_INTEGRATION_TEST" ]; then
+          while read PATHH; do
+            cd "$(dirname $PATHH)"
+            CODECLIMATE_DEBUG=1 codeclimate analyze --dev{{if .CLI_ARGS}}{{.CLI_ARGS}}{{end}}
+          done < <(find test -maxdepth 2 -type f -name .codeclimate.yml)
+        else
+          while read PATHH; do
+            cd "$(dirname $PATHH)" && break
+          done < <(find test -maxdepth 2 -type f -name .codeclimate.yml)
+          task lint:codeclimate:taskfiles:add
+          CODECLIMATE_DEBUG=1 codeclimate analyze --dev
+          task lint:codeclimate:taskfiles:remove
+        fi
 
   commit:
     deps:
@@ -114,7 +132,7 @@ tasks:
           TMP="$(mktemp)"
           COMMIT_MSG_NOEMOJI="$(sed 's/^..//' < '{{.CLI_ARGS}}' | xargs)"
           .config/log info 'Linting commit message (with emoji stripped)'
-          echo "$COMMIT_MSG_NOEMOJI" | {{.NPX_PACKAGE}} commitlint || (mv '{{.CLI_ARGS}}.bak' '{{.CLI_ARGS}}' && exit 1)
+          echo "$COMMIT_MSG_NOEMOJI" | commitlint || (mv '{{.CLI_ARGS}}.bak' '{{.CLI_ARGS}}' && exit 1)
         elif [ '{{.CLI_ARGS}}' == '.git/MERGE_MSG' ]; then
           .config/log info 'Bypassing commitlint since the message is a merge message'
         fi
@@ -167,11 +185,11 @@ tasks:
     cmds:
       - |
         {{if .CLI_ARGS}}
-          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim {{.CLI_ARGS | replace .PWD ""}}
+          docker run -v "$PWD:/work" -w /work megabytelabs/hadolint:slim -c .config/hadolint.yml {{.CLI_ARGS | replace .PWD ""}}
         {{else}}
           find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name Dockerfile -o \
             -name Dockerfile.j2 \) -print0 | xargs -0 -r -n1 docker run -v "$PWD:/work" -w /work \
-            megabytelabs/hadolint:slim
+            megabytelabs/hadolint:slim -c .config/hadolint.yml
         {{end}}
 
   dockerfile:
@@ -223,7 +241,7 @@ tasks:
       success: Successfully passed the ESLint test (please still address warnings)
     cmds:
       - >
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   eslint:staged:
@@ -239,7 +257,7 @@ tasks:
       success: Successfully linted modified files with ESLint
     cmds:
       - >
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   eslint:warn-all:
@@ -260,7 +278,7 @@ tasks:
       - >
         ESLINT_TMP="$(mktemp)"
 
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format summary --cache
+        eslint -c package.json --no-eslintrc --format summary --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} |
         tee "$ESLINT_TMP"
 
@@ -307,20 +325,25 @@ tasks:
       success: Successfully passed ESLint checks for {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}JavaScript/TypeScript files{{end}}
     cmds:
       - >
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
+        eslint -c package.json --no-eslintrc --format pretty --ext .js,.jsx,.ts,.tsx --cache
         --cache-location .cache/eslintcache {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   lint-staged:
     deps:
-      - :install:modules:global
       - :install:modules:local
-      - :install:python:requirements
+      - :install:npm:lint-staged
     log:
       error: Errors were encountered when validating the staged files
       start: Linting staged files
       success: The staged files appear to be good!
     cmds:
-      - '{{.NPX_HANDLE}}lint-staged'
+      - |
+        lint-staged || LINT_EXIT_CODE="$?"
+        if [ -n "$LINT_EXIT_CODE" ]; then
+          .config/log error 'Linting failed!'
+          .config/log info 'If necessary, you can bypass this pre-commit hook by running `git commit --no-verify`. Please try to fix the errors first.'
+          exit 1
+        fi
 
   packer:
     deps:
@@ -398,15 +421,16 @@ tasks:
       success: Prettier successfully finished
     cmds:
       - |
-        {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+        prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
         if [ -n "$EXIT_CODE" ]; then
-          .config/log warn 'Failed to lint with `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
+          .config/log warn 'Failed to lint with `prettier` - falling back to `prettier`'
           prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --list-different {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
         fi
 
   python:
     deps:
-      - :install:python:requirements
+      - python:deps:flake8
+      - python:deps:python
     label: lint:python
     desc: Lint Python files using Flake8
     hide: '{{ne .REPOSITORY_TYPE "python"}}'
@@ -432,17 +456,32 @@ tasks:
       `task lint:python -- myfile.py`
 
       For more information, see [Flake8's GitHub page](https://github.com/PyCQA/flake8).
+    vars:
+      CONFIG_COMMAND:
+        sh: |
+          if [ -f {{.FLAKE8_CONFIG}} ]; then
+            echo '--config {{.FLAKE8_CONFIG}} '
+          fi
     log:
       error: flake8 detected some issues
       start: Linting {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}the project{{end}} with flake8
       success: flake8 validation was successful
     cmds:
       - |
-        {{if .CLI_ARGS}}
-          {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} {{.CLI_ARGS}}
-        {{else}}
-          {{.PYTHON_HANDLE}}flake8 --config {{.FLAKE8_CONFIG}} .
-        {{end}}
+        PATH="$PATH:$HOME/.local/bin"
+        flake8 {{.CONFIG_COMMAND}}{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+
+  python:deps:flake8:
+    cmds:
+      - task: :install:pipx:flake8
+    status:
+      - '[ "{{.REPOSITORY_TYPE}}" == "python" ]'
+
+  python:deps:python:
+    cmds:
+      - task: :install:python:requirements
+    status:
+      - '[ "{{.REPOSITORY_TYPE}}" != "python" ]'
 
   shell:
     cmds:
@@ -479,10 +518,10 @@ tasks:
       - |
         .config/log info 'Linting with Shellcheck'
         {{if .CLI_ARGS}}
-          {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} {{.CLI_ARGS}}
+          shellcheck -e {{.SHELLCHECK_EXCLUDE}} {{.CLI_ARGS}}
         {{else}}
           find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.sh' -o -name '*.sh.j2' \) \
-          -print0 | xargs -0 -r -n1 {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}}
+          -print0 | xargs -0 -r -n1 shellcheck -e {{.SHELLCHECK_EXCLUDE}}
         {{end}}
 
   spelling:
@@ -516,7 +555,7 @@ tasks:
       - cmd: |
           set -e
           EXIT_CODE=0
-          {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}} || EXIT_CODE=$?
+          cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} {{.CLI_ARGS}} || EXIT_CODE=$?
           if [ "$EXIT_CODE" != '0' ]; then
             .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
           fi
@@ -554,7 +593,7 @@ tasks:
             EXIT_CODE=0
             .config/log info 'Running a spell-check on staged files with `cspell`'
             # Must not quote $STAGED_FILES
-            {{.NPX_HANDLE}}cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} $STAGED_FILES || EXIT_CODE=$?
+            cspell --no-progress --show-context --no-must-find-files --config {{.CSPELL_CONFIG}} $STAGED_FILES || EXIT_CODE=$?
             if [ "$EXIT_CODE" != '0' ]; then
               .config/log warn 'Possible spelling errors were detected. Take appropriate action before merging changes.'
             fi
@@ -563,7 +602,7 @@ tasks:
 
   toml:
     deps:
-      - :install:python:requirements
+      - :install:pipx:pre-commit-hooks
     summary: |
       # Lint TOML files
 
@@ -580,7 +619,9 @@ tasks:
       start: Ensuring {{if .CLI_ARGS}}`{{.CLI_ARGS}}` is valid TOML{{else}}the project'\''s TOML files are valid{{end}}
       success: The TOML appears to be valid!
     cmds:
-      - '{{.PYTHON_HANDLE}}check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        check-toml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   vagrant:
     deps:
@@ -605,7 +646,7 @@ tasks:
 
   xml:
     deps:
-      - :install:python:requirements
+      - :install:pipx:pre-commit-hooks
     summary: |
       # Lint XML files
 
@@ -622,11 +663,13 @@ tasks:
       start: Ensuring {{if .CLI_ARGS}}{{.CLI_ARGS}} is valid XML{{else}}the project contains only valid XML{{end}}
       success: The XML appears to be valid
     cmds:
-      - '{{.PYTHON_HANDLE}}check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        check-xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   yaml:
     deps:
-      - :install:python:requirements
+      - :install:pipx:yamllint
     desc: Lint `.yml` files using YAML Lint
     summary: |
       # Lint YML files using YAML Lint
@@ -653,4 +696,6 @@ tasks:
       start: Linting {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}the project{{end}} with `yamllint`
       success: No issues were detected by `yamllint`
     cmds:
-      - '{{.PYTHON_HANDLE}}yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        yamllint -c {{.YAMLLINT_CONFIG}} -s {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}

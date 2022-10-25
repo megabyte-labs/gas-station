@@ -4,7 +4,7 @@ version: '3'
 vars:
   EMOJI_END:
     sh: |
-      if [ -f '.variables.json' ]; then
+      if [ -f '.variables.json' ] && type jq &> /dev/null; then
         BP_END="$(jq -r '.emoji_end' .variables.json)"
         if [ "$BP_END" != 'null' ]; then
           echo "$BP_END"
@@ -18,7 +18,7 @@ vars:
       fi
   EMOJI_START:
     sh: |
-      if [ -f '.variables.json' ]; then
+      if [ -f '.variables.json' ] && type jq &> /dev/null; then
         BP_START="$(jq -r '.emoji_start' .variables.json)"
         if [ "$BP_START" != 'null' ]; then
           echo "$BP_START"
@@ -40,15 +40,18 @@ env:
 
 tasks:
   commit:automated:
+    deps:
+      - remotes
     log:
       start: Running automated commit
     cmds:
-      - cmd: |
-          if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
-            git add --all
-            HUSKY=0 git commit -m "☁️ Automation" -n
-          fi
+      - task --list > /dev/null || (echo "ERROR > Invalid Taskfile(s)!" && exit 1)
+      - git add --all
+      - cmd: >
+          HUSKY=0 git commit -m "☁️ chore(automation): Automated update" -n
         ignore_error: true
+    status:
+      - '[ "$FULLY_AUTOMATED_TASKS" != "true" ] || [ "$SEMANTIC_RELEASE" == "true" ]'
 
   convert:folder:submodule:
     deps:
@@ -67,18 +70,15 @@ tasks:
       - git init
       - git remote add origin "{{.GITLAB_REPO}}"
       - git add --all
-      - git commit --quiet -m "refactor(convert-dir-to-submodule) Adding folder/project to its own git repository."
+      - git commit --quiet -m "🧐 refactor(submodule): Adding folder/project to its own git repository."
       - git push --quiet -u --no-progress origin master
-      - |
-        cd ..
-        rm -rf {{.BASENAME}}
-        git add {{.BASENAME}}
-        git commit --quiet -m "refactor(convert-dir-to-submodule) Removing folder which will now be a submodule."
-        git submodule add -b master "{{.GITLAB_REPO}}" {{.BASENAME}}
-        git add {{.BASENAME}}
-        git commit --quiet -m "refactor(convert-dir-to-submodule) Adding new submodule which was previously a directory."
-        git push --quiet -u --no-progress origin HEAD
-      - .config/log success ''
+      - cd .. && rm -rf {{.BASENAME}}
+      - cd .. && git add {{.BASENAME}}
+      - cd .. && git commit --quiet -m "🧐 refactor(submodule): Removing folder which will now be a submodule."
+      - cd .. && git submodule add -b master "{{.GITLAB_REPO}}" {{.BASENAME}}
+      - cd .. && git add {{.BASENAME}}
+      - cd .. && git commit --quiet -m "🧐 refactor(submodule): Adding new submodule which was previously a directory."
+      - cd .. && git push --quiet -u --no-progress origin HEAD
     preconditions:
       - sh: '[[ ! $(git rev-parse --git-dir) =~ ".git/modules" ]]'
         msg: Cannot convert the directory to a submodule - the directory already appears to be a submodule.
@@ -86,6 +86,17 @@ tasks:
   convert:folder:subrepo:
     deps:
       - :install:software:subrepo
+    summary: |
+      # Convert Folder to Sub-repo
+
+      This task will work if you have Taskfiles set up in a sub-directory of a project
+      that is already a git repository. Instead of using sub-modules, this method makes
+      the main repository's structure look as if no sub-module wizardry is going on.
+
+      To use this task, go into a sub-directory that you want to make a git subrepo and
+      then run `task git:convert:folder:subrepo` while making sure that the
+      `FULLY_AUTOMATED_TASKS` variables is set equal to `true`. There may be other
+      tokens required for accessing the APIs of GitHub, GitLab, etc.
     vars:
       BASENAME:
         sh: basename "$PWD"
@@ -97,31 +108,62 @@ tasks:
       success: Converted `{{.BASENAME}}` into a sub-repo
     cmds:
       - rm -rf .git
+      - git config url."git@gitlab.com:".insteadOf "https://gitlab.com/"
+      - git config url."git@github.com:".insteadOf "https://github.com/"
+      - task: commit:automated
       - |
         ROLE_DIR="$PWD"
         while ! test -d .git; do cd ..; done
-        git remote add {{.BASENAME}} {{.GITLAB_REPO}}
+        if ! git remote get-url {{.BASENAME}} &> /dev/null; then
+          git remote add {{.BASENAME}} {{.GITLAB_REPO}}
+        fi
         RELATIVE_DIR="$(echo $ROLE_DIR | sed 's@'"$PWD"'/@@')"
-        HUSKY=0 git subrepo clone {{.BASENAME}} "$RELATIVE_DIR" -b master
+        task git:commit:automated
+        HUSKY=0 git subrepo init "$RELATIVE_DIR" -r {{.BASENAME}} -b master
+    status:
+      - '[ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
   filter:
+    deps:
+      - :install:software:bfg
+    desc: Remove large unnecessary and large files from the repository
+    summary: |
+      # Clean Up Git Repository
+
+      This task will remove files that may have been committed by accident like node_modules.
+      It will also use [bfg](https://rtyley.github.io/bfg-repo-cleaner/) to remove all files
+      that are over 50MB.
     log:
       error: Error filtering git history
       start: Filtering unnecessary items from git history
       success: Successfully filtered unnecessary items from git history
     cmds:
       - git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch -r **/node_modules/' --prune-empty -- --all
+      - bfg --strip-blobs-bigger-than 50M
 
   push:all:
+    deps:
+      - :ci:commit:config
+      - :git:github:create
+      - :git:gitlab:create
     log:
       error: Encountered error while running `git push all master --force || git push origin master`
       start: Running `git push all master --force || git push origin master`
       success: Successfully ran `git push all master --force || git push origin master`
     cmds:
       - |
-        if [[ "$FULLY_AUTOMATED_TASKS" == 'true' ]]; then
-          git push all master --force || git push origin master
+        if ! git push all master --force; then
+          git pull -X theirs origin master
+          git add --all
+          HUSKY=0 git commit -m "☁️ chore(automation): Automated update to all remotes" -n
+          if ! git push all master --force; then
+            task git:gitlab:protected:off -- "master"
+            git push all master --force
+            task git:gitlab:protected:on -- "master"
+          fi
         fi
+    status:
+      - '[ -n "$CI" ] || [ "$SEMANTIC_RELEASE" == "true" ] || [ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
   remotes:
     deps:
@@ -185,9 +227,9 @@ tasks:
           .config/log success 'Added git remote named `all`'
         fi
     status:
-      - '[[ "$(git config remote.all.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
-      - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
-      - '[[ "$(git config remote.gitlab.url)" == "${GITLAB_REPO}.git" ]] || [[ "${container:=}" == "docker" ]]'
+      - '[[ "$(git config remote.all.url)" == "${GITLAB_REPO}.git" ]] || [ -n "$CI" ]'
+      - '[[ "$(git config remote.github.url)" == "${GITHUB_REPO}.git" ]] || [ -n "$CI" ]'
+      - '[[ "$(git config remote.gitlab.url)" == "${GITLAB_REPO}.git" ]] || [ -n "$CI" ]'
 
   remove:history:cli:
     deps:
@@ -260,17 +302,21 @@ tasks:
 
   update:
     cmds:
-      - task: :git:gitlab:create
-      - task: :git:github:create
-      - task: update:continue
+      - task: update:start
+    status:
+      - '[ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
-  update:continue:
+  update:finish:
     deps:
       - :git:gitlab:update
       - :git:github:update
+    run: once
+
+  update:start:
+    run: once
     cmds:
-      - |
-        if ! git push -u origin master; then
-          git pull origin master --allow-unrelated-histories
-          git push origin -u origin master
-        fi
+      - task: :git:gitlab:create
+      - task: :git:github:create
+      - task: update:finish
+    status:
+      - '[ -n "$CI" ] || ([ -z "$GITLAB_TOKEN" ] && [ -z "$GITHUB_TOKEN" ])'

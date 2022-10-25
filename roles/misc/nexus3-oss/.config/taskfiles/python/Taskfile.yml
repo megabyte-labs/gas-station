@@ -47,6 +47,10 @@ tasks:
       - cmd: if type pip3 &> /dev/null; then pip3 uninstall -y -r <(pip3 freeze); fi
         ignore_error: true
 
+  prepare:
+    cmds:
+      - .config/log info 'TODO Build the project'
+
   publish:
     deps:
       - :install:python:requirements
@@ -63,12 +67,14 @@ tasks:
       - :install:python:requirements
     desc: Generate the requirements.txt fallback file
     log:
-      error: Failed to generate `.config/requirements.txt`
-      start: Generating `.config/requirements.txt`
-      success: Generated `.config/requirements.txt`
+      error: Failed to generate `local/requirements.txt`
+      start: Generating `local/requirements.txt`
+      success: Generated `local/requirements.txt`
     cmds:
-      - mkdir -p .config
-      - poetry export -f requirements.txt --output .config/requirements.txt --without-hashes
+      - mkdir -p local
+      - poetry export -f requirements.txt --output local/requirements.txt --without-hashes
+    status:
+      - '[ ! -f pyproject.toml ] || ! type poetry > /dev/null'
 
   run:
     deps:
@@ -93,3 +99,7 @@ tasks:
       - task: :fix:python
       - task: :lint:python
       - task: :python:test:pytest
+
+  verify:
+    cmds:
+      - .config/log info 'TODO Verify API key works with pypi.org'

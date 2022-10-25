@@ -5,6 +5,7 @@ tasks:
   all:
     deps:
       - ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:descriptions{{else}}donothing{{end}}'
+      - ':{{if eq .REPOSITORY_TYPE "docker"}}docker:update:sort{{else}}donothing{{end}}'
       - files
       - :python:requirementstxt
     cmds:
@@ -12,10 +13,15 @@ tasks:
 
   all:continue:
     deps:
-      - upstream:remotes
-      - :git:remotes
-      - ':{{if eq .REPOSITORY_SUBTYPE "playbook"}}ansible:playbook:remotes{{else}}donothing{{end}}'
+      - all:continue:remotes
       - all:docs
+      - ':{{if eq .REPOSITORY_SUBTYPE "playbook"}}ansible:playbook:collections:download{{else}}donothing{{end}}'
+
+  all:continue:remotes:
+    cmds:
+      - task: upstream:remotes
+      - task: :git:remotes
+      - task: ':{{if eq .REPOSITORY_SUBTYPE "playbook"}}ansible:playbook:remotes{{else}}donothing{{end}}'
 
   all:docs:
     cmds:
@@ -37,7 +43,13 @@ tasks:
       - :install:npm:prettier
       - :install:npm:readme
     vars:
-      CONTRIB_TEMPLATE: .config/docs/blueprint-contributing.md
+      CONTRIB_TEMPLATE:
+        sh: |
+          if [ -f ".config/docs/blueprint-contributing-{{.REPOSITORY_SUBTYPE}}.md" ]; then
+            echo ".config/docs/blueprint-contributing-{{.REPOSITORY_SUBTYPE}}.md"
+          else
+            echo ".config/docs/blueprint-contributing.md"
+          fi
     log:
       error: Encountered error while generating `docs/CONTRIBUTING.md`
       start: Generating `docs/CONTRIBUTING.md` using document partials
@@ -45,40 +57,41 @@ tasks:
     cmds:
       - mkdir -p docs
       - >
-        {{.NPX_HANDLE}}readme generate --silent --headingPrefix '{}' --config .variables.json
+        readme generate --silent --headingPrefix '{}' --config .variables.json
         --input "{{.CONTRIB_TEMPLATE}}" --output docs/CONTRIBUTING.md
       - task: markdown:scrub
         vars:
           SCRUB_FILE: docs/CONTRIBUTING.md
-      - '{{.NPX_HANDLE}}prettier --write docs/CONTRIBUTING.md > /dev/null'
+      - prettier --write docs/CONTRIBUTING.md > /dev/null
     sources:
       - docs/CONTRIBUTING.md
       - .config/docs/**/*
       - .variables.json
     preconditions:
-      - sh: test -f .config/docs/blueprint-contributing.md
-        msg: The CONTRIBUTING.md template file is not present at `.config/docs/blueprint-contributing.md`
       - sh: test -f .variables.json
         msg: The `.variables.json` file is not present.
       - sh: type readme > /dev/null
         msg: '`@appnest/readme` is not installed globally.'
 
   files:
-    vars:
-      CONTAINER:
-        sh: if [[ "${container:=}" == "docker" ]]; then echo "docker"; fi
-      FIRST_LINE:
-        sh: if [ -f Dockerfile ]; then head -n 1 Dockerfile; fi
+    deps:
+      - files:ansible:keywords:sync
+      - files:dockerignore
+      - files:docs
+      - files:go:dummy
+      - files:husky
+      - files:initctl
     log:
       error: Encountered error while updating miscellaneous files
       start: Updating miscellaneous files
       success: Updated miscellaneous files
+
+  files:ansible:keywords:sync:
     cmds:
-      - |
-        if [ -f initctl ] && [ -f .config/initctl ]; then
-          cp .config/initctl initctl
-          .config/log info 'Ensured that the `initctl` polyfill file is synchronized with the upstream version'
-        fi
+      - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
+
+  files:dockerignore:
+    cmds:
       - |
         if [ -f .dockerignore ]; then
           TMP="$(mktemp)"
@@ -96,8 +109,39 @@ tasks:
             rm .config/dockerignore
           fi
         fi
+
+  files:docs:
+    cmds:
+      - mkdir -p docs/partials && echo '<!-- Add content in this file to include it in automatically generated README.md -->' > docs/partials/guide.md
+    status:
+      - '[ -f docs/partials/guide.md ]'
+
+  files:go:dummy:
+    cmds:
+      - echo -e 'package main\n\nfunc main() {\n}\n' > .config/dummy.go
+    status:
+      - '[ "{{.REPOSITORY_SUBTYPE}}" != "cli" ] || [ "{{.REPOSITORY_TYPE}}" == "go" ]'
+
+  files:husky:
+    vars:
+      CONTAINER:
+        sh: if [ "{{.DOCKER_ENVIRONMENT}}" == "true" ]; then echo "docker"; fi
+    cmds:
       - task: :common:{{if eq .CONTAINER "docker"}}husky:ci{{else}}husky{{end}}
-      - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:keywords:sync{{else}}donothing{{end}}
+
+  files:initctl:
+    cmds:
+      - |
+        if [ -f initctl ] && [ -f .config/initctl ]; then
+          cp .config/initctl initctl
+          .config/log info 'Ensured that the `initctl` polyfill file is synchronized with the upstream version'
+        fi
+
+  finish:
+    cmds:
+      - cmd: git push
+        ignore_error: true
+      - task: :ci:synchronize
 
   init:
     log:
@@ -122,11 +166,11 @@ tasks:
     cmds:
       - |
         if test -f ".config/docs/{{.MAN_TEMPLATE}}"; then
-          {{.NPX_HANDLE}}readme generate --headingPrefix '{}' --silent --config .variables.json --input ".config/docs/{{.MAN_TEMPLATE}}" --output MAN.md
-          {{.NPX_HANDLE}}prettier --write MAN.md > /dev/null
+          readme generate --headingPrefix '{}' --silent --config .variables.json --input ".config/docs/{{.MAN_TEMPLATE}}" --output MAN.md
+          prettier --write MAN.md > /dev/null
           .config/log info 'Generated MAN.md'
           mkdir -p dist
-          {{.NPX_HANDLE}}remark --use man MAN.md --output dist/man
+          remark --use man MAN.md --output dist/man
           .config/log success 'Converted MAN.md to man page located in `dist/man`'
           rm MAN.md
         fi
@@ -180,8 +224,8 @@ tasks:
             git reset --hard HEAD
             git checkout "$DEFAULT_BRANCH"
             git pull origin "$DEFAULT_BRANCH" --ff-only || true
+            cd "$ROOT_DIR"
           done
-          cd "$ROOT_DIR"
           .config/log success 'Ensured submodules in the `.modules` folder are pointing to the master branch'
         fi
     status:
@@ -210,13 +254,13 @@ tasks:
       success: Generated README.md successfully
     cmds:
       - >
-        {{.NPX_HANDLE}}readme generate --headingPrefix '{}' --silent --config .variables.json
+        readme generate --headingPrefix '{}' --silent --config .variables.json
         --input ".config/docs/{{.README_TEMPLATE}}"
       - task: markdown:scrub
         vars:
           SCRUB_FILE: README.md
       - task: ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:readme{{else}}donothing{{end}}'
-      - '{{.NPX_HANDLE}}prettier --write README.md > /dev/null'
+      - prettier --write README.md > /dev/null
     sources:
       - .autodoc/*
       - .config/docs/**/*
@@ -232,16 +276,6 @@ tasks:
     cmds:
       - task: modules
       - task: project
-
-  services:
-    cmds:
-      - task: :{{if eq .REPOSITORY_TYPE "project"}}donothing{{else}}start{{end}}
-      - task: update
-      - task: services:repos
-
-  services:repos:
-    deps:
-      - :git:update
 
   start:
     deps:
@@ -269,14 +303,10 @@ tasks:
     cmds:
       - task: start
       - task: all
-      - task: ':{{if eq .REPOSITORY_TYPE "docker"}}docker:update:labels{{else}}donothing{{end}}'
-      - task: update:git
-
-  update:git:
-    cmds:
-      - task: :git:update
-    status:
-      - '[[ "${container:=}" == "docker" ]] || [[ "$SKIP_UPLOADING" == "true" ]]'
+      - |
+        if [ -f Dockerfile ]; then
+          task {{if eq .REPOSITORY_TYPE "docker"}}docker:update:labels{{else}}donothing{{end}}
+        fi
 
   upstream:remotes:
     deps:
@@ -293,13 +323,15 @@ tasks:
           URL="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].url' package.json)"
           if [ "$REMOTE" != 'null' ] && [ "$URL" != 'null' ]; then
             if git remote | grep "$REMOTE"; then
-              git remote remove "$REMOTE"
+              git remote remove $REMOTE
             fi
-            git remote add "$REMOTE" "$URL"
+            git remote add $REMOTE $URL
           else
             .config/log warn '`blueprint.upstreamRemotes` objects should have the `remote`, `url`, and `branch` keys'
           fi
         done
+    status:
+      - '[ "$(jq -r ".blueprint.upstreamRemotes | length" package.json)" == "0" ]'
 
   upstream:remotes:pull:
     deps:
@@ -317,10 +349,10 @@ tasks:
           BRANCH="$(jq -r --arg count "$(("$i" - 1))" '.blueprint.upstreamRemotes[($count | tonumber)].branch' package.json)"
           if [ "$REMOTE" != 'null' ] && [ "$URL" != 'null' ] && [ "$BRANCH" != 'null' ]; then
             if git remote | grep "$REMOTE"; then
-              git remote remove "$REMOTE"
+              git remote remove $REMOTE
             fi
-            git remote add "$REMOTE" "$URL"
-            git pull "$REMOTE" "$BRANCH"
+            git remote add $REMOTE $URL
+            git pull $REMOTE $BRANCH
           else
             .config/log warn '`blueprint.upstreamRemotes` objects must have the `remote`, `url`, and `branch` keys'
           fi
@@ -337,3 +369,5 @@ tasks:
       - task: ':{{if eq .REPOSITORY_TYPE "go"}}{{if eq .REPOSITORY_SUBTYPE "cli"}}go:help{{else}}donothing{{end}}{{else}}donothing{{end}}'
       - task: ':{{if eq .REPOSITORY_TYPE "packer"}}packer:update:variables{{else}}donothing{{end}}'
       - task: ':{{if eq .REPOSITORY_TYPE "ansible"}}ansible:update:variables{{if eq .REPOSITORY_SUBTYPE "playbook"}}:playbook{{end}}{{else}}donothing{{end}}'
+      - task: ':{{if eq .REPOSITORY_SUBTYPE "tap"}}install:tap:scan{{else}}donothing{{end}}'
+      - task: ':{{if eq .REPOSITORY_SUBTYPE "scoop"}}install:scoop:scan{{else}}donothing{{end}}'

@@ -5,11 +5,25 @@ tasks:
   autocannon:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: autocannon
 
-          NPM_PACKAGE: autocannon
+  bitwarden:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          BIN_NAME: bw
+          PACKAGE: '@bitwarden/cli'
+
+  browserslist:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: browserslist
+
   bundle:
     cmds:
       - task: :install:modules:global
@@ -17,123 +31,113 @@ tasks:
   clinic:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: clinic
 
-          NPM_PACKAGE: clinic
   codecov:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: codecov
 
-          NPM_PACKAGE: codecov
   commitizen:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
+          BIN_NAME: git-cz
           FORCE_INSTALL: true
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: commitizen
-          NPM_PACKAGE_BIN: git-cz
+          PACKAGE: commitizen
+    status:
+      - '[ -n "$CI" ] || type git-cz &> /dev/null'
 
   commitlint:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: '@commitlint/cli'
-          NPM_PACKAGE_BIN: commitlint
+          BIN_NAME: commitlint
+          PACKAGE: '@commitlint/cli'
+    status:
+      - '[ -n "$CI" ]'
+
+  crowdin:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          BIN_NAME: crowdin
+          PACKAGE: '@crowdin/cli'
 
   cspell:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: cspell
 
-          NPM_PACKAGE: cspell
   depcheck:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: depcheck
 
-          NPM_PACKAGE: depcheck
+  devcontainer:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          BIN_NAME: devcontainer
+          PACKAGE: '@vscode/dev-container-cli'
+
   dockerfilelint:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: dockerfilelint
 
-          NPM_PACKAGE: dockerfilelint
   esbuild:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: esbuild
 
-          NPM_PACKAGE: esbuild
   eslint:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: eslint
 
-          NPM_PACKAGE: eslint
   esprint:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: esprint
 
-          NPM_PACKAGE: esprint
   fuite:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: fuite
 
-          NPM_PACKAGE: fuite
   git-notify:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-
-          NPM_PACKAGE: git-notify
-  global:
-    deps:
-      - global:package-manager
-    vars:
-      INSTALL_RECORD:
-        sh: |
-          if [ -n "$RECORD_INSTALL" ]; then
-            mkdir -p local/slim
-            echo '{{.PACKAGE_BIN}}' >> local/slim/exe.txt
-            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
-          fi
-      PACKAGE_BIN: '{{if index . "NPM_PACKAGE_BIN"}}{{.NPM_PACKAGE_BIN}}{{else}}{{.NPM_PACKAGE}}{{end}}'
-    run: when_changed
-    log:
-      error: Failed to install NPM package `{{.NPM_PACKAGE}}` globally
-      start: Installing NPM package `{{.NPM_PACKAGE}}` globally
-      success: Installed NPM package `{{.NPM_PACKAGE}}` globally
-    cmds:
-      - '{{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}'
-    status:
-      - type {{.PACKAGE_BIN}} > /dev/null
+          PACKAGE: git-notify
 
   global:library:
     deps:
@@ -141,7 +145,7 @@ tasks:
     env:
       PACKAGE_EXISTS:
         sh: |
-          PACKAGE_PATH="$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*$//')/{{.NPM_PACKAGE}}/package.json"
+          PACKAGE_PATH="$(echo $NODE_PATH | sed 's/^://' | sed 's/:.*$//')/{{.PACKAGE}}/package.json"
           if [ -f "$PACKAGE_PATH" ]; then
             echo 'true'
           else
@@ -149,201 +153,233 @@ tasks:
           fi
     run: once
     log:
-      error: Error installing `{{.NPM_PACKAGE}}` globally
-      start: Installing NPM global library `{{.NPM_PACKAGE}}` which does not have a CLI
-      success: '`{{.NPM_PACKAGE}}` has been installed globally'
+      error: Error installing `{{.PACKAGE}}` globally
+      start: Installing NPM global library `{{.PACKAGE}}` which does not have a CLI
+      success: '`{{.PACKAGE}}` has been installed globally'
     cmds:
-      - '{{.NPM_PROGRAM}} install -g {{.NPM_PACKAGE}}'
+      - |
+        if [ -n "$CI" ]; then echo "*************** npm global --> {{.PACKAGE}}"; fi
+      - volta install {{.PACKAGE}}'
     status:
       - '[[ "$PACKAGE_EXISTS" == "true" ]]'
 
   global:package-manager:
+    deps:
+      - :install:software:node
+      - :install:software:volta
     run: once
-    log:
-      error: Failed to install `{{.NPM_PROGRAM}}`
-      start: Installing `{{.NPM_PROGRAM}}`
-      success: Successfully installed `{{.NPM_PROGRAM}}`
     cmds:
-      - task: :install:software:node
-      - npm install -g {{.NPM_PROGRAM}}
+      - .config/log info 'Installing `{{.NPM_PROGRAM}}`'
+      - volta install {{.NPM_PROGRAM}}
+      - .config/log info 'Successfully installed `{{.NPM_PROGRAM}}`'
     status:
       - type {{.NPM_PROGRAM}} > /dev/null
+
+  htmlhint:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: htmlhint
 
   husky:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: husky
 
-          NPM_PACKAGE: husky
-  ionic:
+  ifttt:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: '@ionic/cli'
-          NPM_PACKAGE_BIN: ionic
+          BIN_NAME: ifttt
+          PACKAGE: ifttt-cli
+
+  install:npm:
+    deps:
+      - global:package-manager
+    vars:
+      BIN: '{{if .BIN_NAME}}{{.BIN_NAME}}{{else}}{{.PACKAGE}}{{end}}'
+    run: when_changed
+    cmds:
+      - .config/log start 'Installing NPM package `{{.PACKAGE}}` globally'
+      - |
+        PATH="$PATH:$HOME/.local/bin"
+        volta install {{.PACKAGE}}
+      - .config/log success 'Installed NPM package `{{.PACKAGE}}` globally'
+    status:
+      - type {{.BIN}} > /dev/null
+
+  ionic:
+    run: once
+    tags:
+      - semantic
+    cmds:
+      - task: install:npm
+        vars:
+          BIN_NAME: ionic
+          PACKAGE: '@ionic/cli'
 
   jest:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: jest
 
-          NPM_PACKAGE: jest
   leasot:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: leasot
 
-          NPM_PACKAGE: leasot
   lint-staged:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: lint-staged
 
-          NPM_PACKAGE: lint-staged
   liquidjs:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: hbs-cli
-          NPM_PACKAGE_BIN: hbs
-      - task: global
-        vars:
-          INSTALL_TASK: '{{.TASK}}'
+          BIN_NAME: hbs
+          PACKAGE: hbs-cli
+      - task: liquidjs:install
 
-          NPM_PACKAGE: liquidjs
+  liquidjs:install:
+    tags:
+      - update
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: liquidjs
+
   majestic:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: majestic
 
-          NPM_PACKAGE: majestic
   markdown-link-check:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: markdown-link-check
 
-          NPM_PACKAGE: markdown-link-check
   markdown-table-formatter:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: markdown-table-formatter
 
-          NPM_PACKAGE: markdown-table-formatter
   modclean:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: modclean@2
-          NPM_PACKAGE_BIN: modclean
+          BIN_NAME: modclean
+          PACKAGE: modclean@2
 
   ndb:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: ndb
 
-          NPM_PACKAGE: ndb
   nest:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: '@nestjs/cli'
-          NPM_PACKAGE_BIN: nest
+          BIN_NAME: nest
+          PACKAGE: '@nestjs/cli'
 
   nodemon:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: nodemon
 
-          NPM_PACKAGE: nodemon
   npm:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: npm
 
-          NPM_PACKAGE: npm
   ntl:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: ntl
 
-          NPM_PACKAGE: ntl
   nx:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: nx
 
-          NPM_PACKAGE: nx
   only-allow:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: only-allow
 
-          NPM_PACKAGE: only-allow
   open-cli:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: open-cli
 
-          NPM_PACKAGE: open-cli
   pac:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: pac
 
-          NPM_PACKAGE: pac
   pkg:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: pkg
 
-          NPM_PACKAGE: pkg
   pnpm:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: pnpm
+          PACKAGE: pnpm
       - task: pnpm:import
     status:
       - type pnpm &> /dev/null
@@ -351,11 +387,10 @@ tasks:
   pnpm-lock-export:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: pnpm-lock-export
 
-          NPM_PACKAGE: pnpm-lock-export
   pnpm:import:
     run: once
     log:
@@ -369,133 +404,169 @@ tasks:
 
   prettier:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: prettier
 
-          NPM_PACKAGE: prettier
+  quicktype:
+    run: once
+    tags:
+      - update
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: quicktype
+
   readme:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: '@appnest/readme'
-          NPM_PACKAGE_BIN: readme
+          BIN_NAME: readme
+          PACKAGE: '@appnest/readme'
+
+  real-favicon:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          BIN_NAME: real-favicon
+          PACKAGE: cli-real-favicon
 
   remark:
     run: once
+    tags:
+      - update
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: remark-cli
-          NPM_PACKAGE_BIN: remark
+          BIN_NAME: remark
+          PACKAGE: remark-cli
+
+  secretlint:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: secretlint
 
   semantic-release:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: semantic-release
 
-          NPM_PACKAGE: semantic-release
   sharp:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: sharp-cli
-          NPM_PACKAGE_BIN: sharp
+          BIN_NAME: sharp
+          PACKAGE: sharp-cli
 
   shellcheck:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: shellcheck
 
-          NPM_PACKAGE: shellcheck
   snyk:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: snyk
 
-          NPM_PACKAGE: snyk
   standard:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: standard
 
-          NPM_PACKAGE: standard
   standard-version:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: standard-version
 
-          NPM_PACKAGE: standard-version
-  synp:
+  stylelint:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: stylelint
 
-          NPM_PACKAGE: synp
+  synp:
+    run: once
+    tags:
+      - update
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: synp
+
   tinypng:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: tinypng-cli
-          NPM_PACKAGE_BIN: tinypng
+          BIN_NAME: tinypng
+          PACKAGE: tinypng-cli
 
   ts-node:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: ts-node
 
-          NPM_PACKAGE: ts-node
   typedoc:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: typedoc
 
-          NPM_PACKAGE: typedoc
   typescript:
     run: once
+    tags:
+      - semantic
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: typescript
-          NPM_PACKAGE_BIN: tsc
+          BIN_NAME: tsc
+          PACKAGE: typescript
 
   typesync:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
+          PACKAGE: typesync
 
-          NPM_PACKAGE: typesync
+  wrangler:
+    run: once
+    cmds:
+      - task: install:npm
+        vars:
+          PACKAGE: wrangler
+
   yarnhook:
     run: once
     cmds:
-      - task: global
+      - task: install:npm
         vars:
-          INSTALL_TASK: '{{.TASK}}'
-          NPM_PACKAGE: yarnhook
+          PACKAGE: yarnhook

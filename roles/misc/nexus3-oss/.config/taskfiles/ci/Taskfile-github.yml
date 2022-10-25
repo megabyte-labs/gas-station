@@ -22,3 +22,24 @@ tasks:
       success: Completed local GitHub Actions test
     cmds:
       - act
+
+  synchronize:
+    deps:
+      - :install:software:git
+    summary: |
+      Forces a push to the GitHub master branch so that GitHub stays mirrored with
+      the GitLab master branch.
+    env:
+      GITHUB_HTTP_REPO:
+        sh: jq -r '.blueprint.repository.github' package.json
+    cmds:
+      - cmd: |
+          if [ "$GITHUB_HTTP_REPO" != 'null' ]; then
+            GITHUB_REPO_WITH_TOKEN="$(echo "$GITHUB_HTTP_REPO" | sed "s/github.com/${GITHUB_TOKEN}@github.com/")"
+            git remote add github "${GITHUB_REPO_WITH_TOKEN}.git"
+            git fetch --unshallow origin
+            git push github master --force
+          else
+            .config/log warn 'The .blueprint.repository.github field is missing! Cannot synchronize to GitHub.'
+          fi
+        ignore_error: true

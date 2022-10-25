@@ -4,6 +4,7 @@ version: '3'
 tasks:
   create:
     deps:
+      - :ci:commit:config
       - :install:software:gh
       - :install:software:jq
       - :git:remotes
@@ -22,14 +23,16 @@ tasks:
       start: Checking for presence of GitHub repository and creating one if it does not exist
       success: Ensure GitHub repository is present
     cmds:
-      - cmd: gh repo create "{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}"
+      - cmd: |
+          gh repo create "{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}" --enable-wiki={{.GITHUB_WIKI}} -y --description "{{.EMOJI_START}}{{.DESCRIPTION}}{{.EMOJI_END}}" \
           --homepage "{{.HOMEPAGE}}" {{.PROJECT_TYPE}} > /dev/null
+          task --list > /dev/null || (echo "ERROR: Invalid Taskfiles!" && exit 1)
+          git add --all
+          git commit --quiet -m "✨ feat(birth): Birth" -n || true
+          git push github master
         ignore_error: true
-      - git add --all
-      - git commit --quiet -m "🎂 Birth" -n || true
-      - git push --quiet -u --no-progress github master
     status:
-      - '[ -z "$GITHUB_TOKEN" ] || ! test -e .git || gh repo view {{.GITHUB_ORG}}/{{.GITHUB_SLUG}} > /dev/null'
+      - '[ -z "$GITHUB_TOKEN" ] || (test -d .git && gh repo view "{{.GITHUB_ORG}}/{{.GITHUB_SLUG}}" > /dev/null)'
     preconditions:
       - sh: '[ "{{.DESCRIPTION}}" != "null" ]'
         msg: The `.description` in `package.json` must be set.
@@ -57,7 +60,38 @@ tasks:
     status:
       - '[[ "{{.CURRENT_PROJECT_ID}}" == "{{.PROJECT_ID}}" ]]'
 
+  ssh-keys:
+    deps:
+      - :install:software:gh
+      - :install:software:jq
+    cmds:
+      - .config/log info 'Clearing GitLab SSH keys'
+      - |
+        ACCEPT_HEADER="Accept: application/vnd.github+json"
+        GH_KEYS_URL="https://api.github.com/user/keys"
+        KEYIDS="$(curl -sSL -H "$ACCEPT_HEADER" -H "Authorization: token $GITHUB_TOKEN" "$GH_KEYS_URL" | jq '.[].id')"
+        for KEYID in $KEYIDS; do
+          curl -H "$ACCEPT_HEADER" -H "Authorization: token $GITHUB_TOKEN" -X DELETE "$GH_KEYS_URL/$KEYID"
+        done
+      - .config/log start 'Syncing SSH keys with GitHub'
+      - |
+        for KEY in `ls $HOME/.ssh/*.pub`; do
+          TITLE="$(cat $KEY | sed 's/\(.*\=\) \(.*\)$/\2/')"
+          gh ssh-key add $KEY -t "$TITLE"
+        done
+      - .config/log success 'Finished syncing SSH keys with GitHub'
+    preconditions:
+      - sh: '[ -n "$GITHUB_TOKEN" ]'
+        msg: The GITHUB_TOKEN must be set to a personal access token.
+
   update:
+    run: once
+    cmds:
+      - task: update:deps
+    status:
+      - '[ -z "$GITHUB_TOKEN" ]'
+
+  update:deps:
     deps:
       - update:meta
       - ids

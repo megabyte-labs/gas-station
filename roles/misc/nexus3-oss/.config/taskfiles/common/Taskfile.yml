@@ -1,6 +1,31 @@
 ---
 version: '3'
 
+vars:
+  DOCKER_BUILDING:
+    sh: |
+      if [ -f /.dockerenv ] || [ "$container" == 'docker' ]; then
+        if [ -n "$BUILD_DATE" ]; then
+          echo "true"
+        fi
+      fi
+  DOCKER_ENVIRONMENT:
+    sh: |
+      if [ -f /.dockerenv ] || [ "$container" == 'docker' ]; then
+        echo "true"
+      fi
+  ENVIRONMENT_TYPE:
+    sh: |
+      if [ -f /.dockerenv ] || [ "$container" == 'docker' ]; then
+        if [ -n "$BUILD_DATE" ]; then
+          echo "docker-build"
+        else
+          echo "docker"
+        fi
+      else
+        echo "unknown"
+      fi
+
 tasks:
   clean:
     deps:
@@ -29,7 +54,6 @@ tasks:
       - :install:modules:local
       - :install:npm:commitizen
       - :install:npm:commitlint
-      - :install:python:requirements
     log:
       start: Initiating commit dialog
     cmds:
@@ -46,13 +70,13 @@ tasks:
       - task: husky:install
       - task: husky:permissions
     status:
-      - '[[ "${container:=}" == "docker" ]]'
+      - '[ "{{.DOCKER_ENVIRONMENT}}" == "true" ] || [ "$SEMANTIC_RELEASE" == "true" ]'
 
   husky:ci:
     cmds:
       - task: husky:permissions
     status:
-      - '[[ "${container:=}" != "docker" ]]'
+      - '[ "{{.DOCKER_ENVIRONMENT}}" != "true" ] || [ "$SEMANTIC_RELEASE" == "true" ]'
 
   husky:install:
     deps:
@@ -63,13 +87,13 @@ tasks:
     cmds:
       - |
         if [ -d .git ] && [ "${container:=}" != 'docker' ]; then
-          {{.NPX_HANDLE}}husky install .config/husky > /dev/null
+          husky install .config/husky > /dev/null
           .config/log success 'Installed Husky git hooks'
         else
           .config/log warn 'Cannot run `husky install` because there is no `.git/` folder (or this is a Docker container)'
         fi
     status:
-      - '[ ! -d .git ] || [[ "${container:=}" == "docker" ]]'
+      - '[ ! -d .git ] || [ "{{.DOCKER_ENVIRONMENT}}" == "true" ]'
 
   husky:permissions:
     log:
@@ -102,22 +126,28 @@ tasks:
     cmds:
       - task: update
       - task: :lint:all
-      - '{{.NPX_HANDLE}}standard-version --no-verify'
+      - standard-version --no-verify
+
+  repair:
+    vars:
+      MODEL_TMP:
+        sh: mktemp
+    cmds:
+      - |
+        curl -sSL '{{.MODEL_TASKFILE}}' > '{{.MODEL_TMP}}'
+        export ZXXXY="$(yq e '.' {{.MODEL_TMP}})"
+        yq e -i '. | .vars = (env(ZXXXY) | .vars) | .env = (env(ZXXXY) | .env)' Taskfile.yml
+        yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' '{{.MODEL_TMP}}' Taskfile.yml
 
   requirements:
     deps:
-      - :install:modules:global
       - :install:modules:local
       - :install:python:requirements
     summary: |
-      # Ensure dependencies are installed
+      # Ensure local dependencies are installed
 
-      This task ensures that packages in various languages (Node.js, Python, etc.) are installed.
-      At the very minimum, it will install the Node.js requirements by running `npm install`
-      (or `pnpm install`, if configured to do so), install the NPM global dependencies, and
-      then install the Python requirements by running `poetry update`. In some types of projects,
-      additional types of requirements are installed (e.g. Ansible projects also install Ansible
-      Galaxy requirements).
+      This task ensures local dependencies are installed. These include dependencies defined in `package.json`
+      and `pyproject.toml` (if the project is a Python project).
     run: once
 
   reset:
@@ -193,6 +223,13 @@ tasks:
             env:
               DC:
                 sh: echo '{{.ANSWER}}' | sed 's/ /-/g' | tr '[:upper:]' '[:lower:]'
+
+  start:
+    run: once
+    cmds:
+      - task: :common:start:docker
+      - task: :common:start:ci
+      - task: :common:start:dev
 
   update:
     deps:

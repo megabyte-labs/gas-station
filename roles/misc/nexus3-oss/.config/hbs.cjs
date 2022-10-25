@@ -50,6 +50,15 @@ module.exports.register = function (Handlebars) {
   })
 
   /**
+   * Used for returning input from synchronous commands (i.e. bash commands)
+   */
+  Handlebars.registerHelper('execSync', function (input, options) {
+    const output = execSync(input)
+
+    return output
+  })
+
+  /**
    * Used for generating Homebrew resource stanzas for Python packages.
    * For more information, see: https://github.com/tdsmith/homebrew-pypi-poet
    */

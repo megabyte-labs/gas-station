@@ -5,70 +5,49 @@ tasks:
   pip:
     deps:
       - :install:software:python
-    vars:
-      INSTALL_RECORD:
-        sh: |
-          if [ -n "$RECORD_INSTALL" ]; then
-            mkdir -p local/slim
-            echo '{{.PACKAGE}}' >> local/slim/exe.txt
-            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
-          fi
     run: when_changed
     log:
       error: Failed to install pip3 package `{{.PACKAGE}}`
       start: Installing pip3 package `{{.PACKAGE}}`
       success: Installed pip3 package `{{.PACKAGE}}`
     cmds:
+      - |
+        if [ -n "$CI" ]; then echo "*************** pip3 --> {{.PACKAGE}}"; fi
       - pip3 install {{.PACKAGE}}
     status:
       - type {{.PACKAGE}} > /dev/null
 
   pipx:
-    deps:
-      - :install:software:pipx
-    vars:
-      INSTALL_RECORD:
-        sh: |
-          if [ -n "$RECORD_INSTALL" ]; then
-            mkdir -p local/slim
-            echo '{{.PACKAGE}}' >> local/slim/exe.txt
-            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
-          fi
-    run: when_changed
-    log:
-      error: Failed to install `{{.PACKAGE}}` with pipx
-      start: Installing `{{.PACKAGE}}` with pipx
-      success: Successfully installed `{{.PACKAGE}}` with pipx
     cmds:
-      - pipx install {{.PACKAGE}}
-    status:
-      - type {{.PACKAGE}} > /dev/null
+      - task: :install:pipx:install
+        vars:
+          BIN_NAME: '{{.BIN_NAME}}'
+          PACKAGE: '{{.PACKAGE}}'
 
   pytest:
-    run: once
     cmds:
-      - task: pip
-        vars:
-          INSTALL_TASK: '{{.TASK}}'
-          PACKAGE: pytest
+      - task: :install:pipx:pytest
 
   pytest-cov:
-    run: once
     cmds:
-      - task: pip
-        vars:
-          INSTALL_TASK: '{{.TASK}}'
-          PACKAGE: pytest-cov
+      - task: :install:pipx:pytest-cov
 
   requirements:
     run: once
     cmds:
       - task: :install:software:python
-      - task: requirements:poetry:prereqs
+      - task: :{{if eq .REPOSITORY_TYPE "ansible"}}install:pipx:ansible{{else}}donothing{{end}}
       - task: requirements:poetry
       - task: :{{if eq .REPOSITORY_TYPE "ansible"}}ansible:galaxy:requirements{{else}}donothing{{end}}
 
   requirements:poetry:
+    cmds:
+      - task: requirements:poetry:prereqs
+      - task: requirements:poetry:install
+    status:
+      - '[ ! -f pyproject.toml ] || ! type poetry &> /dev/null'
+
+  requirements:poetry:install:
     summary: |
       # Poetry Requirements
 
@@ -80,7 +59,7 @@ tasks:
       success: Successfully ran `poetry install`
     cmds:
       - task: :install:software:poetry
-      - poetry env use "$(which python3.10)"
+      - poetry env use "$(which python3)"
       - poetry config virtualenvs.create {{if .PYTHON_VIRTUALENV}}{{.PYTHON_VIRTUALENV}}{{else}}false{{end}}
       - poetry config virtualenvs.in-project true
       - |
@@ -107,6 +86,7 @@ tasks:
           poetry update{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}
         else
           .config/log info 'Installing Poetry dependencies{{if .INSTALL_OPTIONS}} with options `{{.INSTALL_OPTIONS}}`{{end}}'
+          export "CFLAGS=-I/usr/local/include -L/usr/local/lib"
           poetry install{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}} || EXIT_CODE=$?
           if [ -n "$EXIT_CODE" ]; then
             .config/log warn 'Running `poetry install{{if .INSTALL_OPTIONS}} {{.INSTALL_OPTIONS}}{{end}}` failed.'
@@ -116,28 +96,49 @@ tasks:
         fi
     sources:
       - pyproject.toml
-    preconditions:
-      - sh: test -f pyproject.toml
-        msg: The `pyproject.toml` file is missing!
 
   requirements:poetry:prereqs:
-    vars:
+    tags:
+      - update
+    env:
       GCC5_MISSING_MESSAGE: |
-        It looks like your system is missing gcc-5 but gcc is available. You might be prompted
-        for your sudo password to run the following command:
+        # Sudo Required for gcc-5 Symlink
+
+        It looks like your system is missing gcc-5 but gcc is available. Select "Yes" if you would
+        like to symlink your version of gcc to gcc-5 which, for the purposes of this project, can
+        prevent issues with our Python runner `poetry`. However, there are some circumstances where
+        you may not want to do this. This will generally be harmless - you can always remove the symlink
+        by running `sudo rm -rf /usr/local/bin/gcc-5`.
     log:
       error: Error checking `gcc`
       start: Checking if `gcc` should be symlinked to `gcc-5`
       success: Checked `gcc`
     cmds:
       - |
-        if which gcc; then
-          if [ -w /usr/local/bin ]; then
-            ln -s "$(which gcc)" /usr/local/bin/gcc-5
+        if which gcc &> /dev/null; then
+          TMP="$(mktemp)" && echo "$GCC5_MISSING_MESSAGE" > "$TMP" && .config/log md "$TMP"
+          if [[ $- == *i* ]]; then
+            if [ -w /usr/local/bin ]; then
+              if .config/log confirm 'Symlink `gcc` to `gcc-5`?'; then
+                ln -s "$(which gcc)" /usr/local/bin/gcc-5
+              fi
+            else
+              if .config/log confirm 'Symlink `gcc` to `gcc-5` via sudo?'; then
+                .config/log info 'Running sudo command `sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
+                sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+              else
+                .config/log warn 'Continuing with missing `gcc-5` binary'
+              fi
+            fi
           else
-            .config/log info '{{.GCC5_MISSING_MESSAGE}}'
-            .config/log info '`sudo ln -s '"$(which gcc)"' /usr/local/bin/gcc-5`'
-            sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+            .config/log info 'Session is non-interactive'
+            .config/log warn 'Symlinking `gcc` to `gcc-5` since session is non-interactive'
+            .config/log info 'Remove the symlink later on (if required) by running `sudo rm /usr/local/bin/gcc-5`'
+            if [ -w /usr/local/bin ]; then
+              ln -s "$(which gcc)" /usr/local/bin/gcc-5
+            else
+              sudo ln -s "$(which gcc)" /usr/local/bin/gcc-5
+            fi
           fi
         else
           .config/log warn '`gcc` is missing.'

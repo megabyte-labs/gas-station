@@ -141,7 +141,7 @@ tasks:
       success: Finished compiling {{.ARCHITECTURE}} {{.FPM_TARGET}} binary with FPM for {{.NPM_PACKAGE_NAME}}, version {{.NPM_PACKAGE_VERSION}}
     cmds:
       - >
-        {{.NPX_HANDLE}}fpm -s npm -t {{.FPM_TARGET}}
+        fpm -s npm -t {{.FPM_TARGET}}
         -p {{.BINARY_BUILD_FOLDER}}/{{.NPM_PACKAGE_NAME}}-{{.NPM_PACKAGE_VERSION}}-{{.SYSTEM}}-{{.ARCHITECTURE}}.{{.FILE_EXTENSION}}
         --architecture {{.ARCHITECTURE}} .
 
@@ -154,7 +154,7 @@ tasks:
       start: Building NestJS project
       success: Finished building NestJS project
     cmds:
-      - '{{.NPX_HANDLE}}nest build'
+      - nest build
       - task: build:nest:after
 
   build:nest:after:
@@ -177,12 +177,13 @@ tasks:
       start: Generating standalone executables for macOS, Linux, and Windows using `pkg`
       success: Generated standalone executables for macOS, Linux, and Windows using `pkg`
     cmds:
-      - '{{.NPX_HANDLE}}pkg package.json'
+      - pkg package.json
 
   build:release: 'true'
 
   build:tsconfig:
     deps:
+      - :install:modules:local
       - :install:npm:typescript
     log:
       error: Error building with `tsconfig.json`
@@ -191,6 +192,17 @@ tasks:
     cmds:
       - rm -rf dist
       - tsc -p tsconfig.json
+
+  bump:
+    deps:
+      - :install:modules:local
+    cmds:
+      - npm run build
+      - |
+        .config/log info 'The current package.json version is `'"$(jq -r '.version' package.json)"'`'
+        BUMP_VERSION="$(npm version patch --no-scripts --no-commit-hooks --no-git-tag-version --force | sed 's/^v//')"
+        .config/log info 'Bumped the package.json version with a patch update to version `'"$BUMP_VERSION"'`'
+      - SKIP_PREPUB=true npm publish
 
   clean:
     deps:
@@ -215,6 +227,16 @@ tasks:
         done
         wait
 
+  config:
+    deps:
+      - :install:software:jq
+      - :install:software:node
+    vars:
+      REGISTRY_ADDRESS:
+        sh: jq -r '.publishConfig["@gitlab:registry"]' package.json | sed 's/^https://'
+    cmds:
+      - npm config set -- '//registry.npmjs.org/:_authToken' '${NPM_TOKEN}' '{{.REGISTRY_ADDRESS}}:_authToken' '${GITLAB_TOKEN}'
+
   depcheck:dependencies:
     deps:
       - :install:npm:depcheck
@@ -225,8 +247,7 @@ tasks:
       start: Uninstalling unused dependencies in package.json
       success: Successfully uninstalled unused dependencies in package.json
     cmds:
-      - |
-        {{.NPX_HANDLE}}depcheck --json | jq -r '.dependencies[]' | xargs -n1 {{.NPM_PROGRAM_LOCAL}} uninstall --save
+      - depcheck --json | jq -r '.dependencies[]' | xargs -n1 {{.NPM_PROGRAM}} uninstall --save
 
   preinstall:
     deps:
@@ -240,15 +261,26 @@ tasks:
 
   prepare:
     cmds:
+      - task: prepare:project
+      - task: prepare:release
+
+  prepare:project:
+    cmds:
       - task: :common:husky
     status:
-      - '[ -z "$CI" ]'
+      - '[ -n "$CI" ] || [ -n "$SEMANTIC_RELEASE" ]'
 
   prepare:prune:
     cmds:
       - task: prune
     status:
       - '! type node-prune &> /dev/null'
+
+  prepare:release:
+    cmds:
+      - 'true'
+    status:
+      - '[ -z "$SEMANTIC_RELEASE" ]'
 
   prune:
     deps:
@@ -260,28 +292,52 @@ tasks:
     cmds:
       - node-prune
 
+  publish:gitlab:
+    deps:
+      - :install:software:jq
+      - :install:software:node
+      - :npm:config
+    vars:
+      PKG_NAME:
+        sh: jq -r '.name' package.json
+      REGISTRY_ADDRESS:
+        sh: jq -r '.publishConfig["@gitlab:registry"]' package.json
+      VERSION:
+        sh: jq -r '.version' package.json
+    env:
+      BACKUP_PKG:
+        sh: mktemp
+    cmds:
+      - cp package.json "$BACKUP_PKG"
+      - TMP="$(mktemp)" && jq '.name = "@gitlab/{{.PKG_NAME}}" | .publishConfig.access = "restricted"' package.json > "$TMP" && mv "$TMP" package.json
+      - npm publish
+      - npm dist-tag --registry={{.REGISTRY_ADDRESS}} add {{.PKG_NAME}}@{{.VERSION}} latest
+      - mv "$BACKUP_PKG" package.json
+    status:
+      - '[ "$(jq -r ".publishConfig[\"@gitlab:registry\"] | type" package.json)" != "string" ] || [ -z "$NPM_PUBLISH_GITLAB" ]'
+
   start:
     deps:
       - :install:modules:local
       - :install:npm:nest
     desc: Run the application
     log:
-      error: Encountered error while running `{{.NPX_HANDLE}}nest start`
-      start: Running `{{.NPX_HANDLE}}nest start`
-      success: Successfully ran `{{.NPX_HANDLE}}nest start`
+      error: Encountered error while running `nest start`
+      start: Running `nest start`
+      success: Successfully ran `nest start`
     cmds:
-      - '{{.NPX_HANDLE}}nest start'
+      - nest start
 
   start:debug:
     deps:
       - :install:modules:local
       - :install:npm:nest
     log:
-      error: Encountered error while running `{{.NPX_HANDLE}}nest start --watch`
-      start: Running `{{.NPX_HANDLE}}nest start --watch`
-      success: Successfully ran `{{.NPX_HANDLE}}nest start --watch`
+      error: Encountered error while running `nest start --watch`
+      start: Running `nest start --watch`
+      success: Successfully ran `nest start --watch`
     cmds:
-      - '{{.NPX_HANDLE}}nest start --watch'
+      - nest start --watch
 
   start:inspect:
     deps:
@@ -291,22 +347,22 @@ tasks:
       - :install:npm:ts-node
     desc: Run the application in `watch` mode and open DevTools
     log:
-      error: Error encountered while running `{{.NPX_HANDLE}}ndb nest start --watch`
-      start: Running `{{.NPX_HANDLE}}ndb nest start --watch`
-      success: Successfully ran `{{.NPX_HANDLE}}ndb nest start --watch`
+      error: Error encountered while running `ndb nest start --watch`
+      start: Running `ndb nest start --watch`
+      success: Successfully ran `ndb nest start --watch`
     cmds:
-      - '{{.NPX_HANDLE}}ndb nest start --watch'
+      - ndb nest start --watch
 
   start:inspect:legacy:
     deps:
       - :install:modules:local
       - :install:npm:nest
     log:
-      error: Encountered error while running `{{.NPX_HANDLE}}nest start --debug --watch`
-      start: Running `{{.NPX_HANDLE}}nest start --debug --watch`
-      success: Successfully ran `{{.NPX_HANDLE}}nest start --debug --watch`
+      error: Encountered error while running `nest start --debug --watch`
+      start: Running `nest start --debug --watch`
+      success: Successfully ran `nest start --debug --watch`
     cmds:
-      - '{{.NPX_HANDLE}}nest start --debug --watch'
+      - nest start --debug --watch
 
   start:prod:
     deps:
@@ -327,11 +383,11 @@ tasks:
       - :install:npm:nest
     desc: Run the application in `production` and `watch` mode and open DevTools
     log:
-      error: Error encountered while running `{{.NPX_HANDLE}}ndb nodemon`
-      start: Running `{{.NPX_HANDLE}}ndb nodemon`
-      success: Successfully ran `{{.NPX_HANDLE}}ndb nodemon`
+      error: Error encountered while running `ndb nodemon`
+      start: Running `ndb nodemon`
+      success: Successfully ran `ndb nodemon`
     cmds:
-      - '{{.NPX_HANDLE}}ndb nodemon'
+      - ndb nodemon
 
   test:
     deps:
@@ -340,21 +396,21 @@ tasks:
     desc: Run the unit tests for an NPM project
     log:
       error: Errors were detected by Jest
-      start: Running `{{.NPX_HANDLE}}jest`
-      success: Successfully ran `{{.NPX_HANDLE}}jest`
+      start: Running `jest`
+      success: Successfully ran `jest`
     cmds:
-      - '{{.NPX_HANDLE}}jest --silent=false'
+      - jest --silent=false
 
   test:ci:
     deps:
       - :install:modules:local
       - :install:npm:jest
     log:
-      error: Encountered error while running `{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit`
-      start: Running `{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit`
-      success: Successfully ran `{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit`
+      error: Encountered error while running `jest --collectCoverage --ci --reporters=default --reporters=jest-junit`
+      start: Running `jest --collectCoverage --ci --reporters=default --reporters=jest-junit`
+      success: Successfully ran `jest --collectCoverage --ci --reporters=default --reporters=jest-junit`
     cmds:
-      - '{{.NPX_HANDLE}}jest --collectCoverage --ci --reporters=default --reporters=jest-junit'
+      - jest --collectCoverage --ci --reporters=default --reporters=jest-junit
 
   test:coverage:
     deps:
@@ -362,11 +418,11 @@ tasks:
       - :install:npm:jest
     desc: Generate code coverage assets
     log:
-      error: Error running `{{.NPX_HANDLE}}jest --coverage`
-      start: Generating code coverage assets by running `{{.NPX_HANDLE}}jest --coverage`
-      success: Successfully ran `{{.NPX_HANDLE}}jest --coverage`
+      error: Error running `jest --coverage`
+      start: Generating code coverage assets by running `jest --coverage`
+      success: Successfully ran `jest --coverage`
     cmds:
-      - '{{.NPX_HANDLE}}jest --coverage'
+      - jest --coverage
 
   test:dashboard:
     deps:
@@ -374,11 +430,11 @@ tasks:
       - :install:npm:majestic
     desc: Run and manage test cases from a web interface (powered by `majestic`)
     log:
-      error: Error running `{{.NPX_HANDLE}}majestic --debug`
-      start: Launching web interface for debugging test cases by running `{{.NPX_HANDLE}}majestic --debug`
-      success: Successfully ran `{{.NPX_HANDLE}}majestic --debug`
+      error: Error running `majestic --debug`
+      start: Launching web interface for debugging test cases by running `majestic --debug`
+      success: Successfully ran `majestic --debug`
     cmds:
-      - '{{.NPX_HANDLE}}majestic --debug'
+      - majestic --debug
 
   test:debug:
     deps:
@@ -386,11 +442,11 @@ tasks:
       - :install:npm:jest
     desc: Debug tests in `watch` mode
     log:
-      error: Error running `{{.NPX_HANDLE}}jest --watch`
-      start: Running `{{.NPX_HANDLE}}jest --watch`
-      success: Successfully ran `{{.NPX_HANDLE}}jest --watch`
+      error: Error running `jest --watch`
+      start: Running `jest --watch`
+      success: Successfully ran `jest --watch`
     cmds:
-      - '{{.NPX_HANDLE}}jest --watch'
+      - jest --watch
 
   test:e2e: 'true'
 
@@ -403,11 +459,11 @@ tasks:
       - :install:npm:ts-node
     desc: Debug tests with DevTools in `watch` mode
     log:
-      error: Error running `{{.NPX_HANDLE}}ndb nodemon --config .config/nodemon-jest.json`
-      start: Running `{{.NPX_HANDLE}}ndb nodemon --config .config/nodemon-jest.json` to enable debugging with Chrome DevTools in watch mode
-      success: Successfully ran `{{.NPX_HANDLE}}ndb nodemon --config .config/nodemon-jest.json`
+      error: Error running `ndb nodemon --config .config/nodemon-jest.json`
+      start: Running `ndb nodemon --config .config/nodemon-jest.json` to enable debugging with Chrome DevTools in watch mode
+      success: Successfully ran `ndb nodemon --config .config/nodemon-jest.json`
     cmds:
-      - '{{.NPX_HANDLE}}ndb nodemon --config .config/nodemon-jest.json'
+      - ndb nodemon --config .config/nodemon-jest.json
 
   test:none:
     log:
@@ -420,8 +476,10 @@ tasks:
       - :install:npm:typesync
     desc: Install missing type definitions
     log:
-      error: Error running `{{.NPX_HANDLE}}typesync`
-      start: Installing missing type definitions by running `{{.NPX_HANDLE}}typesync`
-      success: Successfully ran `{{.NPX_HANDLE}}typesync`
+      error: Error running `typesync`
+      start: Installing missing type definitions by running `typesync`
+      success: Successfully ran `typesync`
     cmds:
-      - '{{.NPX_HANDLE}}typesync'
+      - typesync
+
+  verify: 'true'

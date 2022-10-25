@@ -3,6 +3,8 @@ version: '3'
 
 tasks:
   build:
+    deps:
+      - :install:software:jq
     vars:
       BUILD_COMMAND:
         sh: jq -r '.blueprint.build_command' package.json
@@ -54,6 +56,43 @@ tasks:
     status:
       - '[[ "{{.BUILD_COMMAND}}" == "null" ]] || [[ "{{.BUILD_OUTPUT}}" == "null" ]]'
 
+  prepare:
+    cmds:
+      - task: :go:goreleaser:build
+
+  publish:
+    cmds:
+      - task: :go:goreleaser:release
+      - task: publish:after
+      - rm -rf dist
+
+  publish:after:
+    deps:
+      - publish:after:docker
+      - publish:after:fury
+
+  publish:after:docker:
+    summary: |
+      Unsure why this is here and how it is useful.
+    cmds:
+      - .config/log warn 'Unused step go:publish:after:docker - pay attention to this only for debugging purposes'
+    # cmds:
+    #   - |
+    #     for FILE in build/goreleaserdocker*; do
+    #       [ -e "$FILE" ] && task --dir "$FILE" docker:verify docker:build docker:publish
+    #       break
+    #     done
+    #   - rm -rf build/goreleaserdocker*
+
+  publish:after:fury:
+    deps:
+      - :install:software:fury
+    cmds:
+      - fury push build/*.deb --account=$FURY_ACCOUNT --api-token=$FURY_DEPLOY_TOKEN
+      - fury push build/*.rpm --account=$FURY_ACCOUNT --api-token=$FURY_DEPLOY_TOKEN
+    status:
+      - '[ -z "$FURY_ACCOUNT" ] || [ -z "$FURY_DEPLOY_TOKEN" ]'
+
   test:
     deps:
       - :install:software:go
@@ -63,3 +102,8 @@ tasks:
       success: Successfully finished testing Go sources
     cmds:
       - go test ./...
+
+  verify:
+    cmds:
+      - task: :go:goreleaser:check
+      - task: :publish:snap:register

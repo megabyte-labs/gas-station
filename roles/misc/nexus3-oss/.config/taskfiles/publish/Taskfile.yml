@@ -42,48 +42,65 @@ tasks:
             sh: echo true
       - :install:npm:semantic-release
       - :install:software:git
-      - :install:software:poetry
     vars:
       RELEASE_PREFIX:
         sh: if [ -f setup.cfg ]; then echo 'poetry run '; else echo ''; fi
       RUN_OPTIONS: '{{if .CLI_ARGS}} {{.CLI_ARGS}}{{else}} --ci false --debug --dry-run false{{end}}'
+    env:
+      GIT_CREDENTIALS:
+        sh: |
+          if [ -n "$CI" ]; then
+            echo "gitlab-ci-token:$CI_BUILD_TOKEN"
+          fi
+      HUSKY: '0'
+      PUBLISHING: 'true'
+      SEMANTIC_RELEASE: 'true'
     log:
       error: Error while running `semantic-release`
       start: Releasing with `semantic-release`..
       success: Finished running `semantic-release`
     cmds:
-      - rm -rf build dist
+      - task: semantic-release:prepare
+      - |
+        {{.RELEASE_PREFIX}}semantic-release -r "$(git remote get-url origin)"{{.RUN_OPTIONS}}
+      - git push all master || git push origin master
+
+  semantic-release:build:
+    cmds:
+      - rm -rf artifacts build dist
+      - task: :release:build
+
+  semantic-release:poetry:
+    deps:
+      - :install:software:poetry
+    cmds:
+      - poetry install -E semantic
+    status:
+      - '[ ! -f setup.cfg ]'
+
+  semantic-release:prepare:
+    deps:
       - task: :install:modules:local:sync
         vars:
           NPM_KEEP_UPDATED: '{{.SEMANTIC_CONFIG}}'
-      - task: version:tag
-      - task: :common:update:variables
-      - |
-        if [ -f setup.cfg ]; then
-          poetry install -E semantic
-        fi
-      - |
-        if [ -n "$CI" ]; then
-          export GIT_CREDENTIALS="gitlab-ci-token:$CI_BUILD_TOKEN"
-        fi
-        unset
-        {{.RELEASE_PREFIX}}semantic-release -r "$(git remote get-url origin)"{{.RUN_OPTIONS}}
+      - :common:update:variables
+      - :npm:config
+      - semantic-release:build
+      - semantic-release:poetry
+      - version:tag
 
   version:tag:
     deps:
+      - :ci:commit:config
       - :install:software:jq
     summary: |
       This command is intended to be used before the `semantic-release` task to ensure
       that the latest git tag is up-to-date with the latest `package.json` version.
     cmds:
       - git fetch --all --tags -f
-      - |
-        if ! git tag | grep "v$(jq -r '.version' package.json)"; then
-          git tag -a "v$(jq -r '.version' package.json )" -m "Latest package.json version tagged."
-          git push origin --tags
-        fi
+      - git tag "v$(jq -r '.version' package.json)"
     status:
-      - git tag | grep "v$(jq -r '.version' package.json)
+      - git tag | grep "v$(jq -r '.version' package.json)"
     preconditions:
       - sh: '[ -f package.json ]'
         msg: A package.json file must be present!

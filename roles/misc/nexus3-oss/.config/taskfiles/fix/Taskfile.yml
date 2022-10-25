@@ -23,7 +23,7 @@ tasks:
     deps:
       - :install:modules:local
       - :install:npm:eslint
-      - :install:software:expect
+      - :install:software:unbuffer
     desc: Fix ESLint errors automatically
     summary: |
       # Fix Errors with ESLint Automatically
@@ -37,28 +37,29 @@ tasks:
 
       **Example fixing all files in a project:**
       `task fix:js`
+    vars:
+      ESLINT_LOG:
+        sh: mktemp
     log:
       error: ESLint found some issues that need to be fixed manually
       start: Auto-fixing with ESLint
       success: ESLint fixing appears to have corrected all the issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
-      - 'unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache
-        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log'
+      - 'unbuffer eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache
+        --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee {{.ESLINT_LOG}}'
       - |
         if [ '{{.ESLINT_FIX_RECURSIVE}}' == 'true' ]; then
           COUNT=0
           while [ $COUNT -le 5 ]; do
             COUNT=$((COUNT + 1))
-            if grep 'potentially fixable with the `--fix` option' < eslint.log > /dev/null; then
+            if grep 'potentially fixable with the `--fix` option' < {{.ESLINT_LOG}} > /dev/null; then
               COUNT="$COUNT"
-              unbuffer {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache \
-              --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee eslint.log
-            else
-              echo '' > eslint.log
+              unbuffer eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache --cache-location .cache/eslintcache \
+              --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} | tee {{.ESLINT_LOG}}
             fi
           done
         fi
-      - rm eslint.log
+      - rm {{.ESLINT_LOG}}
 
   eslint:staged:
     deps:
@@ -73,7 +74,7 @@ tasks:
       success: Successfully auto-fixed modified files with ESLint
     cmds:
       - >
-        {{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
+        eslint -c package.json --no-eslintrc --format {{.ESLINT_FORMATTER}} --cache
         --cache-location .cache/eslintcache --fix {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   go:
@@ -95,7 +96,7 @@ tasks:
       start: Auto-fixing Go files..
       success: Successfully auto-fixed Go files
     cmds:
-      - golangci-lint run -c .config/golangci.yml --fix{{if .CLI_ARGS}}{{.CLI_ARGS}}{{end}}
+      - golangci-lint run -c .config/golangci.yml --fix{{if .CLI_ARGS}} {{.CLI_ARGS}}{{end}}
 
   js:
     cmds:
@@ -122,8 +123,8 @@ tasks:
       start: Linting JSON with ESLint
       success: ESLint has fixed all of the JSON issues {{if .CLI_ARGS}}in `{{.CLI_ARGS}}`{{else}}in the project{{end}}
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
-        --format pretty --ext .json {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
+        --format pretty --ext .json {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   markdown:
     deps:
@@ -159,7 +160,7 @@ tasks:
 
   misc:
     deps:
-      - :install:python:requirements
+      - :install:pipx:pre-commit-hooks
     summary: |
       # Miscellaneous fixes
 
@@ -180,9 +181,10 @@ tasks:
       success: Finished performing miscellaneous fixes{{if .CLI_ARGS}} on `{{.CLI_ARGS}}`{{end}}
     cmds:
       - |
+        PATH="$PATH:$HOME/.local/bin"
         function misc() {
-          {{.PYTHON_HANDLE}}fix-byte-order-marker "$1"
-          {{.PYTHON_HANDLE}}mixed-line-ending --fix=lf "$1"
+          fix-byte-order-marker "$1"
+          mixed-line-ending --fix=lf "$1"
         }
         {{if .CLI_ARGS}}
           misc '{{.CLI_ARGS}}'
@@ -275,16 +277,20 @@ tasks:
       start: Running Prettier on {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}}
     cmds:
       - cmd: |
-          {{.NPX_HANDLE}}prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
+          prettier --plugin node_modules/prettier-plugin-toml-fixed --ignore-path {{.PRETTIERIGNORE_CONFIG}} \
+          --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}} || EXIT_CODE=$?
           if [ -n "$EXIT_CODE" ]; then
-            .config/log warn 'Failed to run `{{.NPX_HANDLE}}prettier` - falling back to `prettier`'
-            prettier --ignore-path {{.PRETTIERIGNORE_CONFIG}} --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
+            .config/log warn 'Failed to run `prettier` - falling back to `prettier`'
+            prettier --plugin node_modules/prettier-plugin-toml-fixed --ignore-path {{.PRETTIERIGNORE_CONFIG}} \
+            --write {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
           fi
         ignore_error: true
 
   python:
     deps:
-      - :install:python:requirements
+      - :install:pipx:add-trailing-comma
+      - :install:pipx:isort
+      - :install:pipx:pyformat
     desc: Automatically format Python files using Black
     hide: '{{ne .REPOSITORY_TYPE "python"}}'
     summary: |
@@ -307,11 +313,16 @@ tasks:
       success: Fixed {{if .CLI_ARGS}}`{{.CLI_ARGS}}`{{else}}project{{end}} with `black`
     cmds:
       - |
+        PATH="$PATH:$HOME/.local/bin"
         {{if .CLI_ARGS}}
-          {{.PYTHON_HANDLE}}black {{.CLI_ARGS}}
+          pyformat -i {{.CLI_ARGS}}
+          isort --overwrite-in-place {{.CLI_ARGS}}
+          add-trailing-comma --exit-zero-even-if-changed {{.CLI_ARGS}}
         {{else}}
           while read PATHH; do
-            {{.PYTHON_HANDLE}}black "$PATHH"
+            pyformat -i "$PATHH"
+            isort --overwrite-in-place "$PATHH"
+            add-trailing-comma --exit-zero-even-if-changed "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.py' \))
         {{end}}
 
@@ -353,10 +364,10 @@ tasks:
       - |
         .config/log warn 'This is an experimental fix method - please manually inspect and test the scripts'
         {{if .CLI_ARGS}}
-          {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff {{.CLI_ARGS}} | git apply
+          shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff {{.CLI_ARGS}} | git apply
         {{else}}
           find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.sh' -o -name '*.sh.j2' \) \
-            -print0 | xargs -0 {{.NPX_HANDLE}}shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff | git apply
+            -print0 | xargs -0 shellcheck -e {{.SHELLCHECK_EXCLUDE}} -f diff | git apply
         {{end}}
 
   spelling:markdown:
@@ -378,7 +389,7 @@ tasks:
 
   toml:
     deps:
-      - :install:python:requirements
+      - :install:pipx:toml-sort
     desc: Format `.toml` files by alphabetizing and flattening
     summary: |
       # Automatically format `.toml` files
@@ -397,11 +408,14 @@ tasks:
       success: Successfully ran the `toml-sort` auto-fixer
     cmds:
       - |
+        PATH="$PATH:$HOME/.local/bin"
         {{if .CLI_ARGS}}
-          {{.PYTHON_HANDLE}}toml-sort -i --all {{.CLI_ARGS}}
+        if [ -f '{{.CLI_ARGS}}' ]; then
+          toml-sort -i --all {{.CLI_ARGS}}
+        fi
         {{else}}
           while read PATHH; do
-            {{.PYTHON_HANDLE}}toml-sort -i --all "$PATHH"
+            toml-sort -i --all "$PATHH"
           done < <(find . -type d \( {{.IGNORE_FOLDERS}} \) -prune -o -type f \( -name '*.toml' \))
         {{end}}
 
@@ -424,8 +438,8 @@ tasks:
       start: Attempting to auto-fix any XML files with ESLint
       success: Any XML files present in the project were successfully fixed/validated by ESLint
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
-        --format pretty --ext .xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - eslint -c package.json --no-eslintrc --cache --cache-location .cache/eslintcache --fix
+        --format pretty --ext .xml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}
 
   yaml:
     desc: Auto-format and sort YML files
@@ -509,5 +523,5 @@ tasks:
       start: Ensuring YML file(s) are in order specified in configuration
       success: Successfully ensured YML file order
     cmds:
-      - '{{.NPX_HANDLE}}eslint -c package.json --no-eslintrc --format pretty --fix --cache
-        --cache-location .cache/eslintcache --ext yml,yaml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}'
+      - eslint -c package.json --no-eslintrc --format pretty --fix --cache
+        --cache-location .cache/eslintcache --ext yml,yaml {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}.{{end}}

@@ -4,34 +4,58 @@ version: '3'
 tasks:
   bundle:
     deps:
-      - catfs
+      - grex
+      - htmlq
+      - hyperfine
 
   catfs:
     run: once
     cmds:
-      - task: install
+      - task: install:rust
         vars:
-          BIN: catfs
-          INSTALL_TASK: '{{.TASK}}'
+          BIN_NAME: catfs
           PACKAGE: catfs
 
-  install:
-    deps:
-      - :install:software:rust
+  clean:
+    cmds:
+      - rm -rf "$HOME/.cargo/registry"
+
+  grex:
+    run: once
+    cmds:
+      - task: install:rust
+        vars:
+          BIN_NAME: grex
+          PACKAGE: grex
+
+  htmlq:
+    run: once
+    cmds:
+      - task: install:rust
+        vars:
+          BIN_NAME: htmlq
+          PACKAGE: htmlq
+
+  hyperfine:
+    run: once
+    cmds:
+      - task: install:rust
+        vars:
+          BIN_NAME: hyperfine
+          PACKAGE: hyperfine
+
+  install:rust:
     vars:
-      INSTALL_RECORD:
-        sh: |
-          if [ -n "$RECORD_INSTALL" ]; then
-            mkdir -p local/slim
-            echo '{{.BIN}}' >> local/slim/exe.txt
-            echo '{{.INSTALL_TASK}}' >> local/slim/install.txt
-          fi
+      BIN: '{{if .BIN_NAME}}{{.BIN_NAME}}{{else}}{{.PACKAGE}}{{end}}'
     run: when_changed
     log:
       error: Failed to install Cargo crate `{{.PACKAGE}}`
       start: Installing Cargo crate `{{.PACKAGE}}`
       success: Installed Cargo crate `{{.PACKAGE}}`
     cmds:
+      - task: :install:software:rust
+      - |
+        if [ -n "$CI" ]; then echo "*************** cargo --> {{.PACKAGE}}"; fi
       - cargo install {{.PACKAGE}}
     status:
-      - type {{.BIN}} > /dev/null
+      - type {{.BIN}} > /dev/null || [ -n "$NO_INSTALL_RUST" ]

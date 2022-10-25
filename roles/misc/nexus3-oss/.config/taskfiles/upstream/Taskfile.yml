@@ -3,6 +3,7 @@ version: '3'
 
 tasks:
   common:
+    run: once
     log:
       error: Error updating common repository
       start: Updating common repository
@@ -20,8 +21,11 @@ tasks:
       - task: :fix:eslint
       - task: :git:commit:automated
       - task: :git:push:all
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   commondocs:
+    run: once
     log:
       error: Error updating common documents repository
       start: Updating common documents repository
@@ -36,8 +40,12 @@ tasks:
       - task: :fix:eslint
       - task: :git:commit:automated
       - task: :git:push:all
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   docs:
+    run: once
+    todo: Remove the git:commit:automated tasks
     log:
       error: Error updating document repository
       start: Updating document repository
@@ -53,8 +61,11 @@ tasks:
       - task: :fix:eslint
       - task: :git:commit:automated
       - task: :git:push:all
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   project:
+    run: once
     log:
       error: Error updating project repository
       start: Running project update logic
@@ -74,8 +85,11 @@ tasks:
       - task: :git:commit:automated
       - task: :git:push:all
       - task: :{{if eq .REPOSITORY_SUBTYPE "role"}}ansible:galaxy:import{{else}}donothing{{end}}
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   project:scaffold-only:
+    run: once
     log:
       error: Error scaffolding project
       start: Scaffolding project
@@ -92,10 +106,13 @@ tasks:
       - SKIP_UPLOADING=true task common:update:update
       - task: :install:modules:local:lockfiles
       - task: :fix:eslint
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   pull:
     deps:
       - :install:software:git
+    run: once
     log:
       error: Error executing initial `git pull` logic
       start: Determining whether or not to `git pull`
@@ -114,8 +131,11 @@ tasks:
         ignore_error: true
       - cmd: git config --unset url."https://gitlab.com/".insteadOf
         ignore_error: true
+    status:
+      - '[ ! -d .git ]'
 
   shared:
+    run: once
     log:
       error: Error running shared repository update logic
       start: Running shared repository update logic
@@ -130,22 +150,30 @@ tasks:
       - task: :fix:eslint
       - task: :git:commit:automated
       - task: :git:push:all
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   template:
+    run: once
     cmds:
       - task: template:liquidjs
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   template:liquidjs:
     deps:
       - :install:modules:local
       - :install:npm:liquidjs
       - :install:software:jq
+      - template:liquidjs:python:deps
+    todo: Update project when Taskfile.yml gets modified
     vars:
       PYTHON_BREW_NOTICE: In order for this file to be generated, the customPyPiPackageName needs to be specified in the
         blueprint section of package.json and the PyPi package needs to be installed on the system.
     env:
       TMP:
         sh: mktemp
+    run: once
     log:
       error: Error encountered while generating files from `liquid` template files
       start: Generating files from `liquid` template files
@@ -161,21 +189,24 @@ tasks:
         fi
       - cp package.json package.json.bak
       - |
+        PATH="$PATH:$HOME/.local/bin"
         function handlebars() {
           FILE="$1"
           TMP="$(mktemp)"
           .config/log info 'Generating `'"${FILE//.liquid}"'` from `'"$FILE"'`'
-          {{.NPX_HANDLE}}hbs --data .variables.json --helper ./.config/hbs.cjs "$FILE" --stdout > "$TMP"
+          hbs --data .variables.json --helper ./.config/hbs.cjs "$FILE" --stdout > "$TMP"
           mv "$TMP" "${FILE//.liquid}"
           rm "$FILE"
         }
+        while read FILE; do
+          cp "$FILE" "${FILE//.hbs}"
+        done < <(find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid.hbs')
         while read FILE; do
           handlebars "$FILE"
         done < <(find . -type f -not \( {{.ADDITIONAL_IGNORE_FOLDERS}} {{.IGNORE_FOLDERS}} \) -prune -name '*.liquid')
         while read CONFIG_FILE; do
           handlebars "$CONFIG_FILE"
         done < <(find .config -type f -name '*.liquid')
-        wait
       - |
         function ensureKeywords() {
           if [ ! -f "$1" ]; then echo "{}" > "$1"; fi
@@ -197,13 +228,21 @@ tasks:
       - rm package.json.bak
       - task: template:pyproject
 
-  template:pyproject:
-    deps:
-      - :install:github:fusion
+  template:liquidjs:python:deps:
     cmds:
+      - task: :install:pipx:poet
+    status:
+      - '[ "{{.REPOSITORY_TYPE}}" != "python" ]'
+
+  template:pyproject:
+    run: once
+    cmds:
+      - task: :install:gh:fusion
       - task: template:pyproject:config
       - task: template:pyproject:local
       - task: template:pyproject:fix
+    status:
+      - '[ ! -f pyproject.toml ] || [ "{{.DOCKER_BUILDING}}" == "true" ]'
 
   template:pyproject:config:
     log:
@@ -228,6 +267,8 @@ tasks:
       - '[ -n "$NO_INSTALL_HOMEBREW" ]'
 
   template:pyproject:local:
+    deps:
+      - :install:gh:fusion
     vars:
       PYPROJECT_NOTICE: |-
         ##### IMPORTANT DEVELOPER NOTICE #####
@@ -258,6 +299,7 @@ tasks:
         sh: if [ -f '{{.INPUT_FILE}}' ]; then echo {{.INPUT_FILE}}; else echo ".variables.json"; fi
       TMP:
         sh: mktemp
+    run: once
     log:
       error: Encountered error while injecting `{{.OUTPUT_FILE}}` with variables
       start: Injecting `{{.OUTPUT_FILE}}` with variables
@@ -284,3 +326,5 @@ tasks:
         if [ '{{.REPOSITORY_TYPE}}' == 'packer' ]; then
           task packer:update:variables
         fi
+    status:
+      - '[ "{{.DOCKER_BUILDING}}" == "true" ]'

@@ -108,7 +108,7 @@ tasks:
 
   private-keys:
     deps:
-      - :install:python:requirements
+      - :install:pipx:pre-commit-hooks
     desc: Scan for private keys
     summary: |
       # Scan for private keys
@@ -128,6 +128,7 @@ tasks:
       success: No private keys were found!
     cmds:
       - |
+        PATH="$PATH:$HOME/.local/bin"
         {{if .CLI_ARGS}}
           {{.PYTHON_HANDLE}}detect-private-key {{.CLI_ARGS}}
         {{else}}
@@ -163,11 +164,11 @@ tasks:
       - task: snyk:login
       - |
         {{if .CLI_ARGS}}
-          {{.NPX_HANDLE}}snyk test --docker {{.CLI_ARGS}}
+          snyk test --docker {{.CLI_ARGS}}
         {{else}}
           for TAG in {{.TAGS}}; do
             DOCKER_IMAGE="$(jq -r '.slug' .variables.json)"
-            {{.NPX_HANDLE}}snyk test --docker {{.DOCKERHUB_PROFILE}}/${DOCKER_IMAGE}:${TAG} --file=Dockerfile
+            snyk test --docker {{.DOCKERHUB_PROFILE}}/${DOCKER_IMAGE}:${TAG} --file=Dockerfile
           done
         {{end}}
 
@@ -176,11 +177,11 @@ tasks:
       SNYK_API_TOKEN:
         sh: snyk config get api
     log:
-      error: Encountered error while logging in with `{{.NPX_HANDLE}}snyk auth`
-      start: Logging in with `{{.NPX_HANDLE}}snyk auth`
-      success: Successfully authenticated with `{{.NPX_HANDLE}}snyk auth`
+      error: Encountered error while logging in with `snyk auth`
+      start: Logging in with `snyk auth`
+      success: Successfully authenticated with `snyk auth`
     cmds:
-      - '{{.NPX_HANDLE}}snyk auth'
+      - snyk auth
     status:
       - '[ ! -z "$SNYK_API_TOKEN" ]'
 

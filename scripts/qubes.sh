@@ -28,9 +28,6 @@ if [[ "$(hostname)" == "dom0" ]]; then
     ANSIBLE_VAULT_PASS="$(cat ~/.vaultpass)"
   fi
 
-  if [ -f ~/.vaultpass ]; then
-
-
   # Update dom0
   if [ ! -f /tmp/dom0_updated ]; then
     echo "Updating dom0"

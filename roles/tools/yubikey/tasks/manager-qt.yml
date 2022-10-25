@@ -5,9 +5,9 @@
     path: /etc/ansible/facts.d
     state: directory
 
-- name: "Ensure {{ yubikey_src_dir }} directory exists"
+- name: 'Ensure {{ yubikey_src_dir }} directory exists'
   file:
-    path: "{{ yubikey_src_dir }}"
+    path: '{{ yubikey_src_dir }}'
     state: directory
     mode: 0755
 
@@ -16,7 +16,7 @@
     url: https://api.github.com/repos/Yubico/yubikey-manager-qt/releases/latest
   register: yubikeymgr_latest_release_tag
 
-- name: Determine whether or not the latest version of Yubico Authenticator's AppImage is already installed
+- name: Determine whether or not the latest version of Yubico Authenticator is already installed
   set_fact:
     install_yubikeymgr: "{{ (ansible_local.yubikey is not defined) or \
       ((ansible_local.yubikey is defined) and \
@@ -24,8 +24,8 @@
 
 - name: Ensure Yubico Authenticator's installer is downloaded
   get_url:
-    url: "https://developers.yubico.com/yubikey-manager-qt/Releases/{{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg"
-    dest: "{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg"
+    url: 'https://developers.yubico.com/yubikey-manager-qt/Releases/{{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg'
+    dest: '{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg'
   when:
     - install_yubikeymgr
     - ansible_system == 'Darwin'
@@ -33,7 +33,7 @@
 - name: Ensure YubiKey Manager Qt is installed
   command: installer -pkg {{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg -target /
   args:
-    chdir: "{{ yubikey_src_dir }}"
+    chdir: '{{ yubikey_src_dir }}'
     #creates: /Library/Ossec/bin/ossec-control
   when:
     - install_yubikeymgr
@@ -41,7 +41,7 @@
 
 - name: "Ensure Yubico Authenticator's installer is removed from {{ yubikey_src_dir }}"
   file:
-    path: "{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg"
+    path: '{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-mac.pkg'
     state: absent
   when:
     - install_yubikeymgr
@@ -49,30 +49,18 @@
 
 - name: Acquire Yubico Authenticator's AppImage
   get_url:
-    url: "https://developers.yubico.com/yubikey-manager-qt/Releases/{{ yubikeymgr_latest_release_tag.json.tag_name }}-linux.AppImage"
-    dest: "{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-linux.AppImage"
+    url: 'https://developers.yubico.com/yubikey-manager-qt/Releases/{{ yubikeymgr_latest_release_tag.json.tag_name }}-linux.AppImage'
+    dest: '/opt/YubiKey Manager.AppImage'
     mode: 0755
   when:
     - install_yubikeymgr
     - ansible_system == 'Linux'
 
-- name: Run user configuration tasks
-  include_tasks: user-Linux.yml
-  vars:
-    file_path: "{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-linux.AppImage"
-  loop: "{{ user_configs }}"
-  loop_control:
-    label: "{{ user.username }}"
-    loop_var: user
-  when:
-    - install_yubikeymgr
-    - (user.system is not defined) or ((user.system is defined) and (not user.system))
-    - ansible_system == 'Linux'
-
-- name: "Ensure Yubico Authenticator's AppImage is removed from {{ yubikey_src_dir }}"
+- name: Link YubiKey Manager.AppImage to /usr/local/bin
   file:
-    path: "{{ yubikey_src_dir }}/{{ yubikeymgr_latest_release_tag.json.tag_name }}-linux.AppImage"
-    state: absent
+    src: /opt/YubiKey Manager.AppImage
+    dest: /usr/local/bin/YubiKey Manager
+    state: link
   when:
     - install_yubikeymgr
     - ansible_system == 'Linux'

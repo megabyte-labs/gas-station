@@ -5,9 +5,9 @@
     path: /etc/ansible/facts.d
     state: directory
 
-- name: "Ensure {{ googleassistant_src_dir }} directory exists"
+- name: 'Ensure {{ googleassistant_src_dir }} directory exists'
   file:
-    path: "{{ googleassistant_src_dir }}"
+    path: '{{ googleassistant_src_dir }}'
     state: directory
     mode: 0755
 
@@ -20,30 +20,31 @@
   get_url:
     url: "https://github.com/Melvin-Abraham/Google-Assistant-Unofficial-Desktop-Client/releases/download/\
       {{ googleassistant_latest_release_tag.json.tag_name }}/Google-Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
-    dest: "{{ googleassistant_src_dir }}/Google-Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
+    dest: '/opt/Google Assistant.AppImage'
     mode: 0755
   when: install_googleassistant
 
+- name: Link Google Assistant.AppImage to /usr/local/bin
+  file:
+    src: /opt/Google Assistant.AppImage
+    dest: /usr/local/bin/Google Assistant
+    state: link
+  when: install_nextcloud
+
 - name: Run user configuration tasks
   include_tasks: user-Linux.yml
-  loop: "{{ user_configs }}"
+  loop: '{{ user_configs }}'
   loop_control:
-    label: "{{ user.username }}"
+    label: '{{ user.username }}'
     loop_var: user
   when: (user.system is not defined) or ((user.system is defined) and (not user.system))
 
-- name: "Ensure {{ app_name }}'s AppImage is removed from /usr/local/src"
-  file:
-    path: "{{ googleassistant_src_dir }}/Google-Assistant-Setup-{{ googleassistant_latest_version }}-x86_64.AppImage"
-    state: absent
-  when: install_googleassistant
-
-- name: "Save meta information about the version of {{ app_name }} that was installed"
+- name: 'Save meta information about the version of {{ app_name }} that was installed'
   community.general.ini_file:
     path: /etc/ansible/facts.d/googleassistant.fact
     mode: 0644
     section: settings
     option: version
-    value: "{{ googleassistant_latest_version }}"
+    value: '{{ googleassistant_latest_version }}'
     no_extra_spaces: true
   when: install_googleassistant

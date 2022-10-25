@@ -5,12 +5,25 @@
     state: present
   notify: restart docker
 
+- name: Display ansible_env information
+  ansible.builtin.debug:
+    var: ansible_env
+    verbosity: 4
+
+- name: Display ansible_kernel information
+  ansible.builtin.debug:
+    var: ansible_kernel
+    verbosity: 4
+
 - name: Ensure Docker is started and enabled at boot
   service:
     name: docker
     state: started
     enabled: true
-  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+  when:
+    - "'WSLENV' not in ansible_env"
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' in ansible_kernel"
 
 - name: Ensure the /etc/docker folder exists
   file:

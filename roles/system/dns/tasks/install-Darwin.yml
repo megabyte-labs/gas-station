@@ -11,23 +11,12 @@
     name: guumaster/tap/hostctl
     state: present
 
-- name: Clear the default DNS server settings # noqa 301
+- name: Add the stubby.yml file
   become: true
-  replace:
-    path: "{{ stubby_config_path }}"
-    backup: true
-    after: 'DEFAULT UPSTREAMS  ################################'
-    before: '############################ OPTIONAL UPSTREAMS'
-    regexp: '^(.*)$'
-    replace: '\n'
-
-- name: Add custom DNS settings
-  become: true
-  blockinfile:
-    path: "{{ stubby_config_path }}"
-    insertafter: "^[# ]*DEFAULT UPSTREAMS[ #]*$"
-    block: |
-      {{ dns_setting | to_nice_yaml(indent=2) }}
+  template:
+    src: stubby.yml.j2
+    dest: "{{ stubby_config_path }}"
+    mode: 0600
 
 - name: Start Stubby service # noqa 301 # TODO --- only run this if the service is not already started -- causes an issue if run twice in a row
   become: false

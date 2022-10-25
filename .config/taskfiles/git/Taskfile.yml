@@ -124,12 +124,22 @@ tasks:
       - '[ "$FULLY_AUTOMATED_TASKS" != "true" ]'
 
   filter:
+    deps:
+      - :install:software:bfg
+    desc: Remove large unnecessary and large files from the repository
+    summary: |
+      # Clean Up Git Repository
+
+      This task will remove files that may have been committed by accident like node_modules.
+      It will also use [bfg](https://rtyley.github.io/bfg-repo-cleaner/) to remove all files
+      that are over 50MB.
     log:
       error: Error filtering git history
       start: Filtering unnecessary items from git history
       success: Successfully filtered unnecessary items from git history
     cmds:
       - git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch -r **/node_modules/' --prune-empty -- --all
+      - bfg --strip-blobs-bigger-than 50M
 
   push:all:
     deps:

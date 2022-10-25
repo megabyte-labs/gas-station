@@ -36,7 +36,7 @@ if [[ "$(hostname)" == "dom0" ]]; then
     touch /tmp/dom0_updated
   fi
 
-  if [ ! -f /tmp/qubes_ansible_python_installed ]; then
+  if [ ! -f /tmp/qubes_ansible_python_installed ] && [[ "$USE_DOM0" == "true" ]]; then
     echo "Installing the Qubes ansible-python3 package"
     sudo qubes-dom0-update -y ansible-python3 # TODO: Add better check
     touch /tmp/qubes_ansible_python_installed

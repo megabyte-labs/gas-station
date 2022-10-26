@@ -5,7 +5,6 @@
     name: "{{ user.pips | default([]) }}"
     state: "{{ pips.state | default(omit) }}"
     executable: "{{ pip_executable }}"
-    extra_args: --user
   when: ansible_os_family != 'Windows'
 
 - name: Ensure user PIPX packages are installed
@@ -22,14 +21,14 @@
 
 - name: "Ensure PIP Packages are installed (Windows)"
   become_user: "{{ user.username }}"
-  ansible.windows.win_command: "pip install --user -U {{ user.pips | join(' ') }}"
+  ansible.windows.win_command: "pip install -U {{ user.pips | join(' ') }}"
   when:
     - ansible_os_family == 'Windows'
     - (user.pips | length > 0)
 
 - name: "Ensure PIPX Packages are installed (Windows)"
   become_user: "{{ user.username }}"
-  ansible.windows.win_command: "pipx install --user -U {{ item.name | default(item) }}"
+  ansible.windows.win_command: "pipx install -U {{ item.name | default(item) }}"
   loop: "{{ user.pips }}"
   when:
     - ansible_os_family == 'Windows'

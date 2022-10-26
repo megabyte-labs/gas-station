@@ -5,6 +5,18 @@
     state: "{{ app_state | default('present') }}"
   when: ansible_system == 'Linux'
 
+- name: Check if lolcat was saved to /usr/games/lolcat
+  stat:
+    path: /usr/games/lolcat
+  register: games_lolcat
+
+- name: Symlink lolcat to /usr/bin/lolcat since it is sometimes installed to /usr/games/lolcat
+  file:
+    src: /usr/bin/lolcat
+    dest: /usr/games/lolcat
+    state: link
+  when: games_lolcat.stat.exists
+
 - name: "Ensure {{ app_name }}'s source directory is present"
   file:
     mode: 0755
@@ -26,3 +38,26 @@
     remote_src: true
   loop: "{{ motd_services }}"
   when: motd_git.changed
+
+- name: Check for presence of /etc/pam.d/sshd
+  stat:
+    path: /etc/pam.d/sshd
+  register: pamd_sshd
+
+- name: Remove references to pam_motd.so are removed from /etc/pam.d/sshd
+  lineinfile:
+    path: /etc/pam.d/sshd
+    state: absent
+    regexp: '^.*pam_motd.so.*$'
+  when: pamd_sshd.stat.exists
+
+- name: Ensure /etc/ssh/sshd_config has the appropriate settings
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    marker: "### {mark} ANSIBLE MANAGED BLOCK ###"
+    block: |
+      # To bypass the MOTD (for scripts), you can run export MOTD=0; ssh -o SendEnv=MOTD -t host.name.net
+      AcceptEnv MOTD
+      PrintMotd no
+      PrintLastLog no
+      Banner none

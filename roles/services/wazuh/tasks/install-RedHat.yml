@@ -1,10 +1,27 @@
 ---
 - name: "Ensure {{ app_name }} is installed"
   block:
+    - name: Copy over GPG-KEY-WAZUH
+      copy:
+        src: GPG-KEY-WAZUH
+        dest: /tmp/GPG-KEY-WAZUH
+
     - name: "Add {{ app_name }}'s rpm key"
       rpm_key:
         key: "{{ wazuh_key }}"
         state: present
+      register: wazuh_rpm_key
+
+    - name: "Fallback to local GPG-KEY-WAZUH if there was an error connecting to GPG-KEY-WAZUH"
+      set_fact:
+        wazuh_key: /tmp/GPG-KEY-WAZUH
+      when: wazuh_rpm_key.failed
+
+    - name: "Add {{ app_name }}'s rpm key (local)"
+      rpm_key:
+        key: "{{ wazuh_key }}"
+        state: present
+      when: wazuh_rpm_key.failed
 
     - name: "Add {{ app_name }}'s yum repository"
       yum_repository:

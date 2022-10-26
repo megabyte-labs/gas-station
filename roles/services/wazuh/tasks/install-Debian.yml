@@ -14,6 +14,14 @@
         url: "{{ wazuh_apt_key_url }}"
         state: present
         keyring: /usr/share/keyrings/wazuh.gpg
+      register: wazuh_apt_key
+
+    - name: "Fallback to local key if HTTPS requests -- Why?"
+      apt_key:
+        data: "{{ lookup('ansible.builtin.file', 'GPG-KEY-WAZUH') }}"
+        state: present
+        keyring: /usr/share/keyrings/wazuh.gpg
+      when: wazuh_apt_key.failed
 
     - name: "Add {{ app_name }}'s apt repository"
       apt_repository:

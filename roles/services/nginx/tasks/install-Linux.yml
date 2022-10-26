@@ -1,7 +1,7 @@
 ---
 - name: Install NGINX Optimized base dependencies
   package:
-    name: "{{ nginx_dependencies }}"
+    name: '{{ nginx_dependencies }}'
     state: present
   when: ansible_os_family != 'Darwin'
 
@@ -21,7 +21,7 @@
 
 - name: Gather the package facts # noqa 301
   become: false
-  command: "/usr/local/bin/brew list --versions"
+  command: '/usr/local/bin/brew list --versions'
   register: package_versions
   when: ansible_system == 'Darwin'
 
@@ -36,8 +36,8 @@
 
 - name: Modify the NGINX service to prevent failures on start up when /etc/hosts is not loaded quickly enough
   lineinfile:
-    path: "{{ nginx_service_path[ansible_distribution] }}"
-    regexp: "After=(.*)network.target(.*)"
+    path: '{{ nginx_service_path[ansible_distribution] }}'
+    regexp: 'After=(.*)network.target(.*)'
     line: 'After=\1network-online.target\2'
     owner: root
     mode: 0644
@@ -66,7 +66,7 @@
 
 - name: Register the file status of the ModSecurity WAF module configuration file
   stat:
-    path: "{{ modsec_waf_conf_directory }}/crs-setup.conf"
+    path: '{{ modsec_waf_conf_directory }}/crs-setup.conf'
   register: modsec_config
 
 # @action Ensures Nginx is configured
@@ -83,24 +83,24 @@
 
 - name: Generate sites-available
   include_tasks: site-available.yml
-  loop: "{{ apps }}"
+  loop: '{{ apps }}'
   tags: nginx_configuration
 
 - name: Generate sites-available for proxy host
   vars:
     nginx_proxy_host_override: true
   include_tasks: site-available.yml
-  loop: "{{ hosts | list }}"
+  loop: '{{ hosts[inventory_hostname] | list }}'
   when:
     - nginx_proxy_host
     - not (item in apps)
 
 - name: Symlink sites-enabled
   file:
-    src: "{{ sites_available_path }}/{{ item | default(item.name) }}.conf"
-    path: "{{ sites_enabled_path }}/{{ item | default(item.name) }}.conf"
+    src: '{{ sites_available_path }}/{{ item | default(item.name) }}.conf'
+    path: '{{ sites_enabled_path }}/{{ item | default(item.name) }}.conf'
     state: link
-  loop: "{{ apps }}"
+  loop: '{{ apps }}'
   tags: nginx_configuration
   when: (item | default(item.name)) != (inventory_hostname | lower)
 

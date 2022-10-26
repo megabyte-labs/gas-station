@@ -54,10 +54,28 @@
 - name: Ensure /etc/ssh/sshd_config has the appropriate settings
   ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
-    marker: "### {mark} ANSIBLE MANAGED BLOCK ###"
+    marker: "### {mark} ANSIBLE MANAGED BLOCK MOTD ###"
     block: |
       # To bypass the MOTD (for scripts), you can run export MOTD=0; ssh -o SendEnv=MOTD -t host.name.net
       AcceptEnv MOTD
       PrintMotd no
       PrintLastLog no
       Banner none
+
+- name: Ensure Docker can be reached passwordlessly for a status check
+  ansible.builtin.blockinfile:
+    path: /etc/sudoers
+    marker: "### {mark} ANSIBLE MANAGED BLOCK DOCKER ###"
+    block: |
+      %docker ALL=(ALL) NOPASSWD: /usr/bin/curl -sf --unix-socket /var/run/docker.sock http\:/v1.40/info
+      %docker ALL=(ALL) NOPASSWD: /usr/bin/curl -sf --unix-socket /var/run/docker.sock http\:/v1.40/containers/json?all=true
+
+- name: Ensure Let's Encrypt can be reached passwordlessly for a status check (TODO)
+  ansible.builtin.blockinfile:
+    path: /etc/sudoers
+    marker: "### {mark} ANSIBLE MANAGED BLOCK DOCKER ###"
+    block: |
+      # TODO - Figure out how to integrate this
+      username ALL=(ALL) NOPASSWD: /usr/bin/find </your/path/to/ssl> -name cert.pem
+      username ALL=(ALL) NOPASSWD: /usr/bin/openssl
+  when: false

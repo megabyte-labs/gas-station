@@ -13,32 +13,33 @@
 
 # @action Installs PIPX
 # Installs PIPX at the system level
-- name: Ensure pipx is installed
-  become: true
+- name: Ensure pipx is installed (Linux)
   pip:
     name: pipx
     state: present
     executable: "{{ pip_executable }}"
+  when: ansible_system == 'Linux'
+
+# @action Installs PIPX
+# Ensures PIPX is in the path
+- name: Run pipx ensurepath
+  command: pipx ensurepath
 
 # @action Installs packages using PIPX
-# Installs packages specified in the `pip_packages` variable at the system level using PIPX
+# Installs PIPX packages specified in the `system_pip_packages` at the system level (WARNING - be careful what you install at the system level)
 - name: Ensure global pip packages are installed using pipx
-  become: true
   community.general.pipx:
     name: "{{ item.name | default(item) }}"
     install_deps: true
     state: "{{ item.state | default(omit) }}"
-  environment:
-    PIPX_HOME: /opt/pipx
-    PIPX_BIN_DIR: /usr/local/bin
-  loop: "{{ pip_packages }}"
+  loop: "{{ system_pip_packages }}"
   when:
     - ansible_os_family != 'Windows'
     - item.pipx | default(false)
   ignore_errors: true
 
 # @action Installs PIP packages
-# Installs PIP packages specified in the `pip_packages` variable at the system level
+# Installs PIP packages specified in the `system_pip_packages` variable at the system level (WARNING - be careful what you install at the system level)
 - name: Ensure global pip packages are installed
   become: true
   pip:
@@ -47,7 +48,7 @@
     virtualenv: "{{ item.virtualenv | default(omit) }}"
     state: "{{ item.state | default(omit) }}"
     executable: "{{ pip_executable }}"
-  loop: "{{ pip_packages }}"
+  loop: "{{ system_pip_packages }}"
   when:
     - ansible_os_family != 'Windows'
     - not (item.pipx is defined)

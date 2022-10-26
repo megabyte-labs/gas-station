@@ -8,9 +8,30 @@
     extra_args: --user
   when: ansible_os_family != 'Windows'
 
-- name: "Ensure PIP Packages are installed"
+- name: Ensure user PIPX packages are installed
+  become_user: "{{ user.username }}"
+  community.general.pipx:
+    name: "{{ item.name | default(item) }}"
+    install_deps: true
+    state: "{{ item.state | default(omit) }}"
+  loop: "{{ user.pips }}"
+  when:
+    - ansible_os_family != 'Windows'
+    - item.pipx | default(false)
+  ignore_errors: true
+
+- name: "Ensure PIP Packages are installed (Windows)"
   become_user: "{{ user.username }}"
   ansible.windows.win_command: "pip install --user -U {{ user.pips | join(' ') }}"
   when:
     - ansible_os_family == 'Windows'
     - (user.pips | length > 0)
+
+- name: "Ensure PIPX Packages are installed (Windows)"
+  become_user: "{{ user.username }}"
+  ansible.windows.win_command: "pipx install --user -U {{ item.name | default(item) }}"
+  loop: "{{ user.pips }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - (user.pips | length > 0)
+    - item.pipx | default(false)

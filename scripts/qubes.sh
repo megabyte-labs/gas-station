@@ -79,15 +79,14 @@ if [[ "$(hostname)" == "dom0" ]]; then
       sleep 1
       xdotool key 'Enter'
       # TODO: Add logic to recursively check for presence of WINDOW_ID_SYSCHECK
-      sleep 14
-      qvm-shutdown --wait sys-whonix
-      sleep 3
-      qvm-start sys-whonix
       if [ "$ENABLE_OBFSC" == 'true' ]; then
         sleep 480
       else
         sleep 150
       fi
+      qvm-shutdown --wait sys-whonix
+      sleep 3
+      qvm-start sys-whonix
       if xwininfo -root -tree | grep "systemcheck | Whonix" > /dev/null; then
         WINDOW_ID_SYSCHECK="$(xwininfo -root -tree | grep "systemcheck | Whonix" | sed 's/^ *\([^ ]*\) .*/\1/')"
         if xdotool windowactivate "$WINDOW_ID_SYS_CHECK"; then

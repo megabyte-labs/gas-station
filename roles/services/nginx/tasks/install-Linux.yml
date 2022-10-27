@@ -83,24 +83,24 @@
 
 - name: Generate sites-available
   include_tasks: site-available.yml
-  loop: '{{ apps }}'
+  loop: "{{ apps[inventory_hostname] | default([]) }}"
   tags: nginx_configuration
 
 - name: Generate sites-available for proxy host
   vars:
     nginx_proxy_host_override: true
   include_tasks: site-available.yml
-  loop: '{{ hosts[inventory_hostname] | list }}'
+  loop: "{{ (hosts | list) | default([]) }}"
   when:
     - nginx_proxy_host
-    - not (item in apps)
+    - not (item in (apps | default([])))
 
 - name: Symlink sites-enabled
   file:
     src: '{{ sites_available_path }}/{{ item | default(item.name) }}.conf'
     path: '{{ sites_enabled_path }}/{{ item | default(item.name) }}.conf'
     state: link
-  loop: '{{ apps }}'
+  loop: "{{ apps[inventory_hostname] | default([]) }}"
   tags: nginx_configuration
   when: (item | default(item.name)) != (inventory_hostname | lower)
 

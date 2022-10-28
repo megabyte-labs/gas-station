@@ -4,6 +4,15 @@
     name: openssh-server
     state: present
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when:
+    - "'wsl' not in group_names"
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+
+- name: Run generic Linux tasks
+  include_tasks: install-Linux.yml
+  when:
+    - "'wsl' not in group_names"
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
 - name: Ensure fail2ban is installed
   apt:
@@ -12,6 +21,11 @@
   when:
     - "'wsl' not in group_names"
     - install_fail2ban | default(true)
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
-- name: Run generic Linux tasks
-  include_tasks: install-Linux.yml
+- name: Confifgure fail2ban
+  include_tasks: fail2ban.yml
+  when:
+    - "'wsl' not in group_names"
+    - install_fail2ban | default(true)
+    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")

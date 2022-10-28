@@ -80,9 +80,9 @@ if [[ "$(hostname)" == "dom0" ]]; then
       xdotool key 'Enter'
       # TODO: Add logic to recursively check for presence of WINDOW_ID_SYSCHECK
       if [ "$ENABLE_OBFSC" == 'true' ]; then
-        sleep 480
+        sleep 600
       else
-        sleep 150
+        sleep 300
       fi
       qvm-shutdown --wait sys-whonix
       sleep 3

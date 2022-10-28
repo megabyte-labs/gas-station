@@ -1,11 +1,21 @@
 ---
-- name: "Ensure {{ app_name }}'s dependencies are installed"
+- name: "Ensure {{ app_name }}'s packages are installed via the system package manager"
   dnf:
-    name: "{{ beets_dependencies }}"
+    name: "{{ beets_binary_packages }}"
     state: "{{ app_state | default('present') }}"
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  ignore_errors: true
+  register: beets_dnf_install
 
-- name: "Ensure {{ app_name }} is installed"
+- name: "Ensure {{ app_name }}'s dependencies are installed (for Python installation)"
+  dnf:
+    name: "{{ beets_python_deps }}"
+    state: "{{ app_state | default('present') }}"
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+  when: beets_dnf_install.failed
+
+- name: "Ensure {{ app_name }} is installed (using Python pip)"
   pip:
     name: beets
     state: "{{ beets_version | default('latest') }}"
+  when: beets_dnf_install.failed

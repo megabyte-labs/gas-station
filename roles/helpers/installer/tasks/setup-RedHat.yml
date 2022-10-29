@@ -92,11 +92,13 @@
   failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
 
 - name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
-  command: timeout 180s task install:gh:"{{ software_item }}"
-  register: github_install
+  command: task install:gh:"{{ software_item }}"
+  register: github_install_result
+  async: 180
+  poll: 5
   retries: 3
   delay: 10
-  until: github_install.rc == 0
+  until: "github_install_result is not failed"
   args:
     chdir: /tmp/shared-master
   environment:

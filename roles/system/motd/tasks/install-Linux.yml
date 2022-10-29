@@ -51,6 +51,11 @@
     regexp: '^.*pam_motd.so.*$'
   when: pamd_sshd.stat.exists
 
+- name: Check for presence of /etc/ssh/sshd_config
+  stat:
+    path: /etc/ssh/sshd_config
+  register: sshd_config_stat
+
 - name: Ensure /etc/ssh/sshd_config has the appropriate settings
   ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
@@ -61,6 +66,7 @@
       PrintMotd no
       PrintLastLog no
       Banner none
+  when: sshd_config_stat.stat.exists
 
 - name: Ensure Docker can be reached passwordlessly for a status check
   ansible.builtin.blockinfile:

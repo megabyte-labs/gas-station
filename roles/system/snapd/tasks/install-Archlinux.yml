@@ -12,18 +12,13 @@
 
 - name: Install snapd if not already installed
   block:
-    - name: Ensure to create a temporary directory for snapd source files
-      file:
-        path: '{{ temp_directory }}'
-        state: directory
-        mode: '0770'
-
-    - name: Ensure that snapd repo is cloned # noqa 401
+    - name: Clone the yay repository (Archlinux)
       become: false
-      git:
-        repo: '{{ snapd_aur_repo_url }}'
-        dest: '{{ temp_directory }}'
-        clone: true
+      ansible.builtin.git:
+        repo: https://aur.archlinux.org/yay.git
+        dest: ~/.local/yay
+        version: master
+      when: ansible_os_family == 'Archlinux'
 
     # @action Ensures Snap is installed
     # Builds Snap from source on Archlinux
@@ -31,15 +26,18 @@
       become: false
       command: makepkg -sic --noconfirm
       args:
-        chdir: '{{ temp_directory }}'
+        chdir: ~/.local/yay
         creates: /var/lib/snapd/snap
 
-    - name: Enable and start the snapd systemd unit
-      systemd:
-        name: snapd.socket
-        state: started
+    - name: Ensure snapd is enabled and running
+      become: true
+      ansible.builtin.systemd:
         enabled: true
-      when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+        state: started
+        name: snapd
+      when:
+        - not ('-minimal' in inventory_hostname)
+        - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
     - name: Create a link to enable classic snap support
       file:
@@ -64,6 +62,7 @@
   when: not snap_stat.stat.exists
   always:
     - name: Ensure to remove the temporary directory created for snapd source files
+      become: false
       file:
-        path: '{{ temp_directory }}'
+        path: ~/.local/yay
         state: absent

@@ -23,21 +23,25 @@
         src: '~/.tmp/{{ addon.name | lower }}/{{ addon.name | lower }}.zip'
         dest: '~/.tmp/{{ addon.name | lower }}'
         remote_src: true
+      ignore_errors: true
 
     - name: Read the Addon manifest file # noqa 301
       command: cat "~/.tmp/{{ addon.name | lower }}/manifest.json"
       register: manifest
+      ignore_errors: true
 
     - name: 'Find the ID of the Addon {{ addon.name }}'
       set_fact:
         addon_id: "{{ (manifest.stdout | from_json).browser_specific_settings.gecko.id | default((manifest.stdout | from_json).applications.gecko.id) }}"
         addon_url: "{{ addon_page.content | regex_search('https:\\/\\/addons.mozilla.org\\/firefox\\/downloads\\/file\\/\\d*\\/[\\w\\-\\_\\.]*.xpi') }}"
       register: id_result
+      ignore_errors: true
 
     - name: Construct the policy for the Addon
       set_fact:
         extension_settings: "{{ extension_settings | default({}) |
           combine({addon_id : '{\"installation_mode\": \"normal_installed\",\"install_url\": \"' + addon_url + '\"}'}) }}"
+      ignore_errors: true
   rescue:
     - name: User notification
       debug:

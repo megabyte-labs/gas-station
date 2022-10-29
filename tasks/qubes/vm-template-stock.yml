@@ -130,12 +130,18 @@
     - ansible_os_family == 'Archlinux'
     - snap_type.rc != 0
 
+- name: Detect presence of /var/lib/snapd/snap
+  stat:
+    path: /var/lib/snapd/snap
+  register: var_lib_snapd
+
 - name: Ensure /snap is symlinked to /var/lib/snapd/snap
   become: true
   file:
     src: /var/lib/snapd/snap
     dest: /snap
     state: link
+  when: var_lib_snapd.stat.exists
 
 - name: Ensure snapd is enabled and running
   become: true

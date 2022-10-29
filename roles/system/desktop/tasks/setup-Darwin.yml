@@ -5,11 +5,14 @@
   register: mas_list
   changed_when: false
 
-- name: "Ensure {{ item.name }} is installed via MAS"
+- name: 'Ensure {{ item.name }} is installed via MAS'
   become: false
   command: "mas install '{{ item.id | default(item) }}'"
-  loop: "{{ mas_desktop_software }}"
+  loop: '{{ mas_desktop_software }}'
   when: (item.id | string) not in mas_list.stdout
+  ignore_errors: true
+  tags:
+    - mas
 
 - name: Upgrade all apps (if configured)
   become: false
@@ -23,8 +26,8 @@
 
 - name: Run user-specific tasks
   include_tasks: user-Darwin.yml
-  loop: "{{ user_configs }}"
+  loop: '{{ user_configs }}'
   loop_control:
-    label: "{{ user.username }}"
+    label: '{{ user.username }}'
     loop_var: user
   when: (user.system is not defined) or ((user.system is defined) and (not user.system))

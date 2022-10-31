@@ -8,24 +8,22 @@ import os
 import socket
 
 try:
-     from raven import setup_logging, Client
-     from raven.handlers.logging import SentryHandler
-     HAS_RAVEN = True
+     from sentry_sdk import Client
+     HAS_SENTRY = True
 except ImportError:
-     HAS_RAVEN = False
+     HAS_SENTRY = False
 
 from ansible.plugins.callback import CallbackBase
 
-
 class CallbackModule(CallbackBase):
     """
-    Ansible sentry callback plugin based on the logstash callback plugin
+    Ansible Sentry callback plugin.
     ansible.cfg:
         callback_plugins   = <path_to_callback_plugins_folder>
         callback_whitelist = sentry
     and put the plugin in <path_to_callback_plugins_folder>
     Requires:
-        python-raven
+        sentry_sdk
     This plugin makes use of the following environment variables:
         SENTRY_DSN        (required): The full private DSN
     """
@@ -37,12 +35,12 @@ class CallbackModule(CallbackBase):
 
     SENTRY_DSN = os.getenv('SENTRY_DSN')
     SENTRY_LOGGING = {
-        'version': 1,
+        'version': 2,
         'disable_existing_loggers': True,
         'handlers': {
             'sentry': {
                 'level': 'ERROR',
-                'class': 'raven.handlers.logging.SentryHandler',
+                'class': 'sentry_sdk.integrations.logging.EventHandler',
                 'dsn': SENTRY_DSN,
             },
         },
@@ -57,32 +55,28 @@ class CallbackModule(CallbackBase):
     def __init__(self):
         super(CallbackModule, self).__init__()
 
-        if not self.SENTRY_DSN or not HAS_RAVEN:
+        if not self.SENTRY_DSN or not HAS_SENTRY:
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()
-            self.logger = self._setup_logging()
-
-    def _setup_logging(self):
-        logging.config.dictConfig(self.SENTRY_LOGGING)
-        return logging.getLogger(name='ansible-sentry')
 
     def _load_sentry_client(self):
-        client = Client(self.SENTRY_DSN)
-        setup_logging(handler=SentryHandler(client))
+        client = Client(
+          dsn=self.SENTRY_DSN,
+          release="0.0.1"
+        )
         return client
 
     def _disable_plugin(self):
         self.disabled = True
         self._display.warning(
-            "python-raven package or SENTRY_DSN environment variable not found, plugin %s disabled" % os.path.basename(__file__))
+            "The sentry_sdk pip package or SENTRY_DSN environment variable were not found, plugin %s disabled" % os.path.basename(__file__))
 
     def _data_dict(self, result, playbook):
         return {
             "stack": True,
             "ansible_user": getpass.getuser(),
             "ansible_initiator": socket.getfqdn(),
-
             "ansible_data": vars(result),
             "ansible_result": result._result,
             "ansible_task": result._task,
@@ -94,21 +88,25 @@ class CallbackModule(CallbackBase):
         self.playbook = playbook._file_name
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
+        print('1')
         extra = self._data_dict(result, self.playbook)
         self.logger.error('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
 
     def v2_runner_on_unreachable(self, result):
+        print('2')
         extra = self._data_dict(result, self.playbook)
         self.logger.error('Ansible {} - Task execution UNREACHABLE; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
 
     def v2_runner_on_async_failed(self, result):
+        print('3')
         extra = self._data_dict(result, self.playbook)
         self.logger.error('Ansible {} - Task async execution FAILED; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
 
     def v2_runner_item_on_failed(self, result):
+        print('4')
         extra = self._data_dict(result, self.playbook)
         self.logger.error('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)

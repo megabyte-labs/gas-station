@@ -8,12 +8,6 @@ import os
 import socket
 import sentry_sdk
 
-try:
-     from sentry_sdk import Client
-     HAS_SENTRY = True
-except ImportError:
-     HAS_SENTRY = False
-
 from ansible.plugins.callback import CallbackBase
 
 class CallbackModule(CallbackBase):
@@ -41,7 +35,7 @@ class CallbackModule(CallbackBase):
     def __init__(self):
         super(CallbackModule, self).__init__()
 
-        if not self.SENTRY_DSN or not HAS_SENTRY:
+        if not self.SENTRY_DSN:
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()
@@ -50,7 +44,7 @@ class CallbackModule(CallbackBase):
     def _load_sentry_client(self):
         client = sentry_sdk.Client(
           dsn=self.SENTRY_DSN,
-          release="0.0.1",
+          release="1.0.0",
           debug=True
         )
         return client
@@ -58,7 +52,7 @@ class CallbackModule(CallbackBase):
     def _disable_plugin(self):
         self.disabled = True
         self._display.warning(
-            "The sentry_sdk pip package or SENTRY_DSN environment variable were not found, plugin %s disabled" % os.path.basename(__file__))
+            "The SENTRY_DSN environment variable was not found, plugin %s disabled" % os.path.basename(__file__))
 
     def _data_dict(self, result, playbook):
         return {
@@ -83,8 +77,8 @@ class CallbackModule(CallbackBase):
           print('Sentry SDK has push scope.')
           #scope.set_extra('debug', extra)
           print('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(self.playbook, result._host.get_name(), self._dump_results(result._result)))
-          sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'info')
+          sentry_sdk.capture_exeception('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
           client = sentry_sdk.Hub.current.client
           if client is not None:
             client.close(timeout=4.0)
@@ -95,7 +89,7 @@ class CallbackModule(CallbackBase):
         with sentry_sdk.push_scope() as scope:
           scope.set_extra('debug', extra)
           sentry_sdk.capture_message('Ansible {} - Task execution UNREACHABLE; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'info')
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
 
     def v2_runner_on_async_failed(self, result):
         print('Sentry handling async failure event.')
@@ -103,7 +97,7 @@ class CallbackModule(CallbackBase):
         with sentry_sdk.push_scope() as scope:
           scope.set_extra('debug', extra)
           sentry_sdk.capture_message('Ansible {} - Task async execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
 
     def v2_runner_item_on_failed(self, result):
         print('Sentry handling item failure event.')
@@ -111,4 +105,4 @@ class CallbackModule(CallbackBase):
         with sentry_sdk.push_scope() as scope:
           scope.set_extra('debug', extra)
           sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')

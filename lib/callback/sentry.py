@@ -82,9 +82,6 @@ class CallbackModule(CallbackBase):
     def v2_playbook_on_task_start(self, task, is_conditional):
         uuid = task._uuid
         print(uuid)
-        if uuid in self._task_data:
-            return
-
         play = self._play_name
         print(play)
         name = task.get_name().strip()

@@ -54,12 +54,12 @@ class CallbackModule(CallbackBase):
             "The SENTRY_DSN environment variable was not found, plugin %s disabled" % os.path.basename(__file__))
 
     def _set_extra(self, result, scope, playbook):
-      scope.set_context('ansible_user', getpass.getuser())
-      scope.set_context('ansible_initiator', socket.getfqdn())
+      scope.set_extra('ansible_user', getpass.getuser())
+      scope.set_extra('ansible_initiator', socket.getfqdn())
       scope.set_context('ansible_data', vars(result))
       scope.set_context('ansible_result', result._result)
-      scope.set_context('ansible_task', result._task)
-      scope.set_context('ansible_host', result._host.get_name())
+      scope.set_extra('ansible_task', result._task)
+      scope.set_extra('ansible_host', result._host.get_name())
       scope.set_context('ansible_host_data', result._host.serialize())
 
     def v2_playbook_on_start(self, playbook):

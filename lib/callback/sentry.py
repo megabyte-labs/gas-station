@@ -73,6 +73,7 @@ class CallbackModule(CallbackBase):
         print('Sentry handling failure event.')
         sentry_sdk.capture_message('Heyyyyy')
         extra = self._data_dict(result, self.playbook)
+        print(extra)
         with sentry_sdk.push_scope() as scope:
           print('Sentry SDK has push scope.')
           #scope.set_extra('debug', extra)

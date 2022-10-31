@@ -39,10 +39,10 @@ class CallbackModule(CallbackBase):
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()
-            sentry_sdk.capture_message('Heyyyy here')
+            sentry_sdk.capture_message('Heyyyy here', 'error')
 
     def _load_sentry_client(self):
-        client = sentry_sdk.Client(
+        client = sentry_sdk.init(
           dsn=self.SENTRY_DSN,
           release="1.0.0",
           debug=True

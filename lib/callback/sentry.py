@@ -66,7 +66,7 @@ class CallbackModule(CallbackBase):
             "ansible_host_data": result._host.serialize(),
         }
 
-    def _set_extra(self, result, playbook, scope):
+    def _set_extra(self, result, scope):
       scope.set_context('ansible_user', getpass.getuser())
       scope.set_context('ansible_initiator', socket.getfqdn())
       scope.set_context('ansible_data', vars(result))
@@ -81,7 +81,7 @@ class CallbackModule(CallbackBase):
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
         with sentry_sdk.push_scope() as scope:
-          self._set_extra(self, result, self.playbook, scope)
+          self._set_extra(self, result, scope)
           sentry_sdk.capture_message(self._dump_results(result._result), 'fatal')
           client = sentry_sdk.Hub.current.client
           if client is not None:

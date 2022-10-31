@@ -6,9 +6,14 @@ import logging
 import logging.config
 import os
 import socket
-import sentry_sdk
 
 from ansible.plugins.callback import CallbackBase
+
+try:
+  import sentry_sdk
+  HAS_SENTRY=True
+except:
+  HAS_SENTRY=False
 
 class CallbackModule(CallbackBase):
     """
@@ -35,7 +40,7 @@ class CallbackModule(CallbackBase):
     def __init__(self):
         super(CallbackModule, self).__init__()
 
-        if not self.SENTRY_DSN:
+        if not self.SENTRY_DSN or not HAS_SENTRY:
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()

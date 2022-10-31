@@ -50,7 +50,8 @@ class CallbackModule(CallbackBase):
     def _load_sentry_client(self):
         client = sentry_sdk.Client(
           dsn=self.SENTRY_DSN,
-          release="0.0.1"
+          release="0.0.1",
+          debug=True
         )
         return client
 

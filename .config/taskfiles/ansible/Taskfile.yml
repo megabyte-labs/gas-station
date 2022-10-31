@@ -267,7 +267,12 @@ tasks:
         3. It is stored in `~/.VAULT_PASSWORD` so you can easily spot it if something
         goes wrong.
     env:
+      ANSIBLE_STDOUT_CALLBACK: community.general.yaml
+      ANSIBLE_CALLBACKS_ENABLED: "junit, ansible.posix.profile_tasks, ansible.posix.timer, sentry"
       ANSIBLE_VAULT_PASSWORD_FILE: ~/.VAULT_PASSWORD
+      JUNIT_FAIL_ON_CHANGE: true
+      JUNIT_HIDE_TASK_ARGUMENTS: true
+      JUNIT_OUTPUT_DIR: ".results/junit"
       QUICKSTART_PLAYBOOK_MATCH: |
         # Playbook Matching Inventory File Name
 
@@ -339,11 +344,17 @@ tasks:
           fi
           if [ -f "playbooks/${INVENTORY_SLUG}.yml" ]; then
             PLAY_TMP="$(mktemp)" && echo "$QUICKSTART_PLAYBOOK_MATCH" > "$PLAY_TMP" && .config/log md "$PLAY_TMP"
-            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags dotfiles -i {{.INVENTORY}} "playbooks/${INVENTORY_SLUG}.yml"
+            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags dotfiles -i {{.INVENTORY}} "playbooks/${INVENTORY_SLUG}.yml" || EXIT_CODE="$?"
           else
             .config/log info 'Using the `main.yml` playbook because there is no playbook located in `'"playbooks/${INVENTORY_SLUG}.yml"'`'
-            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags dotfiles -i {{.INVENTORY}} main.yml
+            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags dotfiles -i {{.INVENTORY}} main.yml || EXIT_CODE="$?"
           fi
+          #if [ -n "$EXIT_CODE" ]; then
+          #  .config/log error 'There was an error while running the playbook.'
+          #  .config/log warn 'Ensure there are no secrets in plain text (if you choose to upload the logs so our developers can fix this issue).'
+          #  .config/log confirm 'Upload the playbook log so the developers can debug?'
+          #  # sentry-cli
+          #fi
         ignore_error: true
       - sleep 5
       - .config/log info 'Ensuring the temporary vault password file is forcibly removed'

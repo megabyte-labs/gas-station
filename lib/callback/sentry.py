@@ -82,14 +82,14 @@ class CallbackModule(CallbackBase):
     def v2_runner_on_ok(self, result):
         sentry_sdk.add_breadcrumb(
           category='ok',
-          message=result,
+          message=result._task,
           level='info'
         )
 
     def v2_runner_on_skipped(self, result):
         sentry_sdk.add_breadcrumb(
           category='skip',
-          message=result,
+          message=result._task,
           level='info'
         )
 
@@ -103,14 +103,14 @@ class CallbackModule(CallbackBase):
     def v2_playbook_on_task_start(self, task, is_conditional):
         sentry_sdk.add_breadcrumb(
           category='task',
-          message=task,
+          message=task._task,
           level='info'
         )
 
     def _log_error(self, result, ignore_errors=False):
         with sentry_sdk.push_scope() as scope:
           self._set_extra(result, scope, self._playbook_name)
-          sentry_sdk.capture_message(self._dump_results(result._result), 'fatal')
+          sentry_sdk.capture_message(result._task, 'fatal')
           client = sentry_sdk.Hub.current.client
           if client is not None:
             client.close(timeout=4.0)

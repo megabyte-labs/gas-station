@@ -77,7 +77,7 @@ class CallbackModule(CallbackBase):
           print('Sentry SDK has push scope.')
           #scope.set_extra('debug', extra)
           print('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(self.playbook, result._host.get_name(), self._dump_results(result._result)))
-          sentry_sdk.capture_exeception('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
+          sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
           client = sentry_sdk.Hub.current.client
           if client is not None:

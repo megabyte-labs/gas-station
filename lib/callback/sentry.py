@@ -46,7 +46,6 @@ class CallbackModule(CallbackBase):
         else:
             self.client = self._load_sentry_client()
             sentry_sdk.capture_message('Heyyyy here')
-            self.client.capture_message('HEYYY')
 
     def _load_sentry_client(self):
         client = sentry_sdk.Client(

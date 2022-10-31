@@ -79,6 +79,7 @@ class CallbackModule(CallbackBase):
         sentry_sdk.capture_message('Heyyyyy')
         extra = self._data_dict(result, self.playbook)
         with sentry_sdk.push_scope() as scope:
+          print('Sentry SDK has push scope.')
           scope.set_extra('debug', extra)
           sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')

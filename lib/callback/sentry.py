@@ -18,6 +18,8 @@ from ansible.plugins.callback import CallbackBase
 class CallbackModule(CallbackBase):
     """
     Ansible Sentry callback plugin.
+    Modified version of https://gist.github.com/fliphess/7f6dd322388054dd1dcc07f55b1034db#file-sentry-py-L13
+    Updated to use the latest Sentry SDK.
     ansible.cfg:
         callback_plugins   = <path_to_callback_plugins_folder>
         callback_whitelist = sentry
@@ -34,23 +36,6 @@ class CallbackModule(CallbackBase):
     CALLBACK_NEEDS_WHITELIST = True
 
     SENTRY_DSN = os.getenv('SENTRY_DSN')
-    SENTRY_LOGGING = {
-        'version': 2,
-        'disable_existing_loggers': True,
-        'handlers': {
-            'sentry': {
-                'level': 'ERROR',
-                'class': 'sentry_sdk.integrations.logging.EventHandler',
-                'dsn': SENTRY_DSN,
-            },
-        },
-        'loggers': {
-            'ansible-sentry': {
-                'level': 'DEBUG',
-                'propagate': True,
-            },
-        }
-    }
 
     def __init__(self):
         super(CallbackModule, self).__init__()
@@ -88,25 +73,33 @@ class CallbackModule(CallbackBase):
         self.playbook = playbook._file_name
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
-        print('1')
+        print('Sentry handling failure event.')
         extra = self._data_dict(result, self.playbook)
-        self.logger.error('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
+        with sentry_sdk.push_scope() as scope:
+          scope.set_extra('debug', extra)
+          sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')
 
     def v2_runner_on_unreachable(self, result):
-        print('2')
+        print('Sentry handling unreachable failure event.')
         extra = self._data_dict(result, self.playbook)
-        self.logger.error('Ansible {} - Task execution UNREACHABLE; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
+        with sentry_sdk.push_scope() as scope:
+          scope.set_extra('debug', extra)
+          sentry_sdk.capture_message('Ansible {} - Task execution UNREACHABLE; Host: {}; Message: {}'.format(
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'info')
 
     def v2_runner_on_async_failed(self, result):
-        print('3')
+        print('Sentry handling async failure event.')
         extra = self._data_dict(result, self.playbook)
-        self.logger.error('Ansible {} - Task async execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
+        with sentry_sdk.push_scope() as scope:
+          scope.set_extra('debug', extra)
+          sentry_sdk.capture_message('Ansible {} - Task async execution FAILED; Host: {}; Message: {}'.format(
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')
 
     def v2_runner_item_on_failed(self, result):
-        print('4')
+        print('Sentry handling item failure event.')
         extra = self._data_dict(result, self.playbook)
-        self.logger.error('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), extra=extra)
+        with sentry_sdk.push_scope() as scope:
+          scope.set_extra('debug', extra)
+          sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
+            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')

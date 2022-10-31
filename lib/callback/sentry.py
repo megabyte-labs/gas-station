@@ -77,10 +77,15 @@ class CallbackModule(CallbackBase):
 
 
     def v2_playbook_on_start(self, playbook):
-        self.playbook = playbook._file_name
+        self._playbook_path = playbook._file_name
+        self._playbook_name = os.path.splitext(os.path.basename(self._playbook_path))[0]
+
+    def v2_playbook_on_play_start(self, play):
+        self._play_name = play.get_name()
 
     def v2_playbook_on_task_start(self, task, is_conditional):
         uuid = task._uuid
+        print(uuid)
         play = self._play_name
         print(play)
         name = task.get_name().strip()

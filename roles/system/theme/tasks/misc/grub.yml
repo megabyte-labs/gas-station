@@ -53,3 +53,17 @@
     regex: 'GRUB_THEME='
     line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug }}/theme.txt"'
   notify: update grub
+
+# @action Ensures GRUB is configured
+# Adds script that bypasses the GRUB menu when SHIFT is not held down
+- name: Ensure GRUB shift key script is added
+  copy:
+    src: 31_hold_shift
+    dest: /etc/grub.d/31_hold_shift
+  when: grub_hold_shift
+
+- name: Enable GRUB shift key feature in /etc/default/grub
+  lineinfile:
+    path: /etc/default/grub
+    regex: 'GRUB_FORCE_HIDDEN_MENU='
+    line: 'GRUB_FORCE_HIDDEN_MENU="{{ grub_hold_shift }}"'

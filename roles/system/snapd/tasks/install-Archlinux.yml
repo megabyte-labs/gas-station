@@ -39,12 +39,18 @@
         - not ('-minimal' in inventory_hostname)
         - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
 
+    - name: Detect presence of /snap folder
+      stat:
+        path: /snap
+      register: snap_folder
+
     - name: Create a link to enable classic snap support
       become: true
       file:
         dest: /snap
         src: /var/lib/snapd/snap
         state: link
+      when: not snap_folder.stat.exists
 
     - name: Restart systemd-udevd
       ansible.builtin.systemd:

@@ -79,6 +79,23 @@ class CallbackModule(CallbackBase):
     def v2_playbook_on_start(self, playbook):
         self.playbook = playbook._file_name
 
+    def v2_playbook_on_task_start(self, task, is_conditional):
+        uuid = task._uuid
+        print(uuid)
+        if uuid in self._task_data:
+            return
+
+        play = self._play_name
+        print(play)
+        name = task.get_name().strip()
+        print(name)
+        path = task.get_path()
+        print(path)
+        action = task.action
+        print(action)
+        task_args = task.args.items()
+        print(task_args)
+
     def v2_runner_on_failed(self, result, ignore_errors=False):
         with sentry_sdk.push_scope() as scope:
           self._set_extra(result, scope, self.playbook)

@@ -9,8 +9,9 @@
   when:
     - vault_password is defined
     - "not (wsl_environment | default(false))"
-    - "'wsl' not in group_names"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: Ensure ~/.config/autostart exists
   become_user: "{{ ansible_user }}"
@@ -21,8 +22,9 @@
   when:
     - ansible_system == 'Linux'
     - "not (wsl_environment | default(false))"
-    - "'wsl' not in group_names"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: Register display manager path
   command: cat /etc/X11/default-display-manager
@@ -52,8 +54,9 @@
     - ansible_system == 'Linux'
     - rb_display_manager.stdout is defined and rb_display_manager.stdout | regex_search('lightdm|gdm|sddm')
     - "not (wsl_environment | default(false))"
-    - "'wsl' not in group_names"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: Copy the script that will be run upon reboot
   become_user: "{{ ansible_user }}"
@@ -76,8 +79,9 @@
     mode: 0700
   when:
     - "not (wsl_environment | default(false))"
-    - "'wsl' not in group_names"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: Ensure cron/cronie is installed
   package:
@@ -94,7 +98,9 @@
   when:
     - ansible_system == 'Linux'
     - "rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: Ensure cron job is setup
   become_user: "{{ ansible_user }}"
@@ -106,12 +112,14 @@
   when:
     - "ansible_system == 'Darwin' or (rb_display_manager.stderr is defined and 'No such file or directory' in rb_display_manager.stderr)"
     - "not (wsl_environment | default(false))"
-    - "'wsl' not in group_names"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: Reboot # noqa 301
   command: reboot
   when:
     - "not (wsl_environment | default(false))"
-    - "'wsl' not in group_names"
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"

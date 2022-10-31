@@ -21,15 +21,21 @@
     force: true
   register: portmaster_git
 
+- name: Check for presence of /opt/safing/portmaster
+  stat:
+    path: /opt/safing/portmaster
+  register: portmaster_safing
+
 - name: "Ensure {{ app_name }} is installed" # noqa 301
   shell:
     cmd: bash install.sh
   args:
     chdir: "{{ portmaster_src_dir }}/linux"
     creates: /opt/safing/portmaster/portmaster-start
-  when: portmaster_git.after != portmaster_git.before
+  when:
+    - "(portmaster_git.after != portmaster_git.before) or (portmaster_safing is defined and not portmaster_safing.stat.exists)"
 
-- name: "Ensure {{ app_name }} serivce is enabled and started"
+- name: "Ensure {{ app_name }} service is enabled and started"
   systemd:
     name: portmaster
     daemon_reload: true

@@ -39,7 +39,6 @@ class CallbackModule(CallbackBase):
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()
-            sentry_sdk.capture_message('Heyyyy here', 'error')
 
     def _load_sentry_client(self):
         client = sentry_sdk.init(
@@ -54,18 +53,6 @@ class CallbackModule(CallbackBase):
         self._display.warning(
             "The SENTRY_DSN environment variable was not found, plugin %s disabled" % os.path.basename(__file__))
 
-    def _data_dict(self, result, playbook):
-        return {
-            "stack": True,
-            "ansible_user": getpass.getuser(),
-            "ansible_initiator": socket.getfqdn(),
-            "ansible_data": vars(result),
-            "ansible_result": result._result,
-            "ansible_task": result._task,
-            "ansible_host": result._host.get_name(),
-            "ansible_host_data": result._host.serialize(),
-        }
-
     def _set_extra(self, result, scope, playbook):
       scope.set_context('ansible_user', getpass.getuser())
       scope.set_context('ansible_initiator', socket.getfqdn())
@@ -75,29 +62,52 @@ class CallbackModule(CallbackBase):
       scope.set_context('ansible_host', result._host.get_name())
       scope.set_context('ansible_host_data', result._host.serialize())
 
-
     def v2_playbook_on_start(self, playbook):
         self._playbook_path = playbook._file_name
         self._playbook_name = os.path.splitext(os.path.basename(self._playbook_path))[0]
+        sentry_sdk.add_breadcrumb(
+          category='playbook',
+          message=self._playbook_name,
+          level='info',
+        )
 
     def v2_playbook_on_play_start(self, play):
         self._play_name = play.get_name()
+        sentry_sdk.add_breadcrumb(
+          category='play',
+          message=self._play_name,
+          level='info',
+        )
+
+    def v2_runner_on_ok(self, result):
+        sentry_sdk.add_breadcrumb(
+          category='ok',
+          message=result,
+          level='info'
+        )
+
+    def v2_runner_on_skipped(self, result):
+        sentry_sdk.add_breadcrumb(
+          category='skip',
+          message=result,
+          level='info'
+        )
+
+    def v2_playbook_on_include(self, included_file):
+        sentry_sdk.add_breadcrumb(
+          category='include',
+          message=included_file,
+          level='info'
+        )
 
     def v2_playbook_on_task_start(self, task, is_conditional):
-        uuid = task._uuid
-        print(uuid)
-        play = self._play_name
-        print(play)
-        name = task.get_name().strip()
-        print(name)
-        path = task.get_path()
-        print(path)
-        action = task.action
-        print(action)
-        task_args = task.args.items()
-        print(task_args)
+        sentry_sdk.add_breadcrumb(
+          category='task',
+          message=task,
+          level='info'
+        )
 
-    def v2_runner_on_failed(self, result, ignore_errors=False):
+    def _log_error(self, result, ignore_errors=False):
         with sentry_sdk.push_scope() as scope:
           self._set_extra(result, scope, self.playbook)
           sentry_sdk.capture_message(self._dump_results(result._result), 'fatal')
@@ -105,26 +115,14 @@ class CallbackModule(CallbackBase):
           if client is not None:
             client.close(timeout=4.0)
 
+    def v2_runner_on_failed(self, result, ignore_errors=False):
+      self._log_error(result)
+
     def v2_runner_on_unreachable(self, result):
-        print('Sentry handling unreachable failure event.')
-        extra = self._data_dict(result, self.playbook)
-        with sentry_sdk.push_scope() as scope:
-          scope.set_extra('debug', extra)
-          sentry_sdk.capture_message('Ansible {} - Task execution UNREACHABLE; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
+      self._log_error(result)
 
     def v2_runner_on_async_failed(self, result):
-        print('Sentry handling async failure event.')
-        extra = self._data_dict(result, self.playbook)
-        with sentry_sdk.push_scope() as scope:
-          scope.set_extra('debug', extra)
-          sentry_sdk.capture_message('Ansible {} - Task async execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
+        self._log_error(result)
 
     def v2_runner_item_on_failed(self, result):
-        print('Sentry handling item failure event.')
-        extra = self._data_dict(result, self.playbook)
-        with sentry_sdk.push_scope() as scope:
-          scope.set_extra('debug', extra)
-          sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
+        self._log_error(result)

@@ -109,7 +109,7 @@ class CallbackModule(CallbackBase):
 
     def _log_error(self, result, ignore_errors=False):
         with sentry_sdk.push_scope() as scope:
-          self._set_extra(result, scope, self.playbook)
+          self._set_extra(result, scope, self._playbook_name)
           sentry_sdk.capture_message(self._dump_results(result._result), 'fatal')
           client = sentry_sdk.Hub.current.client
           if client is not None:

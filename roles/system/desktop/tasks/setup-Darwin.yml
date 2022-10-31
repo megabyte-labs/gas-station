@@ -4,6 +4,8 @@
   command: mas list
   register: mas_list
   changed_when: false
+  tags:
+    - mas
 
 - name: 'Ensure {{ item.name }} is installed via MAS'
   become: false
@@ -18,8 +20,13 @@
   become: false
   command: mas upgrade
   when: mas_upgrade_all_apps
+  ignore_errors: true
+  tags:
+    - mas
 
 - name: Ensure Terminal app is not running # noqa 301 303
+  # TODO - Add note about why this is here - I tried running the command but it did not close the Terminal
+  # and what if Ansible is running in the Terminal?
   shell: pgrep Terminal && killall Terminal || echo 'Terminal is not running'
   register: kill_terminal
   changed_when: "'Terminal is not running' not in kill_terminal.stdout"

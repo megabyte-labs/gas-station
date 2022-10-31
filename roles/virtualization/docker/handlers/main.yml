@@ -6,7 +6,9 @@
     state: '{{ docker_restart_handler_state }}'
   when:
     - ansible_os_family not in ('Windows', 'Darwin')
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: reload systemd daemon
   become: true
@@ -14,11 +16,16 @@
     daemon_reload: true
   when:
     - ansible_os_family not in ('Windows', 'Darwin')
-    - not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"
 
 - name: restart containerd
   become: true
   systemd:
     name: containerd
     state: restarted
-  when: not ("'WSLENV' in ansible_env or 'microsoft' in ansible_kernel or 'WSL' in ansible_kernel")
+  when:
+    - ansible_env.WSLENV is not defined
+    - "'microsoft' not in ansible_kernel"
+    - "'WSL' not in ansible_kernel"

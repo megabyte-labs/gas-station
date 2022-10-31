@@ -7,6 +7,7 @@
         url: "{{ addon.link }}"
         return_content: true
       register: addon_page
+      ignore_errors: true
 
     - name: 'Download the Addon file {{ addon.name }}'
       become_user: "{{ user.username }}"
@@ -14,6 +15,7 @@
         url: "{{ addon_page.content | regex_search('https:\\/\\/addons.mozilla.org\\/firefox\\/downloads\\/file\\/\\d*\\/[\\w\\-\\_\\.]*.xpi') }}"
         dest: "{{ ('~/.mozilla/extensions/' if ansible_system == 'Linux' else '~/Library/Application Support/Mozilla/Extensions/') + \
           '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/' + addon.name | lower + '.xpi' }}"
+      ignore_errors: true
 
     - name: 'Create a temporary directory to extract the Addon {{ addon.name }}'
       become_user: "{{ user.username }}"
@@ -21,6 +23,7 @@
         path: "/tmp/{{ addon.name | lower }}"
         state: directory
         mode: 0755
+      ignore_errors: true
 
     - name: 'Extract the Addon file {{ addon.name }}'
       become_user: "{{ user.username }}"

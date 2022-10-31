@@ -75,6 +75,7 @@ class CallbackModule(CallbackBase):
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
         print('Sentry handling failure event.')
+        sentry_sdk.capture_message('Heyyyyy')
         extra = self._data_dict(result, self.playbook)
         with sentry_sdk.push_scope() as scope:
           scope.set_extra('debug', extra)

@@ -234,6 +234,10 @@ done < <(find /etc/ansible/roles -mindepth 2 -maxdepth 2 -type d)
 sudo rm -f '/etc/ansible/qubes.yml'
 sudo ln -s '/etc/ansible/playbooks/qubes.yml' '/etc/ansible/qubes.yml'
 
+# Ensure group_vars / host_vars are writable
+chown -Rf "$(whoami)" /etc/ansible/group_vars
+chown -Rf "$(whoami)" /etc/ansible/host_vars
+
 # Install Ansible collections
 cd '/etc/ansible/collections'
 ansible-galaxy collection install --force -r requirements.yml

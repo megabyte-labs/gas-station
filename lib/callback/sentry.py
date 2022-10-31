@@ -42,7 +42,7 @@ class CallbackModule(CallbackBase):
 
     def _load_sentry_client(self):
         client = sentry_sdk.init(
-          dsn=self.SENTRY_DSN,
+          dsn='https://glet_eba773e2329ceebd1c8a3de52dc3420d@observe.gitlab.com:443/errortracking/api/v1/projects/18473622',
           release="1.0.0",
           debug=True
         )

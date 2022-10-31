@@ -83,6 +83,9 @@ class CallbackModule(CallbackBase):
           scope.set_extra('debug', extra)
           sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
             self.playbook, result._host.get_name(), self._dump_results(result._result)), 'error')
+          client = sentry_sdk.Hub.current.client
+          if client is not None:
+            client.close(timeout=4.0)
 
     def v2_runner_on_unreachable(self, result):
         print('Sentry handling unreachable failure event.')

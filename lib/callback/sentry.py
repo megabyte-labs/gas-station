@@ -66,20 +66,23 @@ class CallbackModule(CallbackBase):
             "ansible_host_data": result._host.serialize(),
         }
 
+    def _set_extra(self, result, playbook, scope):
+      scope.set_context('ansible_user', getpass.getuser())
+      scope.set_context('ansible_initiator', socket.getfqdn())
+      scope.set_context('ansible_data', vars(result))
+      scope.set_context('ansible_result', result._result)
+      scope.set_context('ansible_task', result._task)
+      scope.set_context('ansible_host', result._host.get_name())
+      scope.set_context('ansible_host_data', result._host.serialize())
+
+
     def v2_playbook_on_start(self, playbook):
         self.playbook = playbook._file_name
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
-        print('Sentry handling failure event.')
-        sentry_sdk.capture_message('Heyyyyy')
-        extra = self._data_dict(result, self.playbook)
-        print(extra)
         with sentry_sdk.push_scope() as scope:
-          print('Sentry SDK has push scope.')
-          #scope.set_extra('debug', extra)
-          print('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(self.playbook, result._host.get_name(), self._dump_results(result._result)))
-          sentry_sdk.capture_message('Ansible {} - Task execution FAILED; Host: {}; Message: {}'.format(
-            self.playbook, result._host.get_name(), self._dump_results(result._result)), 'fatal')
+          _set_extra(self, result, self.playbook, scope)
+          sentry_sdk.capture_message(self._dump_results(result._result), 'fatal')
           client = sentry_sdk.Hub.current.client
           if client is not None:
             client.close(timeout=4.0)

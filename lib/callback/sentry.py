@@ -6,6 +6,7 @@ import logging
 import logging.config
 import os
 import socket
+import sentry_sdk
 
 try:
      from sentry_sdk import Client

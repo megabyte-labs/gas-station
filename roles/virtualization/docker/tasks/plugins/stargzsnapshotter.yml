@@ -3,29 +3,34 @@
   package:
     name: fuse
     state: present
+  when: install_stargz
 
 - name: Ensure custom facts directory exists
   file:
     mode: 0755
     path: /etc/ansible/facts.d
     state: directory
+  when: install_stargz
 
 - name: 'Ensure {{ plugins_src_dir }} directory exists'
   file:
     path: '{{ plugins_src_dir }}'
     state: directory
     mode: 0755
+  when: install_stargz
 
 - name: Detect the latest stargz-snapshotter version
   uri:
     url: https://api.github.com/repos/containerd/stargz-snapshotter/releases/latest
   register: stargz_latest_release_tag
+  when: install_stargz
 
 - name: Determine whether or not the latest version of stargz-snapshotter is already installed
   set_fact:
     install_stargz: "{{ (ansible_local.stargz is not defined) or \
       ((ansible_local.stargz is defined) and \
       (ansible_local['stargz']['settings']['version'] != stargz_latest_release_tag.json.tag_name | replace('v',''))) }}"
+  when: install_stargz
 
 - name: Fetch CHECKSUMS file of stargz-snapshotter installer
   uri:
@@ -62,6 +67,7 @@
     path: /etc/containerd-stargz-grpc
     mode: 0755
     state: directory
+  when: install_stargz
 
 - name: Ensure configuration and Service files are copied
   copy:
@@ -75,6 +81,7 @@
       dest: /etc/continerd/
     - name: stargz-snapshotter.service
       dest: /etc/systemd/system/
+  when: install_stargz
 
 - name: Ensure stargz-snapshotter service is enabled and started
   systemd:
@@ -86,6 +93,7 @@
     - ansible_env.WSLENV is not defined
     - "'microsoft' not in ansible_kernel"
     - "'WSL' not in ansible_kernel"
+    - install_stargz
 
 - name: Save meta information about the version of stargz-snapshotter that was installed
   community.general.ini_file:

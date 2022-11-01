@@ -293,6 +293,15 @@ net-vms:
       vm_type: NetVM
 
 proxy-vms:
+  vars:
+    qubes:
+      label: gray
+      memory: 256
+      maxmem: 1024
+      _netvm: sys-firewall
+      provides_network: true
+      template_for_dispvms: true
+      vm_type: AppVM
   children:
     vpn-dvms:
       hosts:
@@ -316,15 +325,16 @@ proxy-vms:
           qubes:
             template: vpn-warp-tmpl
             template_vm: vpn-warp-tmpl
-      vars:
-        qubes:
-          label: gray
-          memory: 256
-          maxmem: 1024
-          _netvm: sys-firewall
-          provides_network: true
-          template_for_dispvms: true
-          vm_type: AppVM
+    net-dvms:
+      hosts:
+        ethernet-dvm:
+          qubes:
+            template: ethernet-tmpl
+            template_vm: ethernet-tmpl
+        wifi-dvm:
+          qubes:
+            template: wifi-tmpl
+            template_vm: wifi-tmpl
 
 template-vms:
   vars:
@@ -335,6 +345,14 @@ template-vms:
   children:
     primary-templates:
       children:
+        network-templates:
+          hosts:
+            ethernet-tmpl:
+              qubes:
+                source: fedora-36-minimal
+            wifi-tmpl:
+              qubes:
+                source: debian-11-minimal
         primary-templates-base:
           hosts:
             archlinux-base:
@@ -606,7 +624,7 @@ standalone-vms:
     #       root: 50g
     unikernel-vms:
       hosts:
-        mirage-firewall:
+        mirage:
           mirage_compile_from_source: false
           qubes:
             kernel: mirage-firewall

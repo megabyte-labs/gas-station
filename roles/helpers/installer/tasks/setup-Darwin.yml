@@ -2,6 +2,7 @@
 # @action Ensures software is installed
 # Installs software on MacOS Systems using `Homebrew`
 - name: "Ensure {{ software_item }} is installed (Homebrew)"
+  become: false
   community.general.homebrew:
     name: "{{ software_package[software_item]['brew'] }}"
     state: present
@@ -11,6 +12,7 @@
     or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
+  become: false
   shell: |
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
     {{ software_package[software_item]['go'] }}
@@ -26,6 +28,7 @@
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
+  become: false
   shell: |
     {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
     {{ software_package[software_item]['cargo'] }}
@@ -53,6 +56,19 @@
     - "'is already installed' not in cargo_result.stderr or 'Installed package' not in cargo_result.stderr or 'error: could not find' in cargo_result.stderr"
   register: binary_result
   failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+
+- name: "Ensure go-task/tap/go-task is installed (Homebrew)"
+  become: false
+  community.general.homebrew:
+    name: go-task/tap/go-task
+    state: present
+  when:
+    - "'github' in available_methods"
+    - brew_result.skipped is defined or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
 
 - name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
   become: true

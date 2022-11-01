@@ -23,7 +23,7 @@
     or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
-  become_user: false
+  become: false
   shell: |
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
     {{ software_package[software_item]['go'] }}
@@ -41,7 +41,7 @@
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
-  become_user: false
+  become: false
   shell: |
     {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
     {{ software_package[software_item]['cargo'] }}
@@ -90,6 +90,22 @@
     - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
   register: snap_result
   failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
+
+- name: "Ensure go-task/tap/go-task is installed (Homebrew)"
+  become: false
+  community.general.homebrew:
+    name: go-task/tap/go-task
+    state: present
+  when:
+    - "'github' in available_methods"
+    - "(dnf_result.rc is defined and dnf_result.rc == 1 and 'Failed to install' in dnf_result.msg) or dnf_result.skipped is defined or \
+        ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
+    - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
+        'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
+    - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
+    - snap_result.msg is defined or snap_result.skipped is defined or ((snap_result.changed and snap_result.failed) and (not snap_result.changed))
 
 - name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
   command: task install:gh:"{{ software_item }}"

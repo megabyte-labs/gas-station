@@ -235,8 +235,7 @@ sudo rm -f '/etc/ansible/qubes.yml'
 sudo ln -s '/etc/ansible/playbooks/qubes.yml' '/etc/ansible/qubes.yml'
 
 # Ensure group_vars / host_vars are writable
-sudo chown -Rf "$(whoami)" /etc/ansible/group_vars
-sudo chown -Rf "$(whoami)" /etc/ansible/host_vars
+sudo chown -Rf "$(whoami)" /etc/ansible/environments
 
 # Install Ansible collections
 cd '/etc/ansible/collections'

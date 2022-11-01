@@ -101,10 +101,7 @@
       get_url:
         url: https://gitlab.com/megabyte-labs/misc/dotfiles/-/raw/master/dotfiles/.local/bin/install-dotfiles
         dest: ~/dotfiles.sh
-      register: dotfiles_download
       delegate_to: localhost
-    - debug:
-        msg: "{{ dotfiles_download }}"
     - name: Run the dotfiles.sh update script
       run_once: true
       command: bash ~/dotfiles.sh
@@ -112,10 +109,13 @@
     - name: Copy the dotfiles from the the Ansible host's folder
       copy:
         src: /usr/local/src/professor-dotfiles/dotfiles/
-        dest: "{{ item }}"
-      loop:
-        - ~/
-        - /rw/home/user/
+        dest: /home/user
+    - name:  Synchronize /home/user with /rw/home/user
+      become: true
+      ansible.posix.synchronize:
+        src: /home/user
+        dest: /rw/home/user
+      delegate_to: delegate.host
 
 - name: Prepare for the "base" TemplateVM provisioning
   hosts: dom0

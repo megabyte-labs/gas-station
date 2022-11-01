@@ -9,3 +9,22 @@
   apt:
     deb: "{{ portmaster_url }}"
     state: "{{ app_state | default('present') }}"
+  when: not qubes_whonix
+
+- name: "Download {{ app_name }}'s deb installer file (for Qubes Whonix)"
+  get_url:
+    url: "{{ portmaster_url }}"
+    dest: '/tmp/portainer.deb'
+  when: qubes_whonix | default(false)
+
+- name: "Copy {{ app_name }}'s deb installer file (for Qubes Whonix)"
+  copy:
+    src: /tmp/portainer.deb
+    dest: /tmp/portainer.deb
+  when: qubes_whonix | default(false)
+
+- name: "Ensure {{ app_name }} is installed (on Qubes Whonix)"
+  apt:
+    deb: /tmp/portainer.deb
+    state: "{{ app_state | default('present') }}"
+  when: qubes_whonix | default(false)

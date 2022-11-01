@@ -17,6 +17,7 @@
     return_content: true
     method: GET
   register: elasticagent_latest_content
+  delegate_to: "{{ 'localhost' if qubes_whonix else omit }}"
 
 - name: 'Find the latest {{ app_name }} version'
   set_fact:
@@ -34,11 +35,13 @@
     return_content: true
   register: elasticagent_checksum_file
   when: install_elasticagent
+  delegate_to: "{{ 'localhost' if qubes_whonix else omit }}"
 
 - name: 'Find the Checksum of {{ app_name }} installer'
   set_fact:
     elasticagent_checksum: "{{ elasticagent_checksum_file.content | regex_search('(.*)  elastic-agent-.*') | regex_replace('(.*)  elastic-agent.*','\\1') }}"
   when: install_elasticagent
+  delegate_to: "{{ 'localhost' if qubes_whonix else omit }}"
 
 - name: "Acquire {{ app_name }}'s latest installer"
   get_url:
@@ -46,7 +49,19 @@
       {{ ansible_system | lower }}-{{ ansible_architecture }}.tar.gz"
     dest: '{{ elastic_src }}/elasticagent-{{ elasticagent_latest_release }}.tar.bz2'
     checksum: 'sha512:{{ elasticagent_checksum }}'
-  when: install_elasticagent
+  when:
+    - install_elasticagent
+    - not qubes_whonix
+
+- name: "Acquire {{ app_name }}'s latest installer (for Qubes Whonix)"
+  get_url:
+    url: "https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-{{ elasticagent_latest_release }}-\
+      {{ ansible_system | lower }}-{{ ansible_architecture }}.tar.gz"
+    dest: '/tmp/elasticagent-{{ elasticagent_latest_release }}.tar.bz2'
+    checksum: 'sha512:{{ elasticagent_checksum }}'
+  when:
+    - install_elasticagent
+    - qubes_whonix | default(false)
 
 - name: 'Ensure {{ app_name }} is extracted'
   unarchive:
@@ -55,7 +70,19 @@
     remote_src: true
     extra_opts:
       - --strip-components=1
-  when: install_elasticagent
+  when:
+    - install_elasticagent
+    - not qubes_whonix
+
+- name: "Ensure {{ app_name }} is extracted (for Qubes Whonix)"
+  unarchive:
+    src: '/tmp/elasticagent-{{ elasticagent_latest_release }}.tar.bz2'
+    dest: '{{ elastic_src }}'
+    extra_opts:
+      - --strip-components=1
+  when:
+    - install_elasticagent
+    - qubes_whonix | default(false)
 
 - name: 'Ensure {{ app_name }} is installed'
   command: 'elastic-agent install -f --kibana-url={{ kibana_url }}  --enrollment-token={{ kibana_enrollment_secrets[kibana_enrollment_id] }}'

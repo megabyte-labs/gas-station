@@ -15,7 +15,8 @@
     msg: "{{ ansible_env }}"
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
-  become: false
+  become: true
+  become_user: "{{ ansible_user | default('env', 'USER') }}"
   shell:
     cmd: |
       {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
@@ -33,7 +34,8 @@
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
-  become: false
+  become: true
+  become_user: "{{ ansible_user | default('env', 'USER') }}"
   shell: |
     {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
     {{ software_package[software_item]['cargo'] }}
@@ -79,6 +81,7 @@
 
 - name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
   become: true
+  become_user: "{{ ansible_user | default('env', 'USER') }}"
   command: task install:gh:"{{ software_item }}"
   register: github_install_result
   async: 180

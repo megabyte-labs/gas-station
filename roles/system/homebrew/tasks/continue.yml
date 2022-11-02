@@ -42,7 +42,30 @@
   environment:
     PATH: "{{ ('/home/linuxbrew/.linuxbrew/bin:' if ansible_system == 'Linux' else '') + ansible_env.PATH }}"
   register: homebrew_update
-  ignore_errors: true
+  failed_when:
+    - homebrew_update.failed | default(false)
+    - "'sudo rm -rf /Library/Developer/CommandLineTools' not in homebrew_update.msg"
+
+- name: Update macOS CommandLineTools (if they are out-of-date)
+  become: true
+  become_user: root
+  shell:
+    cmd: |
+      rm -rf /Library/Developer/CommandLineTools
+      xcode-select -p &> /dev/null
+      if [ $? -ne 0 ]; then
+        echo "Xcode CLI not found. Installing.."
+        touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress;
+        PROD=$(softwareupdate -l |
+          grep "\*.*Command Line" |
+          tail -n 1 | sed 's/^[^C]* //')
+        softwareupdate -i "$PROD" --verbose
+      else
+        echo "Xcode CLI tools already installed."
+      fi
+  when:
+    - ansible_os_family == 'Darwin'
+    - "'sudo rm -rf /Library/Developer/CommandLineTools' not in homebrew_update.msg"
 
 - debug:
     msg: "{{ homebrew_update }}"

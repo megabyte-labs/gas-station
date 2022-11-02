@@ -24,15 +24,18 @@
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
   become: false
-  shell: |
-    alias go="$(which -a go | grep 'usr/local/bin')"
-    unset GOROOT
-    {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
-    {{ software_package[software_item]['go'] }}
-    {%- else -%}
-    go install {{ software_package[software_item]['go'] }}
-    {%- endif -%}
+  shell:
+    cmd: |
+      alias go="$(which -a go | grep 'usr/local/bin')"
+      unset GOROOT
+      {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
+      {{ software_package[software_item]['go'] }}
+      {%- else -%}
+      go install {{ software_package[software_item]['go'] }}
+      {%- endif -%}
   register: go_result
+  args:
+    executable: /bin/bash
   when:
     - "'go' in available_methods"
     - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
@@ -42,7 +45,8 @@
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
   become: false
-  shell: |
+  shell:
+    cmd: |
       alias cargo="$(which -a cargo | grep 'usr/local/bin')"
       {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
       {{ software_package[software_item]['cargo'] }}
@@ -50,6 +54,8 @@
       cargo install {{ software_package[software_item]['cargo'] }}
       {%- endif -%}
   register: cargo_result
+  args:
+    executable: /bin/bash
   when:
     - "'cargo' in available_methods"
     - "(pacman_result.msg is defined and 'No package matching' in pacman_result.msg) or pacman_result.skipped is defined or \
@@ -172,7 +178,7 @@
         ((yay_result.changed and yay_result.failed) and (not yay_result.changed))"
 
 - name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
-  command: task install:gh:"{{ software_item }}"
+  shell: task install:gh:"{{ software_item }}"
   register: github_install_result
   async: 180
   poll: 5

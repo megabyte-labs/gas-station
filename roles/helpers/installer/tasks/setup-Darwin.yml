@@ -15,8 +15,7 @@
     msg: "{{ ansible_env }}"
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
-  become: true
-  become_user: "{{ ansible_user | default('env', 'USER') }}"
+  become: false
   shell:
     cmd: |
       alias go="$(which -a go | grep 'usr/local/bin')"
@@ -27,22 +26,26 @@
       go install {{ software_package[software_item]['go'] }}
       {%- endif -%}
   register: go_result
+  args:
+    executable: /bin/bash
   when:
     - "'go' in available_methods"
     - "brew_result.skipped is defined or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))"
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
-  become: true
-  become_user: "{{ ansible_user | default('env', 'USER') }}"
-  shell: |
-    alias cargo="$(which -a cargo | grep 'usr/local/bin')"
-    {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
-    {{ software_package[software_item]['cargo'] }}
-    {%- else -%}
-    cargo install {{ software_package[software_item]['cargo'] }}
-    {%- endif -%}
+  become: false
+  shell:
+    cmd: |
+      alias cargo="$(which -a cargo | grep 'usr/local/bin')"
+      {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
+      {{ software_package[software_item]['cargo'] }}
+      {%- else -%}
+      cargo install {{ software_package[software_item]['cargo'] }}
+      {%- endif -%}
   register: cargo_result
+  args:
+    executable: /bin/bash
   when:
     - "'cargo' in available_methods"
     - brew_result.skipped is defined or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))
@@ -78,7 +81,7 @@
 - name: "Ensure {{ software_item }} is installed (GitHub)" # noqa 301
   become: true
   become_user: "{{ ansible_user | default('env', 'USER') }}"
-  command: task install:gh:"{{ software_item }}"
+  shell: task install:gh:"{{ software_item }}"
   register: github_install_result
   async: 180
   poll: 5

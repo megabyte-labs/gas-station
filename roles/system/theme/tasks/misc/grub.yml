@@ -81,6 +81,15 @@
     line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug }}-{{ grub_theme_resolution_type }}/theme.txt"'
   notify: update grub
 
+- name: Silence log messages during the GRUB boot process
+  become: true
+  lineinfile:
+    path: /etc/default/grub
+    regex: 'rd.systemd.show_status=auto'
+    line: 'GRUB_CMDLINE_LINUX=$GRUB_CMDLINE_LINUX quiet loglevel=3 rd.systemd.show_status=auto rd.udev.log-priority=3 loglevel=0 vt.global_cursor_default=0 splash'
+  notify: update grub
+  when: aggressive_grub_log_silencing
+
 # @action Ensures GRUB is configured
 # Adds script that bypasses the GRUB menu when SHIFT is not held down
 - name: Ensure GRUB shift key script is added

@@ -1,6 +1,7 @@
 ---
 - name: "Find the version of {{ app_name }} installed"
-  command: asdf --version
+  shell:
+    cmd: asdf --version | sed 's/-.*//'
   environment:
     PATH: /usr/local/bin:{{ ansible_env.PATH }}
   register: asdf_version
@@ -16,7 +17,7 @@
     . "$ASDF_DIR/asdf.sh"
     asdf list {{ plugin.name }}
   environment:
-    ASDF_DIR: "{{ lookup('env', 'ASDF_DIR') if (lookup('env', 'ASDF_DIR') is defined) else (('/home/' + user.username + '/.local/asdf') if (ansible_system == 'Linux') else ('/usr/local/Cellar/asdf/' asdf_version.stdout | replace('v','') + '/libexec')) }}"
+    ASDF_DIR: "{{ lookup('env', 'ASDF_DIR') if (lookup('env', 'ASDF_DIR') is defined) else (('/home/' + user.username + '/.local/asdf') if (ansible_system == 'Linux') else ('/usr/local/Cellar/asdf/' +  asdf_version.stdout | replace('v','') + '/libexec')) }}"
   args:
     executable: /bin/bash
   register: plugin_installed
@@ -32,7 +33,7 @@
     . "$ASDF_DIR/asdf.sh"
     asdf plugin add {{ plugin.name }} {{ plugin.url }}
   environment:
-    ASDF_DIR: "{{ lookup('env', 'ASDF_DIR') if (lookup('env', 'ASDF_DIR') is defined) else (('/home/' + user.username + '/.local/asdf') if (ansible_system == 'Linux') else ('/usr/local/Cellar/asdf/' asdf_version.stdout | replace('v','') + '/libexec')) }}"
+    ASDF_DIR: "{{ lookup('env', 'ASDF_DIR') if (lookup('env', 'ASDF_DIR') is defined) else (('/home/' + user.username + '/.local/asdf') if (ansible_system == 'Linux') else ('/usr/local/Cellar/asdf/' +  asdf_version.stdout | replace('v','') + '/libexec')) }}"
   args:
     executable: /bin/bash
   register: asdf_plugin_install
@@ -73,7 +74,7 @@
     asdf install
     asdf reshim {{ plugin.name }}
   environment:
-    ASDF_DIR: "{{ lookup('env', 'ASDF_DIR') if (lookup('env', 'ASDF_DIR') is defined) else (('/home/' + user.username + '/.local/asdf') if (ansible_system == 'Linux') else ('/usr/local/Cellar/asdf/' asdf_version.stdout | replace('v','') + '/libexec')) }}"
+    ASDF_DIR: "{{ lookup('env', 'ASDF_DIR') if (lookup('env', 'ASDF_DIR') is defined) else (('/home/' + user.username + '/.local/asdf') if (ansible_system == 'Linux') else ('/usr/local/Cellar/asdf/' +  asdf_version.stdout | replace('v','') + '/libexec')) }}"
   args:
     executable: /bin/bash
   register: asdf_node_install

@@ -21,6 +21,8 @@
     {%- endif -%}
   environment:
     GOPATH: "{{ '/Users/' + (ansible_user | default('env', 'USER')) + '/.local/go' }}"
+  args:
+    executable: /bin/bash
   register: go_result
   when:
     - "'go' in available_methods"
@@ -49,6 +51,8 @@
     url: "{{ software_package[software_item]['binary'] }}"
     dest: "/usr/local/bin/{{ software_item }}"
     mode: 0755
+  args:
+    executable: /bin/bash
   when:
     - "'binary' in available_methods"
     - brew_result.skipped is defined or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))
@@ -81,6 +85,7 @@
   until: "github_install_result is not failed"
   ignore_errors: true
   args:
+    executable: /bin/bash
     chdir: /tmp/shared-master
   when:
     - "'github' in available_methods"

@@ -1,4 +1,34 @@
 ---
+- name: Determine width of screen
+  shell:
+    cmd: xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f1
+  register: screen_width
+  changed_when: false
+  when: grub_theme_resolution_type == 'autodetect-lowest-resolution'
+
+- name: Determine height of screen
+  shell:
+    cmd: xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f2
+  register: screen_height
+  changed_when: false
+  when: grub_theme_resolution_type == 'autodetect-lowest-resolution'
+
+- name: Calculate screen dimension ratio
+  shell:
+    cmd: |
+      SCREEN_RATIO="$(awk -v height={{ screen_height.stdout }} -v width={{ screen_width.stdout }} 'BEGIN { print ((height / width) * 1000) }')"
+      echo "${SCREEN_RATIO%.*}"
+  register: screen_ratio
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: grub_theme_resolution_type == 'autodetect-lowest-resolution'
+
+- name: Set screen dimension to ultrawide if the calculated SCREEN_RATIO is above 2100 (ratio for 1080p is 1777.78 and ratio for 2560x1080p is 2370.37)
+  set_fact:
+    grub_theme_resolution_type: "{{ 'ultrawide' if ((screen_ratio.stdout | int) > 2100) else '1080p' }}"
+  when: grub_theme_resolution_type == 'autodetect-lowest-resolution'
+
 - name: Copy over GRUB theme files from the theme folder in /usr/share/grub/themes
   copy:
     src: /usr/src/{{ theme_slug }}/share/grub/themes/
@@ -16,9 +46,6 @@
     dest: /boot/grub2/themes/
     remote_src: true
   notify: update grub
-
-- name: Detect optimal value for GRUB_GFXMODE
-  command: echo TODO
 
 # @action Ensures GRUB is configured
 # Configures GRUB timeout
@@ -51,7 +78,7 @@
   lineinfile:
     path: /etc/default/grub
     regex: 'GRUB_THEME='
-    line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug }}/theme.txt"'
+    line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug }}-{{ grub_theme_resolution_type }}/theme.txt"'
   notify: update grub
 
 # @action Ensures GRUB is configured

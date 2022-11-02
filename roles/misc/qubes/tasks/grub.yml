@@ -2,6 +2,36 @@
 - name: Ensure Betelgeuse theme is present
   include_tasks: betelgeuse.yml
 
+- name: Determine width of screen
+  shell:
+    cmd: xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f1
+  register: screen_width
+  changed_when: false
+  when: qubes_grub_resolution_type == 'autodetect-lowest-resolution'
+
+- name: Determine height of screen
+  shell:
+    cmd: xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f2
+  register: screen_height
+  changed_when: false
+  when: qubes_grub_resolution_type == 'autodetect-lowest-resolution'
+
+- name: Calculate screen dimension ratio
+  shell:
+    cmd: |
+      SCREEN_RATIO="$(awk -v height={{ screen_height.stdout }} -v width={{ screen_width.stdout }} 'BEGIN { print ((height / width) * 1000) }')"
+      echo "${SCREEN_RATIO%.*}"
+  register: screen_ratio
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: qubes_grub_resolution_type == 'autodetect-lowest-resolution'
+
+- name: Set screen dimension to ultrawide if the calculated SCREEN_RATIO is above 2100 (ratio for 1080p is 1777.78 and ratio for 2560x1080p is 2370.37)
+  set_fact:
+    qubes_grub_resolution_type: "{{ 'ultrawide' if ((screen_ratio.stdout | int) > 2100) else '1080p' }}"
+  when: qubes_grub_resolution_type == 'autodetect-lowest-resolution'
+
 - name: Copy over GRUB theme files
   become: true
   copy:
@@ -43,7 +73,7 @@
   lineinfile:
     path: /etc/default/grub
     regex: 'GRUB_THEME='
-    line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug_uppercase }}/theme.txt"'
+    line: 'GRUB_THEME="/boot/grub2/themes/{{ theme_slug_uppercase }}-{{ qubes_grub_resolution_type }}/theme.txt"'
   notify: update grub
 
 - name: Register the stdout of /etc/default/grub
@@ -73,3 +103,17 @@
     dest: /boot/efi/EFI/qubes/grubenv
     mode: 0644
     remote_src: true
+
+# @action Ensures GRUB is configured
+# Adds script that bypasses the GRUB menu when SHIFT is not held down
+- name: Ensure GRUB shift key script is added
+  copy:
+    src: 31_hold_shift
+    dest: /etc/grub.d/31_hold_shift
+  when: grub_hold_shift
+
+- name: Enable GRUB shift key feature in /etc/default/grub
+  lineinfile:
+    path: /etc/default/grub
+    regex: 'GRUB_FORCE_HIDDEN_MENU='
+    line: 'GRUB_FORCE_HIDDEN_MENU="{{ grub_hold_shift }}"'

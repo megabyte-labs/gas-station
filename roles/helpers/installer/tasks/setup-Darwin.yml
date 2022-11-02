@@ -24,9 +24,6 @@
       {%- else -%}
       go install {{ software_package[software_item]['go'] }}
       {%- endif -%}
-  environment:
-    GOPATH: "{{ '/Users/' + (ansible_user | default('env', 'USER')) + '/.local/go' }}"
-    GO111MODULE: 'on'
   register: go_result
   when:
     - "'go' in available_methods"
@@ -42,8 +39,6 @@
     {%- else -%}
     cargo install {{ software_package[software_item]['cargo'] }}
     {%- endif -%}
-  args:
-    executable: /bin/bash
   register: cargo_result
   when:
     - "'cargo' in available_methods"
@@ -56,8 +51,6 @@
     url: "{{ software_package[software_item]['binary'] }}"
     dest: "/usr/local/bin/{{ software_item }}"
     mode: 0755
-  args:
-    executable: /bin/bash
   when:
     - "'binary' in available_methods"
     - brew_result.skipped is defined or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))

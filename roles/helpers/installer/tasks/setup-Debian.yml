@@ -23,7 +23,7 @@
     or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
-  become: true
+  become: false
   become_user: "{{ ansible_user | default('env', 'USER') }}"
   shell: |
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
@@ -31,8 +31,6 @@
     {%- else -%}
     go install {{ software_package[software_item]['go'] }}
     {%- endif -%}
-  environment:
-    GOPATH: "{{ '/home/' + ansible_user + '/.local/go' }}"
   register: go_result
   when:
     - "'go' in available_methods"
@@ -50,16 +48,13 @@
     - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
-  become: true
-  become_user: "{{ ansible_user | default('env', 'USER') }}"
+  become: false
   shell: |
     {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
     {{ software_package[software_item]['cargo'] }}
     {%- else -%}
     cargo install {{ software_package[software_item]['cargo'] }}
     {%- endif -%}
-  args:
-    executable: /bin/bash
   register: cargo_result
   when:
     - "'cargo' in available_methods"
@@ -101,8 +96,7 @@
   failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
 
 - name: "Ensure go-task/tap/go-task is installed (Homebrew)"
-  become: true
-  become_user: "{{ ansible_user | default('env', 'USER') }}"
+  become: false
   community.general.homebrew:
     name: go-task/tap/go-task
     state: present
@@ -128,6 +122,7 @@
   until: "github_install_result is not failed"
   args:
     chdir: /tmp/shared-master
+    executable: /bin/bash
   environment:
     PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_env.PATH }}"
   when:

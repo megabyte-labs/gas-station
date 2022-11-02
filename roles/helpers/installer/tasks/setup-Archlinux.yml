@@ -2,7 +2,6 @@
 # @action Ensures software is installed
 # Installs software on Archlinux based Systems from official repositories using `pacman`
 - name: "Ensure {{ software_item }} is installed (pacman)"
-  become: false
   community.general.pacman:
     name: "{{ software_package[software_item]['pacman'] }}"
     state: present
@@ -24,16 +23,13 @@
     or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
-  become: true
-  become_user: "{{ ansible_user | default('env', 'USER') }}"
+  become: false
   shell: |
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
     {{ software_package[software_item]['go'] }}
     {%- else -%}
     go install {{ software_package[software_item]['go'] }}
     {%- endif -%}
-  environment:
-    GOPATH: "{{ '/home/' + ansible_user + '/.local/go' }}"
   register: go_result
   when:
     - "'go' in available_methods"
@@ -43,16 +39,13 @@
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
-  become: true
-  become_user: "{{ ansible_user | default('env', 'USER') }}"
+  become: false
   shell: |
     {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
     {{ software_package[software_item]['cargo'] }}
     {%- else -%}
     cargo install {{ software_package[software_item]['cargo'] }}
     {%- endif -%}
-  args:
-    executable: /bin/bash
   register: cargo_result
   when:
     - "'cargo' in available_methods"
@@ -186,6 +179,7 @@
   until: "github_install_result is not failed"
   args:
     chdir: /tmp/shared-master
+    executable: /bin/bash
   environment:
     PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_env.PATH }}"
   when:

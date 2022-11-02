@@ -13,14 +13,16 @@
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
   become: false
-  shell: |
-    {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
-    {{ software_package[software_item]['go'] }}
-    {%- else -%}
-    go install {{ software_package[software_item]['go'] }}
-    {%- endif -%}
+  shell:
+    cmd: |
+      {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
+      {{ software_package[software_item]['go'] }}
+      {%- else -%}
+      go install {{ software_package[software_item]['go'] }}
+      {%- endif -%}
   environment:
     GOPATH: "{{ '/Users/' + (ansible_user | default('env', 'USER')) + '/.local/go' }}"
+    GO111MODULE: 'on'
   args:
     executable: /bin/bash
   register: go_result

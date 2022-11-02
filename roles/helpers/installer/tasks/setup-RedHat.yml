@@ -25,6 +25,8 @@
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
   become: false
   shell: |
+    alias go="$(which -a go | grep 'usr/local/bin')"
+    unset GOROOT
     {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
     {{ software_package[software_item]['go'] }}
     {%- else -%}
@@ -41,11 +43,12 @@
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
   become: false
   shell: |
-    {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
-    {{ software_package[software_item]['cargo'] }}
-    {%- else -%}
-    cargo install {{ software_package[software_item]['cargo'] }}
-    {%- endif -%}
+      alias cargo="$(which -a cargo | grep 'usr/local/bin')"
+      {%- if 'cargo install' in "software_package[software_item]['cargo']" -%}
+      {{ software_package[software_item]['cargo'] }}
+      {%- else -%}
+      cargo install {{ software_package[software_item]['cargo'] }}
+      {%- endif -%}
   register: cargo_result
   when:
     - "'cargo' in available_methods"

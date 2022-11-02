@@ -4,7 +4,9 @@
   community.general.homebrew:
     name: stubby
     state: present
-  when: install_stubby
+  when:
+    - install_stubby
+    - not corporate_restrictions
 
 - name: Ensure hostctl is installed
   become: false
@@ -18,19 +20,25 @@
     src: stubby.yml.j2
     dest: "{{ stubby_config_path }}"
     mode: 0600
-  when: install_stubby
+  when:
+    - install_stubby
+    - not corporate_restrictions
 
 - name: Start Stubby service # noqa 301 # TODO --- only run this if the service is not already started -- causes an issue if run twice in a row
   become: false
   shell: brew services start stubby
   ignore_errors: true
-  when: install_stubby
+  when:
+    - install_stubby
+    - not corporate_restrictions
 
 - name: Update DNS setting # noqa 301
   become: true
   become_user: root
   shell: bash /usr/local/opt/stubby/sbin/stubby-setdns-macos.sh &
-  when: install_stubby
+  when:
+    - install_stubby
+    - not corporate_restrictions
 
 #- name: Create the script to install and configure `cloudflared`
 #  template:

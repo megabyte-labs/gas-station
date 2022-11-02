@@ -4,23 +4,34 @@
 - name: Ensure plymouth's packages are installed
   apt:
     name:
+      - libplymouth5
+      - plymouth
       - plymouth-themes
       - plymouth-label
     state: present
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   when: ansible_os_family == 'Debian'
+  ignore_errors: true
 
 # @action Ensures Plymouth is configured
 # Installs Plymouth's required packages on RedHat-flavored systems
 - name: Ensure plymouth's packages are installed
   dnf:
-    name: plymouth-plugin-script
+    name:
+      - plymouth
+      - plymouth-x11
+      - plymouth-plugin-script
     state: present
     update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   when: ansible_os_family == 'RedHat'
+  ignore_errors: true
 
 - name: Ensrue Plymouth is installed (Archlinux)
-  include_tasks: plymouth-Archlinux.yml
+  community.general.pacman:
+    name:
+      - plymouth
+    state: present
+    update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
   when: ansible_os_family == 'Archlinux'
 
 - name: Register the Plymouth theme

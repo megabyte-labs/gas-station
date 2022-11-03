@@ -7,7 +7,7 @@
     state: present
   when: "'dnf' in available_methods"
   register: dnf_result
-  failed_when: "dnf_result.rc == 1 and 'Failed to install' not in dnf_result.msg"
+  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (Homebrew)"
   become: false
@@ -19,8 +19,7 @@
     - "(dnf_result.rc is defined and dnf_result.rc == 1 and 'Failed to install' in dnf_result.msg) or dnf_result.skipped is defined or \
         ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
   register: brew_result
-  failed_when: not ("'No available formula or cask with the name' in brew_result.msg or 'already installed' in brew_result.msg \
-    or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
+  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
   become: false
@@ -37,7 +36,7 @@
     - "(dnf_result.rc is defined and dnf_result.rc == 1 and 'Failed to install' in dnf_result.msg) or dnf_result.skipped is defined or \
         ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
     - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
-  failed_when: false
+  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
   become: false
@@ -58,7 +57,7 @@
         ((dnf_result.changed and dnf_result.failed) and (not dnf_result.changed))"
     - "brew_result.skipped is defined or (not ('Package installed' in brew_result.msg or 'Package already installed' in brew_result.msg))"
     - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
-  failed_when: false
+  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (Binary)"
   get_url:
@@ -74,7 +73,7 @@
     - "(cargo_result.stderr is defined and (not ('is already installed' in cargo_result.stderr or 'Installed package' in cargo_result.stderr) or \
         'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
   register: binary_result
-  failed_when: "binary_result.status_code != 200 and 'Request failed' not in binary_result.msg"
+  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (snap)"
   snap:
@@ -90,7 +89,7 @@
         'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
     - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
   register: snap_result
-  failed_when: "snap_result.msg is defined and 'No snap matching' not in snap_result.msg"
+  ignore_errors: true
 
 - name: "Ensure go-task/tap/go-task is installed (Homebrew)"
   become: false
@@ -132,4 +131,4 @@
         'error: could not find' in cargo_result.stderr)) or cargo_result.skipped is defined"
     - "(binary_result.msg is defined and 'Request failed' in binary_result.msg) or binary_result.skipped is defined"
     - snap_result.msg is defined or snap_result.skipped is defined or ((snap_result.changed and snap_result.failed) and (not snap_result.changed))
-  failed_when: github_install_result is defined and (github_install_result.rc != 0 and not (github_install_result.rc == 1 and 'No tasks with description available' in github_install_result.stdout))
+  ignore_errors: true

@@ -247,4 +247,4 @@ cd /etc/ansible
 if [[ "$(hostname)" == 'dom0' ]]; then
   export ANSIBLE_STDOUT_CALLBACK="default"
 fi
-ansible-playbook -vvvvv --skip-tags dotfiles --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml /etc/ansible/qubes.yml | tee ~/ansible-log.txt
+ansible-playbook --skip-tags dotfiles --vault-password-file ~/.vaultpass -i /etc/ansible/inventories/quickstart.yml /etc/ansible/qubes.yml | tee ~/ansible-log.txt

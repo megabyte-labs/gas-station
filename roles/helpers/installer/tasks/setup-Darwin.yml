@@ -11,37 +11,20 @@
   failed_when: not ("'No available formula or cask with the name' in brew_result.msg or 'already installed' in brew_result.msg \
     or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
 
-- debug:
-    msg: "{{ brew_result }}"
-  ignore_errors: true
-
-- debug:
-    msg: "{{ ansible_env }}"
-  ignore_errors: true
-
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
   become: false
   shell:
     cmd: |
       alias go="$(which -a go | grep 'usr/local/bin')"
       unset GOROOT
-      {%- if software_package[software_item]['go'] | regex_search('go (?i)(install|build|get)') -%}
-      {{ software_package[software_item]['go'] }}
-      {%- else -%}
       go install {{ software_package[software_item]['go'] }}
-      {%- endif -%}
   register: go_result
   args:
     executable: /bin/bash
   when:
     - "'go' in available_methods"
-    - "(brew_result is not defined) or (brew_result.skipped is defined) or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))"
+    - "brew_result.skipped or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))"
   failed_when: false
-  ignore_errors: true
-
-- debug:
-    msg: "{{ go_result }}"
-  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (cargo)" # noqa 301 305
   become: false
@@ -59,7 +42,7 @@
   when:
     - "'cargo' in available_methods"
     - brew_result.skipped is defined or (brew_result.msg != '' and not ('Package installed' in brew_result.msg or 'already installed' in brew_result.msg))
-    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped is defined"
+    - "(go_result.rc is defined and go_result.rc != 0) or go_result.skipped"
   failed_when: false
 
 - name: "Ensure {{ software_item }} is installed (Binary)"

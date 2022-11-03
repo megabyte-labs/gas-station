@@ -1,15 +1,27 @@
 ---
 # @action Ensures software is installed
+# Installs software on MacOS Systems using `Homebrew Cask` (macOS only)
+- name: "Ensure {{ software_item }} is installed (Homebrew Cask)"
+  become: false
+  community.general.homebrew_cask:
+    name: "{{ software_package[software_item]['cask'] }}"
+    state: present
+  when: "'cask' in available_methods"
+  register: brew_result
+  ignore_errors: true
+
+# @action Ensures software is installed
 # Installs software on MacOS Systems using `Homebrew`
 - name: "Ensure {{ software_item }} is installed (Homebrew)"
   become: false
   community.general.homebrew:
     name: "{{ software_package[software_item]['brew'] }}"
     state: present
-  when: "'brew' in available_methods"
+  when:
+    - "'brew' in available_methods"
+    - "'cask' not in available_methods"
   register: brew_result
-  failed_when: not ("'No available formula or cask with the name' in brew_result.msg or 'already installed' in brew_result.msg \
-    or 'No formulae found' in brew_result.msg or 'Package already installed' in brew_result.msg")
+  ignore_errors: true
 
 - name: "Ensure {{ software_item }} is installed (go)" # noqa 301 305
   become: false

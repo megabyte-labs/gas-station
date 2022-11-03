@@ -9,6 +9,29 @@
     dest: /usr/share/plymouth/themes/
     remote_src: true
 
+- name: Modify the icon used to match the base OS (store the icon in the `icons` folder of the theme and name each icon as `ansible_distribution | lower`.png or `ansible_os_family | lower `.png)
+  stat:
+    path: /usr/share/plymouth/themes/{{ theme_slug }}/icons/{{ ansible_distribution | lower }}.png
+  register: ans_dist_icon
+
+- name: Check for os_family icon
+  stat:
+    path: /usr/share/plymouth/themes/{{ theme_slug }}/icons/{{ ansible_os_family | lower }}.png
+  register: ans_os_fam_icon
+
+- name: Calculate what icon to use
+  set_fact:
+    grub2_os_icon: "{{ ansible_distribution if ans_dist_icon.stat.exists else (ansible_os_family if ans_os_fam_icon.stat.exists else 'qubes') }}"
+
+# @action Ensures GRUB is configured
+# Sets Plymouth boot logo to match the main operating system
+- name: Apply the icon (based on the OS)
+  copy:
+    src: /usr/share/plymouth/themes/{{ theme_slug }}/icons/{{ grub2_os_icon | lower }}.png
+    dest: /usr/share/plymouth/themes/{{ theme_slug }}/icon.png
+    remote_src: true
+  notify: update initramfs
+
 - name: Register the Plymouth theme
   become: true
   community.general.system.alternatives:

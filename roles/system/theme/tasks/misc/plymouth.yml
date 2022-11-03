@@ -43,11 +43,19 @@
     priority: 100
   register: plymouth_alternative
 
-- name: Add short delay to ensure no flicker between Plymouth and SDDM
+- name: Check for /etc/plymouth/plymouthd.conf
+  stat:
+    path: /etc/plymouth/plymouthd.conf
+  register: plymouthd_conf_stat
+
+- name: Add ShowDelay to /etc/plymouth/plymouthd.conf
   become: true
-  lineinfile:
-    regex: 'ShowDelay='
-    line: 'ShowDelay=2'
+  ansible.builtin.lineinfile:
+    path: /etc/plymouth/plymouthd.conf
+    regexp: '^ShowDelay='
+    line: ShowDelay=1
+  notify: update initramfs
+  when: plymouthd_conf_stat.stat.exists
 
 - name: Set the Plymouth theme
   become: true

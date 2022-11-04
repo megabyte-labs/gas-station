@@ -6,6 +6,7 @@
   command: mas list
   register: mas_list
   changed_when: false
+  when: prefer_mas
 
 - name: 'Ensure {{ app_name }} is installed'
   become: false
@@ -15,18 +16,24 @@
   args:
     creates: '{{ xcode_build }}'
   register: xcode_installation
-  when: (xcode_mas_id | string) not in mas_list.stdout
+  when:
+    - "(xcode_mas_id | string) not in mas_list.stdout"
+    - prefer_mas
   ignore_errors: true
   tags:
     - mas
 
 - name: "Accept {{ app_name }}'s License Agreement" # noqa 503
   command: '{{ xcode_build }} -license accept'
-  when: xcode_installation.changed
+  when:
+    - xcode_installation.changed
+    - prefer_mas
 
 - name: 'Run {{ app_name }} first launch' # noqa 503
   command: '{{ xcode_build }} -runFirstLaunch'
-  when: xcode_installation.changed
+  when:
+    - xcode_installation.changed
+    - prefer_mas
 
 - name: Install xcpretty
   gem:

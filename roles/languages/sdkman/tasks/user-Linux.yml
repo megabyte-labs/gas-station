@@ -1,10 +1,14 @@
 ---
+- name: Detect SDKMAN_DIR
+  set_fact:
+    sdkman_dir: "{{ ansible_env['SDKMAN_DIR'] if (ansible_env['SDKMAN_DIR'] is defined) else '~/.sdkman' }}"
+
 # @action Installs SDKMAN
 # Removes older version of SDKMAN if it is already present
 - name: 'Ensure older version of {{ app_name }} is uninstalled'
   become_user: '{{ user.username }}'
   file:
-    path: ~/.sdkman
+    path: "{{ sdkman_dir }}"
     state: absent
   when: install_sdkman
 
@@ -15,7 +19,7 @@
   shell: |
     set -o pipefail && curl -s "https://get.sdkman.io" | bash
   args:
-    creates: ~/.sdkman/bin/sdkman-init.sh
+    creates: "{{ sdkman_dir }}/bin/sdkman-init.sh"
     executable: /bin/bash
   when: install_sdkman
 
@@ -24,7 +28,7 @@
 - name: Ensure sdkman is configured
   become_user: '{{ user.username }}'
   lineinfile:
-    path: ~/.sdkman/etc/config
+    path: "{{ sdkman_dir }}/etc/config"
     regexp: ^sdkman_auto_answer
     line: sdkman_auto_answer=true
 
@@ -33,7 +37,7 @@
 - name: Ensure SDKs are installed
   become_user: '{{ user.username }}'
   shell: |
-    source ~/.sdkman/bin/sdkman-init.sh
+    source {{ sdkman_dir }}/bin/sdkman-init.sh
     sdk install {{ sdk }}
   args:
     executable: /bin/bash
@@ -45,8 +49,8 @@
 - name: "Ensure {{ app_name }}'s PATH is added to .bashrc"
   lineinfile:
     path: "{{ '~/.bashrc' if ansible_system == 'Linux' else '~/.bash_profile' }}"
-    regex: source ~/.sdkman/bin/sdkman-init.sh
-    line: source ~/.sdkman/bin/sdkman-init.sh
+    regex: source {{ sdkman_dir }}/bin/sdkman-init.sh
+    line: source {{ sdkman_dir }}/bin/sdkman-init.sh
     create: true
     mode: 0700
   tags:
@@ -55,8 +59,8 @@
 - name: "Ensure {{ app_name }}'s PATH is added to .zshrc"
   lineinfile:
     path: ~/.zshrc
-    regex: source ~/.sdkman/bin/sdkman-init.sh
-    line: source ~/.sdkman/bin/sdkman-init.sh
+    regex: source {{ sdkman_dir }}/bin/sdkman-init.sh
+    line: source {{ sdkman_dir }}/bin/sdkman-init.sh
     create: true
     mode: 0700
   tags:

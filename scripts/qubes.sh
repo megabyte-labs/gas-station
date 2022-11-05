@@ -7,6 +7,10 @@ USE_DOM0="false"
 
 set -ex
 
+if [ -f ~/.config/autostart/provision-continue.desktop ]; then
+  rm ~/.config/autostart/provision-continue.desktop
+fi
+
 if [[ "$(hostname)" == "dom0" ]]; then
   # Symlink old Python binary
   if ! type python &> /dev/null; then

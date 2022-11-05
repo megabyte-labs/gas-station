@@ -34,12 +34,14 @@
       uri:
         url: "https://plugins.jetbrains.com/api/plugins/{{ plugin_url | regex_search('\\d+-') | replace('-','') }}/updates"
       register: idea_plugin_latest_release_tag
+      ignore_errors: true
 
     - name: 'Determine whether or not the latest version of {{ plugin_name }} plugin is already installed'
       set_fact:
         install_idea_plugin: "{{ (current_idea_plugin_version.skipped | default(false)) or \
           ((not current_idea_plugin_version.skipped | default(false)) and \
           (current_idea_plugin_version.stdout | int != idea_plugin_latest_release_tag.json[0].id)) }}"
+      ignore_errors: true
 
     - name: 'Ensure the latest version of {{ plugin_name }} plugin is installed'
       unarchive:
@@ -47,6 +49,7 @@
         dest: '{{ plugins_folder }}'
         remote_src: true
       when: install_idea_plugin
+      ignore_errors: true
 
     - name: 'Save meta information about the version of {{ plugin_name }} that was installed'
       copy:
@@ -55,3 +58,4 @@
         content: |
           {{ idea_plugin_latest_release_tag.json[0].id }}
       when: install_idea_plugin
+      ignore_errors: true

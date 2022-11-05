@@ -11,11 +11,83 @@
     regex: "Current="
     line: "Current={{ theme_name }}"
 
-- name: Add a custom wayland-session script to load {{ theme_name }} theme prior to display
+#- name: Add a custom wayland-session script to load {{ theme_name }} theme prior to display
+#  copy:
+#    src: files/wayland-session.sh
+#    dest: /etc/sddm/wayland-session
+#    mode: '0755'
+- name: Ensure SDDM configuration is in place
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: '#ServerArguments'
+    line: 'ServerArguments=-nolisten tcp -background none'
+
+- name: Ensure SDDM theme configuration is setup
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'Current='
+    line: 'Current={{ theme_slug_uppercase }}'
+
+# Possibly causing a FOUC
+#- name: Add custom wayland-session to load Betelgeuse theme prior to display
+#  become: true
+#  copy:
+#    src: files/wayland-session.sh
+#    dest: /etc/sddm/wayland-session
+#    mode: '0755'
+
+- name: Acquire the current desktop environment variable
+  become: false
+  set_fact:
+    xdg_current_desktop: "{{ lookup('env', 'XDG_CURRENT_DESKTOP') }}"
+
+- name: Ensure SDDM is configured to re-login
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'Relogin='
+    line: Relogin={{ xdg_current_desktop != 'KDE' }}
+
+- name: Ensure SDDM is configured to use KDE (by default)
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'Session='
+    line: Session=plasma.desktop
+
+- name: "Ensure SDDM is configured to use the {{ ansible_user }} user when automatically logging in"
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'User='
+    line: "User={{ ansible_user }}"
+  when: xdg_current_desktop != 'KDE' or autologin
+
+- name: "Disable autologin for {{ ansible_user }}"
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'User='
+    line: "#User={{ ansible_user }}"
+  when:
+    - xdg_current_desktop == 'KDE'
+    - not autologin
+
+- name: Ensure ~/.config/autostart exists
+  become: false
+  file:
+    path: ~/.config/autostart
+    state: directory
+    recurse: true
+
+- name: Ensure the autostart script continue .desktop file is added to ~/.config/autostart
+  become: false
   copy:
-    src: files/wayland-session.sh
-    dest: /etc/sddm/wayland-session
-    mode: '0755'
+    src: provision-continue.desktop
+    dest: ~/.config/autostart/provision-continue.desktop
+  when: xdg_current_desktop != 'KDE'
 
 - name: Stop / disable the lightdm service
   ansible.builtin.systemd:

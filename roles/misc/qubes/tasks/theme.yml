@@ -157,22 +157,7 @@
 
 - name: Apply gsettings
   include_tasks: gsetting.yml
-  loop:
-    # Enables CTRL+Shift+I to inspect Gtk options
-    - setting: org.gtk.Settings.Debug enable-inspector-keybinding
-      value: 'true'
-    - setting: org.gnome.desktop.interface gtk-theme
-      value: 'Betelgeuse'
-    - setting: org.gnome.desktop.wm.preferences theme
-      value: 'Betelgeuse'
-
-# - name: Ensure the Betelgeuse desktop background is applied
-#   become_user: "{{ dom0_user }}"
-#   become_method: su
-#   become_flags: "--login"
-#   shell:
-#     cmd: |
-#       qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = "org.kde.image";d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");d.writeConfig("Image", "file:///usr/share/backgrounds/images/default.png")}'
+  loop: "{{ gsetting_configs }}"
 
 - name: Update xfconf settings
   become: true
@@ -194,7 +179,7 @@
     regex: '#ServerArguments'
     line: 'ServerArguments=-nolisten tcp -background none'
 
-- name: Ensure SDDM configuration is in place
+- name: Ensure SDDM theme configuration is setup
   become: true
   lineinfile:
     path: /etc/sddm.conf
@@ -208,6 +193,65 @@
 #    src: files/wayland-session.sh
 #    dest: /etc/sddm/wayland-session
 #    mode: '0755'
+- name: Acquire the current desktop environment variable
+  become: true
+  become_user: '{{ dom0_user }}'
+  become_method: su
+  become_flags: '--login'
+  set_fact:
+    xdg_current_desktop: "{{ lookup('env', 'XDG_CURRENT_DESKTOP') }}"
+
+- name: Ensure SDDM is configured to re-login
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'Relogin='
+    line: Relogin={{ xdg_current_desktop != 'KDE' }}
+
+- name: Ensure SDDM is configured to use KDE (by default)
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'Session='
+    line: Session=plasma.desktop
+
+- name: Ensure SDDM is configured to use the dom0 user
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'User='
+    line: "User={{ dom0_user }}"
+  when: xdg_current_desktop != 'KDE' or qubes_autologin
+
+- name: Disable autologin for the dom0 user
+  become: true
+  lineinfile:
+    path: /etc/sddm.conf
+    regex: 'User='
+    line: "#User={{ dom0_user }}"
+  when:
+    - xdg_current_desktop == 'KDE'
+    - not qubes_autologin
+
+- name: Ensure ~/.config/autostart exists
+  become: true
+  become_user: '{{ dom0_user }}'
+  become_method: su
+  become_flags: '--login'
+  file:
+    path: ~/.config/autostart
+    state: directory
+    recurse: true
+
+- name: Ensure the autostart script continue .desktop file is added to ~/.config/autostart
+  become: true
+  become_user: '{{ dom0_user }}'
+  become_method: su
+  become_flags: '--login'
+  copy:
+    src: provision-continue.desktop
+    dest: ~/.config/autostart/provision-continue.desktop
+  when: xdg_current_desktop != 'KDE'
 
 - name: Start / enable the SDDM service
   become: true

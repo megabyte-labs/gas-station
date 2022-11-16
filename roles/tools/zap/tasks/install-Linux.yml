@@ -1,0 +1,44 @@
+---
+- name: Ensure custom facts directory exists
+  file:
+    mode: 0755
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: 'Detect the latest {{ app_name }} version'
+  uri:
+    url: https://api.github.com/repos/srevinsaju/zap/releases/latest
+    headers:
+      Authorization: "token github_pat_{{ github_public_access_token | default('11ABLI5FQ001Q0rkjpBoN4_CZ8a4MkVduK4MZsmLZ12Key9Lpuwd0ONOsz5FjSQ9hPFDJY45NEpq9zAij8') }}"
+  register: zap_latest_release_tag
+
+- name: "Determine whether or not the latest version of {{ app_name }} is already installed"
+  set_fact:
+    install_zap: "{{ (ansible_local.zap is not defined) or \
+      ((ansible_local.zap is defined) and \
+      (ansible_local['zap']['settings']['version'] != zap_latest_release_tag.json.tag_name | replace('v',''))) }}"
+
+- name: 'Ensure {{ app_name }} is installed'
+  get_url:
+    url: 'https://github.com/srevinsaju/zap/releases/download/{{ zap_latest_release_tag.json.tag_name }}/zap-amd64'
+    dest: /usr/local/bin/zap
+    mode: 0755
+  when: install_zap
+
+- name: 'Save meta information about the version of {{ app_name }} that was installed'
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/zap.fact
+    mode: 0644
+    section: settings
+    option: version
+    value: "{{ zap_latest_release_tag.json.tag_name | replace('v','') }}"
+    no_extra_spaces: true
+  when: install_zap
+
+- name: Run user configuration tasks
+  include_tasks: user-Linux.yml
+  loop: '{{ user_configs }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

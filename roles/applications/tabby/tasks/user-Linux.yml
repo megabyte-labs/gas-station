@@ -1,0 +1,28 @@
+---
+- name: Ensure Tabby config and plugin directories exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0700
+  loop:
+    - "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+    - "{{ '~/.config/tabby/plugins' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+
+- name: Ensure Tabby config and plugin files are created
+  become_user: "{{ user.username }}"
+  template:
+    src: "{{ item.name }}.j2"
+    dest: "{{ item.path }}/{{ item.name }}"
+    mode: 0700
+  loop:
+    - name: config.yaml
+      path: "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+    - name: package.json
+      path: "{{ '~/.config/tabby/plugins' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+
+- name: Ensure plugins are installed
+  become_user: "{{ user.username }}"
+  community.general.npm:
+    path: "{{ '~/.config/tabby/plugins' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+    state: present

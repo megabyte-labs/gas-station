@@ -6,7 +6,6 @@ import logging
 import logging.config
 import os
 import socket
-import sentry_sdk
 
 from ansible.plugins.callback import CallbackBase
 

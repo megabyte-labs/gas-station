@@ -6,9 +6,14 @@ import logging
 import logging.config
 import os
 import socket
-import sentry_sdk
 
 from ansible.plugins.callback import CallbackBase
+
+try:
+  import sentry_sdk
+  HAS_SENTRY = True
+except ImportError:
+  HAS_SENTRY = False
 
 class CallbackModule(CallbackBase):
     """
@@ -35,7 +40,7 @@ class CallbackModule(CallbackBase):
     def __init__(self):
         super(CallbackModule, self).__init__()
 
-        if not self.SENTRY_DSN:
+        if not self.SENTRY_DSN or not HAS_RAVEN:
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()
@@ -51,7 +56,7 @@ class CallbackModule(CallbackBase):
     def _disable_plugin(self):
         self.disabled = True
         self._display.warning(
-            "The SENTRY_DSN environment variable was not found, plugin %s disabled" % os.path.basename(__file__))
+            "The SENTRY_DSN environment variable was not found or the sentry-sdk library was not loaded, plugin %s disabled" % os.path.basename(__file__))
 
     def _set_extra(self, result, scope, playbook):
       scope.set_extra('ansible_user', getpass.getuser())

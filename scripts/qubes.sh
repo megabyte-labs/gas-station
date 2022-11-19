@@ -117,7 +117,9 @@ if [[ "$(hostname)" == "dom0" ]]; then
   fi
 
   if [ ! -f /tmp/templatevms_updated ]; then
-    sudo qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
+    # timeout of 10 minutes is added here because the whonix-gw VM does not like to get updated
+    # with this method. Anyone know how to fix this?
+    sudo timeout 600 qubesctl --show-output --skip-dom0 --templates state.sls update.qubes-vm &> /dev/null || EXIT_CODE=$?
     while read RESTART_VM; do
       qvm-shutdown --wait "$RESTART_VM"
     done< <(qvm-ls --all --no-spinner --fields=name,state | grep Running | grep -v sys-net | grep -v sys-firewall | grep -v sys-whonix | grep -v dom0 | awk '{print $1}')

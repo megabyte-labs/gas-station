@@ -167,7 +167,7 @@ else
     exit 0
   else
     echo "Ensuring Ansible is installed"
-    sudo apt-get install -y ansible
+    sudo apt-get install -y ansible python3-pip
     if [ -d /etc/ansible/playbooks ]; then
       cd /etc/ansible
       sudo git config pull.rebase false

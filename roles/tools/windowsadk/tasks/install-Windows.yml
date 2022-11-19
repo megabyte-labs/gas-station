@@ -1,0 +1,49 @@
+---
+- name: 'Fetch {{ app_name }} download page'
+  ansible.windows.win_uri:
+    url: https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install
+    return_content: true
+  register: adk_page
+
+- name: Find the URLs to download the ADK
+  set_fact:
+    adk_urls:
+      windows_11: "{{ adk_page.content |
+        regex_search('<a href=.(https:\\/\\/go\\.microsoft\\.com\\/fwlink\\/\\?linkid=\\d*). .*>Download the Windows ADK<') |
+        regex_replace('<a href=.(https:\\/\\/go\\.microsoft\\.com\\/fwlink\\/\\?linkid=\\d*). .*>Download the Windows ADK<','\\1') }}"
+      windows_10: "{{ adk_page.content |
+        regex_search('ADK for \\S+ 10, \\S+ (\\d{4}):<ul><li><a href=.(https:..go.\\S+\\/fwlink.\\?\\S+=\\d*). .*>\\S+ ADK for \\S* 10, \\S+ (\\1)') |
+        regex_replace('ADK for \\S+ 10, \\S+ (\\d{4}):<ul><li><a href=.(https:..go.\\S+\\/fwlink.\\?\\S+=\\d*). .*>\\S+ ADK for \\S* 10, \\S+ (\\1)','\\2') }}"
+    pe_urls:
+      windows_11: "{{ adk_page.content |
+        regex_search('ADK<.a> for \\S+ 11, \\S+ \\d{2}H\\d<.li>\\n<li><a href=.(https:..go.\\S+\\/fwlink.\\?\\S+=\\d*). .*>Download [\\w -]* ADK<') |
+        regex_replace('ADK<.a> for \\S+ 11, \\S+ \\d{2}H\\d<.li>\\n<li><a href=.(https:..go.\\S+\\/fwlink.\\?\\S+=\\d*). .*>Download [\\w -]* ADK<','\\1') }}"
+      windows_10: "{{ adk_page.content |
+        regex_search('ADK for \\S+ 10, \\S+ (\\d{4})<.a><.li><li><a href=.(https:..go.\\S+\\/fwlink.\\?linkid=\\d*). .*>[\\w -]* ADK, \\S+ \\1<') |
+        regex_replace('ADK for \\S+ 10, \\S+ (\\d{4})<.a><.li><li><a href=.(https:..go.\\S+\\/fwlink.\\?linkid=\\d*). .*>[\\w -]* ADK, \\S+ (\\1)<','\\2') }}"
+
+- name: 'Ensure {{ app_name }} installer is downloaded'
+  ansible.windows.win_get_url:
+    url: "{{ adk_urls['windows_' + ansible_distribution_major_version] }}"
+    dest: '%TEMP%\adksetup.exe'
+    follow_redirects: safe
+
+- name: 'Ensure {{ app_name }} is installed'
+  ansible.windows.win_command: adksetup.exe /quiet /installpath {{ adk_path }} /features {{ adk_features | join(' ') }}
+  args:
+    chdir: '%TEMP%'
+    creates: "{{ adk_path }}"
+  when: adk_features | length > 0
+
+- name: Ensure Windows PE installer is downloaded
+  ansible.windows.win_get_url:
+    url: "{{ pe_urls['windows_' + ansible_distribution_major_version] }}"
+    dest: '%TEMP%\windowspe.exe'
+    follow_redirects: safe
+  when: install_pe
+
+- name: 'Ensure {{ app_name }} is installed'
+  ansible.windows.win_command: windowspe.exe /quiet /installpath {{ adk_path }} /features OptionId.WindowsPreinstallationEnvironment
+  args:
+    chdir: '%TEMP%'
+  when: install_pe

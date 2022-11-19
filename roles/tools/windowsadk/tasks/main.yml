@@ -1,0 +1,12 @@
+---
+# @action Ensures Windows ADK is installed
+# Installs Windows ADK on Windows
+# @action Ensures Windows PE is installed
+# Installs Windows PE on Windows if required
+- name: Include tasks based on the operating system
+  become: true
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
+  block:
+    - include_tasks: "install-{{ ansible_os_family }}.yml"
+  when: ansible_os_family == 'Windows'

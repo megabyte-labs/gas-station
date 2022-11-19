@@ -35,7 +35,7 @@ class CallbackModule(CallbackBase):
     def __init__(self):
         super(CallbackModule, self).__init__()
 
-        if not self.SENTRY_DSN:
+        if not self.SENTRY_DSN or True:
             self._disable_plugin()
         else:
             self.client = self._load_sentry_client()

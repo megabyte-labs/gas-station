@@ -347,13 +347,17 @@ tasks:
               fi
             fi
           fi
-          pip3 install sentry-sdk
+          if [ -f local/requirements.txt ]; then
+            pip3 install -r local/requirements.txt
+          else
+            .config/log warn 'The `local/requirements.txt` file is missing'
+          fi
           if [ -f "playbooks/${INVENTORY_SLUG}.yml" ]; then
             PLAY_TMP="$(mktemp)" && echo "$QUICKSTART_PLAYBOOK_MATCH" > "$PLAY_TMP" && .config/log md "$PLAY_TMP"
-            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags "dotfiles,mas" -i {{.INVENTORY}} "playbooks/${INVENTORY_SLUG}.yml" || EXIT_CODE="$?"
+            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags "dotfiles,mas" -vvv -i {{.INVENTORY}} "playbooks/${INVENTORY_SLUG}.yml" || EXIT_CODE="$?"
           else
             .config/log info 'Using the `main.yml` playbook because there is no playbook located in `'"playbooks/${INVENTORY_SLUG}.yml"'`'
-            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags "dotfiles,mas" -i {{.INVENTORY}} main.yml || EXIT_CODE="$?"
+            {{.PYTHON_HANDLE}}ansible-playbook --skip-tags "dotfiles,mas" -vvv -i {{.INVENTORY}} main.yml || EXIT_CODE="$?"
           fi
           #if [ -n "$EXIT_CODE" ]; then
           #  .config/log error 'There was an error while running the playbook.'

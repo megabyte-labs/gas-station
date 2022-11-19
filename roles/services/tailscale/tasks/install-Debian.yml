@@ -1,0 +1,38 @@
+---
+- name: "Ensure {{ app_name }} is installed"
+  block:
+    - name: "Add {{ app_name }}'s apt key"
+      apt_key:
+        url: "{{ tailscale_apt_key_url }}"
+        state: present
+        keyring: /usr/share/keyrings/tailscale.gpg
+      ignore_errors: true
+
+    - name: "Add {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ tailscale_apt_repository }}"
+        state: present
+        update_cache: true
+
+    - name: "Ensure {{ app_name }} is installed"
+      apt:
+        name: tailscale
+        state: "{{ app_state | default('present') }}"
+        update_cache: "{{ omit if skip_package_cache_update is defined else 'true' }}"
+
+    - name: Run generic Linux tasks
+      include_tasks: config-Linux.yml
+  rescue:
+    - name: "Remove {{ app_name }}'s apt key"
+      file:
+        path: /usr/share/keyrings/tailscale.gpg
+        state: absent
+      ignore_errors: true
+
+    - name: "Remove {{ app_name }}'s apt repository"
+      apt_repository:
+        filename: "{{ app_name | lower | replace(' ', '-') }}"
+        repo: "{{ tailscale_apt_repository }}"
+        state: absent
+      ignore_errors: true

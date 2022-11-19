@@ -1,0 +1,26 @@
+---
+version: '3'
+
+tasks:
+  load:custom-engines:
+    deps:
+      - :install:software:docker
+      - :install:software:jq
+      - :install:software:yq
+    env:
+      CUSTOM_ENGINES:
+        sh: yq e -o=j '.' .codeclimate.yml | jq -r '.plugins | keys[]'
+    cmds:
+      - |
+        function dockerGet() {
+          if ! docker images {{.DOCKERHUB_PROFILE}}/codeclimate-$1 | grep ' slim ' > /dev/null; then
+            docker pull "{{.DOCKERHUB_PROFILE}}/codeclimate-$1:slim"
+          fi
+          docker tag "{{.DOCKERHUB_PROFILE}}/codeclimate-$1:slim" "codeclimate/codeclimate-$1:latest"
+        }
+        for ENGINE in $CUSTOM_ENGINES; do
+          if [ "$(yq e -o=j '.' .codeclimate.yml | jq --arg engine $ENGINE -r '.plugins[$engine].enabled')" == 'true' ]; then
+            dockerGet "$ENGINE" &
+          fi
+        done
+        wait

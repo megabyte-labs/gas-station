@@ -29,7 +29,7 @@ function ensurePackageInstalled() {
     if [[ "$OSTYPE" == 'darwin'* ]]; then
       brew install "$1"
     elif [[ "$OSTYPE" == 'linux'* ]]; then
-      if [ -f "/etc/redhat-release" ]; then
+      if [ -f "/etc/redhat-release" ] || command -v dnf > /dev/null || command -v yum > /dev/null; then
         if type sudo &> /dev/null; then
           if type dnf &> /dev/null; then
             sudo dnf install -y "$1"
@@ -43,7 +43,7 @@ function ensurePackageInstalled() {
             yum install -y "$1"
           fi
         fi
-      elif [ -f "/etc/ubuntu-release" ] || [ -f "/etc/debian_version" ]; then
+      elif [ -f "/etc/ubuntu-release" ] || [ -f "/etc/debian_version" ] || command -v apt-get > /dev/null; then
         if type sudo &> /dev/null; then
           sudo apt-get update
           sudo apt-get install -y "$1"
@@ -51,7 +51,7 @@ function ensurePackageInstalled() {
           apt-get update
           apt-get install -y "$1"
         fi
-      elif [ -f "/etc/arch-release" ]; then
+      elif [ -f "/etc/arch-release" ] || command -v pacman > /dev/null; then
         if type sudo &> /dev/null; then
           sudo pacman update
           sudo pacman -S "$1"
@@ -59,7 +59,7 @@ function ensurePackageInstalled() {
           pacman update
           pacman -S "$1"
         fi
-      elif [ -f "/etc/alpine-release" ]; then
+      elif [ -f "/etc/alpine-release" ] || command -v apk > /dev/null; then
         if type sudo &> /dev/null; then
           sudo apk --no-cache add "$1"
         else
@@ -90,6 +90,9 @@ if [ ! -d "$HOME/$PLAYBOOKS_DIR" ]; then
     git clone https://gitlab.com/megabyte-labs/gas-station.git "$PLAYBOOKS_DIR"
   fi
 fi
+
+# @description Fix for Ubuntu unattended upgrades creating lock files that impact apt
+if
 
 # @description Ensure Task is installed and properly configured and then run the `ansible:quickstart`
 # task. The source to the `ansible:quickstart` task can be found

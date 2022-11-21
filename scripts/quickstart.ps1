@@ -11,6 +11,9 @@
 #   5. Ensures Docker Desktop is installed and that the daemon is running.
 #   6. The LAN IP is detected and that same IP that the Windows computer has is used by Docker to provision with Ansible.
 
+# @description Enable logging for debugging purposes
+Set-PSDebug -Trace 1
+
 # @description Configuration variables
 $AdminUsername = 'Gas'
 $AdminPassword = 'CrownNebulaSpaceButterfly888()'

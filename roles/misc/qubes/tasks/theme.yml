@@ -215,16 +215,16 @@
   become_user: '{{ dom0_user }}'
   become_method: su
   become_flags: '--login'
-  shell: echo "$XDG_CURRENT_DESKTOP"
-  register: xdg_current_desktop_echo
+  shell: ps -aux | grep plasma_session | grep -v grep
+  register: psaux_plasma_session
+  failed_when: false
+  changed_when: false
   args:
     executable: /bin/bash
 
-- debug:
-    msg: "{{ ansible_env }}"
-
-- debug:
-    msg: "{{ xdg_current_desktop_echo.stdout }}"
+- name: Set the xdg_current_desktop variable
+  set_fact:
+    xdg_current_desktop: "{{ 'KDE' if psaux_plasma_session.rc == 0 else 'Other' }}"
 
 - name: Ensure SDDM is configured to re-login
   become: true

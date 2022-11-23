@@ -226,6 +226,9 @@
   set_fact:
     xdg_current_desktop: "{{ 'KDE' if psaux_plasma_session.rc == 0 else 'Other' }}"
 
+- debug:
+    msg: "{{ xdg_current_desktop }}"
+
 - name: Ensure SDDM is configured to re-login
   become: true
   lineinfile:
@@ -237,26 +240,31 @@
   become: true
   lineinfile:
     path: /etc/sddm.conf
-    regex: '#Session'
+    regex: '^#Session='
     line: Session=plasma.desktop
+    insertbefore: '[General]'
+    firstmatch: true
 
 - name: Ensure SDDM is configured to use the dom0 user
   become: true
   lineinfile:
     path: /etc/sddm.conf
-    regex: '#User'
+    regex: '^#User='
     line: "User={{ dom0_user }}"
-  when: xdg_current_desktop != 'KDE' or qubes_autologin
+    insertbefore: '[General]'
+    firstmatch: true
+  when: xdg_current_desktop != 'KDE'
 
 - name: Disable autologin for the dom0 user
   become: true
   lineinfile:
     path: /etc/sddm.conf
-    regex: 'User='
+    regex: '^User='
     line: "#User={{ dom0_user }}"
+    insertbefore: '[General]'
+    firstmatch: true
   when:
     - xdg_current_desktop == 'KDE'
-    - not qubes_autologin
 
 - name: Ensure ~/.config/autostart exists
   become: true
@@ -278,12 +286,6 @@
     dest: ~/.config/autostart/provision-continue.desktop
   when: xdg_current_desktop != 'KDE'
 
-- name: Disable lightdm
-  become: true
-  ansible.builtin.systemd:
-    name: lightdm
-    enabled: false
-
 - name: Start / enable the SDDM service
   become: true
   ansible.builtin.systemd:
@@ -296,4 +298,6 @@
   become: true
   ansible.builtin.systemd:
     name: lightdm
+    enabled: false
+    force: true
     state: stopped

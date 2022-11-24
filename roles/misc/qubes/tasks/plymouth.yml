@@ -39,6 +39,18 @@
     line: ShowDelay=1
   notify: update initramfs
 
+- name: Check for presence of /usr/share/plymouth/plymouthd.defaults
+  stat:
+    path: /usr/share/plymouth/plymouthd.defaults
+  register: plymouthd_defaults
+
+- name: Ensure /usr/share/plymouth/plymouthd.defaults includes theme
+  ansible.builtin.lineinfile:
+    path: /usr/share/plymouth/plymouthd.defaults
+    regexp: '^Theme='
+    line: Theme={{ theme_slug }}
+  when: plymouthd_defaults.stat.exists
+
 - name: Register the Plymouth theme
   become: true
   community.general.alternatives:
@@ -49,16 +61,11 @@
   register: plymouth_alternative
   notify: update initramfs
 
-- name: Check for presence of /usr/share/plymouth/themes/default.plymouth
-  stat:
-    path: /usr/share/plymouth/themes/default.plymouth
-  register: default_plymouth
-
-- name: Register the Plymouth theme (alternative method)
-  become: true
-  shell: sudo update-alternatives --set default.plymouth /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
-  when: plymouth_alternative.changed or (not default_plymouth.stat.exists)
-  notify: update initramfs
+# - name: Register the Plymouth theme (alternative method)
+#   become: true
+#   shell: sudo update-alternatives --set default.plymouth /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
+#   when: plymouth_alternative.changed or (not default_plymouth.stat.exists)
+#   notify: update initramfs
 
 - name: Set the Plymouth theme
   become: true
@@ -67,5 +74,21 @@
   failed_when:
     - plymouth_set_default.rc != 0
     - "'sys/power/resume: No such file' not in plymouth_set_default.stderr"
-  when: plymouth_alternative.changed or (not default_plymouth.stat.exists)
+  when: plymouth_alternative.changed
+  notify: update initramfs
+
+- name: Check for presence of /usr/share/plymouth/themes/default.plymouth
+  stat:
+    path: /usr/share/plymouth/themes/default.plymouth
+  register: default_plymouth
+
+- name: Register the Plymouth theme (to ensure /usr/share/plymouth/themes/default.plymouth is still present since plymouth-set-defaul-theme wipes it from disk)
+  become: true
+  community.general.alternatives:
+    name: default.plymouth
+    link: /usr/share/plymouth/themes/default.plymouth
+    path: /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
+    priority: 100
+  register: plymouth_alternative
+  when: not default_plymouth.stat.exists
   notify: update initramfs

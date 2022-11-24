@@ -88,13 +88,9 @@
     path: /usr/share/plymouth/themes/default.plymouth
   register: default_plymouth
 
-- name: Register the Plymouth theme (to ensure /usr/share/plymouth/themes/default.plymouth is still present since plymouth-set-defaul-theme wipes it from disk)
+# TODO - Figure out why this is necessary to ensure /usr/share/plymouth/themes/default.plymouth exists - Do we even need default.plymouth?
+- name: Register the Plymouth theme (alternative method)
   become: true
-  community.general.alternatives:
-    name: default.plymouth
-    link: /usr/share/plymouth/themes/default.plymouth
-    path: /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
-    priority: 100
-  register: plymouth_alternative
+  shell: sudo update-alternatives --set default.plymouth /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
   when: not default_plymouth.stat.exists
   notify: update initramfs

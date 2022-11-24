@@ -57,6 +57,18 @@
   notify: update initramfs
   when: plymouthd_conf_stat.stat.exists
 
+- name: Check for presence of /usr/share/plymouth/themes/default.plymouth
+  stat:
+    path: /usr/share/plymouth/themes/default.plymouth
+  register: default_plymouth
+
+# TODO - Figure out why this is necessary to ensure /usr/share/plymouth/themes/default.plymouth exists - Do we even need default.plymouth?
+- name: Register the Plymouth theme (alternative method)
+  become: true
+  shell: update-alternatives --set default.plymouth /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
+  when: not default_plymouth.stat.exists or plymouth_alternative.changed
+  notify: update initramfs
+
 - name: Set the Plymouth theme
   become: true
   shell: plymouth-set-default-theme -R {{ theme_slug }}
@@ -64,5 +76,16 @@
   failed_when:
     - plymouth_set_default.rc != 0
     - "'sys/power/resume: No such file' not in plymouth_set_default.stderr"
-  notify: update initramfs
   when: plymouth_alternative.changed
+  notify: update initramfs
+
+- name: Check for presence of /usr/share/plymouth/themes/default.plymouth
+  stat:
+    path: /usr/share/plymouth/themes/default.plymouth
+  register: default_plymouth
+
+# TODO - Figure out why this is necessary to ensure /usr/share/plymouth/themes/default.plymouth exists - Do we even need default.plymouth?
+- name: Register the Plymouth theme (alternative method)
+  become: true
+  shell: update-alternatives --set default.plymouth /usr/share/plymouth/themes/{{ theme_slug }}/{{ theme_slug }}.plymouth
+  when: not default_plymouth.stat.exists or plymouth_alternative.changed

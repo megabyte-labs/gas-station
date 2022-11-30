@@ -1,0 +1,60 @@
+---
+- name: Ensure Tabby config and plugin directories exists
+  become_user: "{{ user.username }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0700
+  loop:
+    - "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+    - "{{ '~/.config/tabby/plugins' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+
+- name: Check if Tabby config file exists
+  become_user: "{{ user.username }}"
+  stat:
+    path: "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}/config.yaml"
+  register: tabby_config
+
+- name: Check if sync token is present in the config file
+  become_user: "{{ user.username }}"
+  lineinfile:
+    path: "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}/config.yaml"
+    regex: "^.*token.*$"
+    line: "  token: "
+    state: present
+  check_mode: true
+  register: token_present_in_config
+  when: tabby_config.stat.exists
+
+- name: Ensure Sync token is configured in Tabby config file
+  become_user: "{{ user.username }}"
+  blockinfile:
+    path: "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}/config.yaml"
+    block: |
+      configSync:
+        parts: {}
+        token: {{ tabby_sync_token }}
+  when:
+    - tabby_config.stat.exists
+    - token_present_in_config.changed
+
+- name: Ensure Tabby config file is created
+  become_user: "{{ user.username }}"
+  template:
+    src: config.yaml.j2
+    dest: "{{ '~/.config/tabby' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}/config.yaml"
+    mode: 0700
+  when: not tabby_config.stat.exists
+
+- name: Ensure Tabby plugin package.json is created
+  become_user: "{{ user.username }}"
+  template:
+    src: package.json.j2
+    dest: "{{ '~/.config/tabby/plugins' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}/package.json"
+    mode: 0700
+
+- name: Ensure plugins are installed
+  become_user: "{{ user.username }}"
+  community.general.npm:
+    path: "{{ '~/.config/tabby/plugins' if ansible_system == 'Linux' else '~/Library/Application Support/tabby' }}"
+    state: present

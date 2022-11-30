@@ -1,34 +1,23 @@
 ---
 - name: Fetch the Releases page to determine the name of the appimaged file
   uri:
-    url: https://github.com/probonopd/go-appimage/releases/tag/continuous
-    return_content: true
+    url: https://api.github.com/repos/probonopd/go-appimage/releases
   register: go_appimage_releases
 
 - name: Download latest appimaged AppImage
   get_url:
-    url: "https://github.com/probonopd/go-appimage/releases/download/continuous/{{ go_appimage_releases.content | regex_search('appimaged-\\d*-x86_64.AppImage') }}"
+    url: "{{ (go_appimage_releases.json[0].assets | selectattr('name','contains','appimaged') |
+      selectattr('name','contains','x86_64.AppImage'))[0].browser_download_url }}"
     dest: /opt/appimaged.AppImage
     mode: 0755
-  ignore_errors: true
-  register: download_latest_appimaged
 
-- name: Download latest appimaged AppImage (if latest version detection failed)
-  get_url:
-    url: https://github.com/probonopd/go-appimage/releases/download/continuous/appimaged-730-x86_64.AppImage
-    dest: /opt/appimaged.AppImage
-    mode: 0755
-  when: download_latest_appimaged.failed
-
-- name: Link appimaged.AppImage to /usr/local/bin
-  file:
-    src: /opt/appimaged.AppImage
-    dest: /usr/local/bin/appimaged
-    state: link
-
-- name: Run appimaged # noqa 301 305
-  become_user: '{{ ansible_user }}'
-  shell: 'nohup /opt/appimaged.AppImage &'
+- name: Run user-specific tasks
+  include_tasks: user-Linux.yml
+  loop: '{{ user_configs | default([]) }}'
+  loop_control:
+    label: '{{ user.username }}'
+    loop_var: user
+  when: (user.system is not defined) or ((user.system is defined) and (not user.system))
 
 - name: Remove undesirable .desktop links
   file:
@@ -55,11 +44,3 @@
   pip:
     name: psutil
     state: present
-
-- name: Run user-specific tasks
-  include_tasks: user-Linux.yml
-  loop: '{{ user_configs | default([]) }}'
-  loop_control:
-    label: '{{ user.username }}'
-    loop_var: user
-  when: (user.system is not defined) or ((user.system is defined) and (not user.system))

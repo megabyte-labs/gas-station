@@ -1,0 +1,30 @@
+---
+- name: Ensure Tabby config and plugin directories exists
+  become_user: "{{ user.username }}"
+  become_method: runas
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - '%APPDATA%/Tabby'
+    - '%APPDATA%/Tabby/plugins'
+
+- name: Ensure Tabby config and plugin files are created
+  become_user: "{{ user.username }}"
+  become_method: runas
+  ansible.windows.win_template:
+    src: "{{ item.name }}.j2"
+    dest: "{{ item.path }}/{{ item.name }}"
+    mode: 0700
+  loop:
+    - name: config.yaml
+      path: '%APPDATA%/Tabby'
+    - name: package.json
+      path: '%APPDATA%/Tabby/plugins'
+
+- name: Ensure plugins are installed
+  become_user: "{{ user.username }}"
+  become_method: runas
+  ansible.windows.win_command: npm install
+  args:
+    chdir: '%APPDATA%/Tabby/plugins'

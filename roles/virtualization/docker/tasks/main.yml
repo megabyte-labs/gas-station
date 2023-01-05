@@ -28,7 +28,7 @@
 - name: Include tasks based on the operating system
   become: true
   become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
-  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
+  become_user: "{{ (ansible_user | default(ansible_env.USER)) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: 'install-{{ ansible_os_family }}.yml'
   when:
@@ -64,7 +64,7 @@
 - name: Install Docker Compose (based on OS)
   become: true
   become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
-  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
+  become_user: "{{ (ansible_user | default(ansible_env.USER)) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: 'compose-{{ ansible_os_family }}.yml'
   when: docker_install_compose | bool
@@ -75,7 +75,7 @@
 - name: Add users to the "docker" group (based on OS)
   become: true
   become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
-  become_user: "{{ ansible_user | default(ansible_env.USERNAME) if ansible_os_family == 'Windows' else omit }}"
+  become_user: "{{ (ansible_user | default(ansible_env.USER)) if ansible_os_family == 'Windows' else omit }}"
   block:
     - include_tasks: 'users-{{ ansible_os_family }}.yml'
   when: docker_users | length > 0
@@ -99,8 +99,8 @@
     - not docker_snap_install
 
 - name: Determine whether TLS certificates need to be generated (Windows)
-  become_method: runas
-  become_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+  become_method: "{{ 'runas' if ansible_os_family == 'Windows' else 'sudo' }}"
+  become_user: "{{ (ansible_user | default(ansible_env.USER)) if ansible_os_family == 'Windows' else omit }}"
   ansible.windows.win_stat:
     path: '%PROGRAMDATA%\docker\certs.d\ca.pem'
   register: docker_ca_pem_win

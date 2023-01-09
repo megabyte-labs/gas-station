@@ -39,11 +39,18 @@
     checksum: "sha256:{{ gitomatic_checksum }}"
   when: install_gitomatic
 
+- name: Check for presence of older installation
+  stat:
+    path: /usr/local/bin/gitomatic
+  register: gitomatic_stat
+
 - name: "Ensure older version of {{ app_name }} is uninstalled"
   file:
     src: /usr/local/bin/gitomatic
     state: absent
-  when: install_gitomatic
+  when:
+    - install_gitomatic
+    - gitomatic_stat.stat.exists
 
 - name: "Ensure {{ app_name }} is installed"
   unarchive:

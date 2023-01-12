@@ -57,7 +57,26 @@
     mode: 0755
   loop:
     - "{{ protonmail_ie_src_dir }}"
+  when: install_protonmailie
+
+- name: Ensure ProtonMail Import-Export App and Bridge's source directories are present
+  file:
+    path: "{{ item }}"
+    owner: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    state: directory
+    mode: 0755
+  loop:
     - "{{ protonmail_bridge_src_dir }}"
+  when: install_protonmailbridge
+
+- name: Ensure PKGBUILD files of ProtonMail Import-Export App and Bridge are downloaded
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - url: https://protonmail.com/download/bridge/PKGBUILD
+      dest: "{{ protonmail_bridge_src_dir }}"
+  when: install_protonmailbridge
 
 - name: Ensure PKGBUILD files of ProtonMail Import-Export App and Bridge are downloaded
   get_url:
@@ -66,17 +85,18 @@
   loop:
     - url: https://protonmail.com/download/ie/PKGBUILD
       dest: "{{ protonmail_ie_src_dir }}"
-    - url: https://protonmail.com/download/bridge/PKGBUILD
-      dest: "{{ protonmail_bridge_src_dir }}"
+  when: install_protonmailie
 
 - name: Ensure ProtonMail Import-Export App is installed
   become: false
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ protonmail_ie_src_dir }}"
+  when: install_protonmailie
 
 - name: Ensure ProtonMail Bridge is installed
   become: false
   command: makepkg -sic --noconfirm
   args:
     chdir: "{{ protonmail_bridge_src_dir }}"
+  when: install_protonmailbridge

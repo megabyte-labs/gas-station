@@ -8,6 +8,7 @@
   chocolatey.chocolatey.win_chocolatey:
     name: protonmailbridge
     state: "{{ app_state | default('present') }}"
+  when: install_protonmailbridge
 
 - name: Ensure Megabyte Labs configuration directory exists
   ansible.windows.win_file:
@@ -18,6 +19,7 @@
   ansible.windows.win_stat:
     path: '%USERPROFILE%\.config\megabytelabs\protonmailie'
   register: protonmailie_config
+  when: install_protonmailie
 
 - name: Detect previously installed ProtonMail Import-Export App version
   ansible.windows.win_shell: type protonmailie
@@ -25,19 +27,23 @@
     chdir: '%USERPROFILE%\.config\megabytelabs'
   changed_when: false
   register: current_protonmailie_version
-  when: protonmailie_config.stat.exists
+  when:
+    - install_protonmailie
+    - protonmailie_config.stat.exists
 
 - name: Fetch the release information of ProtonMail Import-Export App
   ansible.windows.win_uri:
     url: "{{ import_export_releases_windows }}"
     return_content: true
   register: ie_releases
+  when: install_protonmailie
 
 - name: Determine whether or not the latest version of ProtonMail Import-Export App is already installed
   set_fact:
-    install_protonmailie: "{{ (current_protonmailie_version.skipped | default(false)) or \
+    install_protonmailie_version: "{{ (current_protonmailie_version.skipped | default(false)) or \
       ((not current_protonmailie_version.skipped | default(false)) and \
       (current_protonmailie_version.stdout | trim != ie_releases.json.Version)) }}"
+  when: install_protonmailie
 
 - name: Ensure ProtonMail Import-Export App is installed
   ansible.windows.win_package:
@@ -45,10 +51,15 @@
     state: present
     arguments:
       - /exenoui
+  when:
+    - install_protonmailie
+    - install_protonmailie_version
 
 - name: Save meta information about the version of ProtonMail Import-Export App that was installed
   ansible.windows.win_copy:
     dest: '%USERPROFILE%\.config\megabytelabs\protonmailie'
     content: |
       {{ ie_releases.json.Version }}
-  when: install_protonmailie
+  when:
+    - install_protonmailie
+    - install_protonmailie_version

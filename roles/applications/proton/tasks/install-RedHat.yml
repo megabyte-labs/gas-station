@@ -59,19 +59,23 @@
     url: "{{ import_export_releases_linux }}"
     return_content: true
   register: ie_releases
+  when: install_protonmailie
 
 - name: Determine whether or not the latest version of ProtonMail Import-Export App is already installed
   set_fact:
-    install_protonmailie: "{{ (ansible_local.protonmailie is not defined) or \
+    install_protonmailie_version: "{{ (ansible_local.protonmailie is not defined) or \
       ((ansible_local.protonmailie is defined) and \
       (ansible_local['protonmailie']['settings']['version'] != ie_releases.json.Version)) }}"
+  when: install_protonmailie
 
 - name: Ensure ProtonMail Import-Export App is installed
   dnf:
     name: "{{ ie_releases.json.RpmFile }}"
     state: present
     disable_gpg_check: true
-  when: install_protonmailie
+  when:
+    - install_protonmailie
+    - install_protonmailie_version
 
 - name: Save meta information about the version of ProtonMail Import-Export App that was installed
   community.general.ini_file:
@@ -81,30 +85,37 @@
     option: version
     value: "{{ ie_releases.json.Version }}"
     no_extra_spaces: true
-  when: install_protonmailie
+  when:
+    - install_protonmailie
+    - install_protonmailie_version
 
 - name: Fetch the ProtonMail Bridge's Downloads page to find the latest version
   uri:
     url: "{{ bridge_releases }}"
     return_content: true
   register: bridge_page
+  when: install_protonmailbridge
 
 - name: Find ProtonMail Bridge's RPM package URL
   set_fact:
     protonmail_bridge_rpm: "{{ bridge_page.content | regex_search('https:\\/\\/protonmail.com\\/download\\/bridge\\/protonmail-bridge.*\\.rpm') }}"
+  when: install_protonmailbridge
 
 - name: Determine whether or not the latest version of ProtonMail Bridge is already installed
   set_fact:
-    install_protonmailbridge: "{{ (ansible_local.protonmailbridge is not defined) or \
+    install_protonmailbridge_version: "{{ (ansible_local.protonmailbridge is not defined) or \
       ((ansible_local.protonmailbridge is defined) and \
       (ansible_local['protonmailbridge']['settings']['version'] != protonmail_bridge_rpm | regex_search('(\\d\\.)*\\d*'))) }}"
+  when: install_protonmailbridge
 
 - name: Ensure ProtonMail Bridge is installed
   dnf:
     name: "{{ protonmail_bridge_rpm }}"
     state: present
     disable_gpg_check: true
-  when: install_protonmailbridge
+  when:
+    - install_protonmailbridge
+    - install_protonmailbridge_version
 
 - name: Save meta information about the version of ProtonMail Bridge that was installed
   community.general.ini_file:
@@ -114,4 +125,6 @@
     option: version
     value: "{{ protonmail_bridge_rpm | regex_search('(\\d\\.)*\\d*') }}"
     no_extra_spaces: true
-  when: install_protonmailbridge
+  when:
+    - install_protonmailbridge
+    - install_protonmailbridge_version

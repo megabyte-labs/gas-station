@@ -9,8 +9,7 @@
 #   ensure that the latest upstream changes are retrieved, that the project is
 #   properly generated with them, and that all the development dependencies are installed.
 #   Documentation on Taskfile.yml syntax can be found [here](https://taskfile.dev/).
-git config url."https://gitlab.com/".insteadOf git@gitlab.com:
-          git config url."https://github.com/".insteadOf git@github.com:
+
 set -eo pipefail
 
 # @description Initialize variables
@@ -487,6 +486,7 @@ function ensureTaskfiles() {
       # shellcheck disable=SC2016
       logger warn 'Something is wrong with the `Taskfile.yml` - grabbing main `Taskfile.yml`'
       git checkout HEAD~1 -- Taskfile.yml
+      task --list || curl -sSL https://gitlab.com/megabyte-labs/common/shared/-/raw/master/Taskfile.yml
       if ! task donothing; then
         logger error 'Error appears to be with main Taskfile.yml'
       else

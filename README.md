@@ -49,7 +49,7 @@
   </a>
 </div>
 
-> <br/><h4 align="center">**A no-stone-unturned Ansible playbook you can use to set up the ultimate home lab or on-premise addition to your cloud!**</h4><br/><br/>
+> <br/><h4 align="center">**A no-stone-unturned Ansible playbook you can use to set up the ultimate home lab or on-premise addition to your cloud!**</h4><br/>
 
 <a href="#table-of-contents" style="width:100%"><img style="width:100%" src="https://gitlab.com/megabyte-labs/assets/-/raw/master/png/aqua-divider.png" /></a>
 

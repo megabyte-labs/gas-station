@@ -24,10 +24,10 @@
     <img alt="Version: {{ pkg.version }}" src="https://img.shields.io/badge/version-{{ pkg.version }}-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAABlBMVEUAAAD///+l2Z/dAAAAAXRSTlMAQObYZgAAACNJREFUCNdjIACY//+BEp9hhM3hAzYQwoBIAqEDYQrCZLwAAGlFKxU1nF9cAAAAAElFTkSuQmCC&cacheSeconds=2592000&style={{ alt_badge_style }}" />
   </a>
   <a title="Build status" href="{{ repository.gitlab }}{{ repository.location.commits.gitlab }}" target="_blank">
-    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/{{ playbook_path }}?branch=master&label=build&logo=gitlab&style={{ alt_badge_style }}">
+    <img alt="Build status" src="https://img.shields.io/gitlab/pipeline-status/{{ playbook_path }}?branch=master&label=build&logo=gitlab&style={{ alt_badge_style }}" />
   </a>
   <a title="E2E test status for all operating systems" href="{{ repository.gitlab }}{{ repository.location.commits.gitlab_e2e }}" target="_blank">
-    <img alt="E2E test status" src="https://img.shields.io/gitlab/pipeline-status/{{ playbook_path }}?branch=e2e&label=e2e%20test&logo=virtualbox&style={{ alt_badge_style }}">
+    <img alt="E2E test status" src="https://img.shields.io/gitlab/pipeline-status/{{ playbook_path }}?branch=e2e&label=e2e%20test&logo=virtualbox&style={{ alt_badge_style }}" />
   </a>
   <a title="Documentation" href="{{ link.docs }}/{{ group }}" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg?logo=readthedocs&style={{ alt_badge_style }}" />
